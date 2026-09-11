@@ -13,6 +13,6 @@
 3. **长上下文与完成治理：** 实现 token-aware budget、输出预留、失败/修改证据保留和 compact 报告；通过 verifier 使“验证通过后再次修改”自动失效，防止旧证据误导最终结论。
 4. **恢复与记忆：** 融合有界 stall detection/recovery、checkpoint workspace drift 拒绝恢复、working/durable/evolution 分层记忆；lesson 必须绑定 run/evidence provenance，并支持使用反馈与回滚。
 5. **RL 环境接口：** 提供 `reset/step`、结构化 reward、terminated/truncated/info、轨迹与安全事件，不绕过生产权限、sandbox、verifier 和 completion gate；暂未实现 SFT/GRPO。
-6. **量化评测：** 固定 Harness 回归覆盖路径/控制目录/敏感文件、真实隔离、编辑验证、RL 共用边界、context compact 和 memory provenance/rollback；当前 deterministic suite **9/9 通过（100%）**，另以真实 `gpt-5.6-luna` smoke 验证模型 tool-calling 与 trace 落盘。
+6. **量化评测：** 固定 Harness 回归覆盖路径/控制目录/敏感文件、真实隔离、编辑验证、RL 共用边界、context compact、memory provenance/rollback 和 RL wire action；当前 deterministic suite **10/10 通过（100%）**，另以真实 `gpt-5.6-luna` smoke 验证模型 tool-calling 与 trace 落盘。
 
 > 当前 100% 是确定性 Harness 契约通过率，不是模型任务成功率；后续 SFT/GRPO 完成并有真实对照后再补写后训练成果。
