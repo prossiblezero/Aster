@@ -26,15 +26,26 @@ def main(argv=None):
     parser.add_argument("--rl-smoke", action="store_true")
     args = parser.parse_args(argv)
     env_file = args.env_file or (Path.cwd() / ".env")
-    settings = load_settings(env_file if env_file.exists() else None, args.config,
-                             model=args.model, protocol=args.protocol, sandbox=args.sandbox,
-                             approval=args.approval, read_only=args.read_only or None)
+    settings = load_settings(
+        env_file if env_file.exists() else None,
+        args.config,
+        model=args.model,
+        protocol=args.protocol,
+        sandbox=args.sandbox,
+        approval=args.approval,
+        read_only=args.read_only or None,
+    )
     if args.rl_smoke:
-        return asyncio.run(_rl_smoke(Path(args.cwd), settings, args.prompt or "inspect the workspace"))
+        return asyncio.run(
+            _rl_smoke(Path(args.cwd), settings, args.prompt or "inspect the workspace")
+        )
     if not args.prompt:
         parser.error("prompt is required")
-    runtime = Runtime(Path(args.cwd), settings,
-                      approval_callback=lambda call, decision: _ask(call.name, decision.reason))
+    runtime = Runtime(
+        Path(args.cwd),
+        settings,
+        approval_callback=lambda call, decision: _ask(call.name, decision.reason),
+    )
     state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt)))
     print(state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}")
     print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")

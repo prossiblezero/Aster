@@ -22,10 +22,10 @@ class ExecRule(Record):
     @model_validator(mode="after")
     def examples_match(self):
         for args in self.match:
-            if args[:len(self.prefix)] != self.prefix:
+            if args[: len(self.prefix)] != self.prefix:
                 raise ValueError("rule match example does not match its prefix")
         for args in self.not_match:
-            if args[:len(self.prefix)] == self.prefix:
+            if args[: len(self.prefix)] == self.prefix:
                 raise ValueError("rule not_match example matches its prefix")
         return self
 
@@ -76,8 +76,9 @@ def read_env(path: Path) -> dict[str, str]:
     return values
 
 
-def load_settings(env_file: Path | None = None, config_file: Path | None = None,
-                  **overrides) -> Settings:
+def load_settings(
+    env_file: Path | None = None, config_file: Path | None = None, **overrides
+) -> Settings:
     values = tomllib.loads(config_file.read_text()) if config_file else {}
     env = {**(read_env(env_file) if env_file else {}), **os.environ}
     for name in ("protocol", "model", "base_url", "api_key"):

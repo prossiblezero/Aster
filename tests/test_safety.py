@@ -8,7 +8,9 @@ from aster.safety.runner import SandboxRunner
 from aster.workspace import BoundaryError, Workspace
 
 
-@pytest.mark.parametrize("path", ["../escape", ".aster/trace.json", ".git/config", ".env", "keys/a.pem"])
+@pytest.mark.parametrize(
+    "path", ["../escape", ".aster/trace.json", ".git/config", ".env", "keys/a.pem"]
+)
 def test_path_boundary(tmp_path, path):
     with pytest.raises(BoundaryError):
         Workspace(tmp_path).path(path)
@@ -21,10 +23,12 @@ def test_symlink(tmp_path):
 
 
 def test_rules_deny_precedence():
-    settings = Settings(rules=[
-        ExecRule(prefix=["git"], decision="allow", reason="git"),
-        ExecRule(prefix=["git", "push"], decision="deny", reason="external write"),
-    ])
+    settings = Settings(
+        rules=[
+            ExecRule(prefix=["git"], decision="allow", reason="git"),
+            ExecRule(prefix=["git", "push"], decision="deny", reason="external write"),
+        ]
+    )
     assert command_rule("git push origin main", settings).action == "deny"
     assert command_rule("git status; echo x", settings).action == "ask"
 
@@ -43,15 +47,14 @@ async def test_real_isolation_and_sync(tmp_path):
     result = await runner.run(Workspace(workspace), f"cat {shlex.quote(str(secret))}")
     assert result.status == "error"
     assert "fake-secret" not in result.content
-    result = await runner.run(Workspace(workspace),
-                             "python -c 'import socket; socket.socket()'")
+    result = await runner.run(Workspace(workspace), "python -c 'import socket; socket.socket()'")
     assert result.status == "error"
     assert "Operation not permitted" in result.content
 
 
 async def test_timeout_partial_success(tmp_path):
     runner = SandboxRunner(Settings(approval="auto"))
-    result = await runner.run(Workspace(tmp_path), "echo partial > made.txt; sleep 5", .3)
+    result = await runner.run(Workspace(tmp_path), "echo partial > made.txt; sleep 5", 0.3)
     assert result.status == "timeout"
     assert result.partial_success
     assert (tmp_path / "made.txt").exists()

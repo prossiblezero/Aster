@@ -28,8 +28,9 @@ def restrict(root: Path, network: bool) -> None:
         raise RuntimeError("Landlock ABI >= 3 required (truncate mediation)")
     handled = (1 << 15) - 1
     ruleset = ctypes.c_uint64(handled)
-    fd = checked(libc.syscall(444, ctypes.byref(ruleset), ctypes.sizeof(ruleset), 0),
-                 "landlock create")
+    fd = checked(
+        libc.syscall(444, ctypes.byref(ruleset), ctypes.sizeof(ruleset), 0), "landlock create"
+    )
 
     class PathRule(ctypes.Structure):
         _pack_ = 1
@@ -48,9 +49,18 @@ def restrict(root: Path, network: bool) -> None:
             os.close(parent)
 
     try:
-        for raw in ("/usr", "/bin", "/lib", "/lib64", sys.prefix,
-                    "/etc/ld.so.cache", "/etc/localtime", "/etc/ssl",
-                    "/dev/urandom", "/dev/random"):
+        for raw in (
+            "/usr",
+            "/bin",
+            "/lib",
+            "/lib64",
+            sys.prefix,
+            "/etc/ld.so.cache",
+            "/etc/localtime",
+            "/etc/ssl",
+            "/dev/urandom",
+            "/dev/random",
+        ):
             allow(Path(raw).resolve(), 1 | 4 | 8)
         allow(Path("/dev/null"), 2 | 4)
         allow(root, handled)
@@ -62,25 +72,41 @@ def restrict(root: Path, network: bool) -> None:
     sec = ctypes.CDLL("libseccomp.so.2", use_errno=True)
     sec.seccomp_init.argtypes = [ctypes.c_uint32]
     sec.seccomp_init.restype = ctypes.c_void_p
-    sec.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int,
-                                   ctypes.c_uint]
+    sec.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
     sec.seccomp_load.argtypes = [ctypes.c_void_p]
     sec.seccomp_release.argtypes = [ctypes.c_void_p]
     sec.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
     ctx = sec.seccomp_init(0x7FFF0000)  # SCMP_ACT_ALLOW
     if not ctx:
         raise RuntimeError("seccomp initialization failed")
-    denied = ["ptrace", "process_vm_readv", "process_vm_writev", "mount", "umount2",
-              "pivot_root", "unshare", "setns", "bpf", "perf_event_open", "io_uring_setup",
-              "open_by_handle_at", "setsid", "setpgid", "kill", "tkill", "tgkill"]
+    denied = [
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev",
+        "mount",
+        "umount2",
+        "pivot_root",
+        "unshare",
+        "setns",
+        "bpf",
+        "perf_event_open",
+        "io_uring_setup",
+        "open_by_handle_at",
+        "setsid",
+        "setpgid",
+        "kill",
+        "tkill",
+        "tgkill",
+    ]
     if not network:
         denied += ["socket", "socketpair", "connect", "bind", "sendto", "sendmsg", "sendmmsg"]
     try:
         for name in denied:
             number = sec.seccomp_syscall_resolve_name(name.encode())
             if number >= 0:
-                checked(sec.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, number, 0),
-                        "seccomp rule")
+                checked(
+                    sec.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, number, 0), "seccomp rule"
+                )
         checked(sec.seccomp_load(ctx), "seccomp load")
     finally:
         sec.seccomp_release(ctx)

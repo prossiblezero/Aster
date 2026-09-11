@@ -22,12 +22,19 @@ class SandboxRunner:
 
     @staticmethod
     def environment(root: Path) -> dict[str, str]:
-        return {"PATH": f"{sys.prefix}/bin:/usr/bin:/bin", "HOME": str(root),
-                "TMPDIR": str(root / ".tmp"), "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
-                "PYTHONDONTWRITEBYTECODE": "1", "PYTHONNOUSERSITE": "1"}
+        return {
+            "PATH": f"{sys.prefix}/bin:/usr/bin:/bin",
+            "HOME": str(root),
+            "TMPDIR": str(root / ".tmp"),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
+        }
 
-    async def run(self, workspace: Workspace, command: str, timeout: float = 30,
-                  *, readonly: bool = False) -> Outcome:
+    async def run(
+        self, workspace: Workspace, command: str, timeout: float = 30, *, readonly: bool = False
+    ) -> Outcome:
         if self.settings.sandbox == "off":
             result = await self._process(["/bin/sh", "-c", command], workspace.root, timeout)
             result.data["isolation"] = "off"
@@ -41,16 +48,31 @@ class SandboxRunner:
                 shutil.copy2(path, target)
             (root / ".tmp").mkdir(exist_ok=True)
             launcher = Path(__file__).with_name("linux.py")
-            result = await self._process([sys.executable, "-I", str(launcher), str(root),
-                                         "on" if self.settings.network else "off", command],
-                                        root, timeout)
+            result = await self._process(
+                [
+                    sys.executable,
+                    "-I",
+                    str(launcher),
+                    str(root),
+                    "on" if self.settings.network else "off",
+                    command,
+                ],
+                root,
+                timeout,
+            )
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
                 if self.settings.sandbox == "best_effort":
-                    fallback = await self._process(["/bin/sh", "-c", command], workspace.root, timeout)
+                    fallback = await self._process(
+                        ["/bin/sh", "-c", command], workspace.root, timeout
+                    )
                     fallback.data.update(isolation="off", degraded=True)
                     return fallback
-                return Outcome(status="blocked", reason="sandbox_unavailable", content=result.content,
-                               data={"isolation": "unavailable"})
+                return Outcome(
+                    status="blocked",
+                    reason="sandbox_unavailable",
+                    content=result.content,
+                    data={"isolation": "unavailable"},
+                )
             result.data["isolation"] = "landlock+seccomp"
             temporary = root / ".tmp"
             if temporary.is_symlink():
@@ -61,21 +83,32 @@ class SandboxRunner:
                 staged = Workspace(root)
                 after = staged.snapshot()
                 changed = Workspace.changes(before, after)
-                violations = [str(p.relative_to(root)) for p in root.rglob("*")
-                              if p.is_symlink() or sensitive(p.relative_to(root))
-                              or any(x in CONTROL for x in p.relative_to(root).parts)]
+                violations = [
+                    str(p.relative_to(root))
+                    for p in root.rglob("*")
+                    if p.is_symlink()
+                    or sensitive(p.relative_to(root))
+                    or any(x in CONTROL for x in p.relative_to(root).parts)
+                ]
                 if violations:
                     result.status = "blocked"
                     result.reason = "sandbox_protected_output"
                     result.data["rejected_paths"] = violations[:20]
                     return result
                 if readonly and changed:
-                    return Outcome(status="blocked", reason="read_only", content=result.content,
-                                   data={"isolation": "landlock+seccomp"})
+                    return Outcome(
+                        status="blocked",
+                        reason="read_only",
+                        content=result.content,
+                        data={"isolation": "landlock+seccomp"},
+                    )
                 current = workspace.snapshot()
                 if any(current.get(p) != before.get(p) for p in changed):
-                    return Outcome(status="error", reason="concurrent_workspace_change",
-                                   content="Staged result discarded: target files changed concurrently.")
+                    return Outcome(
+                        status="error",
+                        reason="concurrent_workspace_change",
+                        content="Staged result discarded: target files changed concurrently.",
+                    )
                 # Validate the entire write set before publishing any file.
                 for name in changed:
                     workspace.path(name, write=True)
@@ -106,15 +139,20 @@ class SandboxRunner:
     async def _process(self, argv: list[str], cwd: Path, timeout: float) -> Outcome:
         started = time.monotonic()
         process = await asyncio.create_subprocess_exec(
-            *argv, cwd=cwd, env=self.environment(cwd),
-            stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT, start_new_session=True)
+            *argv,
+            cwd=cwd,
+            env=self.environment(cwd),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            start_new_session=True,
+        )
         chunks = bytearray()
 
         async def drain():
             while chunk := await process.stdout.read(8192):
                 if len(chunks) < 256 * 1024:
-                    chunks.extend(chunk[:256 * 1024 - len(chunks)])
+                    chunks.extend(chunk[: 256 * 1024 - len(chunks)])
             await process.wait()
 
         reader = asyncio.create_task(drain())
@@ -138,5 +176,9 @@ class SandboxRunner:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-        return Outcome(status=status, content=chunks.decode("utf-8", errors="replace"),
-                       exit_code=process.returncode, duration_ms=(time.monotonic() - started) * 1000)
+        return Outcome(
+            status=status,
+            content=chunks.decode("utf-8", errors="replace"),
+            exit_code=process.returncode,
+            duration_ms=(time.monotonic() - started) * 1000,
+        )

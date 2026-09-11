@@ -15,13 +15,26 @@ class Verifier:
             state.observed = True
         if outcome.changed_paths:
             state.changed_paths = sorted(set(state.changed_paths + outcome.changed_paths))
-            state.verification = Verification(state="missing", workspace_hash=self.workspace.fingerprint())
-        if outcome.status == "success" and outcome.data.get("is_verification"):
-            state.verification = Verification(state="passed", workspace_hash=self.workspace.fingerprint(),
-                                              evidence_id=outcome.evidence_id, command=outcome.data.get("command", ""))
-        elif outcome.status in {"error", "timeout"} and outcome.data.get("is_verification"):
-            state.verification = Verification(state="failed", workspace_hash=self.workspace.fingerprint(),
-                                              evidence_id=outcome.evidence_id)
+            state.verification = Verification(
+                state="missing", workspace_hash=self.workspace.fingerprint()
+            )
+        if (
+            outcome.data.get("is_verification")
+            and outcome.status == "success"
+            and outcome.reason != "no_tests_collected"
+        ):
+            state.verification = Verification(
+                state="passed",
+                workspace_hash=self.workspace.fingerprint(),
+                evidence_id=outcome.evidence_id,
+                command=outcome.data.get("command", ""),
+            )
+        elif outcome.data.get("is_verification"):
+            state.verification = Verification(
+                state="failed",
+                workspace_hash=self.workspace.fingerprint(),
+                evidence_id=outcome.evidence_id,
+            )
 
     def final(self, state: RunState) -> VerifierResult:
         task = state.task
@@ -31,14 +44,38 @@ class Verifier:
             return VerifierResult(passed=False, reason="edit_missing")
         if task.require_verification and state.verification.state != "passed":
             return VerifierResult(passed=False, reason=f"verification_{state.verification.state}")
-        return VerifierResult(passed=True, reason="requirements_satisfied",
-                              details={"changed_paths": state.changed_paths})
+        return VerifierResult(
+            passed=True,
+            reason="requirements_satisfied",
+            details={"changed_paths": state.changed_paths},
+        )
 
     @staticmethod
     def infer(prompt: str) -> dict[str, bool]:
         text = prompt.casefold()
-        edit = any(x in text for x in ("fix", "implement", "write", "edit", "修改", "修复", "实现", "写入"))
-        verify = any(x in text for x in ("test", "pytest", "验证", "测试"))
+        edit = any(
+            x in text
+            for x in (
+                "fix",
+                "implement",
+                "write",
+                "edit",
+                "modify",
+                "create",
+                "patch",
+                "update",
+                "修改",
+                "修复",
+                "实现",
+                "写入",
+                "创建",
+                "更新",
+            )
+        )
+        verify = any(x in text for x in ("test", "tests", "pytest", "verification", "验证", "测试"))
         observe = any(x in text for x in ("inspect", "review", "check", "查看", "检查", "分析"))
-        return {"require_edit": edit, "require_verification": edit and verify,
-                "require_observation": observe or edit}
+        return {
+            "require_edit": edit,
+            "require_verification": edit and verify,
+            "require_observation": observe or edit,
+        }

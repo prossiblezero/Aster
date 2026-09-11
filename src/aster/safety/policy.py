@@ -20,15 +20,14 @@ def command_rule(command: str, settings: Settings) -> Decision | None:
         argv = shlex.split(command)
     except ValueError:
         return Decision("deny", "invalid_shell")
-    matches = [r for r in settings.rules if argv[:len(r.prefix)] == r.prefix]
+    matches = [r for r in settings.rules if argv[: len(r.prefix)] == r.prefix]
     if matches:
         rule = max(matches, key=lambda r: {"allow": 0, "ask": 1, "deny": 2}[r.decision])
         return Decision(rule.decision, rule.reason)
     return None
 
 
-def permission(name: str, effect: str, arguments: dict, settings: Settings,
-               mode: str) -> Decision:
+def permission(name: str, effect: str, arguments: dict, settings: Settings, mode: str) -> Decision:
     if settings.read_only and effect == "write":
         return Decision("deny", "read_only" if settings.read_only else "plan_mode")
     if mode == "plan" and effect == "write":
@@ -37,8 +36,7 @@ def permission(name: str, effect: str, arguments: dict, settings: Settings,
         return Decision("deny", "read_only")
     if name in {"write_file", "patch_file"} and settings.write_scope is not None:
         path = arguments["path"]
-        if not any(path == p or path.startswith(p.rstrip("/") + "/")
-                   for p in settings.write_scope):
+        if not any(path == p or path.startswith(p.rstrip("/") + "/") for p in settings.write_scope):
             return Decision("deny", "write_scope")
     rule = command_rule(arguments["command"], settings) if effect == "process" else None
     if rule and rule.action == "deny":

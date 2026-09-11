@@ -14,15 +14,21 @@ class StallDetector:
         self.items = deque(maxlen=max(4, window))
 
     def observe(self, call: ToolCall, outcome: Outcome) -> str:
-        key = (call.name, hashlib.sha256(json.dumps(call.arguments, sort_keys=True).encode()).hexdigest(),
-               hashlib.sha256(outcome.content.encode()).hexdigest())
+        key = (
+            call.name,
+            hashlib.sha256(json.dumps(call.arguments, sort_keys=True).encode()).hexdigest(),
+            hashlib.sha256(outcome.content.encode()).hexdigest(),
+        )
         self.items.append(key)
         if len(self.items) >= 2 and self.items[-1][:2] == self.items[-2][:2]:
             return "repeated_identical"
         if len(self.items) >= 4:
             recent = list(self.items)[-4:]
-            if recent[0][:2] == recent[2][:2] and recent[1][:2] == recent[3][:2] \
-                    and recent[0][:2] != recent[1][:2]:
+            if (
+                recent[0][:2] == recent[2][:2]
+                and recent[1][:2] == recent[3][:2]
+                and recent[0][:2] != recent[1][:2]
+            ):
                 return "oscillation"
         if len(self.items) >= 3 and len({x[2] for x in list(self.items)[-3:]}) == 1:
             return "output_loop"

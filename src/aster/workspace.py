@@ -17,8 +17,12 @@ class BoundaryError(ValueError):
 
 
 def sensitive(path: Path) -> bool:
-    return any(p.startswith(".env") or p in {".ssh", "id_rsa", "id_ed25519"}
-               or p.endswith((".pem", ".key")) for p in path.parts)
+    return any(
+        p.startswith(".env")
+        or p in {".ssh", "id_rsa", "id_ed25519"}
+        or p.endswith((".pem", ".key"))
+        for p in path.parts
+    )
 
 
 def digest(data: bytes | str) -> str:
@@ -65,8 +69,13 @@ class Workspace:
             return [start]
         result = []
         for directory, dirs, files in os.walk(start, followlinks=False):
-            dirs[:] = sorted(d for d in dirs if d not in CONTROL | IGNORED
-                             and not sensitive(Path(d)) and not (Path(directory) / d).is_symlink())
+            dirs[:] = sorted(
+                d
+                for d in dirs
+                if d not in CONTROL | IGNORED
+                and not sensitive(Path(d))
+                and not (Path(directory) / d).is_symlink()
+            )
             for name in sorted(files):
                 path = Path(directory) / name
                 if path.is_symlink() or sensitive(Path(name)) or name.endswith(".pyc"):
@@ -107,6 +116,12 @@ class Workspace:
                 after = current[name].read_text() if name in current else ""
             except (UnicodeError, OSError):
                 continue
-            chunks.extend(difflib.unified_diff(originals.get(name, "").splitlines(True),
-                                              after.splitlines(True), f"a/{name}", f"b/{name}"))
+            chunks.extend(
+                difflib.unified_diff(
+                    originals.get(name, "").splitlines(True),
+                    after.splitlines(True),
+                    f"a/{name}",
+                    f"b/{name}",
+                )
+            )
         return "".join(chunks)

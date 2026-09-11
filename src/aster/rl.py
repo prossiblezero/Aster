@@ -8,12 +8,13 @@ from pathlib import Path
 
 from .config import Settings
 from .runtime import Runtime
-from .schema import Action, Final, TaskSpec
+from .schema import ACTION, Action, Final, TaskSpec
 
 
 class AsterEnv:
-    def __init__(self, root: Path, settings: Settings | None = None,
-                 verifier: Callable | None = None):
+    def __init__(
+        self, root: Path, settings: Settings | None = None, verifier: Callable | None = None
+    ):
         self.root, self.settings, self.verifier = Path(root), settings or Settings(), verifier
         self.runtime: Runtime | None = None
 
@@ -28,7 +29,7 @@ class AsterEnv:
         if not self.runtime or not self.runtime.state:
             raise RuntimeError("reset() must be called first")
         parsed = self.runtime.state.task
-        action = Action.model_validate(action) if isinstance(action, dict) else action
+        action = ACTION.validate_python(action) if isinstance(action, dict) else action
         if isinstance(action, Final):
             state = self.runtime.finalize(action.answer)
             outcome = None
@@ -39,19 +40,36 @@ class AsterEnv:
         reward = self._reward(action, outcome, result)
         terminated = state.phase in {"completed", "failed"}
         truncated = state.phase == "stopped" or state.step >= parsed.max_steps
-        info = {"run_id": state.run_id, "step": state.step, "outcome": outcome.model_dump() if outcome else None,
-                "verification": state.verification.model_dump(), "stop_reason": state.stop_reason,
-                "security_events": [e for e in self.runtime.evidence.events(state.run_id)
-                                    if e["event"] in {"permission_decision", "stall_detected", "run_stopped"}],
-                "trace_path": str(self.runtime.evidence.path("runs", state.run_id, "trace.jsonl"))}
+        safe_outcome = outcome.model_dump() if outcome else None
+        if safe_outcome and safe_outcome.get("data", {}).get("image_data"):
+            safe_outcome["data"]["image_data"] = "[omitted]"
+        info = {
+            "run_id": state.run_id,
+            "step": state.step,
+            "outcome": safe_outcome,
+            "verification": state.verification.model_dump(),
+            "stop_reason": state.stop_reason,
+            "security_events": [
+                e
+                for e in self.runtime.evidence.events(state.run_id)
+                if e["event"] in {"permission_decision", "stall_detected", "run_stopped"}
+            ],
+            "trace_path": str(self.runtime.evidence.path("runs", state.run_id, "trace.jsonl")),
+        }
         return self._observation(), reward, terminated, truncated, info
 
     def _observation(self):
         state = self.runtime.state
-        return {"phase": state.phase, "turn": state.turn, "step": state.step,
-                "messages": copy.deepcopy(state.messages[-12:]),
-                "changed_paths": state.changed_paths, "verification": state.verification.model_dump(),
-                "feedback": state.feedback, "workspace_hash": self.runtime.workspace.fingerprint()}
+        return {
+            "phase": state.phase,
+            "turn": state.turn,
+            "step": state.step,
+            "messages": copy.deepcopy(state.messages[-12:]),
+            "changed_paths": state.changed_paths,
+            "verification": state.verification.model_dump(),
+            "feedback": state.feedback,
+            "workspace_hash": self.runtime.workspace.fingerprint(),
+        }
 
     @staticmethod
     def _reward(action, outcome, result):

@@ -18,17 +18,20 @@ Aster 是独立重构，不导入 pico/nexa 包。主体能力来自 pico-v3 的
 
 ## 验收清单
 
-- [ ] Provider：Responses、Chat Completions、Anthropic 适配；原生 tools、usage、取消、错误
-- [ ] 工具：文件/搜索/patch/shell/tests/diff/image；统一校验、审批、审计
-- [ ] 安全：路径、敏感文件、控制目录、进程/网络隔离、最小权限、子进程取消
-- [ ] Runtime：状态、hooks、停滞、恢复、完成契约、验证失效、会话续接
-- [ ] Context：最终预算检查、近期/错误/修改证据保留、compact 与报告
-- [ ] Memory：working/durable/evolution、索引、增量 Dream、证据来源、版本回滚
-- [ ] 工作流：plan/todo/clarification、skills、受限 worker 生命周期、CLI/TUI、多模态
-- [ ] 持久化：JSONL trace、checkpoint、report、漂移识别、脱敏
-- [ ] RL：reset/step、独立 verifier、终止与截断、轨迹、生产一致性
-- [ ] 评测：固定任务、对照、真实 Luna、错误样本、量化报告、复现命令
-- [ ] 文档：逐阶段源码导读、字段解释、可运行示例、评测边界、简历精简/详细版
+- [x] Provider：Responses、Chat Completions、Anthropic 适配；原生 tools、usage、错误
+- [x] 工具：文件/搜索/patch/shell/tests/diff/image；统一校验、审批、审计
+- [x] 安全：路径、敏感文件、控制目录、进程/网络隔离、最小权限、子进程取消
+- [x] Runtime：状态、hooks、停滞、恢复、完成契约、验证失效、会话续接
+- [x] Context：最终预算检查、近期/错误/修改证据保留、compact 与报告
+- [x] Memory：working/durable/evolution、索引、增量 Dream、证据来源、版本回滚
+- [x] 工作流：plan/todo/clarification、skills、受限 worker 生命周期、多模态
+- [x] 持久化：JSONL trace、checkpoint、report、漂移识别、脱敏
+- [x] RL：reset/step、独立 verifier、终止与截断、轨迹、生产一致性
+- [x] 评测：固定任务、量化报告、复现命令；真实 Luna 仅作 smoke，不计入确定性分数
+- [x] 文档：逐阶段源码导读、字段解释、可运行示例、评测边界、简历精简/详细版
+
+明确边界：当前没有 provider 取消 API、TUI、模型辅助 Dream、上下文策略自进化、SFT 或
+GRPO。`worker_message` 和 `ask_user` 保留受限状态返回，等待后续交互层接入。
 
 ## 指标原则
 

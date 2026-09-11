@@ -87,6 +87,7 @@ class RunState(Record):
     active_skills: list[str] = Field(default_factory=list)
     working_memory: dict[str, dict[str, str]] = Field(default_factory=dict)
     recalled_ids: list[str] = Field(default_factory=list)
+    read_evidence: dict[str, str] = Field(default_factory=dict)
     used_call_ids: list[str] = Field(default_factory=list)
     usage: dict[str, int] = Field(default_factory=dict)
 

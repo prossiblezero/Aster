@@ -34,15 +34,18 @@ class Redactor:
     def text(self, text: str) -> str:
         for secret in self.secrets:
             text = text.replace(secret, "[REDACTED]")
-        return re.sub(r"(?i)\b(?:sk-[a-z0-9_-]{12,}|bearer\s+[a-z0-9._-]{12,})",
-                      "[REDACTED]", text)
+        return re.sub(r"(?i)\b(?:sk-[a-z0-9_-]{12,}|bearer\s+[a-z0-9._-]{12,})", "[REDACTED]", text)
 
     def value(self, value: Any) -> Any:
         if isinstance(value, str):
             return self.text(value)
         if isinstance(value, dict):
-            return {k: "[REDACTED]" if re.search(r"(?i)(api_key|password|secret|authorization)", k)
-                    else self.value(v) for k, v in value.items()}
+            return {
+                k: "[REDACTED]"
+                if re.search(r"(?i)(api_key|password|secret|authorization)", k)
+                else self.value(v)
+                for k, v in value.items()
+            }
         if isinstance(value, list):
             return [self.value(v) for v in value]
         return value
@@ -78,9 +81,16 @@ class EvidenceStore:
             path = self.path("runs", run_id, "trace.jsonl")
             path.parent.mkdir(parents=True, exist_ok=True)
             rows = self.events(run_id)
-            row = self.redactor.value({"seq": len(rows) + 1,
-                "time": datetime.now(UTC).isoformat(), "run_id": run_id,
-                "event": event, "previous": rows[-1]["hash"] if rows else "", **payload})
+            row = self.redactor.value(
+                {
+                    "seq": len(rows) + 1,
+                    "time": datetime.now(UTC).isoformat(),
+                    "run_id": run_id,
+                    "event": event,
+                    "previous": rows[-1]["hash"] if rows else "",
+                    **payload,
+                }
+            )
             row["hash"] = digest(json.dumps(row, sort_keys=True, ensure_ascii=False))
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -92,6 +102,10 @@ class EvidenceStore:
     def events(self, run_id: str) -> list[dict]:
         path = self.path("runs", run_id, "trace.jsonl")
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+    def has_hash(self, run_id: str, evidence_id: str) -> bool:
+        """Return whether an evidence id belongs to this run's hash-linked trace."""
+        return bool(evidence_id) and any(row.get("hash") == evidence_id for row in self.events(run_id))
 
     def artifact(self, run_id: str, call_id: str, content: str) -> str:
         name = digest(call_id)[:24] + ".txt"
