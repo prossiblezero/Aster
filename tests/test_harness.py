@@ -1,0 +1,75 @@
+
+import pytest
+
+from aster.config import Settings
+from aster.memory import Memory
+from aster.rl import AsterEnv
+from aster.runtime import Runtime
+from aster.schema import ModelReply, TaskSpec, ToolCall
+
+
+class FakeModel:
+    def __init__(self, replies):
+        self.replies = iter(replies)
+
+    async def complete(self, messages, tools):
+        return next(self.replies)
+
+
+def reply(*calls, text=""):
+    return ModelReply(text=text, calls=list(calls), raw=[{"role": "assistant", "content": text}] if text else [])
+
+
+@pytest.mark.asyncio
+async def test_production_loop_write_then_verify_and_stale_verification(tmp_path):
+    (tmp_path / "app.py").write_text("print('old')\n")
+    (tmp_path / "test_app.py").write_text("def test_ok():\n    assert True\n")
+    calls = [
+        reply(ToolCall(name="read_file", arguments={"path": "app.py"}, call_id="r1")),
+        reply(ToolCall(name="patch_file", arguments={"path": "app.py", "old_text": "old", "new_text": "new"}, call_id="p1")),
+        reply(ToolCall(name="run_tests", arguments={"command": "python -m pytest -q", "timeout": 10}, call_id="t1")),
+        reply(text="done"),
+        reply(text="done after verification"),
+    ]
+    settings = Settings(approval="auto", completion="strict", sandbox="required")
+    runtime = Runtime(tmp_path, settings, model=FakeModel(calls))
+    state = await runtime.run(TaskSpec(prompt="Fix app.py and run tests", max_steps=10))
+    assert state.phase == "completed"
+    assert state.verification.state == "passed"
+    assert (tmp_path / "app.py").read_text() == "print('new')\n"
+    events = runtime.evidence.events(state.run_id)
+    assert any(e["event"] == "verifier_result" for e in events)
+    assert len(events) >= 12
+
+
+@pytest.mark.asyncio
+async def test_completion_strictly_rejects_final_without_edit(tmp_path):
+    runtime = Runtime(tmp_path, Settings(approval="auto", completion="strict"),
+                      model=FakeModel([reply(text="I would edit it later"),
+                                       reply(text="Still not edited"),
+                                       reply(text="No edit" )]))
+    state = await runtime.run(TaskSpec(prompt="Implement a change in app.py", max_steps=2))
+    assert state.phase == "stopped"
+    assert state.stop_reason == "completion_requirements_failed"
+
+
+@pytest.mark.asyncio
+async def test_rl_uses_same_boundary(tmp_path):
+    env = AsterEnv(tmp_path, Settings(approval="never", sandbox="required"))
+    observation, info = env.reset(TaskSpec(prompt="inspect", max_steps=2))
+    observation, reward, terminated, truncated, info = await env.step(
+        ToolCall(name="write_file", arguments={"path": "x.txt", "content": "x"}, call_id="rl1"))
+    assert reward < 0 and not terminated
+    assert info["outcome"]["status"] == "blocked"
+    assert not (tmp_path / "x.txt").exists()
+
+
+def test_memory_evolution_requires_evidence_and_rolls_back(tmp_path):
+    memory = Memory(tmp_path)
+    assert memory.record("unsafe shortcut", run_id="r", evidence_id="", tags=[]) is None
+    lesson = memory.record("run pytest after edits", run_id="r", evidence_id="e1", tags=["tests"])
+    assert lesson and memory.retrieve("tests")
+    snapshot = memory.snapshot()
+    memory.record("another lesson", run_id="r", evidence_id="e2")
+    assert memory.rollback(snapshot)
+    assert not any(x["text"] == "another lesson" for x in memory.state["lessons"])

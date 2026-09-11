@@ -1,0 +1,103 @@
+"""Public data contracts; no filesystem, model, or UI dependencies."""
+
+from __future__ import annotations
+
+from typing import Annotated, Any, Literal
+from uuid import uuid4
+
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+
+
+class Record(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+class ToolCall(Record):
+    kind: Literal["tool"] = "tool"
+    name: str = Field(min_length=1, max_length=80)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    call_id: str = Field(default_factory=lambda: uuid4().hex, min_length=1, max_length=160)
+
+
+class Final(Record):
+    kind: Literal["final"] = "final"
+    answer: str = Field(min_length=1)
+
+
+Action = Annotated[ToolCall | Final, Field(discriminator="kind")]
+ACTION = TypeAdapter(Action)
+
+
+class Outcome(Record):
+    status: Literal["success", "error", "blocked", "timeout", "cancelled"]
+    content: str = ""
+    reason: str = ""
+    exit_code: int | None = None
+    changed_paths: list[str] = Field(default_factory=list)
+    partial_success: bool = False
+    duration_ms: float = 0
+    evidence_id: str = ""
+    artifact: str = ""
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+class TaskSpec(Record):
+    prompt: str = Field(min_length=1)
+    task_id: str = Field(default_factory=lambda: uuid4().hex)
+    max_steps: int = Field(default=40, ge=1, le=500)
+    max_turns: int = Field(default=40, ge=1, le=500)
+    require_observation: bool = False
+    require_edit: bool = False
+    require_verification: bool = False
+    required_artifacts: list[str] = Field(default_factory=list)
+
+
+class Verification(Record):
+    state: Literal["missing", "passed", "failed"] = "missing"
+    workspace_hash: str = ""
+    evidence_id: str = ""
+    command: str = ""
+
+
+class VerifierResult(Record):
+    passed: bool
+    reason: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class RunState(Record):
+    run_id: str = Field(default_factory=lambda: uuid4().hex)
+    session_id: str = Field(default_factory=lambda: uuid4().hex)
+    parent_run_id: str | None = None
+    task: TaskSpec
+    phase: Literal["ready", "running", "completed", "stopped", "failed"] = "ready"
+    stop_reason: str = ""
+    turn: int = 0
+    step: int = 0
+    observed: bool = False
+    changed_paths: list[str] = Field(default_factory=list)
+    verification: Verification = Field(default_factory=Verification)
+    final: str = ""
+    feedback: str = ""
+    final_revisions: int = 0
+    mode: Literal["work", "plan"] = "work"
+    plan: str = ""
+    todos: list[dict[str, str]] = Field(default_factory=list)
+    messages: list[dict[str, Any]] = Field(default_factory=list)
+    active_skills: list[str] = Field(default_factory=list)
+    working_memory: dict[str, dict[str, str]] = Field(default_factory=dict)
+    recalled_ids: list[str] = Field(default_factory=list)
+    used_call_ids: list[str] = Field(default_factory=list)
+    usage: dict[str, int] = Field(default_factory=dict)
+
+    @property
+    def terminal(self) -> bool:
+        return self.phase in {"completed", "stopped", "failed"}
+
+
+class ModelReply(Record):
+    text: str = ""
+    calls: list[ToolCall] = Field(default_factory=list)
+    usage: dict[str, int] = Field(default_factory=dict)
+    provider_model: str = ""
+    raw: list[dict[str, Any]] = Field(default_factory=list)
