@@ -1,0 +1,503 @@
+{
+  "suite": "aster-module-benchmark-v1",
+  "method": {
+    "model": "scripted-deterministic",
+    "remote_model": false,
+    "baselines": {
+      "context": "same messages rendered with a large budget (no compaction)",
+      "memory": "scripted follow-up policy without recalled lesson",
+      "recovery": "checkpoint/resume and stall detector contract cases"
+    },
+    "repetitions": {
+      "context_matrix": 12,
+      "memory_retrieval": 12,
+      "recovery": 10,
+      "completion": 9
+    }
+  },
+  "harness_regression": {
+    "task_count": 10,
+    "passed": 10,
+    "pass_rate": 1.0
+  },
+  "context": {
+    "task_count": 12,
+    "rows": [
+      {
+        "history_size": 600,
+        "memory_size": 0,
+        "raw_tokens": 195,
+        "compact_tokens": 195,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 600,
+        "memory_size": 600,
+        "raw_tokens": 499,
+        "compact_tokens": 499,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 600,
+        "memory_size": 1200,
+        "raw_tokens": 799,
+        "compact_tokens": 799,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 1200,
+        "memory_size": 0,
+        "raw_tokens": 270,
+        "compact_tokens": 270,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 1200,
+        "memory_size": 600,
+        "raw_tokens": 574,
+        "compact_tokens": 574,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 1200,
+        "memory_size": 1200,
+        "raw_tokens": 874,
+        "compact_tokens": 874,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 2400,
+        "memory_size": 0,
+        "raw_tokens": 420,
+        "compact_tokens": 420,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 2400,
+        "memory_size": 600,
+        "raw_tokens": 724,
+        "compact_tokens": 724,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 2400,
+        "memory_size": 1200,
+        "raw_tokens": 1024,
+        "compact_tokens": 716,
+        "compression_ratio": 0.30078125,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": true
+      },
+      {
+        "history_size": 4800,
+        "memory_size": 0,
+        "raw_tokens": 720,
+        "compact_tokens": 720,
+        "compression_ratio": 0.0,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": false
+      },
+      {
+        "history_size": 4800,
+        "memory_size": 600,
+        "raw_tokens": 1024,
+        "compact_tokens": 416,
+        "compression_ratio": 0.59375,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": true
+      },
+      {
+        "history_size": 4800,
+        "memory_size": 1200,
+        "raw_tokens": 1324,
+        "compact_tokens": 716,
+        "compression_ratio": 0.45921450151057397,
+        "within_budget": true,
+        "request_preserved": true,
+        "important_evidence_preserved": true,
+        "compacted": true
+      }
+    ],
+    "summary": {
+      "avg_raw_tokens": 703.9166666666666,
+      "avg_compact_tokens": 576.9166666666666,
+      "avg_compression_ratio": 0.1128121459592145,
+      "max_compression_ratio": 0.59375,
+      "budget_compliance_rate": 1.0,
+      "request_retention_rate": 1.0,
+      "important_evidence_retention_rate": 1.0,
+      "compaction_activation_rate": 0.25
+    }
+  },
+  "memory": {
+    "task_count": 12,
+    "rows": [
+      {
+        "case": "deploy_color",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "api_path",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "step_budget",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "timeout",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "health_route",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "cache_ttl",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "db_port",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "log_level",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "retry_limit",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "worker_scope",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "image_format",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      },
+      {
+        "case": "release_branch",
+        "relevant_found": true,
+        "rank": 1,
+        "precision_at_3": 1.0,
+        "irrelevant_in_top3": 0
+      }
+    ],
+    "dependency_rows": [
+      {
+        "case": 0,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 1,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 2,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 3,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 4,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 5,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 6,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 7,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 8,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 9,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 10,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      },
+      {
+        "case": 11,
+        "baseline_reads": 1,
+        "memory_reads": 0,
+        "baseline_completed": true,
+        "memory_completed": true
+      }
+    ],
+    "summary": {
+      "recall_at_3": 1.0,
+      "mean_reciprocal_rank": 1.0,
+      "mean_precision_at_3": 1.0,
+      "irrelevant_top3_rate": 0.0,
+      "followup_repeated_reads_baseline": 12,
+      "followup_repeated_reads_memory": 0,
+      "followup_read_reduction": 1.0,
+      "evolution": {
+        "support_count": 2,
+        "contradiction_count": 1,
+        "provenance_rejection": true,
+        "snapshot_rollback": true,
+        "successful_use_feedback": true,
+        "dedup_after_dream": true,
+        "recorded_support": true
+      }
+    }
+  },
+  "recovery": {
+    "task_count": 10,
+    "rows": [
+      {
+        "case": 0,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 1,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 2,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 3,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 4,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 5,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 6,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 7,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 8,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      },
+      {
+        "case": 9,
+        "resume_success": true,
+        "workspace_drift_rejected": true,
+        "identity_mismatch_rejected": true
+      }
+    ],
+    "summary": {
+      "resume_success_rate": 1.0,
+      "workspace_drift_rejection_rate": 1.0,
+      "identity_mismatch_rejection_rate": 1.0,
+      "stall_detection": {
+        "repeated_identical": true,
+        "oscillation": true,
+        "output_loop": true
+      },
+      "stall_detection_rate": 1.0,
+      "bounded_recovery_budget": 1,
+      "bounded_recovery_stops": true
+    }
+  },
+  "completion": {
+    "task_count": 9,
+    "rows": [
+      {
+        "case": "final_without_edit",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_without_verification",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_verify_final",
+        "expected_phase": "completed",
+        "actual_phase": "completed",
+        "contract_enforced": true
+      },
+      {
+        "case": "final_without_edit",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_without_verification",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_verify_final",
+        "expected_phase": "completed",
+        "actual_phase": "completed",
+        "contract_enforced": true
+      },
+      {
+        "case": "final_without_edit",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_without_verification",
+        "expected_phase": "stopped",
+        "actual_phase": "stopped",
+        "contract_enforced": true
+      },
+      {
+        "case": "edit_verify_final",
+        "expected_phase": "completed",
+        "actual_phase": "completed",
+        "contract_enforced": true
+      }
+    ],
+    "summary": {
+      "completion_contract_enforcement_rate": 1.0
+    }
+  }
+}

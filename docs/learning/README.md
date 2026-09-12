@@ -74,3 +74,11 @@ pytest -q
 ```
 
 固定评测报告在 `artifacts/deterministic-evaluation.{json,md}`。确定性安全/Harness 指标与真实模型任务成功率分开统计；报告必须写明任务数、对照、模型、配置和失败原因。
+
+模块收益评测使用：
+
+```bash
+PYTHONPATH=src:scripts python scripts/benchmark_modules.py
+```
+
+它将 Context、Memory retrieval/dependency/evolution、checkpoint/resume、stall recovery 和 completion contract 分开统计，详见 [benchmark.md](../benchmark.md)。
