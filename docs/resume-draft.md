@@ -1,18 +1,33 @@
-# 简历草稿（基于当前真实实现与评测）
+# Aster：本地代码智能体 Harness
 
-## Aster：安全、证据驱动的本地 Coding Agent Harness
+**技术栈：** Python、GPT-5.6 Luna、结构化工具调用、Linux 文件与进程隔离、上下文压缩、分层记忆、任务恢复、自动验证、Agent-RL
 
-**核心技术：** Python、Agent Harness、Tool Calling、Pydantic、Landlock/seccomp、Sandbox、Context Engineering、Checkpoint/Resume、Layered Memory、Memory Evolution、Run Trace、RL Environment
+**项目描述：**
 
-**项目描述：** 面向代码仓库长链路任务实现独立本地 coding-agent harness，统一模型接入、结构化工具调用、权限审批、进程隔离、上下文治理、验证、记忆演化、运行审计和 Agent-RL 环境；重点解决多轮任务中的工具副作用不可控、过期验证证据、状态漂移和轨迹难复盘问题。
+从零实现一个运行在本地代码仓库中的 coding agent。模型负责决定下一步做什么，Aster 负责限制它能访问哪些文件、能执行哪些命令、如何保存过程、如何恢复中断任务，以及如何确认任务真的完成。项目重点解决长任务中的上下文变长、重复读文件、工具失败后空转、验证结果过期和“模型说完成但实际没完成”等问题。
 
-**核心职责与贡献：**
+**核心工作与结果：**
 
-1. **统一 Runtime 与执行边界：** 设计 Run/Turn/Step/ToolCall 数据契约，交互 loop 与 RL `step` 共用同一 ToolExecutor；支持 Responses、Chat Completions、Anthropic-compatible 三类 provider、25 个结构化工具 schema 和 hash-linked JSONL trace。
-2. **工具安全与隔离：** 实现 deny-first 权限、approval、fresh-read、工作区 canonical path、symlink/敏感路径/控制目录保护；Linux 下结合 Landlock + seccomp、环境白名单、资源上限和临时副本原子回写，`required` 后端不可用时 fail-closed。
-3. **长上下文与完成治理：** 实现 token-aware budget、输出预留、失败/修改证据保留和 compact 报告；通过 verifier 使“验证通过后再次修改”自动失效，防止旧证据误导最终结论。
-4. **恢复与记忆：** 融合有界 stall detection/recovery、checkpoint workspace drift 拒绝恢复、working/durable/evolution 分层记忆；lesson 必须绑定 run/evidence provenance，并支持使用反馈与回滚。
-5. **RL 环境接口：** 提供 `reset/step`、结构化 reward、terminated/truncated/info、轨迹与安全事件，不绕过生产权限、sandbox、verifier 和 completion gate；暂未实现 SFT/GRPO。
-6. **模块化评测与审计闭环：** 自建 `module-benchmark-v1`，将总回归与模块收益分开。基础 Harness regression **10/10 通过（100%）**；在 **12 组 Context 配置**中，平均输入从 **703.9 压至 576.9 tokens**，平均压缩率 **11.28%**、最高 **59.38%**，当前请求和重要验证证据保留率均 **100%**；在 **12 个 Memory 事实任务**中 Recall@3、MRR、Top-3 precision 均 **100%**，真实 Runtime 对照的 follow-up 重复读取从 **12 次降至 0 次**；在 **10 个恢复场景**中 checkpoint resume、workspace drift 拒绝和 runtime identity mismatch 拒绝率均 **100%**，repeated/oscillation/output-loop 三类 stall 检出率 **3/3**；9 个 completion contract 正负场景执行率 **100%**。另以真实 `gpt-5.6-luna` smoke 验证模型 tool-calling 与 trace 落盘。
+1. **搭建统一执行流程。** 把模型请求、工具参数校验、权限判断、隔离执行、结果记录和最终验证串成一条流程；生产运行和 Agent-RL 的 `reset/step` 使用同一套执行边界，避免训练环境和实际运行环境不一致。当前支持三种模型接口和 25 个结构化工具。
 
-> 上述数字均来自确定性模块 benchmark；不是模型任务成功率，也不代表开放域语义 Memory 或陈旧记忆治理。后续 SFT/GRPO 完成并有真实对照后再补写后训练成果。
+2. **控制上下文长度。** 为任务、历史消息、记忆和技能内容设置 token（模型处理文本的基本单位）预算，优先删除普通旧观察，保留当前请求、失败信息、修改记录和最新验证证据。在 12 组压力配置中，输入平均从 **703.9 降到 576.9 tokens**，平均减少 **11.28%**，最高减少 **59.38%**；当前请求和重要验证证据保留率均为 **100%**。
+
+3. **实现可追溯的项目记忆。** 将记忆分为当前工作记录和长期经验，记录每条经验的来源、支持次数、矛盾次数和使用结果，并支持快照回滚。在 12 个固定事实任务中，Recall@3（前 3 条结果是否找回目标事实）、MRR（目标事实平均排名）和 Top-3 precision（前 3 条结果的准确比例）均为 **100%**；开启记忆后，12 个 follow-up 对照任务的重复读文件次数从 **12 次降到 0 次**。同时验证了伪造证据拒绝、矛盾记录、使用反馈、回滚和去重。
+
+4. **处理失败、停滞和中断恢复。** 检测重复调用、ABAB 反复和相同输出循环，只允许一次有界恢复，仍无进展就停止；checkpoint（任务进度快照）恢复前重新检查工作区和运行配置。在 10 个恢复场景中，正常恢复、工作区漂移拒绝和配置不匹配拒绝率均为 **100%**；三类停滞模式 **3/3 检出**。
+
+5. **用验证结果决定是否完成。** 编辑后必须重新验证；编辑后的文件再次变化会使旧验证失效。对“没有编辑”“编辑但没有验证”“编辑并验证”共 9 个场景进行测试，完成约束执行率 **100%**。另外注入参数错误、命令超时、恶意文件指令和敏感文件访问，故障处理和安全边界测试均 **100% 通过**。
+
+6. **建立四层评测。** 评测分为任务完成、效率、鲁棒性和安全四层，所有任务使用独立测试仓库和自动验证器。确定性评测共 **10/10** 通过；使用 GPT-5.6 Luna 对 **5 类任务**各运行 3 次，共 15 次尝试，当前 **Pass@1 80.00%、Pass@3 100.00%、验证通过率 93.33%**；成功任务平均 4.29 次工具调用、14,995 tokens、14.09 秒。评测保留每次运行的 trace（完整执行记录）和失败原因：15 次中 1 次因远程网关连接错误失败，没有只挑成功样本。
+
+**项目边界：**
+
+当前已实现 Agent-RL 环境接口，但尚未实现 SFT、GRPO；上下文策略没有自进化；Memory 使用轻量关键词召回，尚未宣称开放域语义检索或完整陈旧记忆治理。确定性测试结果与真实模型结果分开统计。
+
+**评测与学习材料：**
+
+- [四层 Agent 评测设计](benchmark.md)
+- [分阶段学习文档](learning/README.md)
+- [确定性评测结果](../artifacts/deterministic-evaluation.md)
+- [模块评测结果](../artifacts/module-benchmark-v1.md)
+- [Agent 评测结果](../artifacts/agent-evaluation-v1.md)

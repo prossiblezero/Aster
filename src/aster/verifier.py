@@ -53,7 +53,7 @@ class Verifier:
     @staticmethod
     def infer(prompt: str) -> dict[str, bool]:
         text = prompt.casefold()
-        edit = any(
+        edit_requested = any(
             x in text
             for x in (
                 "fix",
@@ -72,6 +72,21 @@ class Verifier:
                 "更新",
             )
         )
+        edit_negated = any(
+            x in text
+            for x in (
+                "do not modify",
+                "don't modify",
+                "without modifying",
+                "without changing",
+                "read-only",
+                "read only",
+                "不要修改",
+                "无需修改",
+                "只读",
+            )
+        )
+        edit = edit_requested and not edit_negated
         verify = any(x in text for x in ("test", "tests", "pytest", "verification", "验证", "测试"))
         observe = any(x in text for x in ("inspect", "review", "check", "查看", "检查", "分析"))
         return {

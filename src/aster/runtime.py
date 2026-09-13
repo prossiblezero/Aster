@@ -149,7 +149,8 @@ class Runtime:
             state.feedback = str(exc)
             self.finish("provider_error", failed=True)
             return state
-        state.usage.update(reply.usage)
+        for name, value in reply.usage.items():
+            state.usage[name] = state.usage.get(name, 0) + value
         self._conversation = list(prompt)
         self._conversation.extend(reply.raw or ([{"role": "assistant", "content": reply.text}] if reply.text else []))
         self._structured_history.extend(reply.raw)

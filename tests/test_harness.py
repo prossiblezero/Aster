@@ -2,9 +2,11 @@ import pytest
 
 from aster.config import Settings
 from aster.memory import Memory
+from aster.provider import ModelClient
 from aster.rl import AsterEnv
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
+from aster.verifier import Verifier
 
 
 class FakeModel:
@@ -94,6 +96,19 @@ def test_memory_evolution_requires_evidence_and_rolls_back(tmp_path):
     memory.record("another lesson", run_id="r", evidence_id="e2")
     assert memory.rollback(snapshot)
     assert not any(x["text"] == "another lesson" for x in memory.state["lessons"])
+
+
+def test_verifier_infer_respects_read_only_language(tmp_path):
+    inferred = Verifier.infer("Inspect config.txt and tell me the mode. Do not modify files.")
+    assert inferred == {"require_edit": False, "require_verification": False, "require_observation": True}
+
+
+def test_provider_reply_keeps_usage_for_cost_metrics():
+    reply = ModelClient._responses_reply(
+        {"model": "gpt-5.6-luna", "output_text": "ok", "output": []},
+        {"input_tokens": 12, "output_tokens": 3, "total_tokens": 15},
+    )
+    assert reply.usage == {"input_tokens": 12, "output_tokens": 3, "total_tokens": 15}
 
 
 @pytest.mark.asyncio

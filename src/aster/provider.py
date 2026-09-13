@@ -33,7 +33,7 @@ class ModelClient:
                 "anthropic-version": "2023-06-01",
             }
             data = await self._post("/messages", payload, headers)
-            return self._anthropic_reply(data)
+            return self._anthropic_reply(data, self.last_usage)
         if self.settings.protocol == "chat":
             payload = {
                 "model": self.settings.model,
@@ -42,7 +42,7 @@ class ModelClient:
                 "tools": tools,
             }
             data = await self._post("/chat/completions", payload, {})
-            return self._chat_reply(data)
+            return self._chat_reply(data, self.last_usage)
         payload = {
             "model": self.settings.model,
             "input": messages,
@@ -51,7 +51,7 @@ class ModelClient:
             "store": False,
         }
         data = await self._post("/responses", payload, {})
-        return self._responses_reply(data)
+        return self._responses_reply(data, self.last_usage)
 
     async def _post(self, suffix: str, payload: dict, extra: dict) -> dict:
         if not self.settings.api_key.get_secret_value():
@@ -93,7 +93,7 @@ class ModelClient:
         return "\n\n".join(str(m.get("content", "")) for m in messages)
 
     @staticmethod
-    def _responses_reply(data):
+    def _responses_reply(data, usage=None):
         calls, text = [], data.get("output_text", "") or ""
         for item in data.get("output", []):
             if item.get("type") == "function_call":
@@ -112,11 +112,15 @@ class ModelClient:
                 if block.get("type") in {"output_text", "text"}:
                     text += block.get("text", "")
         return ModelReply(
-            text=text, calls=calls, raw=data.get("output", []), provider_model=data.get("model", "")
+            text=text,
+            calls=calls,
+            usage=usage or {},
+            raw=data.get("output", []),
+            provider_model=data.get("model", ""),
         )
 
     @staticmethod
-    def _chat_reply(data):
+    def _chat_reply(data, usage=None):
         message = data.get("choices", [{}])[0].get("message", {})
         calls = []
         for item in message.get("tool_calls", []):
@@ -130,6 +134,7 @@ class ModelClient:
         return ModelReply(
             text=message.get("content") or "",
             calls=calls,
+            usage=usage or {},
             raw=[message],
             provider_model=data.get("model", ""),
         )
@@ -143,7 +148,7 @@ class ModelClient:
         }
 
     @staticmethod
-    def _anthropic_reply(data):
+    def _anthropic_reply(data, usage=None):
         text, calls = "", []
         for block in data.get("content", []):
             if block.get("type") == "text":
@@ -159,6 +164,7 @@ class ModelClient:
         return ModelReply(
             text=text,
             calls=calls,
+            usage=usage or {},
             raw=data.get("content", []),
             provider_model=data.get("model", ""),
         )
