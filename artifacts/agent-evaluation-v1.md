@@ -13,6 +13,9 @@
 - Avg successful tool steps：4.29
 - Avg successful total tokens：14995
 - Avg successful elapsed time：14.09s
-- Difficulty breakdown：{"easy": {"task_count": 2, "attempt_count": 6, "verifier_pass_rate": 1.0}, "medium": {"task_count": 2, "attempt_count": 6, "verifier_pass_rate": 0.8333333333333334}, "hard": {"task_count": 1, "attempt_count": 3, "verifier_pass_rate": 1.0}}
+- Difficulty breakdown（效率只统计成功运行）：
+  - easy：6/6 verifier pass；2.83 tool steps、10490 tokens、10.91s
+  - medium：5/6 verifier pass；4.80 tool steps、17372 tokens、15.76s
+  - hard：3/3 verifier pass；6.33 tool steps、20043 tokens、17.65s
 
 真实模型结果按独立 fixture、任务、attempt 和 trace 保存；失败原因不隐藏。

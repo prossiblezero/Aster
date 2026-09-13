@@ -387,6 +387,22 @@ async def run_real(settings, repeats, output_root, archive_root):
                 "verifier_pass_rate": _ratio(
                     sum(row["passed"] for row in difficulty_rows), len(difficulty_rows)
                 ),
+                "successful_attempts": sum(row["passed"] for row in difficulty_rows),
+                "avg_tool_steps_success": _mean(
+                    row.get("tool_steps", 0)
+                    for row in difficulty_rows
+                    if row.get("passed")
+                ),
+                "avg_total_tokens_success": _mean(
+                    row.get("total_tokens", 0)
+                    for row in difficulty_rows
+                    if row.get("passed")
+                ),
+                "avg_elapsed_ms_success": _mean(
+                    row.get("elapsed_ms", 0)
+                    for row in difficulty_rows
+                    if row.get("passed")
+                ),
             }
             for difficulty, difficulty_rows in by_difficulty.items()
         },
@@ -454,7 +470,19 @@ async def main():
             f"- Avg successful tool steps：{s['avg_tool_steps_success']:.2f}",
             f"- Avg successful total tokens：{s['avg_total_tokens_success']:.0f}",
             f"- Avg successful elapsed time：{s['avg_elapsed_ms_success'] / 1000:.2f}s",
-            f"- Difficulty breakdown：{json.dumps(s['difficulty'], ensure_ascii=False)}",
+            "- Difficulty breakdown (successful attempts only for efficiency):",
+        ]
+        for difficulty in ("easy", "medium", "hard"):
+            item = s["difficulty"].get(difficulty)
+            if not item:
+                continue
+            lines.append(
+                f"  - {difficulty}: {item['successful_attempts']}/{item['attempt_count']} verifier pass; "
+                f"{item['avg_tool_steps_success']:.2f} tool steps, "
+                f"{item['avg_total_tokens_success']:.0f} tokens, "
+                f"{item['avg_elapsed_ms_success'] / 1000:.2f}s"
+            )
+        lines += [
             "",
             "真实模型结果按独立 fixture、任务、attempt 和 trace 保存；失败原因不隐藏。",
         ]
