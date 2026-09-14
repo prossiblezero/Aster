@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "context_12_code",
+      "observations": 12,
+      "content": "code",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_12_logs",
+      "observations": 12,
+      "content": "logs",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_12_chinese",
+      "observations": 12,
+      "content": "chinese",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_24_code",
+      "observations": 24,
+      "content": "code",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_24_logs",
+      "observations": 24,
+      "content": "logs",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_24_chinese",
+      "observations": 24,
+      "content": "chinese",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_48_code",
+      "observations": 48,
+      "content": "code",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_48_logs",
+      "observations": 48,
+      "content": "logs",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_48_chinese",
+      "observations": 48,
+      "content": "chinese",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_96_code",
+      "observations": 96,
+      "content": "code",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_96_logs",
+      "observations": 96,
+      "content": "logs",
+      "budget": 4096,
+      "reserve": 512
+    },
+    {
+      "id": "context_96_chinese",
+      "observations": 96,
+      "content": "chinese",
+      "budget": 4096,
+      "reserve": 512
+    }
+  ],
+  "prompt": "Inspect the current task and preserve the verified result.",
+  "evidence": "Verified: focused tests passed; keep this result.",
+  "templates": {
+    "code": "def function_{index}(value):\n    if value < 0:\n        raise ValueError(\"negative input\")\n    return value * {index}\n",
+    "logs": "2026-09-14 request={index} status=502 endpoint=/services/alpha retries=2 duration=438ms\n",
+    "chinese": "第 {index} 次请求发现缓存未命中；配置文件需要保留超时、权限检查和错误处理信息。\n"
+  }
+}

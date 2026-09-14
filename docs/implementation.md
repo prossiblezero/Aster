@@ -22,7 +22,7 @@ Aster 是独立重构，不导入 pico/nexa 包。主体能力来自 pico-v3 的
 - [x] 工具：文件/搜索/patch/shell/tests/diff/image；统一校验、审批、审计
 - [x] 安全：路径、敏感文件、控制目录、进程/网络隔离、最小权限、子进程取消
 - [x] Runtime：状态、hooks、停滞、恢复、完成契约、验证失效、会话续接
-- [x] Context：最终预算检查、近期/错误/修改证据保留、compact 与报告
+- [ ] Context：已有裁剪与报告；v2 完整输入压力检查发现工具定义未计入预算，最终预算约束尚未通过
 - [x] Memory：working/durable/evolution、索引、增量 Dream、证据来源、版本回滚
 - [x] 工作流：plan/todo/clarification、skills、受限 worker 生命周期、多模态
 - [x] 持久化：JSONL trace、checkpoint、report、漂移识别、脱敏
@@ -32,6 +32,8 @@ Aster 是独立重构，不导入 pico/nexa 包。主体能力来自 pico-v3 的
 
 明确边界：当前没有 provider 取消 API、模型辅助 Dream、上下文策略自进化、SFT 或
 GRPO。`worker_message` 和 `ask_user` 保留受限状态返回，等待后续交互层接入。
+v2 还发现持久记忆会接受有真实来源的测试敏感字符串和临时目标；有证据不等于适合长期保存。
+当前验收依据以 [v2 评测](benchmark.md) 为准，旧报告中的百分比不作为现版成果。
 
 ## 指标原则
 

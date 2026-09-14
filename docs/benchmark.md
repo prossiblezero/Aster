@@ -1,89 +1,69 @@
-# Aster 模块级 Benchmark
+# Aster benchmark：怎么测，怎样解释结果
 
-运行命令：
+题库有 **193 条独立任务和 12 组上下文配置**，内容、初始文件、参考动作和验证器全部在 [datasets](../datasets/README.md)。当前结果分别见 [确定性报告](../artifacts/benchmark-v2-scripted/report.md) 和 [真实模型报告](../artifacts/benchmark-v2-real/report.md)。不能把题库数量当作模型完成的题目数。
+
+## 先运行一个最小闭环
 
 ```bash
 conda activate aster
-PYTHONPATH=src:scripts python scripts/benchmark_modules.py
+python -m pytest -q
+python scripts/benchmark.py --task debug-and-fix
 ```
 
-按教程中的“完成、效率、鲁棒性、安全”四层运行 Agent 评测：
+这条命令先复制有 bug 的小仓库，确认目标测试失败而已有行为通过，再让 Aster Runtime 执行参考动作，最后在独立副本中运行验证器。原始实现也能通过，说明题目无区分度；参考修复过不了，先查任务或验证器，再判断 Harness。
+
+全量确定性检查与固定真实模型对照：
 
 ```bash
-PYTHONPATH=src:scripts python scripts/agent_eval.py
-PYTHONPATH=src:scripts python scripts/agent_eval.py --real --repeats 3 --env-file .env
+python scripts/benchmark.py --concurrency 2
+python scripts/benchmark.py --real --selection real_subset.json --repeats 1 --concurrency 2
 ```
 
-`--real --repeats 3` 当前使用 5 个独立代码任务，每题运行 3 次，因此总计 15 次尝试。`Pass@1` 看每题第一次是否成功，`Pass@3` 看每题三次中是否至少成功一次；两者不能与 15 次尝试的简单成功比例混为一谈。效率按简单、中等、困难分层，只在成功运行内计算工具步数、token 和耗时，避免用一个平均数掩盖任务差异。
+第一条执行 193 条任务；12 条记忆任务各有两个条件，因此是 **205 次 Runtime 尝试**，另加 169 条代码题的反向验证和 12 组上下文检查。第二条使用 GPT-5.6 Luna，执行事先固定的 29 条任务、每题两个条件，共 **58 次尝试**。`.env` 中的连接配置不进入模型工作区和报告；采样参数使用网关默认值，没有额外设置 temperature 或 seed。
 
-脚本生成：
+`--suite harness/repository/function/memory` 按组选择；`--task` 可重复指定；`--selection` 读取数据目录中的固定名单。`--repeats 3` 表示每题每个条件运行三次，不是只重试失败题。省略 selection 的真实模式会执行全部 181 条非 Harness 任务，成本高于文档中的固定子集。
 
-- `artifacts/module-benchmark-v1.json`：机器可读原始结果；
-- `artifacts/module-benchmark-v1.md`：人类可读摘要；
-- `artifacts/deterministic-evaluation.json`：基础 Harness regression。
-- `artifacts/agent-evaluation-v1.json`：四层评测和真实模型逐次结果；
-- `artifacts/agent-evaluation-v1.md`：四层评测摘要。
+进程退出码 1 表示有任务、验证器反向检查或上下文断言失败；仍会生成报告。新增评测应暴露问题，不能通过隐藏失败把退出码变成 0。
 
-## 为什么要拆模块评测
+## 四层看结果
 
-任务数据位于 [`datasets/`](../datasets/)；评测脚本只实现加载、运行、验证和统计，不再把任务内容作为 Python 常量维护。
+| 层次 | 当前证据 | 判断方式 |
+|---|---|---|
+| 完成 | 文件、独立 pytest、回答字段、运行结束状态 | 同时满足外部正确性和完成合同；另外保留两项各自结果 |
+| 效率 | 工具调用、重复读取、输入/输出 token、耗时 | 同题同初始仓库比较开关；按仓库、函数、记忆分别统计 |
+| 鲁棒性 | 参数错误、重复读取、恢复时工作区或配置变化 | 检查拒绝原因、后续动作和停机状态，不能只看最后一句话 |
+| 安全 | 路径逃逸拒绝、记忆写入边界、隔离执行 | 拒绝是否发生；失败单列，不能用代码题通过率抵消 |
 
-Harness 的总通过率只能证明边界合同没有明显回归，不能证明 context、Memory 或 recovery 真的有收益。因此 Aster 把评测拆成固定任务、对照和物理证据：
+5 条仓库题仍是小型 fixture，并非真实大型项目的长时维护任务。12 条记忆题是固定事实问答，主题不同但共同考查直接召回，不能据此声称解决了陈旧记忆、冲突或多跳推理。Hooks、工作记忆更新、记忆反馈/回滚等由单元测试保护；当前没有新的端到端 Hooks 消融或记忆自进化因果收益，简历不写这类提升数字。
 
-| 模块 | 对照 | 主要指标 |
-| --- | --- | --- |
-| Context | 大预算、不 compact 的同一组消息 | token 压缩率、预算内率、当前请求保留率、重要证据保留率 |
-| Memory retrieval | 固定 lesson 与干扰项 | Recall@3、MRR、Precision@3、无关项比例 |
-| Memory dependency | Runtime 中关闭 durable memory 与预置 durable lesson | 跨运行 follow-up 读取次数、任务完成情况 |
-| Session working memory | 首轮观察后清空原始观察，不注入 working memory | 摘要记录率、下一轮事实注入率、修改后失效率 |
-| Memory Evolution | 支持、矛盾、伪造证据、snapshot、使用反馈、dream | 证据拒绝、矛盾计数、回滚、反馈和去重 |
-| Resume | checkpoint 后继续、workspace 漂移、配置身份变化 | resume 成功率、漂移拒绝率、身份不匹配拒绝率 |
-| Stall recovery | repeated、ABAB、output loop | 模式检出率、有界停止 |
-| Completion contract | 无编辑、编辑无验证、编辑并验证 | 合同执行率 |
+## 两种真实对照分别控制什么
 
-当前确定性对照结果如下。这里的“基线”只在该模块关闭或使用大预算，其余输入、任务和验证器保持一致；因此可以说明机制的直接收益，但不能推导端到端真实模型提升。
+**工具集合对照：** 同一道代码题、相同模型、预算、初始文件和验证器，分别使用 `core`（核心集合，其余工具按需加载）和 `all`（一次暴露全部工具）。统计成功率和工具/token 成本；如果某个条件失败，也计入全部尝试成本，不能只挑成功样本宣称省 token。每题仅一次的结果是探索性观察，不能声称统计显著。
 
-| 机制 | 基线 | Aster | 结果含义 |
-| --- | --- | --- | --- |
-| 上下文压缩 | 大预算、不压缩：平均 708.9 tokens | 平均 581.9 tokens | 减少 11.23%，当前请求和验证证据保留率 100% |
-| 跨运行记忆依赖 | 关闭 durable memory：12 次重复读文件 | 预置 durable lesson：0 次 | 重复读取减少 100%，两组任务均完成 |
-| 记忆召回 | 12 条固定事实 + 干扰项 | 目标事实均排第 1 | Recall@3、MRR、Top-3 precision 均 100% |
-| 会话工作记忆 | 清空原始观察且不注入摘要 | 读取后摘要记录、下一轮事实注入均成功 | 1/1 固定场景通过；修改后摘要失效 |
-| 任务恢复 | 漂移/身份变化作为拒绝场景 | 正常恢复并拒绝不安全恢复 | 10/10 场景通过 |
-| 完成判定 | 9 个正反合同场景 | 严格检查编辑、验证和验证新鲜度 | 9/9 场景通过 |
+**记忆对照：** 两组先通过真实 Runtime 执行同样的 `read_file → memory_store`，每组学习阶段均为两次工具调用，引用真实工具证据。然后各创建一个新的 Runtime，确保历史和会话工作记忆为空；源文件仍存在。后续只改变是否开启记忆，要求返回可自动核验的 JSON 值。受控学习阶段没有调用 LLM，真实模式由 Luna 独立完成后续问答，成本分开记录。确定性模式的策略从实际观察提取事实，没有预先拿到标准答案。
 
-## 四层 Agent 评测
+Memory v2 修复了关闭开关仍可检索旧记忆的问题。这个修复是对照成立的前提，不能把修复之前的消融数字继续使用。
 
-### 任务完成
+## 验证器如何独立
 
-真实模型任务使用独立 fixture 和文件/pytest verifier。每个任务重复运行时，`Pass@1` 表示第一次就完成，`Pass@3` 表示三次中至少一次完成；二者分别对应用户一次使用的稳定性和在当前任务集上的可达成功率。报告同时列出每个难度层的通过次数，以及成功运行的工具步数、token 和耗时；这比把读文件任务和多文件改造任务混成一个平均数更容易解释。当前任务集只有 5 类、每类 3 次，结果用于验证 Harness 流程和发现问题，不代表通用模型能力。
+模型只拿到 prompt 和工作区，拿不到 `checks` 或参考动作。运行结束后把候选文件复制到另一个目录，加入独立测试和固定 pytest 配置，在禁止网络的 Landlock/seccomp 沙箱中执行。测试失败、收集错误、超时、空测试都判失败；删除公开测试、注入 conftest 或 pytest 选项不能改变验证器。
 
-### 效率
+HumanEval 使用官方测试断言，辅助函数保持原始 prompt 中的实现；33 题的测试引用自身函数作为预期结果，此处固定为官方参考实现，避免错误实现与自己比较。函数题的公开签名测试较弱，因此“Agent 自己运行 pytest 成功”和“外部正确性通过”必须分别记录。
 
-每次运行记录工具调用次数、重复调用次数、失败调用次数、输入/输出/总 token 和耗时；结果按难度分层，并保留失败样本。完成率提升但工具步数、token 或耗时大幅上升，不应直接认为系统变好。当前 Luna 成功运行的分层结果为：简单 **2.83 步、10,490 token、10.91 秒**；中等 **4.80 步、17,372 token、15.76 秒**；困难 **6.33 步、20,043 token、17.65 秒**。这些数值与任务复杂度单调增加，不能理解为简单任务需要 6 次工具调用。
+这提供执行隔离与基本防篡改，不意味着已经解决任意恶意候选代码对 Python 进程内测试的攻击。未来用作 RL 奖励前还需专门做骗分测试。
 
-### 鲁棒性
+## token、Pass@k 与样本数
 
-确定性故障集注入参数错误、命令超时、空/恶意观察和重复失败；分别检查是否识别错误、是否继续使用安全路径、是否恢复或有界停止。后续真实模型实验可以增加固定措辞改写和多次采样，但不能把随机噪声结果与 scripted 合同混写。
+总 token 使用供应商返回的 `total_tokens`；缺失时才用输入加输出，不能把三个字段相加。报告同时保留全部尝试和成功尝试的效率，不把函数题与多文件仓库题混成一个“平均 Agent 成本”。请求失败没有返回 usage 时，账面只能记录已收到的 usage，远端实际消耗可能无法完整观测。
 
-### 安全
+Pass@k 采用 HumanEval 估计式：每题 n 次采样、c 次成功，`1 - C(n-c,k)/C(n,k)`，然后对任务求平均。每题只有一次时，Pass@1 就是本次通过比例，Pass@3 为 null；不把两个工具条件当作同题的两次独立重试。
 
-安全集检查路径逃逸、`.git/.aster/.env/.pem` 等敏感路径、工具结果中的提示注入和权限越界。安全指标单独统计拒绝率与误放行率，不和任务完成率相抵消。
+上下文矩阵用 tokenizer 测量最终 `input + tools` JSON，输入预算是 4096−512=3584。它是本地估算，不等于供应商计费值；同时检查当前任务和指定验证证据是否保留。该矩阵目前覆盖普通历史消息，不能替代 Responses 工具调用配对历史的压力测试。
 
-### 评测环境原则
+## 文件和历史指标
 
-每次运行都创建独立 fixture，运行结束后删除；模型轨迹、工具结果、verifier 和工作区变化写入 trace。确定性评测用于定位 Harness 机制，真实 Luna 评测用于衡量模型在该 Harness 上的实际表现；二者必须分开报告。
+每次评测生成 `report.json`、`report.md` 和追加式 `attempts.jsonl`；逐次目录保留 trace、checkpoint、最终回答、代码 diff 和验证器结果。完整轨迹位于 `artifacts/benchmark-v2-*/runs/`，在本机保留但不提交 Git；报告提交 Git。`batch_id` 区分批次；JSON 记录启动时源码/数据内容哈希、Git 基点、模型配置和 Python 版本，哈希包含当时工作区的未提交内容，Git 基点不单独代表完整评测版本。
 
-## 当前结果
+v1 报告留作历史记录，**不再作为当前简历依据**：旧上下文输入太短且未计入完整请求，旧记忆对照不充分，旧恢复数量包含同一流程的重复，旧总 token 存在重复计数。原来的三个脚本入口现在均转到 v2，不再维护多套指标口径。
 
-当前版本的模块结果见 `artifacts/module-benchmark-v1.md`，四层结果见 `artifacts/agent-evaluation-v1.md`。确定性部分使用 scripted policy，不调用远程模型；真实部分使用 GPT-5.6 Luna，并保留每一次 attempt 和失败原因。
-
-当前真实评测包含 5 类任务（简单 2 类、中等 2 类、困难 1 类），每类重复 3 次，共 15 次尝试。修复消息去重和接入 working memory 后，最新结果为 **Pass@1 100%、Pass@3 100%、验证通过率 100%**；按难度为：简单 6/6，中等 6/6，困难 3/3。成功运行效率按难度单独统计；本次样本量适合验证 Harness 流程和发现问题，不能当作大规模模型能力结论。
-
-Memory retrieval 使用固定关键词 query，不能外推为开放域语义检索；当前 Aster 也没有文件新鲜度驱动的陈旧记忆拒绝。真实模型评测需要单独记录模型、采样参数、任务集、重复次数、失败样本和 verifier 结果。
-
-## 评测指标的简历边界
-
-- 可以写：固定任务上的 token 压缩、保留率、Recall@3、重复读取对照、checkpoint 漂移拒绝和 stall 检出率；
-- 不能写：开放域 Memory 质量、真实模型成功率、上下文策略自进化收益或陈旧记忆零误召回；
-- `10/10` 是基础 Harness regression，模块指标来自 `module-benchmark-v1`，两者必须分开。
+来源与后续 SFT/RL 数据隔离见 [SOURCES](../datasets/SOURCES.md) 和 [公开 benchmark 学习笔记](../datasets/public_benchmarks.md)。

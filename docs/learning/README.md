@@ -38,6 +38,8 @@ shell 在临时副本中运行；Linux 后端使用 Landlock 文件权限、secc
 
 `ContextBuilder` 为 system、task、memory、skills、history 分配预算，预留输出 token；超预算时优先移除旧的普通观察，保留失败、修改和最近消息。`ContextReport` 记录估算 token、预算、移除数量和各 section 大小。当前上下文策略是固定的，**没有上下文策略自进化**。
 
+v2 压力评测发现当前预算使用中间文本估算，未覆盖最终工具定义；完整输入预算检查尚未通过。不要据此认为任意长历史都可控。
+
 token 是估算值：优先使用 `cl100k_base`，没有 tokenizer 时退化为字符估算；真实供应商 usage 仍以 provider 返回值为准。
 
 ## 6. Hooks、停滞和完成治理
@@ -54,6 +56,8 @@ token 是估算值：优先使用 `cl100k_base`，没有 tokenizer 时退化为�
 
 文件：[memory.py](../../src/aster/memory.py)。每次运行的 `RunState.working_memory` 保存当前任务读过的文件、搜索结果和测试结果摘要；下一轮由 `ContextBuilder` 注入，因此它是会话内的短期工作记忆。文件发生修改时对应摘要会被删除，要求重新读取，避免继续使用旧事实。跨运行经验进入 durable lessons，按关键词召回；evolution ledger 保存 support、contradictions、use feedback、provenance 和 snapshot。没有 `run_id + evidence_id` 的 lesson 会被拒绝；Dream 目前是确定性去重，模型辅助冲突整理留到后续迭代。
 
+v2 负例显示，持久记忆还会接纳有证据的测试敏感内容和临时目标；来源检查不等于内容适存性检查。
+
 记忆被召回后，后续验证成功或失败会记录使用反馈，但这不等于证明单条记忆产生了因果收益。
 
 ## 9. Skills、Plan、Todo、Workers 和多模态
@@ -68,17 +72,13 @@ skills 只从工作区目录按需加载，skill 文本标记为不可信；plan
 
 ## 11. 评测阅读方法
 
-```bash
-PYTHONPATH=src python scripts/evaluate.py
-pytest -q
-```
-
-固定评测报告在 `artifacts/deterministic-evaluation.{json,md}`。确定性安全/Harness 指标与真实模型任务成功率分开统计；报告必须写明任务数、对照、模型、配置和失败原因。
-
-模块收益评测使用：
+先读 [从一道 bug 修复题读懂评测](12-evaluation.md)，配合 [任务数据](../../datasets/benchmark.md) 与 [benchmark.py](../../scripts/benchmark.py) 实际跑一遍。
 
 ```bash
-PYTHONPATH=src:scripts python scripts/benchmark_modules.py
+conda activate aster
+python -m pytest -q
+python scripts/benchmark.py --task debug-and-fix
+python scripts/benchmark.py --real --selection real_subset.json --concurrency 2
 ```
 
-它将 Context、Memory retrieval/dependency/evolution、checkpoint/resume、stall recovery 和 completion contract 分开统计，详见 [benchmark.md](../benchmark.md)。
+当前报告位于 `artifacts/benchmark-v2-scripted/` 和 `artifacts/benchmark-v2-real/`。参考动作回放、真实模型表现、模块开关对照分开统计；含义及未通过项见 [评测说明](../benchmark.md)。v1 报告保留作历史记录，不再引用其中旧量化指标。

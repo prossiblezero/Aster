@@ -1,14 +1,6 @@
-"""Compatibility entry point for the unified Agent evaluation script.
+"""Compatibility entry point; authoritative datasets and reports use benchmark v2."""
 
-Use ``scripts/agent_eval.py`` for deterministic and optional real-model runs.
-"""
-
-from agent_eval import harness_cases, main
-
-__all__ = ["harness_cases", "main"]
-
+from benchmark import main
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    raise SystemExit(main())

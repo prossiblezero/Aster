@@ -14,3 +14,7 @@ runtime of another agent. Capability requirements and design lessons were studie
   progression from concrete problems to runnable mechanisms.
 
 References are design context, not claims of implementation or performance parity.
+
+Benchmark fixtures and problem data have separate provenance documented in
+[datasets/SOURCES.md](datasets/SOURCES.md). HumanEval problem data and reference
+solutions are used under the included MIT license; source attribution is retained.

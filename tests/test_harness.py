@@ -99,6 +99,16 @@ def test_memory_evolution_requires_evidence_and_rolls_back(tmp_path):
     assert not any(x["text"] == "another lesson" for x in memory.state["lessons"])
 
 
+def test_disabled_memory_does_not_recall_persisted_lessons(tmp_path):
+    memory = Memory(tmp_path)
+    memory.record("deploy ring is violet", run_id="r", evidence_id="e1")
+    before = memory.path.read_bytes()
+    disabled = Memory(tmp_path, enabled=False)
+    assert disabled.retrieve("deploy") == []
+    assert disabled.path.read_bytes() == before
+    assert Memory(tmp_path).retrieve("deploy")[0]["text"] == "deploy ring is violet"
+
+
 def test_verifier_infer_respects_read_only_language(tmp_path):
     inferred = Verifier.infer("Inspect config.txt and tell me the mode. Do not modify files.")
     assert inferred == {"require_edit": False, "require_verification": False, "require_observation": True}

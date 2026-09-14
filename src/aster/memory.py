@@ -47,8 +47,6 @@ class Memory:
             return
         target = working
         target[path] = {"summary": summary[:500], "updated": now()}
-        if working is None:
-            self.save()
 
     def record(
         self,
@@ -108,6 +106,8 @@ class Memory:
         return copy.deepcopy(lesson)
 
     def retrieve(self, query: str, limit: int = 3):
+        if not self.enabled:
+            return []
         words = {w.casefold() for w in query.split() if w.strip()}
         ranked = []
         for item in self.state["lessons"]:
