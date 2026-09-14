@@ -1,6 +1,7 @@
 """Check measurement integrity, not the agent's benchmark answers."""
 
 import json
+from pathlib import Path
 
 import pytest
 from benchmark import pass_at_k
@@ -11,6 +12,7 @@ from benchmark_support import (
     metrics,
     prepare,
     run_memory,
+    run_task,
 )
 
 from aster.config import Settings
@@ -36,7 +38,7 @@ def test_usage_total_is_not_counted_twice(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_grader_ignores_public_tests_and_pytest_configuration(tmp_path):
+async def test_grader_ignores_public_tests_and_pytest_configuration(tmp_path, monkeypatch):
     task = next(t for t in load_bank() if t["id"] == "humaneval_0")
     root = tmp_path / "candidate"
     prepare(task, root)
@@ -49,7 +51,8 @@ async def test_grader_ignores_public_tests_and_pytest_configuration(tmp_path):
     action = task["actions"][1]["arguments"]
     path = root / action["path"]
     path.write_text(path.read_text().replace(action["old_text"], action["new_text"]))
-    assert (await external_check(root, verifier))["passed"]
+    monkeypatch.chdir(tmp_path)
+    assert (await external_check(Path("candidate"), verifier))["passed"]
     assert not (root / "__evaluation_tests.py").exists()
 
 
@@ -73,3 +76,22 @@ async def test_memory_control_uses_observations_in_a_fresh_runtime(tmp_path):
         [{"role": "user", "content": "FACT: deploy ring is amber\n"}], []
     )
     assert json.loads(reply.text) == {"value": "amber"}
+
+
+@pytest.mark.asyncio
+async def test_endpoint_grader_matches_prompt_and_candidate_is_archived(tmp_path):
+    task = next(t for t in load_bank() if t["id"] == "add-endpoint-with-test")
+    # The task does not prescribe a JSON payload. A healthy endpoint is also valid.
+    for action in task["actions"]:
+        args = action.get("arguments", {})
+        for key in ("content", "new_text"):
+            if key in args:
+                args[key] = args[key].replace('"ok"', '"healthy"').replace("'ok'", "'healthy'")
+    result = await run_task(
+        task, tmp_path / "workspace", tmp_path / "archive", Settings(approval="auto")
+    )
+    assert result["passed"]
+    assert "healthy" in (tmp_path / "archive" / "candidate" / "app.py").read_text()
+    diff = (tmp_path / "archive" / "patch.diff").read_text()
+    assert "+def health" in diff
+    assert (tmp_path / "archive" / "candidate" / "tests" / "test_app.py").exists()

@@ -130,7 +130,7 @@ async def external_check(root, verifier, selection=None):
         target = Path(directory)
         workspace = Workspace(root)
         for source in workspace.files():
-            dest = target / source.relative_to(root)
+            dest = target / source.relative_to(workspace.root)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, dest)
         shutil.copy2(dataset_path(verifier), target / "__evaluation_tests.py")
@@ -188,6 +188,10 @@ def archive(runtime, destination):
         runtime.evidence.path("runs", state.run_id), destination / "run", dirs_exist_ok=True
     )
     (destination / "final.txt").write_text(state.final)
+    for source in runtime.workspace.files():
+        target = destination / "candidate" / source.relative_to(runtime.workspace.root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
     return str(destination / "run" / "trace.jsonl")
 
 
@@ -280,6 +284,7 @@ async def run_task(task, root, destination, settings, *, real=False, variant="co
     if policy:
         policy.runtime = runtime
     original = runtime.workspace.snapshot()
+    original_text = {name: runtime.workspace.read(name) for name in original}
     runtime.start(task_spec(task))
     setup = await apply_setup(task, runtime)
     started = time.monotonic()
@@ -298,7 +303,7 @@ async def run_task(task, root, destination, settings, *, real=False, variant="co
     if independent:
         checks["independent_tests"] = independent["passed"]
     destination.mkdir(parents=True, exist_ok=True)
-    (destination / "patch.diff").write_text(runtime.workspace.diff(original))
+    (destination / "patch.diff").write_text(runtime.workspace.diff(original_text))
     row = {
         "task_id": task["id"],
         "suite": task["suite"],

@@ -171,6 +171,27 @@ def markdown(report):
             f"上下文配置 {n} 组：含工具定义的输入平均 {mean(x['input_before'] for x in rows):.0f} → {mean(x['input_after'] for x in rows):.0f} tokens；预算内 {sum(x['within_budget'] for x in rows)}/{n}；当前请求保留 {sum(x['request_preserved'] for x in rows)}/{n}。",
             "这些 token 是本地 tokenizer 对请求 JSON 的估计值，实际计费以远程 usage 为准。",
         ]
+    if report["mode"] == "real":
+        lines += [
+            "",
+            "## 逐题结果",
+            "",
+            "core/all 分别为核心工具集/全部工具；memory_off/on 为关闭/开启记忆。两个条件不合并为一次重试。",
+            "",
+            "| 任务 | 条件 | 完成 | 外部代码测试 | 工具调用 | 总 token | 秒 | 结束原因 |",
+            "|---|---|---|---|---:|---:|---:|---|",
+        ]
+        for row in report["rows"]:
+            tests = row.get("verifier")
+            verified = ("通过" if tests["passed"] else "失败") if tests else "不适用"
+            lines.append(
+                f"| {row['task_id']} | {row['variant']} | {'通过' if row['passed'] else '失败'} | {verified} | {row['steps']} | {row['total_tokens']} | {row['seconds']:.2f} | {row['stop_reason']} |"
+            )
+    if report.get("grading_corrections"):
+        lines += [
+            "",
+            "评分修正：端点题未指定 JSON 内容，删除验证器额外添加的 status=ok 条件后，对两个条件的原始产物重新评分；未重新调用模型。原判定与修正证据见 grader-corrections.json，原始尝试记录保持不变。",
+        ]
     failures = [r for r in report["rows"] if not r["passed"]]
     lines += ["", "## 失败与边界", ""]
     for row in failures:
@@ -188,6 +209,8 @@ def markdown(report):
 
 
 async def evaluate(args):
+    if args.real and not (args.suite or args.task or args.selection):
+        args.selection = "real_subset.json"
     tasks = load_bank()
     if args.real:
         tasks = [t for t in tasks if t["suite"] != "harness"]

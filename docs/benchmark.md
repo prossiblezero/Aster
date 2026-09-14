@@ -21,7 +21,7 @@ python scripts/benchmark.py --real --selection real_subset.json --repeats 1 --co
 
 第一条执行 193 条任务；12 条记忆任务各有两个条件，因此是 **205 次 Runtime 尝试**，另加 169 条代码题的反向验证和 12 组上下文检查。第二条使用 GPT-5.6 Luna，执行事先固定的 29 条任务、每题两个条件，共 **58 次尝试**。`.env` 中的连接配置不进入模型工作区和报告；采样参数使用网关默认值，没有额外设置 temperature 或 seed。
 
-`--suite harness/repository/function/memory` 按组选择；`--task` 可重复指定；`--selection` 读取数据目录中的固定名单。`--repeats 3` 表示每题每个条件运行三次，不是只重试失败题。省略 selection 的真实模式会执行全部 181 条非 Harness 任务，成本高于文档中的固定子集。
+`--suite harness/repository/function/memory` 按组选择；`--task` 可重复指定；`--selection` 读取数据目录中的固定名单。`--repeats 3` 表示每题每个条件运行三次，不是只重试失败题。真实模式没有指定选择条件时默认使用固定子集；明确指定 `--real --suite function` 才执行全部 164 道函数题的工具条件对照。
 
 进程退出码 1 表示有任务、验证器反向检查或上下文断言失败；仍会生成报告。新增评测应暴露问题，不能通过隐藏失败把退出码变成 0。
 
@@ -49,6 +49,8 @@ Memory v2 修复了关闭开关仍可检索旧记忆的问题。这个修复是�
 模型只拿到 prompt 和工作区，拿不到 `checks` 或参考动作。运行结束后把候选文件复制到另一个目录，加入独立测试和固定 pytest 配置，在禁止网络的 Landlock/seccomp 沙箱中执行。测试失败、收集错误、超时、空测试都判失败；删除公开测试、注入 conftest 或 pytest 选项不能改变验证器。
 
 HumanEval 使用官方测试断言，辅助函数保持原始 prompt 中的实现；33 题的测试引用自身函数作为预期结果，此处固定为官方参考实现，避免错误实现与自己比较。函数题的公开签名测试较弱，因此“Agent 自己运行 pytest 成功”和“外部正确性通过”必须分别记录。
+
+端点任务只要求 `/health` 与 `test_health`，没有规定 JSON 内容。初版验证器多加的 `status=ok` 条件已删除，两组原始候选都重新评分，无模型重采样；原始判定、候选指纹和修正后的输出保存在 `artifacts/benchmark-v2-real/grader-corrections.json`。配置题的 fixture 自带仅处理本例平面键值的解析器，不是通用 YAML 兼容性测试。
 
 这提供执行隔离与基本防篡改，不意味着已经解决任意恶意候选代码对 Python 进程内测试的攻击。未来用作 RL 奖励前还需专门做骗分测试。
 
