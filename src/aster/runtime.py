@@ -168,6 +168,7 @@ class Runtime:
             self.finish("turn_limit")
             return state
         state.turn += 1
+        self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
         skills = "\n".join(self.skills.list())
@@ -342,6 +343,7 @@ class Runtime:
                 state.working_memory.pop(path, None)
             state.working_memory.pop("__search__", None)
             state.working_memory.pop("__run_tests__", None)
+        self._refresh_observations()
         reason = self.stall.observe(call, outcome)
         trace_outcome = outcome.model_dump()
         if trace_outcome.get("data", {}).get("image_data"):
@@ -370,6 +372,39 @@ class Runtime:
                 self.finish("stall_recovery_exhausted")
         self.checkpoint()
         return outcome
+
+    def _refresh_observations(self):
+        """Drop stale read summaries even when another writer edited an already-touched path."""
+        state = self.state
+        assert state is not None
+        stale = []
+        # ponytail: reread observed text at step/turn boundaries; use a file watcher only
+        # if the local I/O cost becomes material for repositories beyond this harness's scale.
+        for path, expected in state.read_evidence.items():
+            try:
+                current = hashlib.sha256(self.workspace.read(path).encode()).hexdigest()
+            except (OSError, ValueError, UnicodeError):
+                current = None
+            if current != expected:
+                stale.append(path)
+        for path in stale:
+            state.read_evidence.pop(path)
+            state.working_memory.pop(path, None)
+        verification_stale = (
+            state.verification.state == "passed"
+            and state.verification.workspace_hash != self.workspace.fingerprint()
+        )
+        if verification_stale:
+            state.verification.state = "missing"
+        if stale or verification_stale:
+            state.working_memory.pop("__search__", None)
+            state.working_memory.pop("__run_tests__", None)
+            self.evidence.emit(
+                state.run_id,
+                "observations_invalidated",
+                paths=stale,
+                verification_stale=verification_stale,
+            )
 
     async def _execute(self, call: ToolCall) -> Outcome:
         state = self.state
@@ -478,7 +513,14 @@ class Runtime:
                 data={"todos": state.todos},
             )
         if name == "tool_load":
-            requested = [tool for tool in args.get("names", []) if tool in SCHEMAS]
+            requested = args["names"]
+            unknown = sorted(set(requested) - SCHEMAS.keys())
+            if unknown:
+                return Outcome(
+                    status="blocked",
+                    reason="unknown_tool_name",
+                    content=json.dumps(unknown, ensure_ascii=False),
+                )
             state.loaded_tools = sorted(set(state.loaded_tools + requested))
             return Outcome(
                 status="success",

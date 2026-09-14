@@ -202,6 +202,8 @@ def definitions(names: list[str] | None = None) -> list[dict]:
     for name in selected:
         model, description, _effect = SCHEMAS[name]
         schema = model.model_json_schema()
+        if name == "tool_load":
+            schema["properties"]["names"]["items"]["enum"] = sorted(SCHEMAS)
         schema.setdefault("additionalProperties", False)
         result.append(
             {

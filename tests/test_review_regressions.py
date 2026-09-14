@@ -158,3 +158,183 @@ def test_direct_step_observation_not_hidden_by_user_only_history():
     )
     assert "unsupported instruction" in str(prompt)
     assert str(prompt).count("Change approach.") == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("memory_enabled", [True, False])
+async def test_worker_reedit_invalidates_parent_cache_without_fake_progress(
+    tmp_path, memory_enabled
+):
+    (tmp_path / "a.txt").write_text("old value")
+    (tmp_path / "test_value.py").write_text(
+        "from pathlib import Path\ndef test_value():\n"
+        "    assert Path('a.txt').read_text().endswith('value')\n"
+    )
+
+    class ChildModel:
+        def __init__(self):
+            self.turn = 0
+
+        async def complete(self, *_):
+            self.turn += 1
+            if self.turn == 1:
+                return ModelReply(calls=[ToolCall(name="read_file", arguments={"path": "a.txt"})])
+            if self.turn == 2:
+                return ModelReply(
+                    calls=[
+                        ToolCall(
+                            name="patch_file",
+                            arguments={
+                                "path": "a.txt",
+                                "old_text": "parent value",
+                                "new_text": "worker value",
+                            },
+                        )
+                    ]
+                )
+            return ModelReply(text="done")
+
+    runtime = Runtime(
+        tmp_path,
+        Settings(approval="auto", completion="off", memory_enabled=memory_enabled),
+        model=ChildModel(),
+    )
+    runtime.start(TaskSpec(prompt="edit a.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    await runtime.step(
+        ToolCall(
+            name="patch_file",
+            arguments={"path": "a.txt", "old_text": "old value", "new_text": "parent value"},
+        )
+    )
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    assert runtime.state.working_memory["a.txt"]["summary"] == "parent value"
+    await runtime.step(ToolCall(name="run_tests", arguments={"command": "pytest -q"}))
+    await runtime.step(ToolCall(name="search", arguments={"pattern": "value"}))
+    assert runtime.state.verification.state == "passed"
+    result = await runtime.step(
+        ToolCall(
+            name="worker_start",
+            arguments={"task": "edit a.txt", "mode": "worker", "write_scope": ["a.txt"]},
+        )
+    )
+    worker_id = result.data["worker_id"]
+    await runtime.workers.workers[worker_id].future
+    status = await runtime.step(ToolCall(name="worker_status", arguments={"worker_id": worker_id}))
+    assert (tmp_path / "a.txt").read_text() == "worker value"
+    assert status.data["changed_paths"] == ["a.txt"] and status.changed_paths == []
+    assert runtime.state.changed_paths == ["a.txt"]
+    assert (
+        "a.txt" not in runtime.state.working_memory and "a.txt" not in runtime.state.read_evidence
+    )
+    assert (
+        "__search__" not in runtime.state.working_memory
+        and "__run_tests__" not in runtime.state.working_memory
+    )
+    assert runtime.state.verification.state == "missing"
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    status = await runtime.step(ToolCall(name="worker_status", arguments={"worker_id": worker_id}))
+    assert status.changed_paths == []
+    assert runtime.state.working_memory["a.txt"]["summary"] == "worker value"
+    assert "a.txt" in runtime.state.read_evidence
+    await runtime.workers.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("deleted", [False, True])
+async def test_turn_refreshes_external_edits_before_building_prompt(tmp_path, deleted):
+    (tmp_path / "a.txt").write_text("old fact")
+
+    class InspectContext:
+        async def complete(self, prompt, _tools):
+            assert "a.txt" not in runtime.state.working_memory
+            assert "a.txt" not in runtime.state.read_evidence
+            assert not any("working_memory:" in item.get("content", "") for item in prompt)
+            return ModelReply(text="done")
+
+    runtime = Runtime(
+        tmp_path, Settings(completion="off", memory_enabled=False), model=InspectContext()
+    )
+    runtime.start(TaskSpec(prompt="inspect a.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    if deleted:
+        (tmp_path / "a.txt").unlink()
+    else:
+        (tmp_path / "a.txt").write_text("external edit")
+    await runtime.turn()
+    events = runtime.evidence.events(runtime.state.run_id)
+    invalidated = next(event for event in events if event["event"] == "observations_invalidated")
+    context = next(event for event in events if event["event"] == "context_built")
+    assert invalidated["paths"] == ["a.txt"] and invalidated["seq"] < context["seq"]
+
+
+@pytest.mark.asyncio
+async def test_crlf_read_freshness_uses_same_text_hash_and_preserves_metadata(tmp_path):
+    (tmp_path / "windows.txt").write_bytes(b"first line\r\nsecond line\r\n")
+    runtime = Runtime(tmp_path, Settings(memory_enabled=False))
+    runtime.start(TaskSpec(prompt="inspect windows.txt"))
+    result = await runtime.step(ToolCall(name="read_file", arguments={"path": "./windows.txt"}))
+    assert result.status == "success"
+    before = dict(runtime.state.working_memory["./windows.txt"])
+    read_hash = runtime.state.read_evidence["./windows.txt"]
+    assert read_hash != runtime.workspace.snapshot()["windows.txt"]
+    await runtime.step(ToolCall(name="list_files"))
+    assert runtime.state.working_memory["./windows.txt"] == before
+    assert runtime.state.read_evidence["./windows.txt"] == read_hash
+    assert not any(
+        event["event"] == "observations_invalidated"
+        for event in runtime.evidence.events(runtime.state.run_id)
+    )
+
+
+@pytest.mark.asyncio
+async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
+    from aster.tools import CORE_TOOLS, SCHEMAS
+
+    class DiscoverAndUse:
+        def __init__(self):
+            self.turn = 0
+
+        async def complete(self, _prompt, tools):
+            self.turn += 1
+            by_name = {tool["name"]: tool for tool in tools}
+            if self.turn == 1:
+                assert set(by_name) == CORE_TOOLS
+                catalog = by_name["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
+                assert set(catalog) == set(SCHEMAS)
+                assert set(SCHEMAS) - CORE_TOOLS <= set(catalog)
+                return ModelReply(
+                    calls=[ToolCall(name="tool_load", arguments={"names": ["todo_add"]})]
+                )
+            if self.turn == 2:
+                assert "todo_add" in by_name and "todo_list" not in by_name
+                assert "content" in by_name["todo_add"]["parameters"]["properties"]
+                return ModelReply(
+                    calls=[
+                        ToolCall(
+                            name="todo_add", arguments={"content": "Review the implementation"}
+                        )
+                    ]
+                )
+            return ModelReply(text="done")
+
+    runtime = Runtime(
+        tmp_path, Settings(tool_profile="core", completion="off"), model=DiscoverAndUse()
+    )
+    state = await runtime.run(TaskSpec(prompt="Organize this work."))
+    assert state.phase == "completed" and state.turn == 3
+    assert state.loaded_tools == ["todo_add"]
+    assert state.todos[0]["content"] == "Review the implementation"
+
+
+@pytest.mark.asyncio
+async def test_loading_unknown_tool_is_rejected_without_partial_loading(tmp_path):
+    runtime = Runtime(tmp_path, Settings())
+    runtime.start(TaskSpec(prompt="Organize this work."))
+    result = await runtime.step(
+        ToolCall(name="tool_load", arguments={"names": ["todo_add", "made_up_tool"]})
+    )
+    assert result.status == "blocked" and result.reason == "unknown_tool_name"
+    assert "made_up_tool" in result.content
+    assert runtime.state.loaded_tools == []
+    assert "todo_add" not in runtime._tool_names()
