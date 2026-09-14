@@ -99,6 +99,10 @@ class SkillLoad(Record):
     name: str
 
 
+class ToolLoad(Record):
+    names: list[str] = Field(min_length=1)
+
+
 class AskUser(Record):
     question: str
 
@@ -146,12 +150,23 @@ SCHEMAS = {
     "plan_exit": (Empty, "Request approval to leave planning mode.", "state"),
     "git_diff": (Empty, "Show changes from this task's initial workspace snapshot.", "read"),
     "skill_load": (SkillLoad, "Load a skill body from the skill catalog on demand.", "state"),
+    "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (WorkerStart, "Start a bounded Explore or write-scoped worker.", "state"),
     "worker_status": (WorkerId, "Read a worker status and result.", "read"),
     "worker_message": (WorkerMessage, "Continue an idle worker with a task.", "state"),
     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),
     "inspect_image": (ImageRead, "Read a workspace PNG/JPEG image for model vision.", "read"),
+}
+
+CORE_TOOLS = {
+    "list_files", "read_file", "search", "write_file", "patch_file",
+    "run_shell", "run_tests", "git_diff", "tool_load",
+}
+WORKFLOW_TOOLS = {
+    "todo_add", "todo_update", "todo_list", "plan_write", "plan_enter", "plan_exit",
+    "memory_store", "memory_retrieve", "memory_update", "memory_discard", "skill_load",
+    "ask_user", "worker_start", "worker_status", "worker_message", "worker_stop", "tool_load",
 }
 
 
@@ -185,7 +200,7 @@ class ToolContext:
     runtime: object = None
 
 
-class ToolRegistry:
+class WorkspaceTools:
     def __init__(self, context: ToolContext):
         self.context = context
 
@@ -203,7 +218,7 @@ class ToolRegistry:
             handler = getattr(self, f"_{call.name}", None)
             if handler:
                 return await handler(args)
-            return await self.context.runtime.workflow_tool(call.name, args.model_dump())
+            return Outcome(status="blocked", reason="workflow_tool_not_in_workspace_registry")
         except Exception as exc:
             return Outcome(status="error", reason=type(exc).__name__, content=str(exc))
 
@@ -366,3 +381,34 @@ class ToolRegistry:
             f"p.write_bytes(base64.b64decode({encoded!r}))"
         )
         return "python -c " + shlex.quote(program)
+
+
+class WorkflowTools:
+    def __init__(self, context: ToolContext):
+        self.context = context
+
+    async def execute(self, call: ToolCall) -> Outcome:
+        model = SCHEMAS.get(call.name, (None,))[0]
+        if model is None or call.name not in WORKFLOW_TOOLS:
+            return Outcome(status="blocked", reason="unknown_workflow_tool")
+        try:
+            args = model.model_validate(call.arguments)
+        except Exception as exc:
+            return Outcome(status="blocked", reason="invalid_arguments", content=str(exc))
+        try:
+            return await self.context.runtime.workflow_tool(call.name, args.model_dump())
+        except Exception as exc:
+            return Outcome(status="error", reason=type(exc).__name__, content=str(exc))
+
+
+class ToolRegistry:
+    """Facade that keeps lifecycle governance in Runtime and tool domains explicit."""
+
+    def __init__(self, context: ToolContext):
+        self.workspace = WorkspaceTools(context)
+        self.workflow = WorkflowTools(context)
+
+    async def execute(self, call: ToolCall) -> Outcome:
+        if call.name in WORKFLOW_TOOLS or call.name == "tool_load":
+            return await self.workflow.execute(call)
+        return await self.workspace.execute(call)

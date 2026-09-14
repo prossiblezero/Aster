@@ -8,7 +8,7 @@ Aster 是独立重构，不导入 pico/nexa 包。主体能力来自 pico-v3 的
 
 - Python 3.12 / conda `aster`；`src/aster` 布局；异步模型与进程 I/O。
 - Pydantic 负责边界 schema；stdlib 负责持久化、文件与策略；httpx 负责供应商协议；
-  Textual 负责终端 UI；tiktoken 用于明确标记的近似计数。
+  Textual 负责终端 UI；tiktoken 用于工具输出和上下文预算的 token 计数。
 - 一个 Runtime transition 供自主 loop、交互与 RL 调用。事件流与 prompt history 分离。
 - 子进程默认禁止网络；安全后端不可用时 required 拒绝。
 - 当前宿主 bubblewrap 不能建立 uid/network namespace。使用 Linux Landlock + seccomp
@@ -30,7 +30,7 @@ Aster 是独立重构，不导入 pico/nexa 包。主体能力来自 pico-v3 的
 - [x] 评测：固定任务、量化报告、复现命令；真实 Luna 仅作 smoke，不计入确定性分数
 - [x] 文档：逐阶段源码导读、字段解释、可运行示例、评测边界、简历精简/详细版
 
-明确边界：当前没有 provider 取消 API、TUI、模型辅助 Dream、上下文策略自进化、SFT 或
+明确边界：当前没有 provider 取消 API、模型辅助 Dream、上下文策略自进化、SFT 或
 GRPO。`worker_message` 和 `ask_user` 保留受限状态返回，等待后续交互层接入。
 
 ## 指标原则

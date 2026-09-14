@@ -36,7 +36,7 @@ class AsterEnv:
         else:
             outcome = await self.runtime.step(action)
             state = self.runtime.state
-        result = self.runtime.verifier.final(state)
+        result = self.verifier(state) if self.verifier else self.runtime.verifier.final(state)
         reward = self._reward(action, outcome, result)
         terminated = state.phase in {"completed", "failed"}
         truncated = state.phase == "stopped" or state.step >= parsed.max_steps

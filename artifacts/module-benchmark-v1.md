@@ -42,7 +42,16 @@
 - working memory summary recorded：True
 - next prompt contains the observed fact：True
 - edit invalidates stale fact：True
-- hook plugin chain and fail-closed behavior：True / True
+- hook plugin chain and exception isolation：True / True
+
+## Runtime features
+
+- max_turns boundary：True
+- auto_dream enabled event：True
+- auto_dream disabled event absent：True
+- tool output token clipping：True
+- core tools / all tools：9 / 26
+- core profile hides unsupported worker_message：True
 
 ## 解释边界
 

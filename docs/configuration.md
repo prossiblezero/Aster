@@ -12,6 +12,9 @@
 | `sandbox` | `required` 不可用即拒绝，`best_effort` 可记录降级，`off` 不隔离 |
 | `network` | 是否给隔离子进程网络；默认 false |
 | `context_tokens` | 输入预算，需大于输出预留 |
+| `tool_output_tokens` | 单条工具观察在送入模型前的 token 上限 |
+| `tool_profile` | `core` 只展示常用工具；`all` 展示全部工具 |
+| `auto_dream` | 运行结束后是否执行一次确定性记忆去重 |
 | `write_scope` | 相对工作区的允许写入前缀 |
 | `completion` | `strict` 失败即停止，`warn` 允许带警告完成 |
 

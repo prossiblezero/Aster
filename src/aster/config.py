@@ -51,6 +51,7 @@ class Settings(Record):
     memory_enabled: bool = True
     memory_evolution: bool = True
     auto_dream: bool = True
+    tool_profile: Literal["core", "all"] = "core"
     max_workers: int = Field(default=2, ge=0, le=4)
 
     @model_validator(mode="after")

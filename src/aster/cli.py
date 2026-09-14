@@ -11,6 +11,11 @@ from .rl import AsterEnv
 from .runtime import Runtime
 from .schema import TaskSpec
 
+try:
+    from .tui import AsterTui
+except ImportError:  # pragma: no cover
+    AsterTui = None
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="aster")
@@ -24,6 +29,7 @@ def main(argv=None):
     parser.add_argument("--approval", choices=["ask", "auto", "never"])
     parser.add_argument("--read-only", action="store_true")
     parser.add_argument("--rl-smoke", action="store_true")
+    parser.add_argument("--tui", action="store_true")
     args = parser.parse_args(argv)
     env_file = args.env_file or (Path.cwd() / ".env")
     settings = load_settings(
@@ -35,6 +41,11 @@ def main(argv=None):
         approval=args.approval,
         read_only=args.read_only or None,
     )
+    if args.tui:
+        if AsterTui is None:
+            parser.error("TUI requires textual")
+        AsterTui(Path(args.cwd), settings).run()
+        return 0
     if args.rl_smoke:
         return asyncio.run(
             _rl_smoke(Path(args.cwd), settings, args.prompt or "inspect the workspace")
@@ -50,6 +61,11 @@ def main(argv=None):
     print(state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}")
     print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")
     return 0 if state.phase == "completed" else 1
+
+
+def tui_main(argv=None):
+    argv = list(argv or [])
+    return main(["--tui", *argv])
 
 
 async def _rl_smoke(root, settings, prompt):

@@ -19,7 +19,7 @@ from .safety.policy import Decision, permission
 from .safety.runner import SandboxRunner
 from .schema import Outcome, RunState, TaskSpec, ToolCall, VerifierResult
 from .skills import Skills
-from .tools import SCHEMAS, ToolContext, ToolRegistry, definitions
+from .tools import CORE_TOOLS, SCHEMAS, ToolContext, ToolRegistry, definitions
 from .verifier import Verifier
 from .workers import WorkerManager
 from .workspace import Workspace
@@ -46,7 +46,9 @@ class Runtime:
         self.model = model or ModelClient(settings)
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
-        self.context = ContextBuilder(settings.context_tokens, settings.output_tokens)
+        self.context = ContextBuilder(
+            settings.context_tokens, settings.output_tokens, settings.tool_output_tokens
+        )
         self.hooks = hooks or Hooks()
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
@@ -55,6 +57,7 @@ class Runtime:
         self._structured_history: list[dict] = []
         self._recovery_used = 0
         self._finish_hook_ran = False
+        self._dream_ran = False
         self.workers = WorkerManager(self)
 
     def start(self, task: TaskSpec) -> RunState:
@@ -68,6 +71,7 @@ class Runtime:
         # boundaries are actually sent to the model; this seed is only for the task state.
         self._structured_history = []
         self._finish_hook_ran = False
+        self._dream_ran = False
         self.evidence.emit(
             self.state.run_id,
             "run_started",
@@ -111,16 +115,23 @@ class Runtime:
         if not self.state:
             raise RuntimeError("start(task) first")
         limit = max_steps or self.state.task.max_steps
-        while not self.state.terminal and self.state.step < limit:
+        while (
+            not self.state.terminal
+            and self.state.step < limit
+            and self.state.turn < self.state.task.max_turns
+        ):
             await self.turn()
         if not self.state.terminal:
-            self.finish("step_limit")
+            self.finish("turn_limit" if self.state.turn >= self.state.task.max_turns else "step_limit")
         return self.state
 
     async def turn(self) -> RunState:
         state = self.state
         assert state is not None
         if state.terminal:
+            return state
+        if state.turn >= state.task.max_turns:
+            self.finish("turn_limit")
             return state
         state.turn += 1
         memory_text = self._memory_text(state.task.prompt)
@@ -145,7 +156,7 @@ class Runtime:
         )
         try:
             request_messages = prompt
-            reply = await self.model.complete(request_messages, definitions())
+            reply = await self.model.complete(request_messages, definitions(self._tool_names()))
         except ProviderError as exc:
             state.feedback = str(exc)
             self.finish("provider_error", failed=True)
@@ -197,7 +208,7 @@ class Runtime:
         state.messages.append(
             {
                 "role": "tool",
-                "content": outcome.content[:6000],
+                "content": outcome.content,
                 "important": outcome.status != "success",
             }
         )
@@ -337,6 +348,14 @@ class Runtime:
                 content=json.dumps(state.todos, ensure_ascii=False),
                 data={"todos": state.todos},
             )
+        if name == "tool_load":
+            requested = [tool for tool in args.get("names", []) if tool in SCHEMAS]
+            state.loaded_tools = sorted(set(state.loaded_tools + requested))
+            return Outcome(
+                status="success",
+                content=json.dumps(state.loaded_tools, ensure_ascii=False),
+                data={"loaded": state.loaded_tools},
+            )
         if name == "plan_enter":
             state.mode = "plan"
             return Outcome(status="success", content="plan mode enabled")
@@ -357,6 +376,21 @@ class Runtime:
                 status="success",
                 content=json.dumps(lessons, ensure_ascii=False),
                 data={"lessons": lessons},
+            )
+        if name == "memory_store":
+            if not self.evidence.has_hash(state.run_id, args["evidence_id"]):
+                return Outcome(status="blocked", reason="memory_provenance")
+            lesson = self.memory.record(
+                args["text"],
+                run_id=state.run_id,
+                evidence_id=args["evidence_id"],
+                tags=args.get("tags", []),
+            )
+            return Outcome(
+                status="success" if lesson else "blocked",
+                reason="" if lesson else "memory_provenance",
+                content=json.dumps(lesson or {}, ensure_ascii=False),
+                data=lesson or {},
             )
         if name == "memory_update":
             if not self.evidence.has_hash(state.run_id, args["evidence_id"]):
@@ -443,6 +477,7 @@ class Runtime:
         state.phase = "completed"
         state.stop_reason = "verified" if result.passed else "completed_with_warning"
         self.evidence.emit(state.run_id, "run_completed", result=result.model_dump(), answer=answer)
+        self._auto_dream()
         self.report(result)
         return state
 
@@ -457,6 +492,7 @@ class Runtime:
         self.state.phase = "failed" if failed else "stopped"
         self.state.stop_reason = reason
         self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
+        self._auto_dream()
         self.report(VerifierResult(passed=False, reason=reason))
 
     def abort(self, reason: str = "user_abort"):
@@ -491,3 +527,20 @@ class Runtime:
         return "\n".join(
             f"- {x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
         )
+
+    def _tool_names(self):
+        if self.settings.tool_profile == "all":
+            return list(SCHEMAS)
+        return sorted(set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
+
+    def _auto_dream(self):
+        if self._dream_ran or not self.settings.auto_dream:
+            return
+        self._dream_ran = True
+        try:
+            self.memory.dream()
+            if self.state:
+                self.evidence.emit(self.state.run_id, "memory_dream", status="completed")
+        except Exception as exc:
+            if self.state:
+                self.evidence.emit(self.state.run_id, "memory_dream", status="failed", error=type(exc).__name__)

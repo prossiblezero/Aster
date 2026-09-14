@@ -90,6 +90,7 @@ class RunState(Record):
     read_evidence: dict[str, str] = Field(default_factory=dict)
     used_call_ids: list[str] = Field(default_factory=list)
     usage: dict[str, int] = Field(default_factory=dict)
+    loaded_tools: list[str] = Field(default_factory=list)
 
     @property
     def terminal(self) -> bool:

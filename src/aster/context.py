@@ -21,8 +21,9 @@ class ContextReport:
 
 
 class ContextBuilder:
-    def __init__(self, budget: int, output_reserve: int):
+    def __init__(self, budget: int, output_reserve: int, tool_output_tokens: int = 1600):
         self.budget, self.output_reserve = budget, output_reserve
+        self.tool_output_tokens = max(64, tool_output_tokens)
         self.encoder = tiktoken.get_encoding("cl100k_base") if tiktoken else None
 
     def count(self, value) -> int:
@@ -49,9 +50,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             "memory": memory,
             "working_memory": working_memory,
             "skills": skills,
-            "history": self._history(state, include_tools=not structured_history) + "\n" + json.dumps(
-                structured_history[-40:], ensure_ascii=False
-            ),
+            "history": self._history(state, include_tools=not structured_history) + "\n" + self._structured_text(structured_history),
         }
         limit = max(256, self.budget - self.output_reserve)
         compacted, removed = False, 0
@@ -70,9 +69,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             state.messages.pop(index)
             removed += 1
             compacted = True
-            sections["history"] = self._history(state, include_tools=not structured_history) + "\n" + json.dumps(
-                structured_history[-40:], ensure_ascii=False
-            )
+            sections["history"] = self._history(state, include_tools=not structured_history) + "\n" + self._structured_text(structured_history)
         report = ContextReport(
             self.count(sections),
             limit,
@@ -87,9 +84,9 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             role = message["role"] if message["role"] in {"user", "assistant", "system"} else "user"
             content = message["content"]
             if message["role"] == "tool":
-                content = "[untrusted tool observation]\n" + content
+                content = "[untrusted tool observation]\n" + self._clip_tokens(content)
             prompt.append({"role": role, "content": content})
-        prompt.extend(structured_history[-40:])
+        prompt.extend(self._structured_prompt(structured_history))
         if memory or working_memory or skills:
             prompt.insert(
                 1,
@@ -105,10 +102,31 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             )
         return prompt, report
 
-    @staticmethod
-    def _history(state, *, include_tools=True):
+    def _history(self, state, *, include_tools=True):
         return "\n".join(
-            f"{m.get('role')}: {m.get('content', '')}"
+            f"{m.get('role')}: {self._clip_tokens(m.get('content', '')) if m.get('role') == 'tool' else m.get('content', '')}"
             for m in state.messages
             if include_tools or m.get("role") != "tool"
         )
+
+    def _clip_tokens(self, value: str) -> str:
+        text = str(value)
+        if self.count(text) <= self.tool_output_tokens:
+            return text
+        if self.encoder:
+            clipped = self.encoder.decode(self.encoder.encode(text)[: self.tool_output_tokens])
+        else:
+            clipped = text[: self.tool_output_tokens * 4]
+        return clipped + "\n[tool output clipped]"
+
+    def _structured_prompt(self, history):
+        result = []
+        for item in history[-40:]:
+            item = dict(item)
+            if item.get("type") == "function_call_output":
+                item["output"] = self._clip_tokens(item.get("output", ""))
+            result.append(item)
+        return result
+
+    def _structured_text(self, history):
+        return json.dumps(self._structured_prompt(history), ensure_ascii=False)

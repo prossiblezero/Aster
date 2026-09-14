@@ -24,7 +24,7 @@ class Memory:
         self.state = (
             json.loads(self.path.read_text())
             if self.path.exists()
-            else {"schema": 1, "working": {}, "lessons": [], "snapshots": {}, "audit": []}
+            else {"schema": 1, "lessons": [], "snapshots": {}, "audit": []}
         )
 
     def save(self):
@@ -33,14 +33,16 @@ class Memory:
     def working_section(self, working: dict | None = None) -> str:
         if not self.enabled:
             return ""
-        source = self.state["working"] if working is None else working
+        source = working or {}
         rows = [f"- {k}: {v['summary']}" for k, v in source.items()]
         return "\n".join(rows)
 
     def remember_file(self, path: str, summary: str, working: dict | None = None):
         if not self.enabled:
             return
-        target = self.state["working"] if working is None else working
+        if working is None:
+            return
+        target = working
         target[path] = {"summary": summary[:500], "updated": now()}
         if working is None:
             self.save()
@@ -126,9 +128,7 @@ class Memory:
         self.save()
 
     def snapshot(self):
-        payload = copy.deepcopy(
-            {"working": self.state["working"], "lessons": self.state["lessons"]}
-        )
+        payload = copy.deepcopy({"lessons": self.state.get("lessons", [])})
         ident = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
         self.state["snapshots"][ident] = payload
         self.state["snapshots"] = dict(list(self.state["snapshots"].items())[-8:])
@@ -139,7 +139,7 @@ class Memory:
         snap = self.state["snapshots"].get(ident)
         if not snap:
             return False
-        self.state["working"], self.state["lessons"] = snap["working"], snap["lessons"]
+        self.state["lessons"] = snap["lessons"]
         self.state["audit"].append({"event": "rollback", "snapshot": ident})
         self.save()
         return True

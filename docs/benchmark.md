@@ -26,6 +26,8 @@ PYTHONPATH=src:scripts python scripts/agent_eval.py --real --repeats 3 --env-fil
 
 ## 为什么要拆模块评测
 
+任务数据位于 [`datasets/`](../datasets/)；评测脚本只实现加载、运行、验证和统计，不再把任务内容作为 Python 常量维护。
+
 Harness 的总通过率只能证明边界合同没有明显回归，不能证明 context、Memory 或 recovery 真的有收益。因此 Aster 把评测拆成固定任务、对照和物理证据：
 
 | 模块 | 对照 | 主要指标 |

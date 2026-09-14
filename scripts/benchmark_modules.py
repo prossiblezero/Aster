@@ -24,6 +24,9 @@ from aster.recovery import StallDetector
 from aster.runtime import Runtime
 from aster.schema import ModelReply, Outcome, RunState, TaskSpec, ToolCall
 
+DATASET_ROOT = Path(__file__).resolve().parents[1] / "datasets"
+MODULE_CASES = json.loads((DATASET_ROOT / "module_cases.json").read_text())
+
 
 class FakeModel:
     def __init__(self, replies):
@@ -52,8 +55,8 @@ def mean(values):
 
 def context_benchmark():
     rows = []
-    for history_size in (600, 1200, 2400, 4800):
-        for memory_size in (0, 600, 1200):
+    for history_size in MODULE_CASES["context"]["history_sizes"]:
+        for memory_size in MODULE_CASES["context"]["memory_sizes"]:
             state = RunState(task=TaskSpec(prompt="current request: preserve this exact task"))
             state.messages = [
                 {"role": "assistant", "content": "ordinary history " + ("x" * history_size)},
@@ -103,26 +106,13 @@ def context_benchmark():
 
 
 async def memory_benchmark(root: Path):
-    cases = [
-        ("deploy_color", "deploy key color", "deploy key is red"),
-        ("api_path", "internal api path", "api base path is /v1/internal"),
-        ("step_budget", "default step budget", "default step budget is 6"),
-        ("timeout", "process timeout ceiling", "timeout ceiling is 120 seconds"),
-        ("health_route", "health endpoint route", "health endpoint is /healthz"),
-        ("cache_ttl", "cache ttl", "cache ttl is 60 seconds"),
-        ("db_port", "database port", "database port is 5432"),
-        ("log_level", "production log level", "production log level is warning"),
-        ("retry_limit", "retry limit", "retry limit is 3"),
-        ("worker_scope", "worker write scope", "worker write scope is src"),
-        ("image_format", "image format", "image format is webp"),
-        ("release_branch", "release branch", "release branch is main"),
-    ]
+    cases = [tuple(item) for item in MODULE_CASES["memory_retrieval"]["cases"]]
     rows = []
     for case_id, query, fact in cases:
         case_root = root / case_id
         memory = Memory(case_root)
         memory.record(fact, run_id=case_id, evidence_id=f"e-{case_id}", tags=query.split())
-        for index in range(5):
+        for index in range(MODULE_CASES["memory_retrieval"]["distractors_per_case"]):
             memory.record(
                 f"distractor {index} unrelated repository note",
                 run_id=case_id,
@@ -294,7 +284,7 @@ async def memory_benchmark(root: Path):
 async def recovery_benchmark(root: Path):
     root.mkdir(parents=True, exist_ok=True)
     rows = []
-    for index in range(10):
+    for index in range(MODULE_CASES["recovery"]["resume_cases"]):
         case_root = root / f"resume-{index}"
         case_root.mkdir(parents=True)
         (case_root / "app.py").write_text("print('stable')\n")
@@ -485,6 +475,33 @@ async def hooks_benchmark(root: Path):
     }
 
 
+async def runtime_feature_benchmark(root: Path):
+    root.mkdir(parents=True, exist_ok=True)
+    turns = []
+    for limit in (1, 2, 3):
+        runtime = Runtime(root / f"turn-{limit}", Settings(completion="off"), model=FakeModel([reply(text="ok") for _ in range(4)]))
+        state = await runtime.run(TaskSpec(prompt="inspect", max_turns=limit, max_steps=20))
+        turns.append({"max_turns": limit, "actual_turns": state.turn, "bounded": state.turn <= limit})
+    dream_runtime = Runtime(root / "dream", Settings(completion="off", auto_dream=True), model=FakeModel([reply(text="ok")]))
+    dream_state = await dream_runtime.run(TaskSpec(prompt="inspect", max_turns=1))
+    no_dream_runtime = Runtime(root / "no-dream", Settings(completion="off", auto_dream=False), model=FakeModel([reply(text="ok")]))
+    no_dream_state = await no_dream_runtime.run(TaskSpec(prompt="inspect", max_turns=1))
+    token_runtime = Runtime(root / "tokens", Settings(tool_output_tokens=64))
+    clipped = "[tool output clipped]" in token_runtime.context._clip_tokens("x" * 1000)
+    core = Runtime(root / "core", Settings())._tool_names()
+    all_tools = Runtime(root / "all", Settings(tool_profile="all"))._tool_names()
+    return {
+        "task_count": len(turns) + 4,
+        "max_turns": turns,
+        "auto_dream_event": any(e["event"] == "memory_dream" for e in dream_runtime.evidence.events(dream_state.run_id)),
+        "auto_dream_disabled": not any(e["event"] == "memory_dream" for e in no_dream_runtime.evidence.events(no_dream_state.run_id)),
+        "token_output_clipped": clipped,
+        "core_tool_count": len(core),
+        "all_tool_count": len(all_tools),
+        "core_excludes_worker_message": "worker_message" not in core,
+    }
+
+
 async def main():
     output = Path("artifacts")
     output.mkdir(exist_ok=True)
@@ -513,6 +530,7 @@ async def main():
             "recovery": await recovery_benchmark(root / "recovery-cases"),
             "completion": await completion_benchmark(root / "completion-cases"),
             "hooks": await hooks_benchmark(root / "hooks-cases"),
+            "runtime_features": await runtime_feature_benchmark(root / "runtime-features"),
         }
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -567,6 +585,15 @@ async def main():
 - next prompt contains the observed fact：{summary['memory']['summary']['working_memory']['next_prompt_contains_fact']}
 - edit invalidates stale fact：{summary['memory']['summary']['working_memory']['edit_invalidates_fact']}
 - hook plugin chain and exception isolation：{summary['hooks']['plugin_chain_runs']} / {summary['hooks']['broken_hook_cannot_block']}
+
+## Runtime features
+
+- max_turns boundary：{all(item['bounded'] for item in summary['runtime_features']['max_turns'])}
+- auto_dream enabled event：{summary['runtime_features']['auto_dream_event']}
+- auto_dream disabled event absent：{summary['runtime_features']['auto_dream_disabled']}
+- tool output token clipping：{summary['runtime_features']['token_output_clipped']}
+- core tools / all tools：{summary['runtime_features']['core_tool_count']} / {summary['runtime_features']['all_tool_count']}
+- core profile hides unsupported worker_message：{summary['runtime_features']['core_excludes_worker_message']}
 
 ## 解释边界
 
