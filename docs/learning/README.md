@@ -42,17 +42,17 @@ token 是估算值：优先使用 `cl100k_base`，没有 tokenizer 时退化为�
 
 ## 6. Hooks、停滞和完成治理
 
-文件：[hooks.py](../../src/aster/hooks.py)、[recovery.py](../../src/aster/recovery.py)、[verifier.py](../../src/aster/verifier.py)。固定 lifecycle hook 区分 before、成功、失败；hook 失败不能扩大权限。Nexa 的重复动作、ABAB 振荡和相同输出检测被实现为有界 `StallDetector`，最多一次 recovery nudge，继续无进展就停止。
+文件：[hooks.py](../../src/aster/hooks.py)、[recovery.py](../../src/aster/recovery.py)、[verifier.py](../../src/aster/verifier.py)。`Hooks` 接收可注入插件，按 before、成功、失败、停止四个时机运行；插件异常会被隔离，不能扩大权限，before 插件可以拒绝或停止动作。Nexa 的重复动作、ABAB 振荡和相同输出检测被实现为有界 `StallDetector`，最多一次 recovery nudge，继续无进展就停止。
 
 最终文本先经过 completion contract 和 verifier。`测试通过 → 再修改` 会将验证状态重置为 `missing`，不能把旧测试结果继续当证据。
 
 ## 7. Checkpoint、Trace 和 Resume
 
-文件：[evidence.py](../../src/aster/evidence.py)。每个 run 生成追加式 hash-linked `trace.jsonl`、checkpoint 和 report。checkpoint 包含工作区 hash、运行边界、对话窗口、验证状态和下一步状态。resume 会重新检查 runtime identity 与工作区 hash；漂移就拒绝恢复。trace 对密钥、token 和图片做脱敏/省略。
+文件：[evidence.py](../../src/aster/evidence.py)。每个 run 生成追加式 hash-linked `trace.jsonl`、checkpoint 和 report。checkpoint 包含工作区 hash、运行边界、状态消息、结构化 provider 历史、验证状态和下一步状态。resume 会重新检查 runtime identity 与工作区 hash；漂移就拒绝恢复。trace 对密钥、token 和图片做脱敏/省略。
 
 ## 8. Layered Memory 与 Memory Evolution
 
-文件：[memory.py](../../src/aster/memory.py)。working memory 记录文件摘要，durable lessons 按关键词召回，evolution ledger 保存 support、contradictions、use feedback、provenance 和 snapshot。没有 `run_id + evidence_id` 的 lesson 会被拒绝；Dream 目前是确定性去重，模型辅助冲突整理留到后续迭代。
+文件：[memory.py](../../src/aster/memory.py)。每次运行的 `RunState.working_memory` 保存当前任务读过的文件、搜索结果和测试结果摘要；下一轮由 `ContextBuilder` 注入，因此它是会话内的短期工作记忆。文件发生修改时对应摘要会被删除，要求重新读取，避免继续使用旧事实。跨运行经验进入 durable lessons，按关键词召回；evolution ledger 保存 support、contradictions、use feedback、provenance 和 snapshot。没有 `run_id + evidence_id` 的 lesson 会被拒绝；Dream 目前是确定性去重，模型辅助冲突整理留到后续迭代。
 
 记忆被召回后，后续验证成功或失败会记录使用反馈，但这不等于证明单条记忆产生了因果收益。
 

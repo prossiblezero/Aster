@@ -18,6 +18,7 @@ from evaluate import harness_cases
 
 from aster.config import Settings
 from aster.context import ContextBuilder
+from aster.hooks import HookResult, Hooks
 from aster.memory import Memory
 from aster.recovery import StallDetector
 from aster.runtime import Runtime
@@ -239,6 +240,30 @@ async def memory_benchmark(root: Path):
         )
     baseline_reads = sum(row["baseline_reads"] for row in dependency_rows)
     memory_reads = sum(row["memory_reads"] for row in dependency_rows)
+
+    # Session working-memory check: first observation is summarized into the run state,
+    # then the next prompt can answer from that summary without rereading the file.
+    session_root = root / "working-session"
+    session_root.mkdir(parents=True, exist_ok=True)
+    (session_root / "facts.txt").write_text("deploy key is blue\n")
+    session_runtime = Runtime(
+        session_root, Settings(approval="auto", completion="off"), model=DependencyModel()
+    )
+    session_state = session_runtime.start(TaskSpec(prompt="What color is the deploy key?"))
+    await session_runtime.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+    working_text = session_runtime.memory.working_section(session_state.working_memory)
+    session_prompt, _ = session_runtime.context.build(
+        session_state, session_state.task.prompt, working_memory=working_text
+    )
+    working_recalled = "deploy key is blue" in json.dumps(session_prompt, ensure_ascii=False)
+    working_recorded = "facts.txt" in session_state.working_memory
+    await session_runtime.step(
+        ToolCall(
+            name="patch_file",
+            arguments={"path": "facts.txt", "old_text": "blue", "new_text": "green"},
+        )
+    )
+    working_invalidated = "facts.txt" not in session_state.working_memory
     return {
         "task_count": len(rows),
         "rows": rows,
@@ -251,6 +276,16 @@ async def memory_benchmark(root: Path):
             "followup_repeated_reads_baseline": baseline_reads,
             "followup_repeated_reads_memory": memory_reads,
             "followup_read_reduction": 1 - ratio(memory_reads, baseline_reads),
+            "working_memory": {
+                "summary_recorded": working_recorded,
+                "next_prompt_contains_fact": working_recalled,
+                "edit_invalidates_fact": working_invalidated,
+                "read_count": sum(
+                    e.get("event") == "tool_result"
+                    and e.get("call", {}).get("name") == "read_file"
+                    for e in session_runtime.evidence.events(session_state.run_id)
+                ),
+            },
             "evolution": evolution_metrics,
         },
     }
@@ -412,6 +447,44 @@ async def completion_benchmark(root: Path):
     }
 
 
+async def hooks_benchmark(root: Path):
+    class Recorder:
+        def __init__(self):
+            self.events = []
+
+        def before_tool(self, _state, call):
+            self.events.append("before:" + call.name)
+            return HookResult()
+
+        def after_tool(self, _state, call, _outcome):
+            self.events.append("after:" + call.name)
+            return HookResult()
+
+        def after_failure(self, _state, call, _outcome):
+            self.events.append("failure:" + call.name)
+            return HookResult()
+
+    class Broken:
+        def before_tool(self, *_args):
+            raise RuntimeError("hook failure")
+
+    case_root = root / "hooks"
+    case_root.mkdir(parents=True, exist_ok=True)
+    recorder = Recorder()
+    runtime = Runtime(
+        case_root,
+        Settings(approval="auto", completion="off"),
+        hooks=Hooks([Broken(), recorder]),
+    )
+    runtime.start(TaskSpec(prompt="list files"))
+    outcome = await runtime.step(ToolCall(name="list_files", arguments={}))
+    return {
+        "plugin_chain_runs": outcome.status == "success" and recorder.events == ["before:list_files", "after:list_files"],
+        "broken_hook_cannot_block": outcome.status == "success",
+        "events": recorder.events,
+    }
+
+
 async def main():
     output = Path("artifacts")
     output.mkdir(exist_ok=True)
@@ -439,6 +512,7 @@ async def main():
             "memory": await memory_benchmark(root / "memory-cases"),
             "recovery": await recovery_benchmark(root / "recovery-cases"),
             "completion": await completion_benchmark(root / "completion-cases"),
+            "hooks": await hooks_benchmark(root / "hooks-cases"),
         }
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -486,6 +560,13 @@ async def main():
 - stall pattern 检出率：{recovery['stall_detection_rate']:.2%}
 - 有界恢复耗尽后停止：{recovery['bounded_recovery_stops']}
 - completion contract enforcement rate：{completion['completion_contract_enforcement_rate']:.2%}
+
+## Working memory and hooks
+
+- working memory summary recorded：{summary['memory']['summary']['working_memory']['summary_recorded']}
+- next prompt contains the observed fact：{summary['memory']['summary']['working_memory']['next_prompt_contains_fact']}
+- edit invalidates stale fact：{summary['memory']['summary']['working_memory']['edit_invalidates_fact']}
+- hook plugin chain and exception isolation：{summary['hooks']['plugin_chain_runs']} / {summary['hooks']['broken_hook_cannot_block']}
 
 ## 解释边界
 

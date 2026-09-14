@@ -12,9 +12,9 @@
 
 ## Context
 
-- 平均 token：703.9 → 576.9
-- 平均压缩率：11.28%
-- 最高压缩率：59.38%
+- 平均 token：708.9 → 581.9
+- 平均压缩率：11.23%
+- 最高压缩率：59.09%
 - 预算内率：100.00%
 - 当前请求保留率：100.00%
 - 重要验证证据保留率：100.00%
@@ -36,6 +36,13 @@
 - stall pattern 检出率：100.00%
 - 有界恢复耗尽后停止：True
 - completion contract enforcement rate：100.00%
+
+## Working memory and hooks
+
+- working memory summary recorded：True
+- next prompt contains the observed fact：True
+- edit invalidates stale fact：True
+- hook plugin chain and fail-closed behavior：True / True
 
 ## 解释边界
 

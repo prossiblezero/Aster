@@ -26,8 +26,8 @@
       {
         "history_size": 600,
         "memory_size": 0,
-        "raw_tokens": 195,
-        "compact_tokens": 195,
+        "raw_tokens": 200,
+        "compact_tokens": 200,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -37,8 +37,8 @@
       {
         "history_size": 600,
         "memory_size": 600,
-        "raw_tokens": 499,
-        "compact_tokens": 499,
+        "raw_tokens": 504,
+        "compact_tokens": 504,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -48,8 +48,8 @@
       {
         "history_size": 600,
         "memory_size": 1200,
-        "raw_tokens": 799,
-        "compact_tokens": 799,
+        "raw_tokens": 804,
+        "compact_tokens": 804,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -59,8 +59,8 @@
       {
         "history_size": 1200,
         "memory_size": 0,
-        "raw_tokens": 270,
-        "compact_tokens": 270,
+        "raw_tokens": 275,
+        "compact_tokens": 275,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -70,8 +70,8 @@
       {
         "history_size": 1200,
         "memory_size": 600,
-        "raw_tokens": 574,
-        "compact_tokens": 574,
+        "raw_tokens": 579,
+        "compact_tokens": 579,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -81,8 +81,8 @@
       {
         "history_size": 1200,
         "memory_size": 1200,
-        "raw_tokens": 874,
-        "compact_tokens": 874,
+        "raw_tokens": 879,
+        "compact_tokens": 879,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -92,8 +92,8 @@
       {
         "history_size": 2400,
         "memory_size": 0,
-        "raw_tokens": 420,
-        "compact_tokens": 420,
+        "raw_tokens": 425,
+        "compact_tokens": 425,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -103,8 +103,8 @@
       {
         "history_size": 2400,
         "memory_size": 600,
-        "raw_tokens": 724,
-        "compact_tokens": 724,
+        "raw_tokens": 729,
+        "compact_tokens": 729,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -114,9 +114,9 @@
       {
         "history_size": 2400,
         "memory_size": 1200,
-        "raw_tokens": 1024,
-        "compact_tokens": 716,
-        "compression_ratio": 0.30078125,
+        "raw_tokens": 1029,
+        "compact_tokens": 721,
+        "compression_ratio": 0.29931972789115646,
         "within_budget": true,
         "request_preserved": true,
         "important_evidence_preserved": true,
@@ -125,8 +125,8 @@
       {
         "history_size": 4800,
         "memory_size": 0,
-        "raw_tokens": 720,
-        "compact_tokens": 720,
+        "raw_tokens": 725,
+        "compact_tokens": 725,
         "compression_ratio": 0.0,
         "within_budget": true,
         "request_preserved": true,
@@ -136,9 +136,9 @@
       {
         "history_size": 4800,
         "memory_size": 600,
-        "raw_tokens": 1024,
-        "compact_tokens": 416,
-        "compression_ratio": 0.59375,
+        "raw_tokens": 1029,
+        "compact_tokens": 421,
+        "compression_ratio": 0.5908649173955296,
         "within_budget": true,
         "request_preserved": true,
         "important_evidence_preserved": true,
@@ -147,9 +147,9 @@
       {
         "history_size": 4800,
         "memory_size": 1200,
-        "raw_tokens": 1324,
-        "compact_tokens": 716,
-        "compression_ratio": 0.45921450151057397,
+        "raw_tokens": 1329,
+        "compact_tokens": 721,
+        "compression_ratio": 0.45748683220466513,
         "within_budget": true,
         "request_preserved": true,
         "important_evidence_preserved": true,
@@ -157,10 +157,10 @@
       }
     ],
     "summary": {
-      "avg_raw_tokens": 703.9166666666666,
-      "avg_compact_tokens": 576.9166666666666,
-      "avg_compression_ratio": 0.1128121459592145,
-      "max_compression_ratio": 0.59375,
+      "avg_raw_tokens": 708.9166666666666,
+      "avg_compact_tokens": 581.9166666666666,
+      "avg_compression_ratio": 0.1123059564576126,
+      "max_compression_ratio": 0.5908649173955296,
       "budget_compliance_rate": 1.0,
       "request_retention_rate": 1.0,
       "important_evidence_retention_rate": 1.0,
@@ -349,6 +349,12 @@
       "followup_repeated_reads_baseline": 12,
       "followup_repeated_reads_memory": 0,
       "followup_read_reduction": 1.0,
+      "working_memory": {
+        "summary_recorded": true,
+        "next_prompt_contains_fact": true,
+        "edit_invalidates_fact": true,
+        "read_count": 1
+      },
       "evolution": {
         "support_count": 2,
         "contradiction_count": 1,
@@ -499,5 +505,13 @@
     "summary": {
       "completion_contract_enforcement_rate": 1.0
     }
+  },
+  "hooks": {
+    "plugin_chain_runs": true,
+    "broken_hook_cannot_block": true,
+    "events": [
+      "before:list_files",
+      "after:list_files"
+    ]
   }
 }

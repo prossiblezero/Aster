@@ -30,17 +30,20 @@ class Memory:
     def save(self):
         atomic_json(self.path, self.state)
 
-    def working_section(self) -> str:
+    def working_section(self, working: dict | None = None) -> str:
         if not self.enabled:
             return ""
-        rows = [f"- {k}: {v['summary']}" for k, v in self.state["working"].items()]
+        source = self.state["working"] if working is None else working
+        rows = [f"- {k}: {v['summary']}" for k, v in source.items()]
         return "\n".join(rows)
 
-    def remember_file(self, path: str, summary: str):
+    def remember_file(self, path: str, summary: str, working: dict | None = None):
         if not self.enabled:
             return
-        self.state["working"][path] = {"summary": summary[:500], "updated": now()}
-        self.save()
+        target = self.state["working"] if working is None else working
+        target[path] = {"summary": summary[:500], "updated": now()}
+        if working is None:
+            self.save()
 
     def record(
         self,

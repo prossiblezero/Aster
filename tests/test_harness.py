@@ -1,6 +1,7 @@
 import pytest
 
 from aster.config import Settings
+from aster.hooks import HookResult, Hooks
 from aster.memory import Memory
 from aster.provider import ModelClient
 from aster.rl import AsterEnv
@@ -124,3 +125,84 @@ async def test_runtime_rejects_memory_evidence_not_in_trace(tmp_path):
     )
     assert outcome.status == "blocked"
     assert outcome.reason == "memory_provenance"
+
+
+@pytest.mark.asyncio
+async def test_read_file_updates_working_memory_and_context(tmp_path):
+    (tmp_path / "facts.txt").write_text("deploy key is red\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+    runtime.start(TaskSpec(prompt="inspect facts.txt"))
+    outcome = await runtime.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+    assert outcome.status == "success"
+    assert runtime.state.working_memory["facts.txt"]["summary"] == "deploy key is red"
+    prompt, _ = runtime.context.build(
+        runtime.state,
+        runtime.state.task.prompt,
+        working_memory=runtime.memory.working_section(runtime.state.working_memory),
+    )
+    rendered = str(prompt)
+    assert "deploy key is red" in rendered
+
+
+@pytest.mark.asyncio
+async def test_edit_invalidates_stale_working_memory(tmp_path):
+    (tmp_path / "facts.txt").write_text("old fact\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+    runtime.start(TaskSpec(prompt="edit facts.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+    await runtime.step(
+        ToolCall(
+            name="patch_file",
+            arguments={"path": "facts.txt", "old_text": "old", "new_text": "new"},
+        )
+    )
+    assert "facts.txt" not in runtime.state.working_memory
+
+
+@pytest.mark.asyncio
+async def test_resume_preserves_working_memory(tmp_path):
+    (tmp_path / "facts.txt").write_text("persisted fact\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+    state = runtime.start(TaskSpec(prompt="inspect facts.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+    run_id = state.run_id
+    resumed = Runtime(tmp_path, Settings(approval="auto"))
+    restored = resumed.resume(run_id)
+    assert restored.working_memory["facts.txt"]["summary"] == "persisted fact"
+
+
+@pytest.mark.asyncio
+async def test_runtime_does_not_duplicate_tool_observation(tmp_path):
+    (tmp_path / "facts.txt").write_text("one\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+    runtime.start(TaskSpec(prompt="inspect facts.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+    assert sum(m["role"] == "tool" for m in runtime.state.messages) == 1
+
+
+@pytest.mark.asyncio
+async def test_injected_hooks_run_and_fail_closed(tmp_path):
+    class Plugin:
+        def __init__(self):
+            self.seen = []
+
+        def before_tool(self, _state, call):
+            self.seen.append(("before", call.name))
+            return HookResult()
+
+        def after_tool(self, _state, call, _outcome):
+            self.seen.append(("after", call.name))
+            return HookResult(feedback="hook note")
+
+    plugin = Plugin()
+    runtime = Runtime(
+        tmp_path,
+        Settings(approval="auto"),
+        model=FakeModel([]),
+        hooks=Hooks([plugin]),
+    )
+    runtime.start(TaskSpec(prompt="list files"))
+    outcome = await runtime.step(ToolCall(name="list_files", arguments={}))
+    assert outcome.status == "success"
+    assert plugin.seen == [("before", "list_files"), ("after", "list_files")]
+    assert any(m["role"] == "user" and m["content"] == "hook note" for m in runtime.state.messages)

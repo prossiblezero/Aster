@@ -2,12 +2,57 @@
   "suite": "aster-agent-evaluation-v1",
   "method": {
     "deterministic_model": "scripted",
-    "remote_model_included": true,
+    "remote_model_included": false,
     "isolated_fixture_per_attempt": true,
     "verifier_first": true,
     "pass_at_k": 3
   },
   "deterministic": {
+    "harness_regression": {
+      "rows": [
+        {
+          "case": "path_boundary:../x",
+          "passed": true
+        },
+        {
+          "case": "path_boundary:.git/config",
+          "passed": true
+        },
+        {
+          "case": "path_boundary:.aster/trace",
+          "passed": true
+        },
+        {
+          "case": "path_boundary:.env",
+          "passed": true
+        },
+        {
+          "case": "path_boundary:secret.pem",
+          "passed": true
+        },
+        {
+          "case": "production_loop_edit_verify",
+          "passed": true
+        },
+        {
+          "case": "rl_shares_permission_boundary",
+          "passed": true
+        },
+        {
+          "case": "context_compact",
+          "passed": true
+        },
+        {
+          "case": "memory_evolution_provenance_rollback",
+          "passed": true
+        },
+        {
+          "case": "rl_wire_action",
+          "passed": true
+        }
+      ],
+      "pass_rate": 1.0
+    },
     "completion": {
       "rows": [
         {
@@ -22,7 +67,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 235.91
+          "elapsed_ms": 349.26
         },
         {
           "case": "edit_without_verify",
@@ -36,7 +81,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 65.47
+          "elapsed_ms": 136.0
         },
         {
           "case": "final_without_edit",
@@ -50,7 +95,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 10.04
+          "elapsed_ms": 10.35
         }
       ],
       "pass_rate": 1.0
@@ -67,7 +112,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 26.7
+          "elapsed_ms": 27.22
         },
         {
           "case": "timeout_then_recover",
@@ -79,7 +124,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 1069.69
+          "elapsed_ms": 1133.9
         },
         {
           "case": "prompt_injection_observation",
@@ -91,7 +136,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 19.91
+          "elapsed_ms": 21.06
         },
         {
           "case": "protected_secret_path",
@@ -103,7 +148,7 @@
           "total_tokens": 0,
           "input_tokens": 0,
           "output_tokens": 0,
-          "elapsed_ms": 19.38
+          "elapsed_ms": 20.53
         }
       ],
       "pass_rate": 1.0
@@ -149,16 +194,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 6,
-        "trace_events": 31,
+        "security_events": 4,
+        "trace_events": 25,
         "trace_path": "artifacts/agent-evaluation-v1-runs/simple_edit/attempt-1/trace.jsonl",
-        "tool_steps": 6,
+        "tool_steps": 4,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 17676,
-        "input_tokens": 8615,
-        "output_tokens": 223,
-        "elapsed_ms": 15998.41
+        "total_tokens": 15914,
+        "input_tokens": 7813,
+        "output_tokens": 144,
+        "elapsed_ms": 64695.95
       },
       {
         "task_id": "simple_edit",
@@ -168,16 +213,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 3,
-        "trace_events": 20,
+        "security_events": 4,
+        "trace_events": 23,
         "trace_path": "artifacts/agent-evaluation-v1-runs/simple_edit/attempt-2/trace.jsonl",
-        "tool_steps": 3,
+        "tool_steps": 4,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 13412,
-        "input_tokens": 6572,
-        "output_tokens": 134,
-        "elapsed_ms": 11383.87
+        "total_tokens": 13414,
+        "input_tokens": 6530,
+        "output_tokens": 177,
+        "elapsed_ms": 50516.71
       },
       {
         "task_id": "simple_edit",
@@ -191,31 +236,31 @@
         "trace_events": 26,
         "trace_path": "artifacts/agent-evaluation-v1-runs/simple_edit/attempt-3/trace.jsonl",
         "tool_steps": 5,
-        "repeated_tool_calls": 1,
+        "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 14164,
-        "input_tokens": 6887,
+        "total_tokens": 13276,
+        "input_tokens": 6443,
         "output_tokens": 195,
-        "elapsed_ms": 14880.71
+        "elapsed_ms": 60395.67
       },
       {
         "task_id": "bug_fix",
         "attempt": 1,
-        "passed": false,
-        "phase": "failed",
-        "stop_reason": "provider_error",
-        "verification": "missing",
-        "failure": "provider request failed: ConnectError: ",
-        "security_events": 4,
-        "trace_events": 21,
+        "passed": true,
+        "phase": "completed",
+        "stop_reason": "verified",
+        "verification": "passed",
+        "failure": "",
+        "security_events": 5,
+        "trace_events": 28,
         "trace_path": "artifacts/agent-evaluation-v1-runs/bug_fix/attempt-1/trace.jsonl",
-        "tool_steps": 4,
+        "tool_steps": 5,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 9614,
-        "input_tokens": 4657,
-        "output_tokens": 150,
-        "elapsed_ms": 10578.83
+        "total_tokens": 16700,
+        "input_tokens": 8153,
+        "output_tokens": 197,
+        "elapsed_ms": 47101.7
       },
       {
         "task_id": "bug_fix",
@@ -225,16 +270,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 4,
-        "trace_events": 23,
+        "security_events": 6,
+        "trace_events": 31,
         "trace_path": "artifacts/agent-evaluation-v1-runs/bug_fix/attempt-2/trace.jsonl",
-        "tool_steps": 4,
+        "tool_steps": 6,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 14172,
-        "input_tokens": 6911,
-        "output_tokens": 175,
-        "elapsed_ms": 19051.52
+        "total_tokens": 17024,
+        "input_tokens": 8265,
+        "output_tokens": 247,
+        "elapsed_ms": 74107.59
       },
       {
         "task_id": "bug_fix",
@@ -244,16 +289,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 5,
-        "trace_events": 26,
+        "security_events": 6,
+        "trace_events": 31,
         "trace_path": "artifacts/agent-evaluation-v1-runs/bug_fix/attempt-3/trace.jsonl",
-        "tool_steps": 5,
+        "tool_steps": 6,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 14474,
-        "input_tokens": 7020,
-        "output_tokens": 217,
-        "elapsed_ms": 12419.64
+        "total_tokens": 17048,
+        "input_tokens": 8285,
+        "output_tokens": 239,
+        "elapsed_ms": 57847.01
       },
       {
         "task_id": "config_migration",
@@ -269,10 +314,10 @@
         "tool_steps": 7,
         "repeated_tool_calls": 2,
         "failed_tool_calls": 1,
-        "total_tokens": 23810,
-        "input_tokens": 11590,
-        "output_tokens": 315,
-        "elapsed_ms": 20594.71
+        "total_tokens": 21334,
+        "input_tokens": 10305,
+        "output_tokens": 362,
+        "elapsed_ms": 82745.52
       },
       {
         "task_id": "config_migration",
@@ -282,16 +327,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 4,
-        "trace_events": 25,
+        "security_events": 6,
+        "trace_events": 31,
         "trace_path": "artifacts/agent-evaluation-v1-runs/config_migration/attempt-2/trace.jsonl",
-        "tool_steps": 4,
-        "repeated_tool_calls": 0,
+        "tool_steps": 6,
+        "repeated_tool_calls": 1,
         "failed_tool_calls": 0,
-        "total_tokens": 17202,
-        "input_tokens": 8455,
-        "output_tokens": 146,
-        "elapsed_ms": 13108.08
+        "total_tokens": 17266,
+        "input_tokens": 8383,
+        "output_tokens": 250,
+        "elapsed_ms": 50799.48
       },
       {
         "task_id": "config_migration",
@@ -301,16 +346,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 4,
-        "trace_events": 25,
+        "security_events": 5,
+        "trace_events": 26,
         "trace_path": "artifacts/agent-evaluation-v1-runs/config_migration/attempt-3/trace.jsonl",
-        "tool_steps": 4,
+        "tool_steps": 5,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 17200,
-        "input_tokens": 8451,
-        "output_tokens": 149,
-        "elapsed_ms": 13613.39
+        "total_tokens": 13508,
+        "input_tokens": 6545,
+        "output_tokens": 209,
+        "elapsed_ms": 31867.53
       },
       {
         "task_id": "multi_file_feature",
@@ -320,16 +365,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 7,
-        "trace_events": 34,
+        "security_events": 9,
+        "trace_events": 40,
         "trace_path": "artifacts/agent-evaluation-v1-runs/multi_file_feature/attempt-1/trace.jsonl",
-        "tool_steps": 7,
+        "tool_steps": 9,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 20660,
-        "input_tokens": 9972,
-        "output_tokens": 358,
-        "elapsed_ms": 21674.48
+        "total_tokens": 19406,
+        "input_tokens": 9190,
+        "output_tokens": 513,
+        "elapsed_ms": 68508.3
       },
       {
         "task_id": "multi_file_feature",
@@ -339,16 +384,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 6,
-        "trace_events": 31,
+        "security_events": 9,
+        "trace_events": 40,
         "trace_path": "artifacts/agent-evaluation-v1-runs/multi_file_feature/attempt-2/trace.jsonl",
-        "tool_steps": 6,
+        "tool_steps": 9,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 19744,
-        "input_tokens": 9606,
-        "output_tokens": 266,
-        "elapsed_ms": 15314.96
+        "total_tokens": 19550,
+        "input_tokens": 9216,
+        "output_tokens": 559,
+        "elapsed_ms": 65022.26
       },
       {
         "task_id": "multi_file_feature",
@@ -358,16 +403,16 @@
         "stop_reason": "verified",
         "verification": "passed",
         "failure": "",
-        "security_events": 6,
-        "trace_events": 31,
+        "security_events": 7,
+        "trace_events": 34,
         "trace_path": "artifacts/agent-evaluation-v1-runs/multi_file_feature/attempt-3/trace.jsonl",
-        "tool_steps": 6,
+        "tool_steps": 7,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 19726,
-        "input_tokens": 9606,
-        "output_tokens": 257,
-        "elapsed_ms": 15966.56
+        "total_tokens": 18146,
+        "input_tokens": 8773,
+        "output_tokens": 300,
+        "elapsed_ms": 77539.08
       },
       {
         "task_id": "read_only_review",
@@ -377,16 +422,16 @@
         "stop_reason": "verified",
         "verification": "missing",
         "failure": "",
-        "security_events": 1,
-        "trace_events": 10,
+        "security_events": 2,
+        "trace_events": 15,
         "trace_path": "artifacts/agent-evaluation-v1-runs/read_only_review/attempt-1/trace.jsonl",
-        "tool_steps": 1,
+        "tool_steps": 2,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 5910,
-        "input_tokens": 2901,
-        "output_tokens": 54,
-        "elapsed_ms": 5263.72
+        "total_tokens": 8902,
+        "input_tokens": 4381,
+        "output_tokens": 70,
+        "elapsed_ms": 37897.39
       },
       {
         "task_id": "read_only_review",
@@ -403,9 +448,9 @@
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
         "total_tokens": 5908,
-        "input_tokens": 2901,
-        "output_tokens": 53,
-        "elapsed_ms": 9661.59
+        "input_tokens": 2902,
+        "output_tokens": 52,
+        "elapsed_ms": 19726.02
       },
       {
         "task_id": "read_only_review",
@@ -421,25 +466,23 @@
         "tool_steps": 1,
         "repeated_tool_calls": 0,
         "failed_tool_calls": 0,
-        "total_tokens": 5872,
-        "input_tokens": 2893,
-        "output_tokens": 43,
-        "elapsed_ms": 8295.95
+        "total_tokens": 5906,
+        "input_tokens": 2902,
+        "output_tokens": 51,
+        "elapsed_ms": 21814.56
       }
     ],
     "summary": {
       "task_count": 5,
       "attempt_count": 15,
-      "pass_at_1": 0.8,
+      "pass_at_1": 1.0,
       "pass_at_k": 1.0,
-      "verifier_pass_rate": 0.9333333333333333,
-      "avg_tool_steps_success": 4.285714285714286,
-      "avg_total_tokens_success": 14995.0,
-      "avg_elapsed_ms_success": 14087.685,
+      "verifier_pass_rate": 1.0,
+      "avg_tool_steps_success": 5.133333333333334,
+      "avg_total_tokens_success": 14886.8,
+      "avg_elapsed_ms_success": 54038.98466666667,
       "avg_repeated_tool_calls": 0.2,
-      "failure_reasons": {
-        "provider request failed: ConnectError: ": 1
-      },
+      "failure_reasons": {},
       "difficulty": {
         "easy": {
           "task_count": 2,
@@ -447,26 +490,26 @@
           "verifier_pass_rate": 1.0,
           "successful_attempts": 6,
           "avg_tool_steps_success": 2.8333333333333335,
-          "avg_total_tokens_success": 10490.333333333334,
-          "avg_elapsed_ms_success": 10914.041666666666
+          "avg_total_tokens_success": 10553.333333333334,
+          "avg_elapsed_ms_success": 42507.71666666667
         },
         "medium": {
           "task_count": 2,
           "attempt_count": 6,
-          "verifier_pass_rate": 0.8333333333333334,
-          "successful_attempts": 5,
-          "avg_tool_steps_success": 4.8,
-          "avg_total_tokens_success": 17371.6,
-          "avg_elapsed_ms_success": 15757.467999999999
+          "verifier_pass_rate": 1.0,
+          "successful_attempts": 6,
+          "avg_tool_steps_success": 5.833333333333333,
+          "avg_total_tokens_success": 17146.666666666668,
+          "avg_elapsed_ms_success": 57411.47166666667
         },
         "hard": {
           "task_count": 1,
           "attempt_count": 3,
           "verifier_pass_rate": 1.0,
           "successful_attempts": 3,
-          "avg_tool_steps_success": 6.333333333333333,
-          "avg_total_tokens_success": 20043.333333333332,
-          "avg_elapsed_ms_success": 17652.0
+          "avg_tool_steps_success": 8.333333333333334,
+          "avg_total_tokens_success": 19034.0,
+          "avg_elapsed_ms_success": 70356.54666666668
         }
       }
     },

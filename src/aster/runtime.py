@@ -33,6 +33,7 @@ class Runtime:
         *,
         model: ModelClient | None = None,
         approval_callback: Callable[[ToolCall, Decision], bool] | None = None,
+        hooks: Hooks | None = None,
     ):
         self.workspace = Workspace(root)
         self.settings = settings
@@ -46,14 +47,14 @@ class Runtime:
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
         self.context = ContextBuilder(settings.context_tokens, settings.output_tokens)
-        self.hooks = Hooks()
+        self.hooks = hooks or Hooks()
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
         self.state: RunState | None = None
         self._initial_snapshot: dict[str, str] = {}
-        self._conversation: list[dict] = []
         self._structured_history: list[dict] = []
         self._recovery_used = 0
+        self._finish_hook_ran = False
         self.workers = WorkerManager(self)
 
     def start(self, task: TaskSpec) -> RunState:
@@ -65,8 +66,8 @@ class Runtime:
         self._initial_snapshot = self.workspace.snapshot()
         # The first turn is rebuilt by ContextBuilder so system policy and untrusted-data
         # boundaries are actually sent to the model; this seed is only for the task state.
-        self._conversation = []
         self._structured_history = []
+        self._finish_hook_ran = False
         self.evidence.emit(
             self.state.run_id,
             "run_started",
@@ -87,7 +88,6 @@ class Runtime:
                 "workspace_hash": self.workspace.fingerprint(),
                 "workspace": self.workspace.snapshot(),
                 "runtime_identity": self.settings.identity(),
-                "conversation": self._conversation[-200:],
                 "structured_history": self._structured_history[-80:],
             },
         )
@@ -102,7 +102,6 @@ class Runtime:
         if self.state.terminal:
             return self.state
         self._initial_snapshot = data["workspace"]
-        self._conversation = data.get("conversation", [])
         self._structured_history = data.get("structured_history", [])
         return self.state
 
@@ -125,6 +124,7 @@ class Runtime:
             return state
         state.turn += 1
         memory_text = self._memory_text(state.task.prompt)
+        working_memory = self.memory.working_section(state.working_memory)
         skills = "\n".join(self.skills.list())
         prompt, report = self.context.build(
             state,
@@ -132,6 +132,7 @@ class Runtime:
             memory_text,
             skills,
             self._structured_history if self.settings.protocol == "responses" else [],
+            working_memory,
         )
         self.evidence.emit(
             state.run_id,
@@ -151,8 +152,6 @@ class Runtime:
             return state
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
-        self._conversation = list(prompt)
-        self._conversation.extend(reply.raw or ([{"role": "assistant", "content": reply.text}] if reply.text else []))
         self._structured_history.extend(reply.raw)
         if reply.text:
             self.add_message("assistant", reply.text, important=True)
@@ -180,16 +179,8 @@ class Runtime:
                     {"type": "input_text", "text": outcome.content},
                     {"type": "input_image", "image_url": outcome.data["image_data"]},
                 ]
-            self._conversation.append(
-                {"type": "function_call_output", "call_id": call.call_id, "output": output}
-            )
             self._structured_history.append(
                 {"type": "function_call_output", "call_id": call.call_id, "output": output}
-            )
-            self.add_message(
-                "tool",
-                outcome.content or json.dumps(outcome.model_dump()),
-                important=outcome.status in {"error", "blocked"},
             )
         self.checkpoint()
         return state
@@ -219,9 +210,14 @@ class Runtime:
             state.observed = True
         if outcome.status == "success" and call.name == "read_file":
             path = call.arguments["path"]
+            self.memory.remember_file(path, outcome.content, state.working_memory)
             state.read_evidence[path] = hashlib.sha256(
                 self.workspace.read(path).encode()
             ).hexdigest()
+        elif outcome.status == "success" and call.name in {"search", "run_tests"}:
+            self.memory.remember_file(
+                f"__{call.name}__", outcome.content, state.working_memory
+            )
         if outcome.status == "success" and call.name == "memory_retrieve":
             state.recalled_ids = [x["id"] for x in outcome.data.get("lessons", [])]
         if (
@@ -234,6 +230,11 @@ class Runtime:
             self.memory.record_use(state.recalled_ids, success=False)
         if outcome.changed_paths:
             state.changed_paths = sorted(set(state.changed_paths + outcome.changed_paths))
+            for path in outcome.changed_paths:
+                # A write invalidates any earlier file fact; the next read must refresh it.
+                state.working_memory.pop(path, None)
+            state.working_memory.pop("__search__", None)
+            state.working_memory.pop("__run_tests__", None)
         reason = self.stall.observe(call, outcome)
         trace_outcome = outcome.model_dump()
         if trace_outcome.get("data", {}).get("image_data"):
@@ -292,6 +293,9 @@ class Runtime:
         if decision.action == "ask" and not self.approval_callback(call, decision):
             return Outcome(status="blocked", reason="approval_denied")
         before = self.hooks.before_tool(state, call)
+        if before.action == "stop":
+            self.finish("hook_stop")
+            return Outcome(status="blocked", reason=before.feedback or "hook_stop")
         if before.action == "deny":
             return Outcome(status="blocked", reason=before.feedback or "hook_denied")
         context = ToolContext(
@@ -445,6 +449,11 @@ class Runtime:
     def finish(self, reason: str, *, failed: bool = False):
         if not self.state:
             return
+        if not self._finish_hook_ran:
+            self._finish_hook_ran = True
+            hook = self.hooks.stop(self.state)
+            if hook.feedback:
+                self.state.feedback = hook.feedback
         self.state.phase = "failed" if failed else "stopped"
         self.state.stop_reason = reason
         self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
@@ -476,8 +485,6 @@ class Runtime:
     def add_message(self, role: str, content: str, *, important=False):
         if self.state:
             self.state.messages.append({"role": role, "content": content, "important": important})
-            if role == "user":
-                self._conversation.append({"role": "user", "content": content})
 
     def _memory_text(self, query: str) -> str:
         lessons = self.memory.retrieve(query, limit=3)

@@ -17,8 +17,11 @@ from collections import Counter
 from pathlib import Path
 
 from aster.config import Settings, load_settings
+from aster.context import ContextBuilder
+from aster.memory import Memory
+from aster.rl import AsterEnv
 from aster.runtime import Runtime
-from aster.schema import ModelReply, TaskSpec, ToolCall
+from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 from aster.workspace import BoundaryError, Workspace
 
 
@@ -71,6 +74,104 @@ def _efficiency(runtime, state, started):
         "output_tokens": state.usage.get("output_tokens", 0),
         "elapsed_ms": round((time.monotonic() - started) * 1000, 2),
     }
+
+
+async def harness_cases() -> list[dict]:
+    rows = []
+    root = Path(tempfile.mkdtemp(prefix="aster-eval-"))
+    try:
+        for raw in ["../x", ".git/config", ".aster/trace", ".env", "secret.pem"]:
+            try:
+                Workspace(root).path(raw)
+                rows.append({"case": "path_boundary:" + raw, "passed": False})
+            except BoundaryError:
+                rows.append({"case": "path_boundary:" + raw, "passed": True})
+        (root / "app.py").write_text("print('old')\n")
+        (root / "test_app.py").write_text("def test_ok():\n    assert True\n")
+        model = ScriptedModel(
+            [
+                reply(ToolCall(name="read_file", arguments={"path": "app.py"}, call_id="r")),
+                reply(
+                    ToolCall(
+                        name="patch_file",
+                        arguments={"path": "app.py", "old_text": "old", "new_text": "new"},
+                        call_id="p",
+                    )
+                ),
+                reply(
+                    ToolCall(
+                        name="run_tests",
+                        arguments={"command": "python -m pytest -q", "timeout": 20},
+                        call_id="t",
+                    )
+                ),
+                reply(text="completed"),
+            ]
+        )
+        runtime = Runtime(
+            root, Settings(approval="auto", sandbox="required", completion="strict"), model=model
+        )
+        state = await runtime.run(TaskSpec(prompt="Modify app.py and run tests", max_steps=8))
+        rows.append(
+            {
+                "case": "production_loop_edit_verify",
+                "passed": state.phase == "completed" and state.verification.state == "passed",
+            }
+        )
+
+        env = AsterEnv(root, Settings(approval="never", sandbox="required"))
+        env.reset(TaskSpec(prompt="edit app.py", max_steps=2))
+        _obs, reward, _term, _trunc, info = await env.step(
+            ToolCall(
+                name="write_file", arguments={"path": "app.py", "content": "unsafe"}, call_id="rl"
+            )
+        )
+        rows.append(
+            {
+                "case": "rl_shares_permission_boundary",
+                "passed": reward < 0 and info["outcome"]["status"] == "blocked",
+            }
+        )
+
+        builder = ContextBuilder(300, 100)
+        state = RunState(task=TaskSpec(prompt="context"))
+        state.messages = [{"role": "tool", "content": "x" * 700} for _ in range(10)]
+        _prompt, report = builder.build(state, "context")
+        rows.append(
+            {
+                "case": "context_compact",
+                "passed": report.compacted and report.estimated_tokens <= report.budget,
+            }
+        )
+
+        memory = Memory(root)
+        accepted = memory.record(
+            "run tests after changes", run_id="eval", evidence_id="e1", tags=["tests"]
+        )
+        rejected = memory.record("must reject", run_id="eval", evidence_id="", tags=[])
+        snap = memory.snapshot()
+        memory.record("temporary", run_id="eval", evidence_id="e2")
+        rolled = memory.rollback(snap)
+        rows.append(
+            {
+                "case": "memory_evolution_provenance_rollback",
+                "passed": bool(accepted)
+                and rejected is None
+                and rolled
+                and not any(x["text"] == "temporary" for x in memory.state["lessons"]),
+            }
+        )
+
+        # RL accepts the wire-format discriminator and still uses the same boundary.
+        env = AsterEnv(root, Settings(approval="never", sandbox="required"))
+        env.reset(TaskSpec(prompt="inspect", max_steps=2))
+        _obs, _reward, _term, _trunc, info = await env.step(
+            {"kind": "tool", "name": "list_files", "arguments": {}}
+        )
+        rows.append({"case": "rl_wire_action", "passed": info["outcome"]["status"] == "success"})
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return rows
 
 
 async def deterministic_completion_cases(root):
@@ -421,7 +522,12 @@ async def main():
         completion = await deterministic_completion_cases(root / "completion")
         faults = await deterministic_fault_cases(root / "faults")
         security = await deterministic_security_cases(root / "security")
+        harness = await harness_cases()
         deterministic = {
+            "harness_regression": {
+                "rows": harness,
+                "pass_rate": _ratio(sum(x["passed"] for x in harness), len(harness)),
+            },
             "completion": {"rows": completion, "pass_rate": _ratio(sum(x["passed"] for x in completion), len(completion))},
             "fault_injection": {"rows": faults, "pass_rate": _ratio(sum(x["passed"] for x in faults), len(faults))},
             "security": {"rows": security, "pass_rate": _ratio(sum(x["passed"] for x in security), len(security))},
@@ -445,6 +551,16 @@ async def main():
                 root / "real",
                 Path("artifacts/agent-evaluation-v1-runs"),
             )
+        else:
+            # Do not erase the last measured remote matrix when refreshing deterministic checks.
+            prior = Path("artifacts/agent-evaluation-v1.json")
+            if prior.exists():
+                try:
+                    previous = json.loads(prior.read_text())
+                    if previous.get("real"):
+                        payload["real"] = previous["real"]
+                except (OSError, ValueError):
+                    pass
     finally:
         shutil.rmtree(root, ignore_errors=True)
     Path("artifacts").mkdir(exist_ok=True)
@@ -456,6 +572,7 @@ async def main():
         "确定性部分使用 scripted model 和独立 fixture；结果证明 Harness 行为，不代表远程模型成功率。",
         "",
         f"- Completion contract：{sum(x['passed'] for x in d['completion']['rows'])}/{len(d['completion']['rows'])}（{d['completion']['pass_rate']:.0%}）",
+        f"- Harness regression：{sum(x['passed'] for x in d['harness_regression']['rows'])}/{len(d['harness_regression']['rows'])}（{d['harness_regression']['pass_rate']:.0%}）",
         f"- Fault injection：{sum(x['passed'] for x in d['fault_injection']['rows'])}/{len(d['fault_injection']['rows'])}（{d['fault_injection']['pass_rate']:.0%}）",
         f"- Security boundaries：{sum(x['passed'] for x in d['security']['rows'])}/{len(d['security']['rows'])}（{d['security']['pass_rate']:.0%}）",
         "",

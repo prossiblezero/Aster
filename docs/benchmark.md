@@ -32,7 +32,8 @@ Harness 的总通过率只能证明边界合同没有明显回归，不能证明
 | --- | --- | --- |
 | Context | 大预算、不 compact 的同一组消息 | token 压缩率、预算内率、当前请求保留率、重要证据保留率 |
 | Memory retrieval | 固定 lesson 与干扰项 | Recall@3、MRR、Precision@3、无关项比例 |
-| Memory dependency | Runtime 中关闭 Memory 与开启 Memory | follow-up 读取次数、任务完成情况 |
+| Memory dependency | Runtime 中关闭 durable memory 与预置 durable lesson | 跨运行 follow-up 读取次数、任务完成情况 |
+| Session working memory | 首轮观察后清空原始观察，不注入 working memory | 摘要记录率、下一轮事实注入率、修改后失效率 |
 | Memory Evolution | 支持、矛盾、伪造证据、snapshot、使用反馈、dream | 证据拒绝、矛盾计数、回滚、反馈和去重 |
 | Resume | checkpoint 后继续、workspace 漂移、配置身份变化 | resume 成功率、漂移拒绝率、身份不匹配拒绝率 |
 | Stall recovery | repeated、ABAB、output loop | 模式检出率、有界停止 |
@@ -42,9 +43,10 @@ Harness 的总通过率只能证明边界合同没有明显回归，不能证明
 
 | 机制 | 基线 | Aster | 结果含义 |
 | --- | --- | --- | --- |
-| 上下文压缩 | 大预算、不压缩：平均 703.9 tokens | 平均 576.9 tokens | 减少 11.28%，当前请求和验证证据保留率 100% |
-| 记忆依赖 | 关闭记忆：12 次重复读文件 | 开启记忆：0 次 | 重复读取减少 100%，两组任务均完成 |
+| 上下文压缩 | 大预算、不压缩：平均 708.9 tokens | 平均 581.9 tokens | 减少 11.23%，当前请求和验证证据保留率 100% |
+| 跨运行记忆依赖 | 关闭 durable memory：12 次重复读文件 | 预置 durable lesson：0 次 | 重复读取减少 100%，两组任务均完成 |
 | 记忆召回 | 12 条固定事实 + 干扰项 | 目标事实均排第 1 | Recall@3、MRR、Top-3 precision 均 100% |
+| 会话工作记忆 | 清空原始观察且不注入摘要 | 读取后摘要记录、下一轮事实注入均成功 | 1/1 固定场景通过；修改后摘要失效 |
 | 任务恢复 | 漂移/身份变化作为拒绝场景 | 正常恢复并拒绝不安全恢复 | 10/10 场景通过 |
 | 完成判定 | 9 个正反合同场景 | 严格检查编辑、验证和验证新鲜度 | 9/9 场景通过 |
 
@@ -74,7 +76,7 @@ Harness 的总通过率只能证明边界合同没有明显回归，不能证明
 
 当前版本的模块结果见 `artifacts/module-benchmark-v1.md`，四层结果见 `artifacts/agent-evaluation-v1.md`。确定性部分使用 scripted policy，不调用远程模型；真实部分使用 GPT-5.6 Luna，并保留每一次 attempt 和失败原因。
 
-当前真实评测包含 5 类任务（简单 2 类、中等 2 类、困难 1 类），每类重复 3 次，共 15 次尝试。最新一次结果为 Pass@1 80.00%、Pass@3 100.00%、验证通过率 93.33%；按难度为：简单 6/6，中等 5/6，困难 3/3。失败样本为 1 次远程网关连接错误。这个样本量适合验证 Harness 流程和发现问题，不能当作大规模模型能力结论。
+当前真实评测包含 5 类任务（简单 2 类、中等 2 类、困难 1 类），每类重复 3 次，共 15 次尝试。修复消息去重和接入 working memory 后，最新结果为 **Pass@1 100%、Pass@3 100%、验证通过率 100%**；按难度为：简单 6/6，中等 6/6，困难 3/3。成功运行效率按难度单独统计；本次样本量适合验证 Harness 流程和发现问题，不能当作大规模模型能力结论。
 
 Memory retrieval 使用固定关键词 query，不能外推为开放域语义检索；当前 Aster 也没有文件新鲜度驱动的陈旧记忆拒绝。真实模型评测需要单独记录模型、采样参数、任务集、重复次数、失败样本和 verifier 结果。
 
