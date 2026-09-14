@@ -57,6 +57,17 @@ async def test_grader_ignores_public_tests_and_pytest_configuration(tmp_path, mo
 
 
 @pytest.mark.asyncio
+async def test_candidate_cannot_replace_the_pytest_launcher(tmp_path):
+    task = next(t for t in load_bank() if t["id"] == "humaneval_0")
+    root = tmp_path / "candidate"
+    prepare(task, root)
+    (root / "pytest.py").write_text("print('2 passed')\n")
+    result = await external_check(root, task["checks"]["verifier"])
+    assert not result["passed"]
+    assert "failed" in result["output"]
+
+
+@pytest.mark.asyncio
 async def test_memory_control_uses_observations_in_a_fresh_runtime(tmp_path):
     task = next(t for t in load_bank() if t["id"] == "memory_deploy")
     rows = []

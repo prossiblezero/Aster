@@ -136,7 +136,7 @@ async def external_check(root, verifier, selection=None):
         shutil.copy2(dataset_path(verifier), target / "__evaluation_tests.py")
         (target / "__evaluation_pytest.ini").write_text("[pytest]\n")
         command = (
-            "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q -p no:cacheprovider "
+            "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -I -m pytest -q -p no:cacheprovider "
             "-c __evaluation_pytest.ini --confcutdir=. --noconftest __evaluation_tests.py"
         )
         if selection:
