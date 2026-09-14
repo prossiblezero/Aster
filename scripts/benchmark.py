@@ -26,6 +26,7 @@ from benchmark_support import (
 
 from aster.config import load_settings
 from aster.context import ContextBuilder
+from aster.provider import request_payload
 from aster.schema import RunState, TaskSpec
 from aster.tools import CORE_TOOLS, definitions
 
@@ -94,12 +95,12 @@ def context_cases():
         ]
         state.messages.append({"role": "tool", "content": data["evidence"], "important": True})
         raw = ContextBuilder(1000000, case["reserve"])
-        full, _ = raw.build(state.model_copy(deep=True), state.task.prompt)
+        full, _ = raw.build(state.model_copy(deep=True), state.task.prompt, tools=tool_defs)
         builder = ContextBuilder(case["budget"], case["reserve"])
-        prompt, report = builder.build(state, state.task.prompt)
+        prompt, report = builder.build(state, state.task.prompt, tools=tool_defs)
         # Measure exactly the JSON fields sent to the provider, including tool schemas.
-        before = builder.count({"input": full, "tools": tool_defs})
-        after = builder.count({"input": prompt, "tools": tool_defs})
+        before = builder.count(request_payload(full, tool_defs, output_tokens=case["reserve"]))
+        after = builder.count(request_payload(prompt, tool_defs, output_tokens=case["reserve"]))
         rendered = json.dumps(prompt, ensure_ascii=False)
         rows.append(
             {
@@ -139,7 +140,7 @@ async def baseline_check(task):
 
 def markdown(report):
     lines = [
-        "# Aster benchmark v2",
+        "# Aster benchmark v3",
         "",
         f"模式：{report['mode']}；任务内容哈希：`{report['source']['content_sha256']}`。",
         "",
@@ -227,7 +228,7 @@ async def evaluate(args):
     if not tasks:
         raise ValueError("empty evaluation selection")
     mode = "real" if args.real else "scripted"
-    output = Path(args.output or f"artifacts/benchmark-v2-{mode}")
+    output = Path(args.output or f"artifacts/benchmark-v3-{mode}")
     output.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
     archive = output / "runs" / stamp
@@ -235,7 +236,7 @@ async def evaluate(args):
     if args.real and not settings.api_key.get_secret_value():
         raise ValueError("real mode needs configured API key")
     report = {
-        "name": "Aster benchmark v2",
+        "name": "Aster benchmark v3",
         "mode": mode,
         "at": datetime.now(UTC).isoformat(),
         "source": source_identity(),
@@ -269,7 +270,7 @@ async def evaluate(args):
             for variant in variants:
                 jobs.append((task, attempt, variant))
     semaphore = asyncio.Semaphore(args.concurrency)
-    with tempfile.TemporaryDirectory(prefix="aster-benchmark-v2-") as directory:
+    with tempfile.TemporaryDirectory(prefix="aster-benchmark-v3-") as directory:
 
         async def run_one(task, attempt, variant):
             async with semaphore:

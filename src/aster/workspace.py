@@ -78,7 +78,12 @@ class Workspace:
             )
             for name in sorted(files):
                 path = Path(directory) / name
-                if path.is_symlink() or sensitive(Path(name)) or name.endswith(".pyc"):
+                if (
+                    name in CONTROL
+                    or path.is_symlink()
+                    or sensitive(Path(name))
+                    or name.endswith(".pyc")
+                ):
                     continue
                 result.append(path)
                 if len(result) > 10000:
@@ -97,6 +102,17 @@ class Workspace:
 
     def fingerprint(self) -> str:
         return digest(json.dumps(self.snapshot(), sort_keys=True))
+
+    def text_snapshot(self) -> dict[str, str]:
+        """Text baseline for a human-readable diff; hashes remain drift evidence."""
+        result = {}
+        for path in self.files():
+            try:
+                name = str(path.relative_to(self.root))
+                result[name] = self.read(name)
+            except (UnicodeError, ValueError):
+                continue
+        return result
 
     def read(self, raw: str) -> str:
         path = self.path(raw)

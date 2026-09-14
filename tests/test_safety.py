@@ -30,7 +30,8 @@ def test_rules_deny_precedence():
         ]
     )
     assert command_rule("git push origin main", settings).action == "deny"
-    assert command_rule("git status; echo x", settings).action == "ask"
+    assert command_rule("git status; echo x", settings).action == "deny"
+    assert command_rule("git status; echo x", Settings()).action == "ask"
 
 
 async def test_real_isolation_and_sync(tmp_path):

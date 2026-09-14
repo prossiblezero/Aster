@@ -32,7 +32,17 @@ def test_tool_output_budget_is_applied_before_prompt(tmp_path):
 def test_legacy_memory_working_state_is_migrated(tmp_path):
     path = tmp_path / ".aster" / "memory"
     path.mkdir(parents=True)
-    (path / "state.json").write_text(json.dumps({"schema": 1, "working": {"old": {"summary": "x"}}, "lessons": [], "snapshots": {}, "audit": []}))
+    (path / "state.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "working": {"old": {"summary": "x"}},
+                "lessons": [],
+                "snapshots": {},
+                "audit": [],
+            }
+        )
+    )
     from aster.memory import Memory
 
     memory = Memory(tmp_path)

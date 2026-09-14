@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
+import os
+import stat
+import sys
 from pathlib import Path
 
 from .config import load_settings
+from .evidence import Redactor
 from .rl import AsterEnv
 from .runtime import Runtime
 from .schema import TaskSpec
@@ -52,12 +57,18 @@ def main(argv=None):
         )
     if not args.prompt:
         parser.error("prompt is required")
+    terminal = Terminal(settings)
     runtime = Runtime(
         Path(args.cwd),
         settings,
-        approval_callback=lambda call, decision: _ask(call.name, decision.reason),
+        approval_callback=terminal.approve,
+        question_callback=terminal.question,
     )
-    state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt)))
+    try:
+        state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt)))
+    except KeyboardInterrupt:
+        print("Aster cancelled.")
+        return 130
     print(state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}")
     print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")
     return 0 if state.phase == "completed" else 1
@@ -75,6 +86,45 @@ async def _rl_smoke(root, settings, prompt):
     return 0
 
 
-def _ask(name, reason):
-    answer = input(f"Allow {name} ({reason})? [y/N] ")
-    return answer.casefold() in {"y", "yes"}
+class Terminal:
+    """One human input at a time, without blocking worker progress or cancellation."""
+
+    def __init__(self, settings):
+        self.lock = asyncio.Lock()
+        self.redactor = Redactor([settings.api_key.get_secret_value()])
+        self._input_buffer = b""
+
+    async def approve(self, call, decision):
+        arguments = json.dumps(self.redactor.value(call.arguments), ensure_ascii=False)
+        answer = await self.question(f"Allow {call.name} {arguments} ({decision.reason})? [y/N]")
+        return bool(answer and answer.casefold() in {"y", "yes"})
+
+    async def question(self, question):
+        async with self.lock:
+            print(question, end=" ", flush=True)
+            fd = sys.stdin.fileno()
+            # Redirected regular files are immediately readable and cannot use epoll.
+            regular_file = stat.S_ISREG(os.fstat(fd).st_mode)
+            if regular_file:
+                line = sys.stdin.readline()
+            elif b"\n" not in self._input_buffer:
+                loop = asyncio.get_running_loop()
+                future = loop.create_future()
+
+                def ready():
+                    if future.done():
+                        return
+                    chunk = os.read(fd, 4096)
+                    self._input_buffer += chunk
+                    if b"\n" in self._input_buffer or not chunk:
+                        future.set_result(None)
+
+                loop.add_reader(fd, ready)
+                try:
+                    await future
+                finally:
+                    loop.remove_reader(fd)
+            if not regular_file:
+                raw, _, self._input_buffer = self._input_buffer.partition(b"\n")
+                line = raw.decode(sys.stdin.encoding or "utf-8", errors="replace")
+            return line.strip() if line else None

@@ -28,8 +28,12 @@ class Hooks:
         try:
             result = callback(*args)
             return result if isinstance(result, HookResult) else HookResult()
-        except Exception:
-            return HookResult()
+        except Exception as exc:
+            # A failed precondition must not silently authorize a tool.
+            return HookResult(
+                "deny" if name == "before_tool" else "continue",
+                f"hook_error:{name}:{type(exc).__name__}",
+            )
 
     def before_tool(self, state: RunState, call: ToolCall) -> HookResult:
         if call.call_id in state.used_call_ids:

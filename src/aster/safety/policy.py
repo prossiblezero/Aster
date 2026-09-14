@@ -15,6 +15,10 @@ class Decision:
 def command_rule(command: str, settings: Settings) -> Decision | None:
     # A small grammar is deliberate: complicated shell syntax never gets a reusable allow.
     if any(c in command for c in ";|&><$`\n()*?{}"):
+        # Prefix rules cannot prove which commands a shell program will execute.
+        # Keep configured hard denials effective even if a human approves the tool.
+        if any(rule.decision == "deny" for rule in settings.rules):
+            return Decision("deny", "compound_shell_with_deny_rules")
         return Decision("ask", "compound_shell")
     try:
         argv = shlex.split(command)

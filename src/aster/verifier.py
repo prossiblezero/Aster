@@ -38,12 +38,24 @@ class Verifier:
 
     def final(self, state: RunState) -> VerifierResult:
         task = state.task
+        if (
+            state.verification.state == "passed"
+            and state.verification.workspace_hash != self.workspace.fingerprint()
+        ):
+            state.verification.state = "missing"
         if task.require_observation and not state.observed:
             return VerifierResult(passed=False, reason="observation_missing")
         if task.require_edit and not state.changed_paths:
             return VerifierResult(passed=False, reason="edit_missing")
         if task.require_verification and state.verification.state != "passed":
             return VerifierResult(passed=False, reason=f"verification_{state.verification.state}")
+        for name in task.required_artifacts:
+            try:
+                if self.workspace.path(name).is_file():
+                    continue
+            except ValueError:
+                pass
+            return VerifierResult(passed=False, reason=f"artifact_missing:{name}")
         return VerifierResult(
             passed=True,
             reason="requirements_satisfied",

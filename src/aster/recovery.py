@@ -1,4 +1,4 @@
-"""Nexa-inspired stall detection with bounded recovery, no second engine."""
+"""Detect repeated non-progress outcomes with a bounded recovery window."""
 
 from __future__ import annotations
 
@@ -14,23 +14,29 @@ class StallDetector:
         self.items = deque(maxlen=max(4, window))
 
     def observe(self, call: ToolCall, outcome: Outcome) -> str:
+        # Empty stdout is normal for successful edits. Progress breaks an old loop.
+        if outcome.changed_paths:
+            self.items.clear()
+            return ""
         key = (
             call.name,
             hashlib.sha256(json.dumps(call.arguments, sort_keys=True).encode()).hexdigest(),
-            hashlib.sha256(outcome.content.encode()).hexdigest(),
+            hashlib.sha256(
+                json.dumps([outcome.status, outcome.reason, outcome.content]).encode()
+            ).hexdigest(),
         )
         self.items.append(key)
-        if len(self.items) >= 2 and self.items[-1][:2] == self.items[-2][:2]:
+        if len(self.items) >= 2 and self.items[-1] == self.items[-2]:
             return "repeated_identical"
         if len(self.items) >= 4:
             recent = list(self.items)[-4:]
-            if (
-                recent[0][:2] == recent[2][:2]
-                and recent[1][:2] == recent[3][:2]
-                and recent[0][:2] != recent[1][:2]
-            ):
+            if recent[0] == recent[2] and recent[1] == recent[3] and recent[0][:2] != recent[1][:2]:
                 return "oscillation"
-        if len(self.items) >= 3 and len({x[2] for x in list(self.items)[-3:]}) == 1:
+        if (
+            outcome.status != "success"
+            and len(self.items) >= 3
+            and len({x[2] for x in list(self.items)[-3:]}) == 1
+        ):
             return "output_loop"
         return ""
 
@@ -44,6 +50,4 @@ def completion_feedback(state: RunState) -> str:
         missing.append("make the requested edit")
     if task.require_verification and state.verification.state != "passed":
         missing.append("run a successful verification command")
-    if task.required_artifacts:
-        missing.extend(f"produce {x}" for x in task.required_artifacts)
     return "Completion requirements missing: " + ", ".join(missing) if missing else ""

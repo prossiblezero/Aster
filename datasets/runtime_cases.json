@@ -1,0 +1,968 @@
+{
+  "schema_version": 1,
+  "name": "Aster recovery, hooks and rollout contracts",
+  "split": "evaluation",
+  "description": "Fixed synthetic action sequences with common goal checks across ablation arms. These are mechanism checks, not autonomous model tasks. Before-hook ablation disables only that lifecycle boundary; sandbox and permission policies stay active.",
+  "defaults": {
+    "settings": {
+      "approval": "auto",
+      "sandbox": "required",
+      "auto_dream": false,
+      "completion": "strict"
+    },
+    "task": {
+      "prompt": "Follow the repository scenario operations.",
+      "max_steps": 40,
+      "max_turns": 40
+    }
+  },
+  "cases": [
+    {
+      "id": "recovery_repeated_read",
+      "kind": "runtime",
+      "suite": "recovery",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted"
+          }
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_oscillation",
+      "kind": "runtime",
+      "suite": "recovery",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "list_files",
+            "arguments": {}
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted"
+          }
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_progressing_empty_writes",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "one.py",
+              "content": "ONE = 1\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "two.py",
+              "content": "TWO = 2\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "three.py",
+              "content": "THREE = 3\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0,
+            "files": {
+              "one.py": "ONE = 1\n",
+              "two.py": "TWO = 2\n",
+              "three.py": "THREE = 3\n"
+            }
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "files": {
+          "one.py": "ONE = 1\n",
+          "two.py": "TWO = 2\n",
+          "three.py": "THREE = 3\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_distinct_equal_reads",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "equal\n",
+        "b.txt": "equal\n",
+        "c.txt": "equal\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0
+      }
+    },
+    {
+      "id": "recovery_new_run_clears_budget",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "scenario_restart"
+          }
+        },
+        {
+          "restart": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1
+      }
+    },
+    {
+      "id": "recovery_resume_preserves_budget",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1
+      }
+    },
+    {
+      "id": "recovery_resume_preserves_diff",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "a.txt",
+              "content": "updated\n"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "git_diff",
+            "arguments": {}
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "diff_contains": [
+              "-alpha",
+              "+updated"
+            ]
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "diff_contains": [
+          "-alpha",
+          "+updated"
+        ]
+      }
+    },
+    {
+      "id": "resume_refuses_workspace_drift",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {
+            "files": {
+              "a.txt": "external mutation\n"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "last_error": "workspace_mismatch",
+            "phase": "running"
+          }
+        }
+      },
+      "goal": {
+        "last_error": "workspace_mismatch",
+        "phase": "running"
+      }
+    },
+    {
+      "id": "resume_refuses_policy_drift",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {
+            "settings": {
+              "approval": "never"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "last_error": "runtime_identity_mismatch",
+            "phase": "running"
+          }
+        }
+      },
+      "goal": {
+        "last_error": "runtime_identity_mismatch",
+        "phase": "running"
+      }
+    },
+    {
+      "id": "hooks_duplicate_side_effect",
+      "kind": "runtime",
+      "suite": "hooks",
+      "files": {
+        "append.py": "from pathlib import Path\np = Path('events.txt')\np.write_text((p.read_text() if p.exists() else '') + 'x')\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "before_hook_off": {
+          "before_hooks": false,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "xx"
+            },
+            "blocked": 0
+          }
+        },
+        "before_hook_on": {
+          "before_hooks": true,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "x"
+            },
+            "blocked": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "files": {
+          "events.txt": "x"
+        }
+      }
+    },
+    {
+      "id": "hooks_failed_precondition",
+      "kind": "runtime",
+      "suite": "hooks",
+      "files": {
+        "append.py": "from pathlib import Path\np = Path('events.txt')\np.write_text((p.read_text() if p.exists() else '') + 'x')\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "before_hook_off": {
+          "before_hooks": false,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "x"
+            },
+            "blocked": 0
+          }
+        },
+        "before_hook_on": {
+          "before_hooks": true,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": null
+            },
+            "blocked": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "files": {
+          "events.txt": null
+        }
+      },
+      "hook_error": true
+    },
+    {
+      "id": "hooks_success_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "finish": {
+            "reason": "late_stop"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "hooks_cancel_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "cancelled"
+          }
+        },
+        {
+          "finish": {
+            "reason": "cancelled"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "cancelled",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "cancelled",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "hooks_failure_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "fixture_error",
+            "failed": true
+          }
+        },
+        {
+          "finish": {
+            "reason": "late_stop"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "failed",
+            "stop_reason": "fixture_error",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "failed",
+        "stop_reason": "fixture_error",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "rl_tools_do_not_pay_reward",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "new.txt",
+              "content": "created\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "positive_tool_rewards": 0,
+            "final_reward": 0.0,
+            "terminated": true
+          }
+        }
+      },
+      "goal": {
+        "positive_tool_rewards": 0,
+        "final_reward": 0.0
+      }
+    },
+    {
+      "id": "rl_public_tests_are_not_reward",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "solution.py": "VALUE = 0\n",
+        "test_public.py": "def test_value():\n    assert True\n"
+      },
+      "reward_files": {
+        "solution.py": "VALUE = 1\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "test_public.py"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "test_public.py",
+              "content": ""
+            }
+          }
+        },
+        {
+          "final": "All tests passed."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "positive_tool_rewards": 0,
+            "final_reward": -1.0,
+            "terminated": true,
+            "reward_verified": false
+          }
+        }
+      },
+      "goal": {
+        "final_reward": -1.0,
+        "reward_verified": false
+      }
+    },
+    {
+      "id": "rl_reset_isolates_episodes",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "new.txt",
+              "content": "created\n"
+            }
+          }
+        },
+        {
+          "reset": {}
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "fresh_reset": true,
+            "seed_unchanged": true,
+            "terminated": true
+          }
+        }
+      },
+      "goal": {
+        "fresh_reset": true,
+        "seed_unchanged": true
+      }
+    },
+    {
+      "id": "rl_terminal_step_rejected",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "terminal_rejected": true,
+            "final_reward": 0.0
+          }
+        }
+      },
+      "goal": {
+        "terminal_rejected": true,
+        "final_reward": 0.0
+      }
+    }
+  ]
+}

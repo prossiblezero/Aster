@@ -91,17 +91,25 @@ async def test_rl_uses_same_boundary(tmp_path):
 def test_memory_evolution_requires_evidence_and_rolls_back(tmp_path):
     memory = Memory(tmp_path)
     assert memory.record("unsafe shortcut", run_id="r", evidence_id="", tags=[]) is None
-    lesson = memory.record("run pytest after edits", run_id="r", evidence_id="e1", tags=["tests"])
+    lesson = memory.record(
+        "run pytest after edits",
+        run_id="r",
+        evidence_id="e1",
+        tags=["tests"],
+        observation="run pytest after edits",
+    )
     assert lesson and memory.retrieve("tests")
     snapshot = memory.snapshot()
-    memory.record("another lesson", run_id="r", evidence_id="e2")
+    memory.record("another lesson", run_id="r", evidence_id="e2", observation="another lesson")
     assert memory.rollback(snapshot)
     assert not any(x["text"] == "another lesson" for x in memory.state["lessons"])
 
 
 def test_disabled_memory_does_not_recall_persisted_lessons(tmp_path):
     memory = Memory(tmp_path)
-    memory.record("deploy ring is violet", run_id="r", evidence_id="e1")
+    memory.record(
+        "deploy ring is violet", run_id="r", evidence_id="e1", observation="deploy ring is violet"
+    )
     before = memory.path.read_bytes()
     disabled = Memory(tmp_path, enabled=False)
     assert disabled.retrieve("deploy") == []
@@ -111,7 +119,11 @@ def test_disabled_memory_does_not_recall_persisted_lessons(tmp_path):
 
 def test_verifier_infer_respects_read_only_language(tmp_path):
     inferred = Verifier.infer("Inspect config.txt and tell me the mode. Do not modify files.")
-    assert inferred == {"require_edit": False, "require_verification": False, "require_observation": True}
+    assert inferred == {
+        "require_edit": False,
+        "require_verification": False,
+        "require_observation": True,
+    }
 
 
 def test_provider_reply_keeps_usage_for_cost_metrics():

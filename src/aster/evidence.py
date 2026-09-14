@@ -102,17 +102,3 @@ class EvidenceStore:
     def events(self, run_id: str) -> list[dict]:
         path = self.path("runs", run_id, "trace.jsonl")
         return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
-
-    def has_hash(self, run_id: str, evidence_id: str) -> bool:
-        """Return whether an evidence id belongs to this run's hash-linked trace."""
-        return bool(evidence_id) and any(row.get("hash") == evidence_id for row in self.events(run_id))
-
-    def artifact(self, run_id: str, call_id: str, content: str) -> str:
-        name = digest(call_id)[:24] + ".txt"
-        path = self.path("runs", run_id, "artifacts", name)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.redactor.text(content))
-        return str(path.relative_to(self.root))
-
-    def list_runs(self) -> list[dict]:
-        return [json.loads(p.read_text()) for p in sorted(self.root.glob("runs/*/report.json"))]

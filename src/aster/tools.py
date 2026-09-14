@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import base64
-import json
 import mimetypes
+import re
 import shlex
 from dataclasses import dataclass
 
@@ -12,7 +12,7 @@ from pydantic import Field, model_validator
 
 from .safety.runner import SandboxRunner
 from .schema import Outcome, Record, ToolCall
-from .workspace import Workspace
+from .workspace import Workspace, digest
 
 
 class ListFiles(Record):
@@ -154,19 +154,45 @@ SCHEMAS = {
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (WorkerStart, "Start a bounded Explore or write-scoped worker.", "state"),
     "worker_status": (WorkerId, "Read a worker status and result.", "read"),
-    "worker_message": (WorkerMessage, "Continue an idle worker with a task.", "state"),
+    "worker_message": (
+        WorkerMessage,
+        "Send guidance to a running worker at its next turn.",
+        "state",
+    ),
     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),
     "inspect_image": (ImageRead, "Read a workspace PNG/JPEG image for model vision.", "read"),
 }
 
 CORE_TOOLS = {
-    "list_files", "read_file", "search", "write_file", "patch_file",
-    "run_shell", "run_tests", "git_diff", "tool_load",
+    "list_files",
+    "read_file",
+    "search",
+    "write_file",
+    "patch_file",
+    "run_shell",
+    "run_tests",
+    "git_diff",
+    "tool_load",
 }
 WORKFLOW_TOOLS = {
-    "todo_add", "todo_update", "todo_list", "plan_write", "plan_enter", "plan_exit",
-    "memory_store", "memory_retrieve", "memory_update", "memory_discard", "skill_load",
-    "ask_user", "worker_start", "worker_status", "worker_message", "worker_stop", "tool_load",
+    "todo_add",
+    "todo_update",
+    "todo_list",
+    "plan_write",
+    "plan_enter",
+    "plan_exit",
+    "memory_store",
+    "memory_retrieve",
+    "memory_update",
+    "memory_discard",
+    "skill_load",
+    "ask_user",
+    "worker_start",
+    "worker_status",
+    "worker_message",
+    "worker_stop",
+    "tool_load",
+    "git_diff",
 }
 
 
@@ -194,9 +220,6 @@ class ToolContext:
     workspace: Workspace
     sandbox: SandboxRunner
     run_id: str
-    todos: list[dict[str, str]]
-    plan: str
-    memory: object
     runtime: object = None
 
 
@@ -235,7 +258,12 @@ class WorkspaceTools:
         return Outcome(
             status="success",
             content="\n".join(lines[args.start - 1 : args.end]),
-            data={"path": args.path, "start": args.start, "end": min(args.end, len(lines))},
+            data={
+                "path": args.path,
+                "start": args.start,
+                "end": min(args.end, len(lines)),
+                "source_sha256": digest(text),
+            },
         )
 
     async def _inspect_image(self, args: ImageRead) -> Outcome:
@@ -311,7 +339,12 @@ class WorkspaceTools:
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:
-        return await self.context.sandbox.run(self.context.workspace, args.command, args.timeout)
+        return await self.context.sandbox.run(
+            self.context.workspace,
+            args.command,
+            args.timeout,
+            readonly=self.context.runtime.state.mode == "plan",
+        )
 
     async def _run_tests(self, args: RunTests) -> Outcome:
         argv = shlex.split(args.command)
@@ -327,50 +360,13 @@ class WorkspaceTools:
         result = await self.context.sandbox.run(
             self.context.workspace, args.command, args.timeout, readonly=True
         )
-        if (
-            result.status == "error"
-            and result.exit_code == 5
-            and "no tests ran" in result.content.lower()
-        ):
+        nonempty = re.search(r"\b([1-9]\d*) passed\b|Ran ([1-9]\d*) tests?\b", result.content)
+        if result.status == "success" and not nonempty:
+            result.status = "blocked"
+            result.reason = "no_tests_collected"
+        elif result.exit_code == 5 and "no tests ran" in result.content.lower():
             result.reason = "no_tests_collected"
         return result
-
-    async def _todo_add(self, args: TodoAdd) -> Outcome:
-        item = {
-            "id": str(len(self.context.todos) + 1),
-            "content": args.content,
-            "priority": args.priority,
-            "status": "pending",
-        }
-        self.context.todos.append(item)
-        return Outcome(status="success", content=json.dumps(item, ensure_ascii=False), data=item)
-
-    async def _todo_update(self, args: TodoUpdate) -> Outcome:
-        item = next((x for x in self.context.todos if x["id"] == args.todo_id), None)
-        if not item:
-            return Outcome(status="blocked", reason="todo_not_found", content=args.todo_id)
-        item["status"] = args.status
-        return Outcome(status="success", content=json.dumps(item, ensure_ascii=False), data=item)
-
-    async def _plan_write(self, args: PlanWrite) -> Outcome:
-        self.context.plan = args.content
-        if self.context.runtime and self.context.runtime.state:
-            self.context.runtime.state.plan = args.content
-        return Outcome(status="success", content="plan updated")
-
-    async def _memory_store(self, args: MemoryStore) -> Outcome:
-        if self.context.runtime and not self.context.runtime.evidence.has_hash(
-            self.context.run_id, args.evidence_id
-        ):
-            return Outcome(status="blocked", reason="memory_provenance")
-        lesson = self.context.memory.record(
-            args.text, run_id=self.context.run_id, evidence_id=args.evidence_id, tags=args.tags
-        )
-        if lesson is None:
-            return Outcome(status="blocked", reason="memory_provenance")
-        return Outcome(
-            status="success", content=json.dumps(lesson, ensure_ascii=False), data=lesson
-        )
 
     @staticmethod
     def _write_command(path: str, content: str) -> str:
@@ -409,6 +405,6 @@ class ToolRegistry:
         self.workflow = WorkflowTools(context)
 
     async def execute(self, call: ToolCall) -> Outcome:
-        if call.name in WORKFLOW_TOOLS or call.name == "tool_load":
+        if call.name in WORKFLOW_TOOLS:
             return await self.workflow.execute(call)
         return await self.workspace.execute(call)

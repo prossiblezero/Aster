@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import inspect
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from .config import Settings
-from .context import ContextBuilder
+from .context import ContextBudgetError, ContextBuilder, ContextHistoryError
 from .evidence import EvidenceStore, Redactor
 from .hooks import Hooks
 from .memory import Memory
@@ -32,16 +34,18 @@ class Runtime:
         settings: Settings,
         *,
         model: ModelClient | None = None,
-        approval_callback: Callable[[ToolCall, Decision], bool] | None = None,
+        approval_callback: Callable[[ToolCall, Decision], bool | Awaitable[bool]] | None = None,
+        question_callback: Callable[[str], str | None | Awaitable[str | None]] | None = None,
         hooks: Hooks | None = None,
     ):
         self.workspace = Workspace(root)
         self.settings = settings
         self.approval_callback = approval_callback or (lambda _call, _decision: False)
+        self.question_callback = question_callback
         secrets = [settings.api_key.get_secret_value()]
         self.evidence = EvidenceStore(self.workspace.root, Redactor(secrets))
         self.memory = Memory(
-            self.workspace.root, settings.memory_enabled, settings.memory_evolution
+            self.workspace.root, settings.memory_enabled, settings.memory_evolution, secrets=secrets
         )
         self.model = model or ModelClient(settings)
         self.sandbox = SandboxRunner(settings)
@@ -53,7 +57,9 @@ class Runtime:
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
         self.state: RunState | None = None
-        self._initial_snapshot: dict[str, str] = {}
+        self._initial_text: dict[str, str] = {}
+        self._in_turn = False
+        self._pending_messages: list[dict] = []
         self._structured_history: list[dict] = []
         self._recovery_used = 0
         self._finish_hook_ran = False
@@ -61,15 +67,21 @@ class Runtime:
         self.workers = WorkerManager(self)
 
     def start(self, task: TaskSpec) -> RunState:
+        if any(not w.future.done() for w in self.workers.workers.values()):
+            raise RuntimeError("active_workers: finish the current run before start")
+        task = task.model_copy(deep=True)
         inferred = self.verifier.infer(task.prompt)
         for key, value in inferred.items():
             if not getattr(task, key):
                 setattr(task, key, value)
         self.state = RunState(task=task, phase="running")
-        self._initial_snapshot = self.workspace.snapshot()
+        self._initial_text = self.workspace.text_snapshot()
+        self.stall.items.clear()
+        self._recovery_used = 0
         # The first turn is rebuilt by ContextBuilder so system policy and untrusted-data
         # boundaries are actually sent to the model; this seed is only for the task state.
         self._structured_history = []
+        self._pending_messages = []
         self._finish_hook_ran = False
         self._dream_ran = False
         self.evidence.emit(
@@ -83,7 +95,7 @@ class Runtime:
         return self.state
 
     def checkpoint(self):
-        if not self.state:
+        if not self.state or self._in_turn:
             return
         self.evidence.save(
             ("runs", self.state.run_id, "checkpoint.json"),
@@ -92,7 +104,10 @@ class Runtime:
                 "workspace_hash": self.workspace.fingerprint(),
                 "workspace": self.workspace.snapshot(),
                 "runtime_identity": self.settings.identity(),
-                "structured_history": self._structured_history[-80:],
+                "structured_history": self._structured_history,
+                "initial_text": self._initial_text,
+                "recovery_used": self._recovery_used,
+                "stall_items": list(self.stall.items),
             },
         )
 
@@ -105,7 +120,14 @@ class Runtime:
         self.state = RunState.model_validate(data["state"])
         if self.state.terminal:
             return self.state
-        self._initial_snapshot = data["workspace"]
+        if "initial_text" not in data:
+            raise ValueError("legacy_checkpoint_missing_diff_baseline")
+        self._initial_text = data["initial_text"]
+        self._recovery_used = data.get("recovery_used", 0)
+        self.stall.items.clear()
+        self.stall.items.extend(tuple(item) for item in data.get("stall_items", []))
+        self._finish_hook_ran = False
+        self._dream_ran = False
         self._structured_history = data.get("structured_history", [])
         return self.state
 
@@ -115,15 +137,27 @@ class Runtime:
         if not self.state:
             raise RuntimeError("start(task) first")
         limit = max_steps or self.state.task.max_steps
-        while (
-            not self.state.terminal
-            and self.state.step < limit
-            and self.state.turn < self.state.task.max_turns
-        ):
-            await self.turn()
-        if not self.state.terminal:
-            self.finish("turn_limit" if self.state.turn >= self.state.task.max_turns else "step_limit")
-        return self.state
+        try:
+            while (
+                not self.state.terminal
+                and self.state.step < limit
+                and self.state.turn < self.state.task.max_turns
+            ):
+                await self.turn()
+            if not self.state.terminal:
+                self.finish(
+                    "turn_limit" if self.state.turn >= self.state.task.max_turns else "step_limit"
+                )
+            return self.state
+        except asyncio.CancelledError:
+            self.finish("cancelled")
+            raise
+        except Exception as exc:
+            self.state.feedback = f"runtime_error:{type(exc).__name__}"
+            self.finish("runtime_error", failed=True)
+            raise
+        finally:
+            await self.workers.close()
 
     async def turn(self) -> RunState:
         state = self.state
@@ -137,14 +171,27 @@ class Runtime:
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
         skills = "\n".join(self.skills.list())
-        prompt, report = self.context.build(
-            state,
-            state.task.prompt,
-            memory_text,
-            skills,
-            self._structured_history if self.settings.protocol == "responses" else [],
-            working_memory,
-        )
+        tool_defs = definitions(self._tool_names())
+        try:
+            prompt, report = self.context.build(
+                state,
+                state.task.prompt,
+                memory_text,
+                skills,
+                self._structured_history,
+                working_memory,
+                tools=tool_defs,
+                protocol=self.settings.protocol,
+                model=self.settings.model,
+            )
+        except (ContextBudgetError, ContextHistoryError) as exc:
+            state.feedback = str(exc)
+            self.finish(
+                "context_history_invalid"
+                if isinstance(exc, ContextHistoryError)
+                else "context_budget_exceeded"
+            )
+            return state
         self.evidence.emit(
             state.run_id,
             "context_built",
@@ -156,16 +203,37 @@ class Runtime:
         )
         try:
             request_messages = prompt
-            reply = await self.model.complete(request_messages, definitions(self._tool_names()))
+            reply = await self.model.complete(request_messages, tool_defs)
         except ProviderError as exc:
             state.feedback = str(exc)
+            self.evidence.emit(
+                state.run_id, "provider_error", error=str(exc), **getattr(exc, "details", {})
+            )
             self.finish("provider_error", failed=True)
             return state
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
         self._structured_history.extend(reply.raw)
+        # Test policies may omit wire records; real providers preserve their native metadata.
+        if reply.calls and not any(
+            item.get("type") == "function_call"
+            or item.get("tool_calls")
+            or any(
+                b.get("type") == "tool_use" for b in item.get("content", []) if isinstance(b, dict)
+            )
+            for item in reply.raw
+        ):
+            self._structured_history.extend(
+                {
+                    "type": "function_call",
+                    "call_id": c.call_id,
+                    "name": c.name,
+                    "arguments": json.dumps(c.arguments),
+                }
+                for c in reply.calls
+            )
         if reply.text:
-            self.add_message("assistant", reply.text, important=True)
+            self.add_message("assistant", reply.text, important=True, native=bool(reply.raw))
         self.evidence.emit(
             state.run_id,
             "model_reply",
@@ -180,29 +248,61 @@ class Runtime:
             state.feedback = "Model returned neither text nor a tool call."
             self.finish("empty_model_reply", failed=True)
             return state
-        for call in reply.calls:
-            outcome = await self.step(call)
-            if state.terminal:
-                break
-            output = outcome.content or json.dumps(outcome.model_dump(exclude={"data"}))
-            if outcome.data.get("image_data"):
-                output = [
-                    {"type": "input_text", "text": outcome.content},
-                    {"type": "input_image", "image_url": outcome.data["image_data"]},
-                ]
-            self._structured_history.append(
-                {"type": "function_call_output", "call_id": call.call_id, "output": output}
-            )
-        self.checkpoint()
+        self._in_turn = True
+        try:
+            for call in reply.calls:
+                if state.terminal:
+                    outcome = Outcome(status="blocked", reason="run_terminal")
+                else:
+                    outcome = await self.step(call)
+                self._append_output(call, outcome)
+        finally:
+            # Never persist a half call/result batch, even on cancellation.
+            answered = {
+                x.get("call_id")
+                for x in self._structured_history
+                if x.get("type") == "function_call_output"
+            }
+            for call in reply.calls:
+                if call.call_id not in answered:
+                    self._append_output(
+                        call, Outcome(status="cancelled", reason="turn_interrupted")
+                    )
+            self._structured_history.extend(self._pending_messages)
+            self._pending_messages.clear()
+            self._in_turn = False
+            self.checkpoint()
         return state
+
+    def _append_output(self, call: ToolCall, outcome: Outcome):
+        output = json.dumps(
+            {
+                "status": outcome.status,
+                "reason": outcome.reason,
+                "evidence_id": outcome.evidence_id,
+                "changed_paths": outcome.changed_paths,
+                "content": outcome.content,
+            },
+            ensure_ascii=False,
+        )
+        if outcome.data.get("image_data"):
+            output = [
+                {"type": "input_text", "text": outcome.content},
+                {"type": "input_image", "image_url": outcome.data["image_data"]},
+            ]
+        self._structured_history.append(
+            {"type": "function_call_output", "call_id": call.call_id, "output": output}
+        )
 
     async def step(self, call: ToolCall) -> Outcome:
         state = self.state
         assert state is not None
-        state.step += 1
-        if state.step > state.task.max_steps:
+        if state.terminal:
+            return Outcome(status="blocked", reason="run_terminal")
+        if state.step >= state.task.max_steps:
             self.finish("step_limit")
             return Outcome(status="blocked", reason="step_limit")
+        state.step += 1
         outcome = await self._execute(call)
         self.verifier.observe(state, outcome)
         state.messages.append(
@@ -210,6 +310,7 @@ class Runtime:
                 "role": "tool",
                 "content": outcome.content,
                 "important": outcome.status != "success",
+                "native": self._in_turn,
             }
         )
         if outcome.status == "success" and call.name in {
@@ -222,23 +323,18 @@ class Runtime:
         if outcome.status == "success" and call.name == "read_file":
             path = call.arguments["path"]
             self.memory.remember_file(path, outcome.content, state.working_memory)
-            state.read_evidence[path] = hashlib.sha256(
-                self.workspace.read(path).encode()
-            ).hexdigest()
+            state.read_evidence[path] = outcome.data["source_sha256"]
         elif outcome.status == "success" and call.name in {"search", "run_tests"}:
-            self.memory.remember_file(
-                f"__{call.name}__", outcome.content, state.working_memory
-            )
+            self.memory.remember_file(f"__{call.name}__", outcome.content, state.working_memory)
         if outcome.status == "success" and call.name == "memory_retrieve":
             state.recalled_ids = [x["id"] for x in outcome.data.get("lessons", [])]
         if (
-            outcome.status == "success"
-            and state.recalled_ids
-            and call.name in {"run_tests", "git_diff"}
+            state.recalled_ids
+            and call.name == "run_tests"
+            and outcome.status in {"success", "error"}
         ):
-            self.memory.record_use(state.recalled_ids, success=True)
-        elif outcome.status in {"error", "blocked"} and state.recalled_ids:
-            self.memory.record_use(state.recalled_ids, success=False)
+            self.memory.record_use(state.recalled_ids, success=outcome.status == "success")
+            state.recalled_ids = []
         if outcome.changed_paths:
             state.changed_paths = sorted(set(state.changed_paths + outcome.changed_paths))
             for path in outcome.changed_paths:
@@ -258,10 +354,14 @@ class Runtime:
             outcome=trace_outcome,
             stall_reason=reason,
         )
-        if reason:
+        stop_requested = outcome.data.pop("stop_requested", "")
+        if stop_requested:
+            self.finish(stop_requested)
+        elif reason:
             self.evidence.emit(state.run_id, "stall_detected", reason=reason)
             if self._recovery_used < self.settings.max_recovery:
                 self._recovery_used += 1
+                self.stall.items.clear()
                 state.feedback = (
                     f"Recovery required ({reason}). Change approach and use fresh evidence."
                 )
@@ -276,7 +376,12 @@ class Runtime:
         assert state is not None
         if call.name not in SCHEMAS:
             return Outcome(status="blocked", reason="unknown_tool")
-        _model, _description, effect = SCHEMAS[call.name]
+        model, _description, effect = SCHEMAS[call.name]
+        try:
+            arguments = model.model_validate(call.arguments).model_dump()
+        except ValueError as exc:
+            return Outcome(status="blocked", reason="invalid_arguments", content=str(exc))
+        call = call.model_copy(update={"arguments": arguments})
         if call.name in {"write_file", "patch_file"}:
             path = call.arguments.get("path", "")
             try:
@@ -301,17 +406,19 @@ class Runtime:
         )
         if decision.action == "deny":
             return Outcome(status="blocked", reason=decision.reason)
-        if decision.action == "ask" and not self.approval_callback(call, decision):
-            return Outcome(status="blocked", reason="approval_denied")
+        if decision.action == "ask":
+            approved = self.approval_callback(call, decision)
+            if inspect.isawaitable(approved):
+                approved = await approved
+            if not approved:
+                return Outcome(status="blocked", reason="approval_denied")
         before = self.hooks.before_tool(state, call)
         if before.action == "stop":
             self.finish("hook_stop")
             return Outcome(status="blocked", reason=before.feedback or "hook_stop")
         if before.action == "deny":
             return Outcome(status="blocked", reason=before.feedback or "hook_denied")
-        context = ToolContext(
-            self.workspace, self.sandbox, state.run_id, state.todos, state.plan, self.memory, self
-        )
+        context = ToolContext(self.workspace, self.sandbox, state.run_id, self)
         registry = ToolRegistry(context)
         started = time.monotonic()
         outcome = await registry.execute(call)
@@ -335,13 +442,35 @@ class Runtime:
         if after.feedback:
             self.add_message("user", after.feedback, important=True)
         if after.action == "stop":
-            self.finish("hook_stop")
+            outcome.data["stop_requested"] = "hook_stop"
         state.used_call_ids.append(call.call_id)
         return outcome
 
     async def workflow_tool(self, name: str, args: dict) -> Outcome:
         state = self.state
         assert state is not None
+        if name == "todo_add":
+            item = {
+                "id": str(len(state.todos) + 1),
+                "content": args["content"],
+                "priority": args["priority"],
+                "status": "pending",
+            }
+            state.todos.append(item)
+            return Outcome(
+                status="success", content=json.dumps(item, ensure_ascii=False), data=item
+            )
+        if name == "todo_update":
+            item = next((x for x in state.todos if x["id"] == args["todo_id"]), None)
+            if item is None:
+                return Outcome(status="blocked", reason="todo_not_found")
+            item["status"] = args["status"]
+            return Outcome(
+                status="success", content=json.dumps(item, ensure_ascii=False), data=item
+            )
+        if name == "plan_write":
+            state.plan = args["content"]
+            return Outcome(status="success", content="plan updated")
         if name == "todo_list":
             return Outcome(
                 status="success",
@@ -366,7 +495,7 @@ class Runtime:
             state.observed = True
             return Outcome(
                 status="success",
-                content=self.workspace.diff(self._initial_snapshot),
+                content=self.workspace.diff(self._initial_text),
                 data={"diff": True},
             )
         if name == "memory_retrieve":
@@ -377,53 +506,70 @@ class Runtime:
                 content=json.dumps(lessons, ensure_ascii=False),
                 data={"lessons": lessons},
             )
-        if name == "memory_store":
-            if not self.evidence.has_hash(state.run_id, args["evidence_id"]):
+        if name in {"memory_store", "memory_update"}:
+            events = self.evidence.events(state.run_id)
+            evidence = next(
+                (
+                    e
+                    for e in events
+                    if e["event"] == "tool_result"
+                    and (
+                        e["hash"] == args["evidence_id"]
+                        or e.get("outcome", {}).get("evidence_id") == args["evidence_id"]
+                    )
+                    and e["outcome"]["status"] == "success"
+                ),
+                None,
+            )
+            if evidence is None or evidence["call"]["name"] != "read_file":
                 return Outcome(status="blocked", reason="memory_provenance")
+            if name == "memory_update" and not any(
+                x["id"] == args["lesson_id"] for x in self.memory.state["lessons"]
+            ):
+                return Outcome(status="blocked", reason="memory_not_found")
+            observed = evidence["outcome"]
+            data = observed.get("data", {})
+            if not data.get("source_sha256") or not data.get("path"):
+                return Outcome(status="blocked", reason="memory_provenance")
+            sources = {data["path"]: data["source_sha256"]} if data.get("source_sha256") else {}
             lesson = self.memory.record(
                 args["text"],
                 run_id=state.run_id,
                 evidence_id=args["evidence_id"],
                 tags=args.get("tags", []),
+                observation=observed["content"],
+                sources=sources,
             )
+            if lesson and name == "memory_update" and lesson["id"] != args["lesson_id"]:
+                self.memory.discard(args["lesson_id"], reason="superseded")
             return Outcome(
                 status="success" if lesson else "blocked",
-                reason="" if lesson else "memory_provenance",
+                reason="" if lesson else self.memory.last_rejection,
                 content=json.dumps(lesson or {}, ensure_ascii=False),
                 data=lesson or {},
             )
-        if name == "memory_update":
-            if not self.evidence.has_hash(state.run_id, args["evidence_id"]):
-                return Outcome(
-                    status="blocked",
-                    reason="memory_provenance",
-                    content="evidence_id must reference an event in the current run trace",
-                )
-            lesson = self.memory.record(
-                args["text"],
-                run_id=state.run_id,
-                evidence_id=args["evidence_id"],
-                evidence_type="user_confirmed",
-                outcome="support",
-            )
-            return Outcome(
-                status="success" if lesson else "blocked",
-                content=json.dumps(lesson or {}),
-                reason="" if lesson else "memory_provenance",
-                data=lesson or {},
-            )
         if name == "memory_discard":
-            for item in self.memory.state["lessons"]:
-                if item["id"] == args["lesson_id"]:
-                    item["contradictions"] += 1
-            self.memory.save()
-            return Outcome(status="success", content="lesson marked contradicted")
+            found = self.memory.discard(args["lesson_id"])
+            return Outcome(
+                status="success" if found else "blocked",
+                reason="" if found else "memory_not_found",
+                content="lesson discarded" if found else "",
+            )
         if name == "skill_load":
             text = self.skills.load(args["name"])
             state.active_skills.append(args["name"])
             return Outcome(status="success", content=text, data={"untrusted": True})
         if name == "ask_user":
-            return Outcome(status="blocked", reason="user_input_required", content=args["question"])
+            if self.question_callback is None:
+                return Outcome(
+                    status="blocked", reason="user_input_unavailable", content=args["question"]
+                )
+            answer = self.question_callback(args["question"])
+            if inspect.isawaitable(answer):
+                answer = await answer
+            if answer is None:
+                return Outcome(status="blocked", reason="user_input_cancelled")
+            return Outcome(status="success", content=str(answer))
         if name == "worker_start":
             data = await self.workers.start(
                 args["task"], args.get("mode", "explore"), args.get("write_scope", [])
@@ -439,12 +585,15 @@ class Runtime:
                 status="success" if data["status"] != "missing" else "blocked",
                 content=json.dumps(data, ensure_ascii=False),
                 data=data,
+                changed_paths=[
+                    p for p in data.get("changed_paths", []) if p not in state.changed_paths
+                ],
             )
         if name == "worker_message":
             data = await self.workers.message(args["worker_id"], args["message"])
             return Outcome(
-                status="blocked",
-                reason=data["reason"],
+                status="success" if data["status"] == "queued" else "blocked",
+                reason=data.get("reason", ""),
                 content=json.dumps(data, ensure_ascii=False),
                 data=data,
             )
@@ -460,7 +609,9 @@ class Runtime:
     def finalize(self, answer: str) -> RunState:
         state = self.state
         assert state is not None
-        feedback = completion_feedback(state)
+        if state.terminal:
+            return state
+        feedback = completion_feedback(state) if self.settings.completion != "off" else ""
         if feedback and state.final_revisions < self.settings.max_final_revisions:
             state.final_revisions += 1
             state.feedback = feedback
@@ -470,30 +621,35 @@ class Runtime:
         result = self.verifier.final(state)
         self.evidence.emit(state.run_id, "verifier_result", result=result.model_dump())
         if not result.passed and self.settings.completion == "strict":
-            self.finish("completion_requirements_failed")
             state.feedback = result.reason
+            self.finish("completion_requirements_failed")
             return state
         state.final = answer
         state.phase = "completed"
         state.stop_reason = "verified" if result.passed else "completed_with_warning"
         self.evidence.emit(state.run_id, "run_completed", result=result.model_dump(), answer=answer)
+        self._stop_hook()
         self._auto_dream()
         self.report(result)
         return state
 
     def finish(self, reason: str, *, failed: bool = False):
-        if not self.state:
+        if not self.state or self.state.terminal:
             return
+        self.state.phase = "failed" if failed else "stopped"
+        self.state.stop_reason = reason
+        self._stop_hook()
+        self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
+        self._auto_dream()
+        self.report(VerifierResult(passed=False, reason=reason))
+
+    def _stop_hook(self):
         if not self._finish_hook_ran:
             self._finish_hook_ran = True
             hook = self.hooks.stop(self.state)
             if hook.feedback:
                 self.state.feedback = hook.feedback
-        self.state.phase = "failed" if failed else "stopped"
-        self.state.stop_reason = reason
-        self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
-        self._auto_dream()
-        self.report(VerifierResult(passed=False, reason=reason))
+            self.evidence.emit(self.state.run_id, "stop_hook", feedback=hook.feedback)
 
     def abort(self, reason: str = "user_abort"):
         """Turn-level cancellation point used by CLI integrations and RL truncation."""
@@ -518,12 +674,17 @@ class Runtime:
             },
         )
 
-    def add_message(self, role: str, content: str, *, important=False):
+    def add_message(self, role: str, content: str, *, important=False, native=False):
         if self.state:
-            self.state.messages.append({"role": role, "content": content, "important": important})
+            self.state.messages.append({"role": role, "content": content, "important": important, "native": native})
+            if role == "user":
+                target = self._pending_messages if self._in_turn else self._structured_history
+                target.append({"role": "user", "content": content})
 
     def _memory_text(self, query: str) -> str:
         lessons = self.memory.retrieve(query, limit=3)
+        if self.state:
+            self.state.recalled_ids = [x["id"] for x in lessons]
         return "\n".join(
             f"- {x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
         )
@@ -543,4 +704,6 @@ class Runtime:
                 self.evidence.emit(self.state.run_id, "memory_dream", status="completed")
         except Exception as exc:
             if self.state:
-                self.evidence.emit(self.state.run_id, "memory_dream", status="failed", error=type(exc).__name__)
+                self.evidence.emit(
+                    self.state.run_id, "memory_dream", status="failed", error=type(exc).__name__
+                )

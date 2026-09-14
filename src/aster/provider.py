@@ -1,18 +1,185 @@
-"""OpenAI-compatible Responses/Chat and Anthropic-compatible message clients."""
+"""Small protocol adapters and bounded retries around one model request."""
 
 from __future__ import annotations
 
+import asyncio
 import json
+import re
 from typing import Any
 
 import httpx
 
 from .config import Settings
+from .evidence import Redactor
 from .schema import ModelReply, ToolCall
 
 
 class ProviderError(RuntimeError):
-    pass
+    """Safe diagnostics suitable for the trace; never contains request headers/body."""
+
+    def __init__(
+        self, message: str, *, category="provider_error", status=None, code="", attempts=1
+    ):
+        self.details = {
+            "category": category,
+            "status": status,
+            "code": code,
+            "message": message,
+            "attempts": attempts,
+        }
+        super().__init__(json.dumps(self.details, ensure_ascii=False))
+
+
+def _text(content):
+    if isinstance(content, str):
+        return content
+    return "\n".join(block.get("text", "") for block in content or [] if isinstance(block, dict))
+
+
+def _chat_messages(messages):
+    result, images = [], []
+    for item in messages:
+        kind = item.get("type")
+        if kind == "function_call_output":
+            output = item.get("output", "")
+            result.append(
+                {"role": "tool", "tool_call_id": item["call_id"], "content": _text(output)}
+            )
+            if isinstance(output, list):
+                images.extend(
+                    {"type": "image_url", "image_url": {"url": block["image_url"]}}
+                    for block in output
+                    if block.get("type") == "input_image"
+                )
+        elif kind == "function_call":
+            call = {
+                "id": item["call_id"],
+                "type": "function",
+                "function": {
+                    "name": item["name"],
+                    "arguments": item["arguments"],
+                },
+            }
+            if result and result[-1].get("role") == "assistant":
+                result[-1].setdefault("tool_calls", []).append(call)
+            else:
+                result.append({"role": "assistant", "content": None, "tool_calls": [call]})
+        elif kind != "reasoning":
+            message = {
+                key: value
+                for key, value in item.items()
+                if key
+                in {
+                    "role",
+                    "content",
+                    "tool_calls",
+                    "tool_call_id",
+                    "reasoning_content",
+                    "reasoning",
+                }
+            }
+            if isinstance(message.get("content"), list):
+                message["content"] = _text(message["content"])
+            result.append(message)
+    if images:
+        result.append({"role": "user", "content": images})
+    return result
+
+
+def _anthropic_messages(messages):
+    system, result = [], []
+    for item in messages:
+        if item.get("role") == "system":
+            system.append(_text(item.get("content", "")))
+            continue
+        kind = item.get("type")
+        if kind == "function_call_output":
+            output = item.get("output", "")
+            content = output
+            if isinstance(output, list):
+                content = []
+                for block in output:
+                    if block.get("type") == "input_image":
+                        media, data = block["image_url"].split(";base64,", 1)
+                        content.append(
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media.removeprefix("data:"),
+                                    "data": data,
+                                },
+                            }
+                        )
+                    else:
+                        content.append({"type": "text", "text": block.get("text", "")})
+            role, blocks = (
+                "user",
+                [{"type": "tool_result", "tool_use_id": item["call_id"], "content": content}],
+            )
+        elif kind == "function_call":
+            role, blocks = (
+                "assistant",
+                [
+                    {
+                        "type": "tool_use",
+                        "id": item["call_id"],
+                        "name": item["name"],
+                        "input": json.loads(item["arguments"]),
+                    }
+                ],
+            )
+        elif kind == "reasoning":
+            continue  # Responses reasoning is opaque and cannot be translated across providers.
+        else:
+            role = item.get("role", "assistant")
+            content = item.get("content", "")
+            blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
+        if result and result[-1]["role"] == role:
+            result[-1]["content"].extend(blocks)
+        else:
+            result.append({"role": role, "content": list(blocks)})
+    return "\n\n".join(system), result
+
+
+def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
+    """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
+    if protocol == "chat":
+        return {
+            "model": model,
+            "messages": _chat_messages(messages),
+            "max_tokens": output_tokens,
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {key: value for key, value in tool.items() if key != "type"},
+                }
+                for tool in tools
+            ],
+        }
+    if protocol == "anthropic":
+        system, history = _anthropic_messages(messages)
+        return {
+            "model": model,
+            "system": system,
+            "messages": history,
+            "max_tokens": output_tokens,
+            "tools": [
+                {
+                    "name": t["name"],
+                    "description": t["description"],
+                    "input_schema": t["parameters"],
+                }
+                for t in tools
+            ],
+        }
+    return {
+        "model": model,
+        "input": messages,
+        "tools": tools,
+        "max_output_tokens": output_tokens,
+        "store": False,
+    }
 
 
 class ModelClient:
@@ -21,60 +188,108 @@ class ModelClient:
         self.last_usage: dict[str, int] = {}
 
     async def complete(self, messages: list[dict[str, Any]], tools: list[dict]) -> ModelReply:
-        if self.settings.protocol == "anthropic":
-            payload = {
-                "model": self.settings.model,
-                "max_tokens": self.settings.output_tokens,
-                "messages": [{"role": "user", "content": self._text(messages)}],
-                "tools": [self._anthropic_tool(t) for t in tools],
-            }
-            headers = {
+        protocol = self.settings.protocol
+        payload = request_payload(
+            messages,
+            tools,
+            protocol=protocol,
+            model=self.settings.model,
+            output_tokens=self.settings.output_tokens,
+        )
+        suffix = {"responses": "/responses", "chat": "/chat/completions", "anthropic": "/messages"}[
+            protocol
+        ]
+        headers = (
+            {
                 "x-api-key": self.settings.api_key.get_secret_value(),
                 "anthropic-version": "2023-06-01",
             }
-            data = await self._post("/messages", payload, headers)
-            return self._anthropic_reply(data, self.last_usage)
-        if self.settings.protocol == "chat":
-            payload = {
-                "model": self.settings.model,
-                "messages": messages,
-                "max_tokens": self.settings.output_tokens,
-                "tools": tools,
-            }
-            data = await self._post("/chat/completions", payload, {})
-            return self._chat_reply(data, self.last_usage)
-        payload = {
-            "model": self.settings.model,
-            "input": messages,
-            "tools": tools,
-            "max_output_tokens": self.settings.output_tokens,
-            "store": False,
-        }
-        data = await self._post("/responses", payload, {})
-        return self._responses_reply(data, self.last_usage)
+            if protocol == "anthropic"
+            else {}
+        )
+        data = await self._post(suffix, payload, headers)
+        try:
+            parser = {
+                "responses": self._responses_reply,
+                "chat": self._chat_reply,
+                "anthropic": self._anthropic_reply,
+            }[protocol]
+            return parser(data, self.last_usage)
+        except (ValueError, KeyError, TypeError, IndexError) as exc:
+            raise ProviderError(
+                "Malformed model response or tool arguments", category="invalid_response"
+            ) from exc
 
     async def _post(self, suffix: str, payload: dict, extra: dict) -> dict:
-        if not self.settings.api_key.get_secret_value():
-            raise ProviderError("ASTER_API_KEY is empty")
-        headers = {
-            "Authorization": f"Bearer {self.settings.api_key.get_secret_value()}",
-            "Content-Type": "application/json",
-            **extra,
-        }
+        secret = self.settings.api_key.get_secret_value()
+        if not secret:
+            raise ProviderError("ASTER_API_KEY is empty", category="configuration")
+        self.last_usage = {}
+        headers = {"Authorization": f"Bearer {secret}", "Content-Type": "application/json", **extra}
         url = self.settings.base_url.rstrip("/") + suffix
+        redactor = Redactor([secret])
+        # Only generation requests are retried: tool side effects execute after a complete reply.
         async with httpx.AsyncClient(timeout=self.settings.request_timeout) as client:
-            try:
-                response = await client.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
-            except (httpx.HTTPError, ValueError) as exc:
-                raise ProviderError(
-                    f"provider request failed: {type(exc).__name__}: {exc}"
-                ) from exc
-        if data.get("error"):
-            raise ProviderError(str(data["error"]))
-        self.last_usage = self._usage(data.get("usage", {}))
-        return data
+            for attempt in range(1, 4):
+                delay = 0.25 * 2 ** (attempt - 1)
+                try:
+                    response = await client.post(url, headers=headers, json=payload)
+                except (
+                    httpx.TimeoutException,
+                    httpx.NetworkError,
+                    httpx.RemoteProtocolError,
+                ) as exc:
+                    error = ProviderError(
+                        type(exc).__name__, category="transport", attempts=attempt
+                    )
+                    if attempt == 3:
+                        raise error from exc
+                else:
+                    try:
+                        data = response.json()
+                    except ValueError:
+                        data = {}
+                    if (
+                        response.is_success
+                        and isinstance(data, dict)
+                        and data
+                        and not data.get("error")
+                    ):
+                        self.last_usage = self._usage(data.get("usage", {}))
+                        return data
+                    raw = data.get("error", {}) if isinstance(data, dict) else {}
+                    raw = raw if isinstance(raw, dict) else {"message": str(raw)}
+                    detail = redactor.text(
+                        str(raw.get("message", "Provider returned no valid JSON response"))
+                    )
+                    detail = re.sub(r"https?://\S+", "[provider URL]", detail)
+                    detail = re.sub(
+                        r"(?i)\b(password|api[_ -]?key|authorization|secret)\s*[:=]\s*\S+",
+                        r"\1=[REDACTED]",
+                        detail,
+                    )
+                    code = redactor.text(str(raw.get("code", raw.get("type", ""))))[:120]
+                    retryable = response.status_code in {408, 409, 425, 429, 500, 502, 503, 504}
+                    category = (
+                        "transient_http"
+                        if retryable
+                        else ("invalid_response" if response.is_success else "request_rejected")
+                    )
+                    error = ProviderError(
+                        detail[:800],
+                        category=category,
+                        status=response.status_code,
+                        code=code,
+                        attempts=attempt,
+                    )
+                    if not retryable or attempt == 3:
+                        raise error
+                    try:
+                        delay = min(2, max(delay, float(response.headers.get("retry-after", "0"))))
+                    except ValueError:
+                        pass  # Date-valued Retry-After uses the same short bounded backoff.
+                await asyncio.sleep(delay)
+        raise error  # pragma: no cover
 
     @staticmethod
     def _usage(raw: dict) -> dict[str, int]:
@@ -82,37 +297,31 @@ class ModelClient:
             value = raw.get(key, 0)
             return int(value) if isinstance(value, (int, float)) else 0
 
+        inputs = find("input_tokens") or find("prompt_tokens")
+        outputs = find("output_tokens") or find("completion_tokens")
         return {
-            "input_tokens": find("input_tokens") or find("prompt_tokens"),
-            "output_tokens": find("output_tokens") or find("completion_tokens"),
-            "total_tokens": find("total_tokens"),
+            "input_tokens": inputs,
+            "output_tokens": outputs,
+            "total_tokens": find("total_tokens") or inputs + outputs,
         }
 
     @staticmethod
-    def _text(messages):
-        return "\n\n".join(str(m.get("content", "")) for m in messages)
-
-    @staticmethod
     def _responses_reply(data, usage=None):
-        calls, text = [], data.get("output_text", "") or ""
+        calls, texts = [], []
         for item in data.get("output", []):
             if item.get("type") == "function_call":
-                try:
-                    args = json.loads(item.get("arguments", "{}"))
-                except json.JSONDecodeError:
-                    args = {}
                 calls.append(
                     ToolCall(
                         name=item["name"],
-                        arguments=args,
+                        arguments=json.loads(item.get("arguments", "{}")),
                         call_id=item.get("call_id", item.get("id", "")),
                     )
                 )
             for block in item.get("content", []):
                 if block.get("type") in {"output_text", "text"}:
-                    text += block.get("text", "")
+                    texts.append(block.get("text", ""))
         return ModelReply(
-            text=text,
+            text="".join(texts) or data.get("output_text", "") or "",
             calls=calls,
             usage=usage or {},
             raw=data.get("output", []),
@@ -121,16 +330,15 @@ class ModelClient:
 
     @staticmethod
     def _chat_reply(data, usage=None):
-        message = data.get("choices", [{}])[0].get("message", {})
-        calls = []
-        for item in message.get("tool_calls", []):
-            try:
-                args = json.loads(item.get("function", {}).get("arguments", "{}"))
-            except json.JSONDecodeError:
-                args = {}
-            calls.append(
-                ToolCall(name=item["function"]["name"], arguments=args, call_id=item.get("id", ""))
+        message = data["choices"][0]["message"]
+        calls = [
+            ToolCall(
+                name=item["function"]["name"],
+                arguments=json.loads(item["function"].get("arguments", "{}")),
+                call_id=item["id"],
             )
+            for item in message.get("tool_calls", [])
+        ]
         return ModelReply(
             text=message.get("content") or "",
             calls=calls,
@@ -138,14 +346,6 @@ class ModelClient:
             raw=[message],
             provider_model=data.get("model", ""),
         )
-
-    @staticmethod
-    def _anthropic_tool(tool):
-        return {
-            "name": tool["name"],
-            "description": tool["description"],
-            "input_schema": tool["parameters"],
-        }
 
     @staticmethod
     def _anthropic_reply(data, usage=None):
@@ -156,15 +356,13 @@ class ModelClient:
             elif block.get("type") == "tool_use":
                 calls.append(
                     ToolCall(
-                        name=block["name"],
-                        arguments=block.get("input", {}),
-                        call_id=block.get("id", ""),
+                        name=block["name"], arguments=block.get("input", {}), call_id=block["id"]
                     )
                 )
         return ModelReply(
             text=text,
             calls=calls,
             usage=usage or {},
-            raw=data.get("content", []),
+            raw=[{"role": "assistant", "content": data.get("content", [])}],
             provider_model=data.get("model", ""),
         )

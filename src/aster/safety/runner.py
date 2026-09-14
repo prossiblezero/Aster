@@ -35,8 +35,15 @@ class SandboxRunner:
     async def run(
         self, workspace: Workspace, command: str, timeout: float = 30, *, readonly: bool = False
     ) -> Outcome:
+        readonly = readonly or self.settings.read_only
+        constrained = readonly or self.settings.write_scope is not None
         if self.settings.sandbox == "off":
+            if constrained:
+                return Outcome(status="blocked", reason="isolation_required_for_scope")
+            before = workspace.snapshot()
             result = await self._process(["/bin/sh", "-c", command], workspace.root, timeout)
+            result.changed_paths = Workspace.changes(before, workspace.snapshot())
+            result.partial_success = bool(result.changed_paths) and result.status != "success"
             result.data["isolation"] = "off"
             return result
         with tempfile.TemporaryDirectory(prefix="aster-exec-") as directory:
@@ -61,11 +68,16 @@ class SandboxRunner:
                 timeout,
             )
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
-                if self.settings.sandbox == "best_effort":
+                if self.settings.sandbox == "best_effort" and not constrained:
+                    before = workspace.snapshot()
                     fallback = await self._process(
                         ["/bin/sh", "-c", command], workspace.root, timeout
                     )
                     fallback.data.update(isolation="off", degraded=True)
+                    fallback.changed_paths = Workspace.changes(before, workspace.snapshot())
+                    fallback.partial_success = (
+                        bool(fallback.changed_paths) and fallback.status != "success"
+                    )
                     return fallback
                 return Outcome(
                     status="blocked",
