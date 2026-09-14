@@ -56,6 +56,6 @@ python scripts/benchmark_mechanisms.py
 
 打开 [记忆场景](../../datasets/memory_evolution_cases.json) 和 [运行场景](../../datasets/runtime_cases.json)。`variants` 指机制开启/关闭两个条件，`expected` 指每个条件本来应该出现什么行为，`goal` 指两组共同想达到的目标。比如关闭恢复时按约定停止，属于契约通过，但没有完成后续修复，所以目标未达成。
 
-[机制报告](../../artifacts/benchmark-v3-mechanisms/report.md) 的两列正是这两个含义。反馈场景把成功/失败标签作为固定输入，检验这些反馈是否改变记忆选择。它证明代码机制生效，不能替代真实模型上的端到端收益实验。
+[机制报告](../../artifacts/benchmark-v4-mechanisms/report.md) 的两列正是这两个含义。反馈场景把成功/失败标签作为固定输入，检验这些反馈是否改变记忆选择。它证明代码机制生效，不能替代真实模型上的端到端收益实验。
 
 再读 [运行可靠性](13-runtime-reliability.md) 与 [记忆和 rollout](14-memory-and-rollouts.md)，逐个运行配套回归。后训练会复用环境接口，但需要另行设计训练任务、奖励与留出评测，不能直接拿这里的答案训练再报同一份成绩。

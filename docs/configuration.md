@@ -102,3 +102,7 @@ aster --config browse.toml --cwd examples/demo '查看仓库并说明入口'
 ```bash
 python -m pytest -q tests/test_new_contracts.py tests/test_safety.py tests/test_interaction_workers.py
 ```
+
+## 内建测试的语言范围
+
+`run_tests` 当前接受 `pytest`、`python -m pytest` 和 `python -m unittest`，使用结构化结果形成验证证据。其他命令可经 `run_shell` 执行，但普通 Shell 成功不会自动变成测试通过证明。当前内建完成验证与题库面向 Python；其他语言应接入对应验证器，不能把任意命令退出零当作验证成功。

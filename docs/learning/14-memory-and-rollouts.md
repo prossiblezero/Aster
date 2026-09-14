@@ -53,7 +53,7 @@ python -m pytest -q tests/test_runtime_repairs.py -k memory_cannot_launder
 
 `dream()` 是一个确定性的维护函数。它标记来源过期、被否定或反复失败的条目，保留原记录供检查和回滚。反复失败的当前阈值是 `failed_uses >= max(2, successful_uses + 2)`；一次失败不会立即废弃经验。`auto_dream=true` 在一次运行结束时自动执行一次；`memory_evolution=false` 关闭使用反馈和这次维护，但安全准入、显式删除和来源新鲜度检查仍然有效。
 
-`Runtime` 在 `run_tests` 成功或报告 `tests_failed`（测试断言失败）时，给已召回的条目记录一次反馈并清空待反馈标识。手动召回与下一轮自动召回的标识取并集，避免自动查询没有命中时覆盖刚使用的记忆。缺依赖、采集错误、空测试、工具拒绝和超时不会否定记忆；这些环境问题不等于某条记忆错误。
+`Runtime` 在 `run_tests` 成功或报告 `tests_failed`（测试主体失败）时，给已召回的条目记录一次反馈并清空待反馈标识。手动召回与下一轮自动召回的标识取并集，避免自动查询没有命中时覆盖刚使用的记忆。可识别的采集或初始化错误、空测试、工具拒绝和超时不会否定记忆。测试主体内部抛出的异常可能仍被框架记为 failure，当前机制不会从异常反推是哪条记忆造成的；这是保守的使用反馈，不是因果归因。
 
 ```bash
 python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms

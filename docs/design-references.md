@@ -20,4 +20,4 @@ Claude 官方文档在本轮调研时返回 403，因此本轮没有把未读取
 - 工具分发只按“工作区操作”和“运行状态操作”划分。删除重复及不可达实现；没有新增通用注册框架。
 - rollout 环境复用 Runtime，复制初始仓库保证 episode 隔离。只有可信的独立验证器可以给成功奖励。
 
-这些边界对应 [修复计划](repair-plan.md) 和 [专项评测](../artifacts/benchmark-v3-mechanisms/report.md)。后训练方法及训练数据组织等后续讨论再定。
+这些边界对应 [修复计划](repair-plan.md) 和 [专项评测](../artifacts/benchmark-v4-mechanisms/report.md)。后训练方法及训练数据组织等后续讨论再定。
