@@ -6,6 +6,7 @@ import difflib
 import hashlib
 import json
 import os
+import stat
 from pathlib import Path
 
 CONTROL = {".aster", ".git", ".agents", ".codex", ".claude"}
@@ -50,8 +51,14 @@ class Workspace:
             if part == "..":
                 raise BoundaryError("path_escape")
             cursor /= part
-            if cursor.is_symlink():
+            try:
+                kind = cursor.lstat().st_mode
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+            if stat.S_ISLNK(kind):
                 raise BoundaryError("symlink_path")
+            if not (stat.S_ISREG(kind) or stat.S_ISDIR(kind)):
+                raise BoundaryError("special_file")
         resolved = candidate.resolve()
         if not resolved.is_relative_to(self.root):
             raise BoundaryError("path_escape")
@@ -85,20 +92,30 @@ class Workspace:
                     or name.endswith(".pyc")
                 ):
                     continue
+                if not path.is_file():
+                    raise BoundaryError("special_file")
                 result.append(path)
                 if len(result) > 10000:
                     raise BoundaryError("workspace exceeds 10000 files; narrow --cwd")
         return result
 
     def snapshot(self) -> dict[str, str]:
+        """File identity includes permission bits; read evidence separately hashes text."""
         result = {}
         for path in self.files():
             h = hashlib.sha256()
+            h.update(f"{stat.S_IMODE(path.stat().st_mode):04o}\0".encode())
             with path.open("rb") as stream:
                 for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                     h.update(chunk)
             result[str(path.relative_to(self.root))] = h.hexdigest()
         return result
+
+    def mode_snapshot(self) -> dict[str, int]:
+        return {
+            str(path.relative_to(self.root)): stat.S_IMODE(path.stat().st_mode)
+            for path in self.files()
+        }
 
     def fingerprint(self) -> str:
         return digest(json.dumps(self.snapshot(), sort_keys=True))
@@ -124,10 +141,20 @@ class Workspace:
     def changes(before: dict[str, str], after: dict[str, str]) -> list[str]:
         return sorted(k for k in before.keys() | after.keys() if before.get(k) != after.get(k))
 
-    def diff(self, originals: dict[str, str]) -> str:
+    def diff(self, originals: dict[str, str], modes: dict[str, int] | None = None) -> str:
         current = {str(p.relative_to(self.root)): p for p in self.files()}
         chunks = []
         for name in sorted(originals.keys() | current.keys()):
+            if modes is not None and name in modes and name in current:
+                mode = stat.S_IMODE(current[name].stat().st_mode)
+                if mode != modes[name]:
+                    chunks.extend(
+                        [
+                            f"diff --git a/{name} b/{name}\n",
+                            f"old mode {stat.S_IFREG | modes[name]:06o}\n",
+                            f"new mode {stat.S_IFREG | mode:06o}\n",
+                        ]
+                    )
             try:
                 after = current[name].read_text() if name in current else ""
             except (UnicodeError, OSError):

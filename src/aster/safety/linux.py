@@ -9,6 +9,7 @@ import errno
 import os
 import platform
 import resource
+import socket
 import sys
 from pathlib import Path
 
@@ -76,6 +77,22 @@ def restrict(root: Path, network: bool) -> None:
     sec.seccomp_load.argtypes = [ctypes.c_void_p]
     sec.seccomp_release.argtypes = [ctypes.c_void_p]
     sec.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
+
+    class ArgRule(ctypes.Structure):
+        _fields_ = [
+            ("arg", ctypes.c_uint),
+            ("op", ctypes.c_int),
+            ("value", ctypes.c_uint64),
+            ("unused", ctypes.c_uint64),
+        ]
+
+    sec.seccomp_rule_add_array.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_int,
+        ctypes.c_uint,
+        ctypes.POINTER(ArgRule),
+    ]
     ctx = sec.seccomp_init(0x7FFF0000)  # SCMP_ACT_ALLOW
     if not ctx:
         raise RuntimeError("seccomp initialization failed")
@@ -99,13 +116,26 @@ def restrict(root: Path, network: bool) -> None:
         "tgkill",
     ]
     if not network:
-        denied += ["socket", "socketpair", "connect", "bind", "sendto", "sendmsg", "sendmmsg"]
+        denied += ["socket", "connect", "bind", "sendmsg", "sendmmsg"]
     try:
         for name in denied:
             number = sec.seccomp_syscall_resolve_name(name.encode())
             if number >= 0:
                 checked(
                     sec.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, number, 0), "seccomp rule"
+                )
+        if not network:
+            # asyncio wakes its loop through a local pair and send(...), implemented
+            # by sendto with a NULL destination. The launcher inherits no socket FDs;
+            # socket/connect/bind and sending to an explicit address remain forbidden.
+            for name, argument, value in (("socketpair", 0, socket.AF_UNIX), ("sendto", 4, 0)):
+                number = checked(sec.seccomp_syscall_resolve_name(name.encode()), f"resolve {name}")
+                rule = ArgRule(argument, 1, value, 0)  # SCMP_CMP_NE
+                checked(
+                    sec.seccomp_rule_add_array(
+                        ctx, 0x00050000 | errno.EPERM, number, 1, ctypes.byref(rule)
+                    ),
+                    f"seccomp {name} rule",
                 )
         checked(sec.seccomp_load(ctx), "seccomp load")
     finally:
