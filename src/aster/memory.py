@@ -26,6 +26,9 @@ class Memory:
             if self.path.exists()
             else {"schema": 1, "lessons": [], "snapshots": {}, "audit": []}
         )
+        # Migrate the pre-Aster session working cache; RunState is its sole owner now.
+        if self.state.pop("working", None) is not None:
+            self.save()
 
     def save(self):
         atomic_json(self.path, self.state)

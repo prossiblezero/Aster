@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from aster.config import Settings
 from aster.runtime import Runtime
@@ -26,3 +27,13 @@ def test_tool_output_budget_is_applied_before_prompt(tmp_path):
     runtime = Runtime(tmp_path, Settings(tool_output_tokens=64))
     clipped = runtime.context._clip_tokens("x" * 1000)
     assert "[tool output clipped]" in clipped
+
+
+def test_legacy_memory_working_state_is_migrated(tmp_path):
+    path = tmp_path / ".aster" / "memory"
+    path.mkdir(parents=True)
+    (path / "state.json").write_text(json.dumps({"schema": 1, "working": {"old": {"summary": "x"}}, "lessons": [], "snapshots": {}, "audit": []}))
+    from aster.memory import Memory
+
+    memory = Memory(tmp_path)
+    assert "working" not in memory.state

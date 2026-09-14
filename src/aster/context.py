@@ -109,7 +109,9 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             if include_tools or m.get("role") != "tool"
         )
 
-    def _clip_tokens(self, value: str) -> str:
+    def _clip_tokens(self, value):
+        if not isinstance(value, str):
+            return value
         text = str(value)
         if self.count(text) <= self.tool_output_tokens:
             return text
