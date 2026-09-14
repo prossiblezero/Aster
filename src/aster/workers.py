@@ -56,6 +56,8 @@ class WorkerManager:
         self.workers: dict[str, Worker] = {}
 
     async def start(self, task: str, mode: str = "explore", write_scope: list[str] | None = None):
+        if self.parent.state is None or self.parent.state.terminal:
+            return {"status": "blocked", "reason": "run_terminal"}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
         if len(active) >= self.parent.settings.max_workers:
             return {"status": "blocked", "reason": "worker_limit"}
@@ -204,7 +206,9 @@ class WorkerManager:
             return {"status": "missing", "worker_id": worker_id}
         if worker.future.done():
             return await self.status(worker_id)
-        worker.future.cancel()
+        worker.runtime.abort("worker_cancelled")
+        if not worker.future.cancelling():
+            worker.future.cancel()
         await asyncio.gather(worker.future, return_exceptions=True)
         # A coroutine cancelled before its first turn has not entered its finally block.
         if not worker.runtime.state.terminal:
@@ -213,3 +217,11 @@ class WorkerManager:
 
     async def close(self):
         await asyncio.gather(*(self.stop(worker_id) for worker_id in self.workers))
+
+    def cancel(self):
+        """Synchronous stop request; close() still awaits subprocess cleanup."""
+        for worker in self.workers.values():
+            if not worker.future.done():
+                if not worker.future.cancelling():
+                    worker.future.cancel()
+                worker.runtime.abort("worker_cancelled")

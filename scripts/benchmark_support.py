@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
+import ast
 import copy
 import json
 import re
 import shutil
 import tempfile
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from aster.config import Settings
 from aster.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import ModelReply, TaskSpec, ToolCall
+from aster.testing import parse_junit
 from aster.workspace import Workspace
 
 DATASETS = Path(__file__).resolve().parents[1] / "datasets"
@@ -125,7 +128,24 @@ class MemoryPolicy:
 
 
 async def external_check(root, verifier, selection=None):
-    """Grade a disposable copy after the agent stops; never expose checks to it."""
+    """Grade selected hidden tests from JUnit results, never text in candidate stdout.
+
+    Candidate code still shares the pytest process. This rejects accidental false
+    greens, skip/exit tricks and workspace edits; it is not an adversarial Python VM.
+    """
+    checks = dataset_path(verifier)
+    expected = {
+        node.name
+        for node in ast.parse(checks.read_text()).body
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.name.startswith("test_")
+    }
+    if selection:
+        if selection not in expected:
+            raise ValueError(f"unknown hidden test selection: {selection}")
+        expected = {selection}
+    if not expected:
+        raise ValueError("hidden grader must declare at least one test")
     with tempfile.TemporaryDirectory(prefix="aster-grader-") as directory:
         target = Path(directory)
         workspace = Workspace(root)
@@ -133,27 +153,51 @@ async def external_check(root, verifier, selection=None):
             dest = target / source.relative_to(workspace.root)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, dest)
-        shutil.copy2(dataset_path(verifier), target / "__evaluation_tests.py")
+        shutil.copy2(checks, target / "__evaluation_tests.py")
         (target / "__evaluation_pytest.ini").write_text("[pytest]\n")
+        # A unique absent path rules out accepting a stale report copied from the candidate.
+        report_name = "__evaluation_result_" + Path(directory).name + ".xml"
+        report = target / report_name
         command = (
             "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -I -m pytest -q -p no:cacheprovider "
-            "-c __evaluation_pytest.ini --confcutdir=. --noconftest __evaluation_tests.py"
+            f"--junitxml={report_name} -c __evaluation_pytest.ini "
+            "--confcutdir=. --noconftest __evaluation_tests.py"
         )
         if selection:
             command += "::" + selection
-        result = await SandboxRunner(Settings(sandbox="required", network=False)).run(
+        result = await SandboxRunner(
+            Settings(sandbox="required", network=False, write_scope=[report_name])
+        ).run(
             Workspace(target),
             command,
             timeout=30,
-            readonly=True,
         )
-        nonempty = bool(re.search(r"\b\d+ passed\b", result.content))
+        cases = []
+        try:
+            cases = parse_junit(Workspace(target).read(report.name))
+        except (OSError, ValueError, ET.ParseError):
+            pass
+        passed = [case for case in cases if case["status"] == "passed"]
+        complete = (
+            len(cases) == len(expected)
+            and {case["name"] for case in cases} == expected
+            and all(case["classname"] == "__evaluation_tests" for case in cases)
+        )
+        verified = complete and len(passed) == len(expected)
         return {
-            "passed": result.status == "success" and nonempty,
+            "passed": result.status == "success" and verified,
             "exit_code": result.exit_code,
             "status": result.status,
             "output": result.content,
             "isolation": result.data.get("isolation"),
+            "tests": {"expected": len(expected), "executed": len(cases), "passed": len(passed)},
+            "grader_reason": (
+                result.reason or "test_process_failed"
+                if result.status != "success"
+                else "all_tests_passed"
+                if verified
+                else "hidden_tests_incomplete_or_failed"
+            ),
         }
 
 
@@ -169,7 +213,17 @@ def metrics(runtime, seconds):
     signatures = [
         (e["call"]["name"], json.dumps(e["call"]["arguments"], sort_keys=True)) for e in events
     ]
+    tools = {}
+    for event in events:
+        name, outcome = event["call"]["name"], event["outcome"]
+        counts = tools.setdefault(name, {"calls": 0, "success": 0, "reasons": {}})
+        counts["calls"] += 1
+        counts["success"] += outcome["status"] == "success"
+        if outcome["status"] != "success":
+            reason = outcome["reason"] or outcome["status"]
+            counts["reasons"][reason] = counts["reasons"].get(reason, 0) + 1
     return {
+        "tools": tools,
         "steps": state.step,
         "turns": state.turn,
         "read_calls": sum(e["call"]["name"] == "read_file" for e in events),

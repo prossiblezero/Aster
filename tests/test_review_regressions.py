@@ -301,8 +301,8 @@ async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
             if self.turn == 1:
                 assert set(by_name) == CORE_TOOLS
                 catalog = by_name["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
-                assert set(catalog) == set(SCHEMAS)
-                assert set(SCHEMAS) - CORE_TOOLS <= set(catalog)
+                assert set(catalog) == set(SCHEMAS) - {"ask_user"}
+                assert set(SCHEMAS) - CORE_TOOLS - {"ask_user"} <= set(catalog)
                 return ModelReply(
                     calls=[ToolCall(name="tool_load", arguments={"names": ["todo_add"]})]
                 )
@@ -319,7 +319,9 @@ async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
             return ModelReply(text="done")
 
     runtime = Runtime(
-        tmp_path, Settings(tool_profile="core", completion="off"), model=DiscoverAndUse()
+        tmp_path,
+        Settings(tool_profile="core", completion="off", approval="auto"),
+        model=DiscoverAndUse(),
     )
     state = await runtime.run(TaskSpec(prompt="Organize this work."))
     assert state.phase == "completed" and state.turn == 3

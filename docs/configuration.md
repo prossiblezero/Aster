@@ -15,12 +15,16 @@
 | `request_timeout` | `90` | 一次 HTTP 请求的超时秒数；瞬时错误最多尝试三次，因此整个模型轮次可能超过此值 |
 | `context_tokens` | `24000` | 本地估算的总上下文容量，包含输入与输出预留；不是全部都可用于输入 |
 | `output_tokens` | `2048` | 输出预留，也是供应商请求的最大输出长度 |
-| `tool_output_tokens` | `1600` | 单条工具结果送入模型前的文字上限。工具执行和完整 trace 不按这个上限裁剪 |
-| `tool_profile` | `core` | 首轮展示核心工具，其他工具由 `tool_load` 按需加入；`all` 展示全部工具 |
+| `tool_output_tokens` | `1600` | 单条工具结果的正文预算；Runtime 结果保留状态、原因、证据编号与修改路径，这些元数据仍计入全局输入预算 |
+| `tool_profile` | `core` | 首轮展示可用核心工具，其他工具由 `tool_load` 按需加入；`all` 展示当前配置可用的全部工具 |
 
 例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。`ContextBuilder` 使用与 Provider 相同的请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
 
 这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [阶段 13](learning/13-runtime-reliability.md)。
+
+`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。正文预算不足时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
+
+普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [阶段 15](learning/15-paged-observations.md)。
 
 ## 权限与执行范围
 
@@ -36,9 +40,15 @@
 
 `approval=auto` 无法覆盖工作区越界、只读、禁止规则或 Hooks 拒绝。TUI 的 **Allow once** 只批准当前动作，不修改配置。`plan_enter` 进入计划模式后，写工具被拒绝，Shell 只能在副本中观察；`plan_exit` 仍经过权限判断。
 
+工具目录与执行入口使用同一份能力判断：关闭持久记忆、禁用 Worker、无法询问用户、只读/计划模式或关闭所需沙箱时，不展示对应不可用工具。`tool_load` 的名称目录也同步收窄；直接提交动作仍会再次校验。文件编辑前仍要求最新读取证据，这属于动作前置条件，不会永久隐藏写工具。
+
+没有审批回调时，只展示能由现有允许规则授权的执行工具，并继续尊重更高优先级的拒绝。例如只允许 `echo` 时可展示 `run_shell`，不会因此展示 `run_tests`；允许 `python -m pytest` 才能授权对应测试命令。之后接入或移除审批回调，目录随之更新。
+
+沙箱复制任务文件，排除 `.git` 等控制元数据。因此即使原仓库有 Git，副本中也不能依赖 `git status`；`git_diff` 展示 Aster 保存的初始文本及权限模式与当前文件的差异。禁网保留匿名本地 IPC，支持 asyncio 与线程唤醒；仍拒绝外部网络和命名 Unix socket。文件回写逐文件原子，批次失败保留并报告已经写入的路径；不覆盖外部编辑做回滚。当前支持同一进程内的 Worker，并不承诺多个 Aster 进程同时写同仓库的事务隔离。
+
 每条 `ExecRule` 包含：`prefix` 是切分后的命令参数前缀，例如 `["git", "status"]`；`decision` 为 `allow / ask / deny`；`reason` 是给人和日志看的原因；`match / not_match` 是可选的配置自检示例，不是额外匹配算法。多个前缀命中时，优先级为 `deny > ask > allow`。
 
-前缀规则不是 Shell 解释器。若命令包含 `;`、管道、重定向、变量替换等复杂语法，并且配置存在任何 `deny` 规则，Aster 会保守拒绝整条命令，原因是 `compound_shell_with_deny_rules`；否则要求单次批准。这会拒绝一部分无害的复合命令，但不会让一次批准绕过已配置的禁止规则。
+命令分类区分引用参数和实际 Shell 语法，例如 `python -c "print(1); print(2)"` 中的分号属于 Python 参数。它仍可执行任意代码，安全边界由审批与沙箱保证。实际管道、重定向、替换、已知 Shell 包装器等需要单次批准；存在任何 `deny` 规则时保守拒绝。无路径的 deny 命令名也匹配绝对路径，例如 `rm` 同时拒绝 `/bin/rm`。前缀规则不分析任意脚本内部的程序行为，不是传递到所有子程序的静态安全证明。
 
 无人运行代码评测时可以使用 `sandbox="required", approval="auto", network=false`，让受隔离和范围约束的动作自动执行。选择 `approval="never"` 时，要接受写入/执行被拒绝，或明确配置允许的命令前缀；不能把它当作“关闭审批后全部放行”。
 
@@ -66,7 +76,9 @@
 | `require_verification` | `false` | 完成前是否必须在当前工作区上取得有效测试结果 |
 | `required_artifacts` | `[]` | 完成时必须存在的文件路径 |
 
-Runtime 会从任务文字做保守的完成条件推断；正式评测应在任务数据中明确这些条件，避免只靠自然语言猜测。修改会使旧验证失效。用于 RL 奖励的独立验证器另行接入，不能用 `completion="off"` 关闭它，见 [阶段 14](learning/14-memory-and-rollouts.md)。
+Runtime 只对未显式设置的条件做文字推断；显式 `False` 会保留。正式评测应在任务数据中明确这些条件。`require_edit` 表示本轮发生过修改，目标代码是否正确仍由独立验证器判断。内容或权限位变化会使旧验证失效；checkpoint 指纹现在包含文件权限位，因此旧版本的指纹可能被拒绝恢复，不能将其当作当前有效状态。用于 RL 奖励的独立验证器另行接入，不能用 `completion="off"` 关闭它，见 [阶段 14](learning/14-memory-and-rollouts.md)。
+
+同一 Runtime 同时只接受一个运行操作，单个 RL episode 也只允许一个在途 `step`；并发调用明确返回 busy。idle 状态重新 `start` 会以 `superseded` 结束旧任务，`resume` 不会覆盖活动任务。终态自动汇总当前任务 Worker 的修改，旧任务的 Worker ID 不能污染新任务；取消后迟到的审批或模型返回不能继续写文件。
 
 一个只读浏览配置可以写成：
 

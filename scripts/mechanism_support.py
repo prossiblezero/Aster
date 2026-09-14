@@ -123,14 +123,18 @@ class BeforeHookAblation(Hooks):
 
 
 def file_contents(root: Path, expected: dict) -> dict:
-    return {name: (root / name).read_text() if (root / name).is_file() else None
-            for name in expected}
+    return {
+        name: (root / name).read_text() if (root / name).is_file() else None for name in expected
+    }
 
 
 def check_expected(observed: dict, expected: dict) -> dict:
-    return {key: all(text in observed.get("diff", "") for text in wanted)
-            if key == "diff_contains" else observed.get(key) == wanted
-            for key, wanted in expected.items()}
+    return {
+        key: all(text in observed.get("diff", "") for text in wanted)
+        if key == "diff_contains"
+        else observed.get(key) == wanted
+        for key, wanted in expected.items()
+    }
 
 
 async def runtime_case(case: dict, root: Path, variant: str) -> dict:
@@ -157,7 +161,9 @@ async def runtime_case(case: dict, root: Path, variant: str) -> dict:
             args = operation["resume"]
             for name, text in args.get("files", {}).items():
                 runtime.workspace.path(name, write=True).write_text(text)
-            resumed = Runtime(root, settings.model_copy(update=args.get("settings", {})), hooks=hooks)
+            resumed = Runtime(
+                root, settings.model_copy(update=args.get("settings", {})), hooks=hooks
+            )
             try:
                 resumed.resume(runtime.state.run_id)
             except ValueError as exc:
@@ -168,30 +174,43 @@ async def runtime_case(case: dict, root: Path, variant: str) -> dict:
             raise ValueError(f"unknown operation: {operation.keys()}")
     expected = arm["expected"]
     observed = {
-        "phase": runtime.state.phase, "stop_reason": runtime.state.stop_reason,
-        "recovery_used": runtime._recovery_used, "last_error": last_error,
+        "phase": runtime.state.phase,
+        "stop_reason": runtime.state.stop_reason,
+        "recovery_used": runtime._recovery_used,
+        "last_error": last_error,
         "stop_calls": probe.stop_calls,
-        "blocked": sum(o["status"] == "blocked" for o in outcomes), "diff": diff,
+        "blocked": sum(o["status"] == "blocked" for o in outcomes),
+        "diff": diff,
         "files": file_contents(root, expected.get("files", {}) | case["goal"].get("files", {})),
     }
     checks = check_expected(observed, expected)
     goals = check_expected(observed, case["goal"])
     runtime.checkpoint()
     await runtime.workers.close()
-    return {"case_id": case["id"], "suite": case["suite"], "variant": variant,
-            "contract_passed": bool(checks) and all(checks.values()), "checks": checks,
-            "goal_passed": bool(goals) and all(goals.values()), "goal_checks": goals,
-            "observed": observed, "outcomes": outcomes}
+    return {
+        "case_id": case["id"],
+        "suite": case["suite"],
+        "variant": variant,
+        "contract_passed": bool(checks) and all(checks.values()),
+        "checks": checks,
+        "goal_passed": bool(goals) and all(goals.values()),
+        "goal_checks": goals,
+        "observed": observed,
+        "outcomes": outcomes,
+    }
 
 
 async def rl_case(case: dict, root: Path, variant: str) -> dict:
     def verifier(workspace, _state):
         expected = case["reward_files"]
-        return VerifierResult(passed=file_contents(workspace, expected) == expected,
-                              reason="independent_fixture_comparison")
+        return VerifierResult(
+            passed=file_contents(workspace, expected) == expected,
+            reason="independent_fixture_comparison",
+        )
 
-    env = AsterEnv(root, Settings(**case["settings"]),
-                   verifier=verifier if case.get("reward_files") else None)
+    env = AsterEnv(
+        root, Settings(**case["settings"]), verifier=verifier if case.get("reward_files") else None
+    )
     _, reset_info = env.reset(TaskSpec(**case["task"]))
     initial = Workspace(root).snapshot()
     transitions, observed = [], {"positive_tool_rewards": 0}
@@ -202,13 +221,18 @@ async def rl_case(case: dict, root: Path, variant: str) -> dict:
                 before = reset_info["run_id"]
                 _, reset_info = env.reset(TaskSpec(**(case["task"] | operation["reset"])))
                 observed["fresh_reset"] = (
-                    before != reset_info["run_id"] and env.runtime.workspace.snapshot() == initial
-                    and not env.runtime.state.working_memory and not env.runtime.state.messages
+                    before != reset_info["run_id"]
+                    and env.runtime.workspace.snapshot() == initial
+                    and not env.runtime.state.working_memory
+                    and not env.runtime.state.messages
                 )
                 observed["seed_unchanged"] = Workspace(root).snapshot() == initial
                 continue
-            action = (Final(answer=operation["final"]) if "final" in operation
-                      else ToolCall.model_validate(operation["tool"]))
+            action = (
+                Final(answer=operation["final"])
+                if "final" in operation
+                else ToolCall.model_validate(operation["tool"])
+            )
             try:
                 _, reward, terminated, truncated, info = await env.step(action)
             except RuntimeError as exc:
@@ -217,8 +241,9 @@ async def rl_case(case: dict, root: Path, variant: str) -> dict:
                     raise
                 continue
             info["trace_path"] = f"state/runs/{info['run_id']}/trace.jsonl"
-            transitions.append({"reward": reward, "terminated": terminated,
-                                "truncated": truncated, "info": info})
+            transitions.append(
+                {"reward": reward, "terminated": terminated, "truncated": truncated, "info": info}
+            )
             observed.update(terminated=terminated, truncated=truncated)
             if isinstance(action, Final):
                 observed["final_reward"] = reward
@@ -228,10 +253,17 @@ async def rl_case(case: dict, root: Path, variant: str) -> dict:
         checks = check_expected(observed, case["variants"][variant]["expected"])
         goals = check_expected(observed, case["goal"])
         shutil.copytree(env.runtime.evidence.root, root / ".aster", dirs_exist_ok=True)
-        return {"case_id": case["id"], "suite": case["suite"], "variant": variant,
-                "contract_passed": bool(checks) and all(checks.values()), "checks": checks,
-                "goal_passed": bool(goals) and all(goals.values()), "goal_checks": goals,
-                "observed": observed, "transitions": transitions}
+        return {
+            "case_id": case["id"],
+            "suite": case["suite"],
+            "variant": variant,
+            "contract_passed": bool(checks) and all(checks.values()),
+            "checks": checks,
+            "goal_passed": bool(goals) and all(goals.values()),
+            "goal_checks": goals,
+            "observed": observed,
+            "transitions": transitions,
+        }
     finally:
         await env.runtime.workers.close()
         env.close()
@@ -249,4 +281,26 @@ async def run_case(case: dict, root: Path, *, variant: str = "evolution_on") -> 
         return await runtime_case(case, root, variant)
     if case["kind"] == "rl":
         return await rl_case(case, root, variant)
+    if case["kind"] == "tool_contract":
+        runtime = Runtime(root, Settings(approval="auto"))
+        runtime.start(TaskSpec(prompt="Inspect test results", require_observation=False))
+        outcome = await runtime.step(
+            ToolCall(name="run_tests", arguments={"command": case["command"]})
+        )
+        checks = {
+            "status": outcome.status == case["status"],
+            "reason": outcome.reason == case["reason"],
+            "verification": (runtime.state.verification.state == "passed")
+            == (case["status"] == "success"),
+        }
+        runtime.finish("contract_evaluated")
+        return {
+            "case_id": case["id"],
+            "suite": "tool_contract",
+            "variant": variant,
+            "contract_passed": all(checks.values()),
+            "goal_passed": all(checks.values()),
+            "checks": checks,
+            "outcome": outcome.model_dump(),
+        }
     raise ValueError(f"unknown scenario kind: {case['kind']}")

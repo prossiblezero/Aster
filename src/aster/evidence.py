@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import tempfile
 import threading
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -36,18 +38,18 @@ class Redactor:
             text = text.replace(secret, "[REDACTED]")
         return re.sub(r"(?i)\b(?:sk-[a-z0-9_-]{12,}|bearer\s+[a-z0-9._-]{12,})", "[REDACTED]", text)
 
-    def value(self, value: Any) -> Any:
+    def value(self, value: Any, *, mask_fields: bool = True) -> Any:
         if isinstance(value, str):
             return self.text(value)
         if isinstance(value, dict):
             return {
                 k: "[REDACTED]"
-                if re.search(r"(?i)(api_key|password|secret|authorization)", k)
-                else self.value(v)
+                if mask_fields and re.fullmatch(r"(?i)(api_key|password|secret|authorization)", k)
+                else self.value(v, mask_fields=mask_fields)
                 for k, v in value.items()
             }
         if isinstance(value, list):
-            return [self.value(v) for v in value]
+            return [self.value(v, mask_fields=mask_fields) for v in value]
         return value
 
 
@@ -74,7 +76,8 @@ class EvidenceStore:
 
     def save(self, parts: tuple[str, ...], data: Any) -> None:
         with self._lock:
-            atomic_json(self.path(*parts), self.redactor.value(data))
+            # Checkpoint mappings use file paths as keys; keep their value types intact.
+            atomic_json(self.path(*parts), self.redactor.value(data, mask_fields=False))
 
     def emit(self, run_id: str, event: str, **payload) -> dict:
         with self._lock:
@@ -95,8 +98,14 @@ class EvidenceStore:
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
                 stream.flush()
-            for listener in self.listeners:
-                listener(row)
+            for listener in tuple(self.listeners):
+                try:
+                    listener(deepcopy(row))
+                except Exception as exc:
+                    # Observers cannot undo a committed event or interrupt an executed tool.
+                    logging.getLogger(__name__).warning(
+                        "Evidence listener failed: %s", type(exc).__name__
+                    )
             return row
 
     def events(self, run_id: str) -> list[dict]:

@@ -47,6 +47,10 @@ async def evaluate(output: Path):
             for variant in case["variants"]
         )
     rows = []
+    scenarios.extend(
+        (dict(case, kind="tool_contract"), "current")
+        for case in json.loads((DATASETS / "tool_contract_cases.json").read_text())
+    )
     for case, variant in scenarios:
         destination = output / "runs" / stamp / case["id"] / variant
         destination.mkdir(parents=True, exist_ok=True)
@@ -109,7 +113,7 @@ async def evaluate(output: Path):
             "",
             f"总计 {report['unique_cases']} 个场景、{report['attempts']} 次尝试；"
             f"契约通过 {report['contract_passed']}/{report['attempts']}。",
-            "每次执行的完整状态和判定保存在 cases/ 下；失败不从统计中删除。",
+            "每次执行的完整状态和判定保存在 runs/ 下；失败不从统计中删除。",
             "",
         ]
     )
@@ -119,7 +123,7 @@ async def evaluate(output: Path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path("artifacts/benchmark-v3-mechanisms"))
+    parser.add_argument("--output", type=Path, default=Path("artifacts/benchmark-v4-mechanisms"))
     args = parser.parse_args()
     report = asyncio.run(evaluate(args.output))
     print(

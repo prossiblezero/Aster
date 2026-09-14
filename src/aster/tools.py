@@ -3,16 +3,24 @@
 from __future__ import annotations
 
 import base64
+import json
 import mimetypes
-import re
 import shlex
+import shutil
+import tempfile
+import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from pydantic import Field, model_validator
 
 from .safety.runner import SandboxRunner
 from .schema import Outcome, Record, ToolCall
+from .testing import parse_junit
 from .workspace import Workspace, digest
+
+TEST_COMMAND_PREFIXES = [["pytest"], ["python", "-m", "pytest"], ["python", "-m", "unittest"]]
 
 
 class ListFiles(Record):
@@ -95,7 +103,14 @@ class MemoryDiscard(Record):
     lesson_id: str
 
 
-class SkillLoad(Record):
+class TextPage(Record):
+    offset: int = Field(
+        default=0, ge=0, description="Character offset; use the previous next_offset."
+    )
+    limit: int = Field(default=512, ge=1, le=1000, description="Maximum characters in this page.")
+
+
+class SkillLoad(TextPage):
     name: str
 
 
@@ -126,6 +141,26 @@ class ImageRead(Record):
     question: str = "Describe this image for the coding task."
 
 
+def text_page(
+    text: str, offset: int, limit: int, count: Callable[[str], int], token_budget: int
+) -> Outcome:
+    if offset > len(text):
+        return Outcome(status="blocked", reason="page_out_of_range", content=f"total={len(text)}")
+    end = min(offset + limit, len(text))
+    while True:
+        page = {
+            "offset": offset,
+            "next_offset": end if end < len(text) else None,
+            "total": len(text),
+        }
+        content = json.dumps(page) + "\n" + text[offset:end]
+        if count(content) <= token_budget:
+            return Outcome(status="success", content=content, data=page)
+        if end - offset <= 1:
+            return Outcome(status="blocked", reason="page_budget_exceeded")
+        end = offset + max(1, (end - offset) // 2)
+
+
 SCHEMAS = {
     "list_files": (ListFiles, "List workspace files, excluding protected metadata.", "read"),
     "read_file": (ReadFile, "Read a UTF-8 file with a bounded line range.", "read"),
@@ -136,7 +171,11 @@ SCHEMAS = {
     ),
     "write_file": (WriteFile, "Create or replace a workspace file.", "write"),
     "patch_file": (PatchFile, "Replace one unique occurrence in a workspace file.", "write"),
-    "run_shell": (RunShell, "Run a bounded shell command inside the sandbox.", "process"),
+    "run_shell": (
+        RunShell,
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes. Shell syntax may require approval.",
+        "process",
+    ),
     "run_tests": (RunTests, "Run an explicitly provided repository test command.", "process"),
     "todo_add": (TodoAdd, "Add a bounded task item.", "state"),
     "todo_update": (TodoUpdate, "Update a task item by id.", "state"),
@@ -145,11 +184,19 @@ SCHEMAS = {
     "memory_retrieve": (MemoryQuery, "Retrieve relevant project lessons.", "read"),
     "memory_update": (MemoryChange, "Supersede a lesson using a cited observation.", "state"),
     "memory_discard": (MemoryDiscard, "Deactivate a stale or harmful lesson.", "state"),
-    "todo_list": (Empty, "List task items.", "read"),
+    "todo_list": (
+        TextPage,
+        "Read plan and task items in character pages; follow next_offset until null.",
+        "read",
+    ),
     "plan_enter": (Empty, "Enter planning mode: workspace tools become read-only.", "state"),
     "plan_exit": (Empty, "Request approval to leave planning mode.", "state"),
     "git_diff": (Empty, "Show changes from this task's initial workspace snapshot.", "read"),
-    "skill_load": (SkillLoad, "Load a skill body from the skill catalog on demand.", "state"),
+    "skill_load": (
+        SkillLoad,
+        "Select a skill and read its body in character pages; follow next_offset until null.",
+        "state",
+    ),
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (WorkerStart, "Start a bounded Explore or write-scoped worker.", "state"),
@@ -196,14 +243,18 @@ WORKFLOW_TOOLS = {
 }
 
 
-def definitions(names: list[str] | None = None) -> list[dict]:
-    selected = names or list(SCHEMAS)
+def definitions(
+    names: list[str] | None = None, *, available: list[str] | None = None
+) -> list[dict]:
+    selected = list(SCHEMAS) if names is None else names
     result = []
     for name in selected:
         model, description, _effect = SCHEMAS[name]
         schema = model.model_json_schema()
         if name == "tool_load":
-            schema["properties"]["names"]["items"]["enum"] = sorted(SCHEMAS)
+            schema["properties"]["names"]["items"]["enum"] = sorted(
+                SCHEMAS if available is None else available
+            )
         schema.setdefault("additionalProperties", False)
         result.append(
             {
@@ -308,16 +359,12 @@ class WorkspaceTools:
 
     async def _write_file(self, args: WriteFile) -> Outcome:
         path = self.context.workspace.path(args.path, write=True)
-        before = self.context.workspace.snapshot()
         # Reuse the same isolated executor for writes: a shell printf is less expressive but safe.
         command = self._write_command(
             str(path.relative_to(self.context.workspace.root)), args.content
         )
         result = await self.context.sandbox.run(self.context.workspace, command, readonly=False)
         result.data["path"] = args.path
-        result.changed_paths = self.context.workspace.changes(
-            before, self.context.workspace.snapshot()
-        )
         return result
 
     async def _patch_file(self, args: PatchFile) -> Outcome:
@@ -333,11 +380,7 @@ class WorkspaceTools:
         # Fresh read evidence is recorded in the same call; caller can require prior read via runtime policy.
         new_text = text.replace(args.old_text, args.new_text, 1)
         command = self._write_command(str(path.relative_to(self.context.workspace.root)), new_text)
-        before = self.context.workspace.snapshot()
         result = await self.context.sandbox.run(self.context.workspace, command)
-        result.changed_paths = self.context.workspace.changes(
-            before, self.context.workspace.snapshot()
-        )
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:
@@ -350,8 +393,7 @@ class WorkspaceTools:
 
     async def _run_tests(self, args: RunTests) -> Outcome:
         argv = shlex.split(args.command)
-        prefixes = [["pytest"], ["python", "-m", "pytest"], ["python", "-m", "unittest"]]
-        if not any(argv[: len(p)] == p for p in prefixes) or any(
+        if not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES) or any(
             c in args.command for c in ";|&><$`\n"
         ):
             return Outcome(
@@ -359,15 +401,132 @@ class WorkspaceTools:
                 reason="test_command_not_supported",
                 content="Use pytest or python -m pytest/unittest; run_shell for other commands.",
             )
-        result = await self.context.sandbox.run(
-            self.context.workspace, args.command, args.timeout, readonly=True
-        )
-        nonempty = re.search(r"\b([1-9]\d*) passed\b|Ran ([1-9]\d*) tests?\b", result.content)
-        if result.status == "success" and not nonempty:
-            result.status = "blocked"
-            result.reason = "no_tests_collected"
-        elif result.exit_code == 5 and "no tests ran" in result.content.lower():
-            result.reason = "no_tests_collected"
+        if self.context.sandbox.settings.sandbox == "off":
+            return Outcome(status="blocked", reason="isolation_required_for_scope")
+        unittest = argv[:3] == ["python", "-m", "unittest"]
+        options = argv[3:] if argv[0] == "python" else argv[1:]
+        tested_fingerprint = self.context.workspace.fingerprint()
+        with tempfile.TemporaryDirectory(prefix="aster-tests-") as directory:
+            target = Path(directory)
+            for source in self.context.workspace.files():
+                copied = target / source.relative_to(self.context.workspace.root)
+                copied.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, copied)
+            report = "__aster_result_" + target.name + ".xml"
+            if unittest:
+                # Import the standard runner before adding repository modules to sys.path.
+                # TextTestResult already owns failures/skips; no stdout parsing is needed.
+                program = """import os, sys, unittest, xml.etree.ElementTree as ET
+report = sys.argv.pop(1)
+sys.path.insert(0, os.getcwd())
+class StructuredResult(unittest.TextTestResult):
+    def startTestRun(self):
+        self.successes = set()
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        self.successes.add(test.id())
+    def addSubTest(self, test, subtest, err):
+        super().addSubTest(test, subtest, err)
+        if err is None:
+            self.successes.add(test.id())
+class Runner(unittest.TextTestRunner):
+    resultclass = StructuredResult
+result = unittest.main(module=None, argv=['unittest', *sys.argv[1:]],
+                       testRunner=Runner, exit=False).result
+suite = ET.Element('testsuite')
+outcomes = [('failure', result.failures), ('error', result.errors),
+            ('skipped', result.skipped), ('skipped', result.expectedFailures),
+            ('failure', [(test, 'unexpected success') for test in result.unexpectedSuccesses])]
+for status, entries in outcomes:
+    for test, detail in entries:
+        result.successes.discard(test.id())
+        case = ET.SubElement(suite, 'testcase', name=test.id(),
+                             classname=f'{type(test).__module__}.{type(test).__qualname__}')
+        ET.SubElement(case, status).text = detail
+for name in sorted(result.successes):
+    ET.SubElement(suite, 'testcase', name=name, classname='unittest')
+ET.ElementTree(suite).write(report, encoding='unicode')
+raise SystemExit(not result.wasSuccessful())
+"""
+                command = ["python", "-I", "-c", program, report, *options]
+            else:
+                # Keep repository import semantics while importing the installed pytest first.
+                program = """import os, sys
+try:
+    import pytest
+except ImportError:
+    raise SystemExit(127)
+sys.path.insert(0, os.getcwd())
+raise SystemExit(pytest.main(sys.argv[1:]))
+"""
+                boundary = options.index("--") if "--" in options else len(options)
+                options[boundary:boundary] = [f"--junitxml={report}", "-p", "no:cacheprovider"]
+                command = ["python", "-I", "-c", program, *options]
+            settings = self.context.sandbox.settings.model_copy(
+                update={"read_only": False, "write_scope": [report]}
+            )
+            # Only a report may leave the execution copy, into this disposable copy.
+            # Tests cannot publish any change to the actual repository, including in plan mode.
+            result = await SandboxRunner(settings).run(
+                Workspace(target), shlex.join(command), args.timeout
+            )
+            cases = None
+            try:
+                cases = parse_junit(Workspace(target).read(report))
+            except (OSError, ValueError, ET.ParseError):
+                pass
+            result.changed_paths = []
+            result.partial_success = False
+            result.data["tested_workspace_hash"] = tested_fingerprint
+        if (
+            result.status == "success"
+            and self.context.workspace.fingerprint() != tested_fingerprint
+        ):
+            result.status, result.reason = "blocked", "workspace_changed_during_verification"
+        if result.status in {"blocked", "timeout", "cancelled"}:
+            if result.reason == "write_scope":
+                result.reason = "read_only"
+            if not result.reason:
+                result.reason = f"test_{result.status}"
+            return result
+        passed = sum(case["status"] == "passed" for case in cases or [])
+        failures = any(case["status"] in {"failed", "error"} for case in cases or [])
+        errors = [case for case in cases or [] if case["status"] == "error"]
+        # Framework errors do not establish that a recalled lesson caused a bad answer.
+        failure_reason = "tests_failed" if failures else "test_runner_error"
+        if errors:
+            failure_reason = "test_execution_error" if unittest else "test_setup_or_teardown_failed"
+            if any(case["classname"] == "unittest.loader._FailedTest" for case in errors):
+                failure_reason = "test_collection_failed"
+        if result.status == "success":
+            if cases is None:
+                result.status = "blocked"
+                result.reason = (
+                    "no_tests_collected"
+                    if any(option in {"-h", "--help"} for option in options)
+                    else "test_report_missing_or_invalid"
+                )
+            elif failures:
+                result.status, result.reason = "error", failure_reason
+            elif not passed:
+                result.status = "blocked"
+                result.reason = "no_tests_executed" if cases else "no_tests_collected"
+        elif result.status == "error":
+            if not unittest and result.exit_code == 5:
+                result.reason = "no_tests_collected"
+            elif not unittest and result.exit_code == 2:
+                result.reason = (
+                    "test_collection_failed"
+                    if any(case["status"] == "error" for case in cases or [])
+                    else "test_interrupted"
+                )
+            elif not unittest and result.exit_code in {3, 4}:
+                result.reason = "test_runner_error"
+            elif result.exit_code == 127:
+                result.reason = "test_runner_unavailable"
+            else:
+                result.reason = failure_reason
+        result.data["passed_tests"] = passed if result.status == "success" else 0
         return result
 
     @staticmethod

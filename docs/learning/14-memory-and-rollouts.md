@@ -53,7 +53,7 @@ python -m pytest -q tests/test_runtime_repairs.py -k memory_cannot_launder
 
 `dream()` 是一个确定性的维护函数。它标记来源过期、被否定或反复失败的条目，保留原记录供检查和回滚。反复失败的当前阈值是 `failed_uses >= max(2, successful_uses + 2)`；一次失败不会立即废弃经验。`auto_dream=true` 在一次运行结束时自动执行一次；`memory_evolution=false` 关闭使用反馈和这次维护，但安全准入、显式删除和来源新鲜度检查仍然有效。
 
-`Runtime` 在 `run_tests` 产生明确成功或失败结果时，给已召回的条目记录一次反馈并清空这批待反馈标识，避免同一批条目反复积累同一次验证的分数。工具被拒绝、网关超时等不直接等价于某条记忆错误。
+`Runtime` 在 `run_tests` 成功或报告 `tests_failed`（测试断言失败）时，给已召回的条目记录一次反馈并清空待反馈标识。手动召回与下一轮自动召回的标识取并集，避免自动查询没有命中时覆盖刚使用的记忆。缺依赖、采集错误、空测试、工具拒绝和超时不会否定记忆；这些环境问题不等于某条记忆错误。
 
 ```bash
 python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms
@@ -78,14 +78,17 @@ python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms
 | 返回值或字段 | 含义 |
 |---|---|
 | `observation` | 当前任务、消息、工作记忆、工具定义、修改路径和验证状态；供外部策略决定下一步 |
-| `reward` | 当前动作奖励：成功工具 `-0.01`，非成功工具 `-0.2`；最终独立验证通过 `+1`、未通过或验证器出错 `-1` |
+| `reward` | 中间成功动作 `-0.05 / max_turns`，失败动作或被要求补做的 Final 为 `-0.5 / max_turns`；终态独立验证通过 `+1`，失败 `-1`，无独立验证器的合规完成 `0` |
 | `terminated` | 环境正常完成或运行失败，当前尝试结束 |
-| `truncated` | 因步骤、轮数、停滞等限制停止，本次尝试被截断 |
+| `truncated` | 因步骤、轮数或外部停止而截断；完成条件或停滞恢复耗尽属于 `terminated` |
 | `info.verification` | Agent 在工作区内取得的测试证据 |
 | `info.reward_verification` | 宿主独立验证器给出的最终判定；与上一个字段分开保存 |
+| `info.completion_verification` | Harness 对必需编辑、观察、测试与产物的完成条件检查；外部评分通过也不能绕过必需条件 |
 | `seed` | `reset` 返回的实验标识；当前不设置远程模型随机性，不保证模型结果可复现 |
 
-没有独立验证器时，正常结束的奖励是 `0`，不会仅凭模型说“完成了”给 `+1`。若 `Final` 尚未满足完成契约而进入补做，当前步只产生小额负奖励，episode 继续；结束后再次 `step` 会报 `episode_finished`，不能重复领取奖励。
+终态奖励替代当步成本，预算耗尽也给最后候选评分，所以最后一次工具刚好完成任务也不会漏奖。每次决策消耗一轮，中间成本总和小于 `0.5`：在未折扣的 episode 回报下，成功总回报大于 `0.5`，失败不高于 `-1`，拖延后失败更低。这样既不奖励无意义工具，也不会因为长任务成本累加而鼓励立即认输。未来训练若引入折扣，需要重新检查这个激励关系。
+
+没有独立验证器时，正常结束奖励为 `0`，失败或截断为 `-1`。结束后再 `step` 返回 `episode_finished`；一次动作尚未结束就并发 `step/reset/close` 返回 `episode_busy`，防止重复评分。Final 和预算终态会取消子任务并等待它们退出后再评分，并非等待子任务自然完成。Verifier 出错保留 `verifier_error:<异常类型>`，训练采样器应区分评分环境错误和任务答案错误。
 
 ```bash
 python -m pytest -q tests/test_rl_contract.py

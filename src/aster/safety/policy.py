@@ -2,6 +2,7 @@
 
 import shlex
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from ..config import Settings
 
@@ -12,19 +13,96 @@ class Decision:
     reason: str
 
 
+def shell_argv(command: str) -> list[str] | None:
+    """Parse one command, leaving expansions and shell programs to explicit approval.
+
+    Quotes around Python code are argument boundaries, not shell operators. This
+    classifies syntax only: a simple command can still execute arbitrary code.
+    """
+    if "\\\n" in command:
+        return None  # Shell line continuations do not share shlex's argv semantics.
+    if "\x00" in command:
+        raise ValueError("NUL in command")
+    argv = shlex.split(command)
+    if not argv:
+        raise ValueError("empty command")
+    # shlex discards quoting; scan active syntax before applying prefix rules.
+    quote, escaped, unescape = "", False, set()
+    for index, char in enumerate(command):
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            if quote == '"' and command[index + 1 : index + 2] in {"$", "`"}:
+                unescape.add(index)
+            escaped = True
+        elif quote:
+            if char == quote:
+                quote = ""
+            elif quote == '"' and char in "$`":
+                return None
+        elif char in "\"'":
+            quote = char
+        elif char in ";&|<>()\n\r*?{}[]$`~#":
+            return None
+    if unescape:
+        argv = shlex.split(
+            "".join(char for index, char in enumerate(command) if index not in unescape)
+        )
+    # An embedded command is not protected by rules on the outer executable.
+    executable = PurePosixPath(argv[0]).name or argv[0]
+    if executable in {
+        "sh",
+        "bash",
+        "dash",
+        "zsh",
+        "env",
+        "eval",
+        "exec",
+        "source",
+        ".",
+        "command",
+        "builtin",
+        "nohup",
+        "timeout",
+        "nice",
+        "busybox",
+        "xargs",
+        "sudo",
+        "doas",
+        "time",
+        "!",
+        "trap",
+    }:
+        return None
+    if executable == "find" and any(arg in {"-exec", "-execdir", "-ok", "-okdir"} for arg in argv):
+        return None
+    if "=" in argv[0]:  # Shell environment assignments precede the actual executable.
+        return None
+    return argv
+
+
 def command_rule(command: str, settings: Settings) -> Decision | None:
-    # A small grammar is deliberate: complicated shell syntax never gets a reusable allow.
-    if any(c in command for c in ";|&><$`\n()*?{}"):
+    try:
+        argv = shell_argv(command)
+    except ValueError:
+        return Decision("deny", "invalid_shell")
+    embedded_python = argv and PurePosixPath(argv[0]).name.startswith("python") and "-c" in argv
+    if argv is None or (embedded_python and any(r.decision == "deny" for r in settings.rules)):
         # Prefix rules cannot prove which commands a shell program will execute.
         # Keep configured hard denials effective even if a human approves the tool.
         if any(rule.decision == "deny" for rule in settings.rules):
             return Decision("deny", "compound_shell_with_deny_rules")
         return Decision("ask", "compound_shell")
-    try:
-        argv = shlex.split(command)
-    except ValueError:
-        return Decision("deny", "invalid_shell")
-    matches = [r for r in settings.rules if argv[: len(r.prefix)] == r.prefix]
+    matches = [
+        r
+        for r in settings.rules
+        if argv[: len(r.prefix)] == r.prefix
+        or (
+            r.decision == "deny"
+            and "/" not in r.prefix[0]
+            and [PurePosixPath(argv[0]).name, *argv[1 : len(r.prefix)]] == r.prefix
+        )
+    ]
     if matches:
         rule = max(matches, key=lambda r: {"allow": 0, "ask": 1, "deny": 2}[r.decision])
         return Decision(rule.decision, rule.reason)

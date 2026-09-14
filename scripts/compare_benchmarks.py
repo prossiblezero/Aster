@@ -150,7 +150,7 @@ def compare_context(before: list[dict], after: list[dict]) -> dict:
         "before": summarize(before),
         "after": summarize(after),
         "rows": [{"id": key, "before": a[key], "after": b[key]} for key in sorted(a)],
-        "measurement_note": "v2 估算 input/tools 字段，v3 估算最终序列化请求；token 数的计量边界有所扩大，预算通过率均使用各自实际输入估算。",
+        "measurement_note": "v3 起估算最终序列化请求（含工具定义与协议字段）；更早的 v2 仅估算 input/tools。比较采用各报告的计量边界，均为本地 tokenizer 估算而非计费 token。",
     }
 
 
@@ -333,7 +333,7 @@ def markdown(report):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("before-scripted", "before-real", "after-scripted", "after-real"):
-        version = "v2" if name.startswith("before") else "v3"
+        version = "v3" if name.startswith("before") else "v4"
         mode = name.rsplit("-", 1)[1]
         parser.add_argument(
             f"--{name}",
@@ -341,9 +341,9 @@ def main():
             default=Path(f"artifacts/benchmark-{version}-{mode}/report.json"),
         )
     parser.add_argument(
-        "--mechanisms", type=Path, default=Path("artifacts/benchmark-v3-mechanisms/report.json")
+        "--mechanisms", type=Path, default=Path("artifacts/benchmark-v4-mechanisms/report.json")
     )
-    parser.add_argument("--output", type=Path, default=Path("artifacts/benchmark-v3-comparison"))
+    parser.add_argument("--output", type=Path, default=Path("artifacts/benchmark-v4-comparison"))
     args = parser.parse_args()
     paths = {
         name: getattr(args, name)

@@ -40,7 +40,7 @@ python -m pytest -q tests/test_review_regressions.py -k 'reasoning or observatio
 
 哈希快照回答“文件有没有变”，文本基线回答“究竟改了哪些行”。例如原文件是 `port = 8080`，SHA256 是一串摘要；把摘要当作旧文件内容去生成 diff，当然会得到错误补丁。
 
-[Workspace.snapshot](../../src/aster/workspace.py) 返回路径到内容哈希的映射，用于漂移判断；`text_snapshot` 保存运行起点的可读文件内容，用于 diff。[Runtime.checkpoint / resume](../../src/aster/runtime.py) 保存并恢复这两种信息，还包括 `structured_history`、`recovery_used`、`stall_items` 与 `RunState`。恢复前同时检查工作区指纹和有效运行配置；两者任一变化，都拒绝自动接着执行。
+[Workspace.snapshot](../../src/aster/workspace.py) 返回路径到“权限位加文件内容”的哈希映射，用于漂移判断；`text_snapshot` 保存运行起点的可读文件内容，`mode_snapshot` 保存权限位，用于 diff。`chmod +x` 因此也算修改，mtime 不参与判断。[Runtime.checkpoint / resume](../../src/aster/runtime.py) 保存并恢复这些信息，还包括 `structured_history`、`recovery_used`、`stall_items` 与 `RunState`。恢复前同时检查工作区指纹和有效运行配置；两者任一变化，都拒绝自动接着执行。
 
 ```bash
 python -m pytest -q tests/test_runtime_repairs.py -k 'diff_resume or recovery_persistence'
@@ -77,13 +77,15 @@ python -m pytest -q tests/test_interaction_workers.py
 
 测试会真正打开无显示窗口的 Textual 应用，按下拒绝、提交回答、取消等待，并检查结果是否进入下一轮。Worker 的消息方式借鉴了 [Pi 的 steering queue](https://github.com/badlogic/pi-mono/blob/main/packages/agent/src/agent.ts)：先排队，到稳定边界消费，不直接修改正在处理中的工具调用。
 
-边界：Worker 共享项目工作区，不是完整独立 Git worktree；写入范围冲突会被拒绝，沙箱回写也检查目标文件是否被别人改过。父任务通过 `worker_status` 取得结果和有效修改。Hooks 插件由父子共享，需要按 `run_id` 区分自身的运行状态。
+边界：Worker 共享项目工作区，不是完整独立 Git worktree；写入范围冲突会被拒绝，沙箱回写也检查目标文件是否被别人改过。`worker_status` 可查看进展，父任务终态还会自动汇总当前 Worker 修改；新任务使用新的 WorkerManager，旧编号不能给新任务贡献修改记录。Hooks 插件由父子共享，需要按 `run_id` 区分自身的运行状态。
 
 ## 问题：网关断开一次，是否必须重跑整个任务？
 
 [ModelClient._post](../../src/aster/provider.py) 只对连接/超时和部分瞬时 HTTP 错误做有上限重试，最多三次。无效参数一类的拒绝不重试。`ProviderError.details` 分开记录 `category`（类别）、`status`（HTTP 状态）、`code`（供应商代码）、`message`（脱敏说明）、`attempts`（本次请求已尝试次数）。
 
 重试范围只覆盖模型生成请求；工具执行发生在完整模型回复之后，写文件等副作用不会被这一层重复执行。代价是供应商可能已处理但响应丢失的请求仍产生费用，重试并不保证只计费一次。测试 `tests/test_context_provider.py` 中的 `retry`、`invalid_request` 和 `transport_error` 可以分别验证这些情况。
+
+Responses 的 `incomplete`、Chat 的 `length`、Anthropic 的 `max_tokens` 表示回复尚未完整结束。它们会成为 `incomplete_response`，不能把半句答案当 Final；已返回的 usage 仍累计到该次尝试，不因失败而漏记 token。`tests/test_provider_events.py` 同时检查这件事，以及 UI 监听器报错不能影响真实工具结果和 checkpoint。
 
 ## 再看一个容易漏掉的细节：如何发现尚未加载的工具
 

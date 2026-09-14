@@ -1,6 +1,6 @@
 # Aster 分阶段学习文档
 
-这是一条配合完整项目阅读的学习路径。代码按职责组织，文档按 **问题 → 机制 → 读代码 → 运行 → 验证 → 边界** 组织；无需切换课程专用分支，每个阶段都能在当前项目运行。先建立整体认识，再进入阶段 12–14 的完整实验。
+这是一条配合完整项目阅读的学习路径。代码按职责组织，文档按 **问题 → 机制 → 读代码 → 运行 → 验证 → 边界** 组织；无需切换课程专用分支，每个阶段都能在当前项目运行。先建立整体认识，再进入阶段 12–15 的完整实验。
 
 ## 0. 先运行，再读入口
 
@@ -43,6 +43,8 @@ aster --cwd examples/demo '查看仓库并说明入口'
 
 当前组织策略是固定的，没有上下文策略自进化。预算是本地 tokenizer 对请求的估算，远端 usage 单列。运行 `python -m pytest -q tests/test_context_provider.py -k budget`，观察正常压缩和无法压缩的请求；字段与裁剪顺序见 [阶段 13](13-runtime-reliability.md)。
 
+工具结果只裁正文，执行状态与证据编号仍保留并计入全局预算；长计划和技能可以继续翻页。[阶段 15](15-paged-observations.md) 解释 `offset`、`next_offset` 和正文预算，并验证如何读到被摘要省略的最后一页。
+
 ## 6. Hooks、停滞检测和完成条件如何合作？
 
 [Hooks](../../src/aster/hooks.py) 在工具前、成功后、失败后和结束时提供少量插入点；前置检查异常时拒绝动作。停滞检测看是否真的有进展，成功编辑即使没有输出也不会误停。`max_recovery` 限制改变方案的机会，`max_final_revisions` 限制结束前补做的机会。
@@ -84,4 +86,4 @@ python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms
 python scripts/benchmark.py --real --selection real_subset.json --concurrency 2
 ```
 
-[阶段 12：评测](12-evaluation.md) 解释任务、验证器与对照；[阶段 13：运行可靠性](13-runtime-reliability.md) 解释预算、恢复、Hooks 和交互；[阶段 14：记忆与训练环境](14-memory-and-rollouts.md) 解释记忆维护和奖励边界。按这个顺序运行后，再结合 [实施清单](../implementation.md) 检查自己是否能讲清每项机制的作用与限制。
+[阶段 12：评测](12-evaluation.md) 解释任务、验证器与对照；[阶段 13：运行可靠性](13-runtime-reliability.md) 解释预算、恢复、Hooks 和交互；[阶段 14：记忆与训练环境](14-memory-and-rollouts.md) 解释记忆维护和奖励边界；[阶段 15：分页观察](15-paged-observations.md) 解释工具正文裁剪、完整 JSON 与长文本读取。按这个顺序运行后，再结合 [实施清单](../implementation.md) 检查自己是否能讲清每项机制的作用与限制。

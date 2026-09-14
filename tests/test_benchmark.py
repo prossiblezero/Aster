@@ -67,6 +67,51 @@ async def test_candidate_cannot_replace_the_pytest_launcher(tmp_path):
     assert "failed" in result["output"]
 
 
+@pytest.mark.parametrize(
+    "body",
+    [
+        "import pytest; pytest.exit('1 passed', returncode=0)",
+        "import pytest; pytest.skip('skip hidden assertions')",
+        "import os; print('2 passed', flush=True); os._exit(0)",
+    ],
+)
+async def test_grader_requires_all_hidden_tests_to_finish(tmp_path, body):
+    task = next(t for t in load_bank() if t["id"] == "humaneval_0")
+    root = tmp_path / "candidate"
+    prepare(task, root)
+    (root / "solution.py").write_text(
+        "def has_close_elements(numbers, threshold):\n    " + body + "\n"
+    )
+    result = await external_check(root, task["checks"]["verifier"])
+    assert not result["passed"], result
+
+
+async def test_grader_accepts_an_explicit_single_test_selection(tmp_path):
+    task = next(t for t in load_bank() if t["id"] == "humaneval_0")
+    root = tmp_path / "candidate"
+    prepare(task, root)
+    result = await external_check(root, task["checks"]["verifier"], "test_regression")
+    assert result["passed"], result
+    assert result["tests"] == {"expected": 1, "executed": 1, "passed": 1}
+    assert not list(root.glob("__evaluation*"))
+
+
+async def test_grader_rejects_candidate_changes_to_hidden_checks(tmp_path):
+    task = next(t for t in load_bank() if t["id"] == "humaneval_0")
+    root = tmp_path / "candidate"
+    prepare(task, root)
+    (root / "solution.py").write_text(
+        "def has_close_elements(numbers, threshold):\n"
+        "    from pathlib import Path\n"
+        "    Path('__evaluation_tests.py').write_text('def test_fix(): pass\\n')\n"
+        "    return any(abs(a-b) < threshold for i, a in enumerate(numbers) for b in numbers[i+1:])\n"
+    )
+    result = await external_check(root, task["checks"]["verifier"])
+    assert not result["passed"] and result["status"] == "blocked", result
+    assert result["grader_reason"] == "write_scope"
+    assert not list(root.glob("__evaluation*"))
+
+
 @pytest.mark.asyncio
 async def test_memory_control_uses_observations_in_a_fresh_runtime(tmp_path):
     task = next(t for t in load_bank() if t["id"] == "memory_deploy")

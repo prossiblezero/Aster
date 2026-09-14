@@ -1,6 +1,6 @@
 # Aster benchmark 任务手册
 
-本手册列出 **193 条主任务 + 42 个机制场景 = 235 个不同编号**，另外单列 12 组上下文压力配置。235 不是仓库修改任务数，其中 164 条是函数题；单元测试数量、重复运行和开关对照都不计入题目数。主任务参数和参考动作见 [benchmark_tasks.json](benchmark_tasks.json)，机制场景见文末两个 JSON 清单。
+本手册列出 **193 条主任务 + 69 个机制场景 = 262 个不同编号**，另外单列 12 组上下文压力配置。262 不是仓库修改任务数，其中 164 条是函数题；单元测试数量、重复运行和开关对照都不计入题目数。主任务参数和参考动作见 [benchmark_tasks.json](benchmark_tasks.json)，机制场景见文末 JSON 清单。
 
 ## Harness 行为（12 条）
 
@@ -284,6 +284,8 @@
 | `rl_reset_isolates_episodes` | 重置隔离上一次运行的文件和会话状态 |
 | `rl_terminal_step_rejected` | 结束后拒绝继续执行动作 |
 
-运行：`python scripts/benchmark_mechanisms.py`。新增机制数据总计 42 个编号、70 次尝试；报告将“符合本组预期”和“达到两组共同目标”分别统计，关闭组暴露预期缺陷不等于完成目标。
+另有 [tool_contract_cases.json](tool_contract_cases.json) 中的 27 个测试工具场景，验证 pytest/unittest 的真实成功、跳过、预期失败、伪造输出、缺报告、同名模块劫持及子测试行为。每条包含完整初始文件和预期 `status/reason`。
+
+运行：`python scripts/benchmark_mechanisms.py`。机制数据总计 69 个编号、97 次尝试；报告将“符合本组预期”和“达到两组共同目标”分别统计，关闭组暴露预期缺陷不等于完成目标。
 
 所有主任务和机制场景均为 `evaluation`。题目、参考动作、评分器及这些题产生的轨迹不得再作为后续 SFT/GRPO 训练样本；单元测试只验证程序边界，不额外算题目。独立验证器防护范围及恶意 Python 的剩余边界见 [数据集说明](README.md)。

@@ -6,8 +6,10 @@ import asyncio
 import hashlib
 import inspect
 import json
+import shlex
 import time
 from collections.abc import Awaitable, Callable
+from contextlib import contextmanager
 from pathlib import Path
 
 from .config import Settings
@@ -21,7 +23,15 @@ from .safety.policy import Decision, permission
 from .safety.runner import SandboxRunner
 from .schema import Outcome, RunState, TaskSpec, ToolCall, VerifierResult
 from .skills import Skills
-from .tools import CORE_TOOLS, SCHEMAS, ToolContext, ToolRegistry, definitions
+from .tools import (
+    CORE_TOOLS,
+    SCHEMAS,
+    TEST_COMMAND_PREFIXES,
+    ToolContext,
+    ToolRegistry,
+    definitions,
+    text_page,
+)
 from .verifier import Verifier
 from .workers import WorkerManager
 from .workspace import Workspace
@@ -40,7 +50,7 @@ class Runtime:
     ):
         self.workspace = Workspace(root)
         self.settings = settings
-        self.approval_callback = approval_callback or (lambda _call, _decision: False)
+        self.approval_callback = approval_callback
         self.question_callback = question_callback
         secrets = [settings.api_key.get_secret_value()]
         self.evidence = EvidenceStore(self.workspace.root, Redactor(secrets))
@@ -58,24 +68,52 @@ class Runtime:
         self.stall = StallDetector()
         self.state: RunState | None = None
         self._initial_text: dict[str, str] = {}
+        self._initial_modes: dict[str, int] = {}
         self._in_turn = False
         self._pending_messages: list[dict] = []
         self._structured_history: list[dict] = []
         self._recovery_used = 0
         self._finish_hook_ran = False
         self._dream_ran = False
+        self._operation_task: asyncio.Task | None = None
         self.workers = WorkerManager(self)
 
+    @contextmanager
+    def _operation(self):
+        """One task owns transitions; run -> turn -> step may nest in that task."""
+        task = asyncio.current_task()
+        if self._operation_task is not None and self._operation_task is not task:
+            raise RuntimeError("runtime_busy: await the current operation")
+        owner = self._operation_task is None
+        if owner:
+            self._operation_task = task
+        try:
+            yield
+        except asyncio.CancelledError:
+            self.finish("cancelled")
+            raise
+        finally:
+            if owner:
+                self._operation_task = None
+                self.checkpoint()
+
+    def _ensure_idle(self):
+        if self._operation_task or any(not w.future.done() for w in self.workers.workers.values()):
+            raise RuntimeError("runtime_busy: await current operations and workers")
+
     def start(self, task: TaskSpec) -> RunState:
-        if any(not w.future.done() for w in self.workers.workers.values()):
-            raise RuntimeError("active_workers: finish the current run before start")
+        self._ensure_idle()
+        if self.state and not self.state.terminal:
+            self.finish("superseded")
         task = task.model_copy(deep=True)
         inferred = self.verifier.infer(task.prompt)
         for key, value in inferred.items():
-            if not getattr(task, key):
+            if key not in task.model_fields_set:
                 setattr(task, key, value)
         self.state = RunState(task=task, phase="running")
+        self.workers = WorkerManager(self)
         self._initial_text = self.workspace.text_snapshot()
+        self._initial_modes = self.workspace.mode_snapshot()
         self.stall.items.clear()
         self._recovery_used = 0
         # The first turn is rebuilt by ContextBuilder so system policy and untrusted-data
@@ -106,34 +144,44 @@ class Runtime:
                 "runtime_identity": self.settings.identity(),
                 "structured_history": self._structured_history,
                 "initial_text": self._initial_text,
+                "initial_modes": self._initial_modes,
                 "recovery_used": self._recovery_used,
                 "stall_items": list(self.stall.items),
             },
         )
 
     def resume(self, run_id: str) -> RunState:
+        self._ensure_idle()
+        if self.state and not self.state.terminal:
+            raise RuntimeError("active_run: finish the current run before resuming another")
         data = json.loads(self.evidence.path("runs", run_id, "checkpoint.json").read_text())
         if data["runtime_identity"] != self.settings.identity():
             raise ValueError("runtime_identity_mismatch")
         if data["workspace_hash"] != self.workspace.fingerprint():
             raise ValueError("workspace_mismatch")
-        self.state = RunState.model_validate(data["state"])
-        if self.state.terminal:
-            return self.state
-        if "initial_text" not in data:
+        state = RunState.model_validate(data["state"])
+        if not state.terminal and "initial_text" not in data:
             raise ValueError("legacy_checkpoint_missing_diff_baseline")
-        self._initial_text = data["initial_text"]
+        self.state = state
+        self.workers = WorkerManager(self)
+        self._initial_text = data.get("initial_text", {})
+        self._initial_modes = data.get("initial_modes", {})
         self._recovery_used = data.get("recovery_used", 0)
         self.stall.items.clear()
         self.stall.items.extend(tuple(item) for item in data.get("stall_items", []))
         self._finish_hook_ran = False
         self._dream_ran = False
+        self._pending_messages = []
         self._structured_history = data.get("structured_history", [])
         return self.state
 
     async def run(self, task: TaskSpec | None = None, *, max_steps: int | None = None) -> RunState:
         if task is not None:
             self.start(task)
+        with self._operation():
+            return await self._run(max_steps=max_steps)
+
+    async def _run(self, *, max_steps: int | None = None) -> RunState:
         if not self.state:
             raise RuntimeError("start(task) first")
         limit = max_steps or self.state.task.max_steps
@@ -160,6 +208,10 @@ class Runtime:
             await self.workers.close()
 
     async def turn(self) -> RunState:
+        with self._operation():
+            return await self._turn()
+
+    async def _turn(self) -> RunState:
         state = self.state
         assert state is not None
         if state.terminal:
@@ -172,7 +224,15 @@ class Runtime:
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
         skills = "\n".join(self.skills.list())
-        tool_defs = definitions(self._tool_names())
+        skill_bodies = {}
+        for name in dict.fromkeys(state.active_skills):
+            try:
+                skill_bodies[name] = self.skills.load(name)
+            except (OSError, ValueError):
+                skill_bodies[name] = (
+                    "[Skill unavailable; check the skill catalog before reloading.]"
+                )
+        tool_defs = self.tool_definitions()
         try:
             prompt, report = self.context.build(
                 state,
@@ -184,6 +244,7 @@ class Runtime:
                 tools=tool_defs,
                 protocol=self.settings.protocol,
                 model=self.settings.model,
+                skill_bodies=skill_bodies,
             )
         except (ContextBudgetError, ContextHistoryError) as exc:
             state.feedback = str(exc)
@@ -207,10 +268,14 @@ class Runtime:
             reply = await self.model.complete(request_messages, tool_defs)
         except ProviderError as exc:
             state.feedback = str(exc)
+            for name, value in exc.details.get("usage", {}).items():
+                state.usage[name] = state.usage.get(name, 0) + value
             self.evidence.emit(
                 state.run_id, "provider_error", error=str(exc), **getattr(exc, "details", {})
             )
             self.finish("provider_error", failed=True)
+            return state
+        if state.terminal:
             return state
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
@@ -296,6 +361,10 @@ class Runtime:
         )
 
     async def step(self, call: ToolCall) -> Outcome:
+        with self._operation():
+            return await self._step(call)
+
+    async def _step(self, call: ToolCall) -> Outcome:
         state = self.state
         assert state is not None
         if state.terminal:
@@ -328,11 +397,13 @@ class Runtime:
         elif outcome.status == "success" and call.name in {"search", "run_tests"}:
             self.memory.remember_file(f"__{call.name}__", outcome.content, state.working_memory)
         if outcome.status == "success" and call.name == "memory_retrieve":
-            state.recalled_ids = [x["id"] for x in outcome.data.get("lessons", [])]
+            state.recalled_ids = sorted(
+                set(state.recalled_ids) | {x["id"] for x in outcome.data.get("lessons", [])}
+            )
         if (
             state.recalled_ids
             and call.name == "run_tests"
-            and outcome.status in {"success", "error"}
+            and (outcome.status == "success" or outcome.reason == "tests_failed")
         ):
             self.memory.record_use(state.recalled_ids, success=outcome.status == "success")
             state.recalled_ids = []
@@ -417,6 +488,9 @@ class Runtime:
         except ValueError as exc:
             return Outcome(status="blocked", reason="invalid_arguments", content=str(exc))
         call = call.model_copy(update={"arguments": arguments})
+        unavailable = self._unavailable_reason(call.name)
+        if unavailable:
+            return Outcome(status="blocked", reason=unavailable)
         if call.name in {"write_file", "patch_file"}:
             path = call.arguments.get("path", "")
             try:
@@ -442,11 +516,15 @@ class Runtime:
         if decision.action == "deny":
             return Outcome(status="blocked", reason=decision.reason)
         if decision.action == "ask":
+            if self.approval_callback is None:
+                return Outcome(status="blocked", reason="approval_unavailable")
             approved = self.approval_callback(call, decision)
             if inspect.isawaitable(approved):
                 approved = await approved
             if not approved:
                 return Outcome(status="blocked", reason="approval_denied")
+        if state.terminal:
+            return Outcome(status="blocked", reason="run_terminal")
         before = self.hooks.before_tool(state, call)
         if before.action == "stop":
             self.finish("hook_stop")
@@ -507,11 +585,16 @@ class Runtime:
             state.plan = args["content"]
             return Outcome(status="success", content="plan updated")
         if name == "todo_list":
-            return Outcome(
-                status="success",
-                content=json.dumps(state.todos, ensure_ascii=False),
-                data={"todos": state.todos},
+            data = {"plan": state.plan, "todos": state.todos}
+            result = text_page(
+                json.dumps(data, ensure_ascii=False),
+                args["offset"],
+                args["limit"],
+                self.context.count,
+                self.context.tool_output_tokens,
             )
+            result.data.update(data)
+            return result
         if name == "tool_load":
             requested = args["names"]
             unknown = sorted(set(requested) - SCHEMAS.keys())
@@ -521,6 +604,17 @@ class Runtime:
                     reason="unknown_tool_name",
                     content=json.dumps(unknown, ensure_ascii=False),
                 )
+            unavailable = {
+                name: self._unavailable_reason(name)
+                for name in requested
+                if self._unavailable_reason(name)
+            }
+            if unavailable:
+                return Outcome(
+                    status="blocked",
+                    reason="tool_unavailable",
+                    content=json.dumps(unavailable, ensure_ascii=False),
+                )
             state.loaded_tools = sorted(set(state.loaded_tools + requested))
             return Outcome(
                 status="success",
@@ -528,6 +622,10 @@ class Runtime:
                 data={"loaded": state.loaded_tools},
             )
         if name == "plan_enter":
+            await self.workers.close()
+            if state.terminal:
+                return Outcome(status="blocked", reason="run_terminal")
+            self._settle_workers()
             state.mode = "plan"
             return Outcome(status="success", content="plan mode enabled")
         if name == "plan_exit":
@@ -537,12 +635,12 @@ class Runtime:
             state.observed = True
             return Outcome(
                 status="success",
-                content=self.workspace.diff(self._initial_text),
+                content=self.workspace.diff(self._initial_text, self._initial_modes),
                 data={"diff": True},
             )
         if name == "memory_retrieve":
             lessons = self.memory.retrieve(args["query"])
-            state.recalled_ids = [x["id"] for x in lessons]
+            state.recalled_ids = sorted(set(state.recalled_ids) | {x["id"] for x in lessons})
             return Outcome(
                 status="success",
                 content=json.dumps(lessons, ensure_ascii=False),
@@ -599,8 +697,19 @@ class Runtime:
             )
         if name == "skill_load":
             text = self.skills.load(args["name"])
-            state.active_skills.append(args["name"])
-            return Outcome(status="success", content=text, data={"untrusted": True})
+            result = text_page(
+                text,
+                args["offset"],
+                args["limit"],
+                self.context.count,
+                self.context.tool_output_tokens,
+            )
+            if result.status != "success":
+                return result
+            if args["name"] not in state.active_skills:
+                state.active_skills.append(args["name"])
+            result.data["untrusted"] = True
+            return result
         if name == "ask_user":
             if self.question_callback is None:
                 return Outcome(
@@ -653,6 +762,9 @@ class Runtime:
         assert state is not None
         if state.terminal:
             return state
+        if self._operation_task is not None and self._operation_task is not asyncio.current_task():
+            raise RuntimeError("runtime_busy: await the current operation before Final")
+        self._settle_workers()
         feedback = completion_feedback(state) if self.settings.completion != "off" else ""
         if feedback and state.final_revisions < self.settings.max_final_revisions:
             state.final_revisions += 1
@@ -678,12 +790,27 @@ class Runtime:
     def finish(self, reason: str, *, failed: bool = False):
         if not self.state or self.state.terminal:
             return
+        if self._operation_task is not None and self._operation_task is not asyncio.current_task():
+            if not self._operation_task.cancelling():
+                self._operation_task.cancel()
+        self._settle_workers()
         self.state.phase = "failed" if failed else "stopped"
         self.state.stop_reason = reason
         self._stop_hook()
         self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
         self._auto_dream()
         self.report(VerifierResult(passed=False, reason=reason))
+
+    def _settle_workers(self):
+        """Freeze children and account for their edits even without a status poll."""
+        self.workers.cancel()
+        for worker in self.workers.workers.values():
+            child = worker.runtime.state
+            if child.parent_run_id == self.state.run_id:
+                self.state.changed_paths = sorted(
+                    set(self.state.changed_paths + child.changed_paths)
+                )
+        self._refresh_observations()
 
     def _stop_hook(self):
         if not self._finish_hook_ran:
@@ -718,7 +845,9 @@ class Runtime:
 
     def add_message(self, role: str, content: str, *, important=False, native=False):
         if self.state:
-            self.state.messages.append({"role": role, "content": content, "important": important, "native": native})
+            self.state.messages.append(
+                {"role": role, "content": content, "important": important, "native": native}
+            )
             if role == "user":
                 target = self._pending_messages if self._in_turn else self._structured_history
                 target.append({"role": "user", "content": content})
@@ -726,15 +855,85 @@ class Runtime:
     def _memory_text(self, query: str) -> str:
         lessons = self.memory.retrieve(query, limit=3)
         if self.state:
-            self.state.recalled_ids = [x["id"] for x in lessons]
+            self.state.recalled_ids = sorted(
+                set(self.state.recalled_ids) | {x["id"] for x in lessons}
+            )
         return "\n".join(
             f"- {x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
         )
 
+    def _unavailable_reason(self, name):
+        if self.settings.sandbox == "off" and (
+            name == "run_tests"
+            or (
+                name in {"run_shell", "write_file", "patch_file"}
+                and (
+                    self.settings.read_only
+                    or self.settings.write_scope is not None
+                    or (self.state and self.state.mode == "plan")
+                )
+            )
+        ):
+            return "isolation_required_for_scope"
+        if name in {"write_file", "patch_file"}:
+            if self.settings.read_only:
+                return "read_only"
+            if self.state and self.state.mode == "plan":
+                return "plan_mode"
+            if self.settings.write_scope == []:
+                return "write_scope"
+        if name == "plan_exit" and self.settings.read_only:
+            return "read_only"
+        if name.startswith("memory_") and not self.settings.memory_enabled:
+            return "memory_disabled"
+        if name == "worker_start" and self.settings.max_workers == 0:
+            return "workers_disabled"
+        if name == "ask_user" and self.question_callback is None:
+            return "user_input_unavailable"
+        no_approval = self.settings.approval == "never" or (
+            self.settings.approval == "ask" and self.approval_callback is None
+        )
+        if no_approval and (
+            name in {"write_file", "patch_file", "plan_exit"}
+            or (
+                name in {"run_shell", "run_tests"}
+                and not self._has_allowed_command(name)
+            )
+        ):
+            return "approval_unavailable"
+        return ""
+
+    def _has_allowed_command(self, name):
+        """An allow rule must apply to this tool and survive higher-priority denials."""
+        for rule in self.settings.rules:
+            if rule.decision != "allow":
+                continue
+            for prefix in TEST_COMMAND_PREFIXES if name == "run_tests" else [rule.prefix]:
+                if rule.prefix[: len(prefix)] == prefix:
+                    candidate = rule.prefix
+                elif prefix[: len(rule.prefix)] == rule.prefix:
+                    candidate = prefix
+                else:
+                    continue
+                decision = permission(
+                    name, "process", {"command": shlex.join(candidate)}, self.settings,
+                    self.state.mode if self.state else "work",
+                )
+                if decision.action == "allow":
+                    return True
+        return False
+
     def _tool_names(self):
-        if self.settings.tool_profile == "all":
-            return list(SCHEMAS)
-        return sorted(set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
+        selected = (
+            SCHEMAS
+            if self.settings.tool_profile == "all"
+            else (set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
+        )
+        return sorted(name for name in selected if not self._unavailable_reason(name))
+
+    def tool_definitions(self):
+        available = [name for name in SCHEMAS if not self._unavailable_reason(name)]
+        return definitions(self._tool_names(), available=available)
 
     def _auto_dream(self):
         if self._dream_ran or not self.settings.auto_dream:

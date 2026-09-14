@@ -140,7 +140,7 @@ async def baseline_check(task):
 
 def markdown(report):
     lines = [
-        "# Aster benchmark v3",
+        "# Aster benchmark",
         "",
         f"模式：{report['mode']}；任务内容哈希：`{report['source']['content_sha256']}`。",
         "",
@@ -193,6 +193,29 @@ def markdown(report):
             "",
             "评分修正：端点题未指定 JSON 内容，删除验证器额外添加的 status=ok 条件后，对两个条件的原始产物重新评分；未重新调用模型。原判定与修正证据见 grader-corrections.json，原始尝试记录保持不变。",
         ]
+    tools = {}
+    for row in report["rows"]:
+        for name, counts in row.get("tools", {}).items():
+            total = tools.setdefault(name, {"calls": 0, "success": 0, "reasons": {}})
+            total["calls"] += counts["calls"]
+            total["success"] += counts["success"]
+            for reason, count in counts["reasons"].items():
+                total["reasons"][reason] = total["reasons"].get(reason, 0) + count
+    if tools:
+        lines += [
+            "",
+            "## 工具结果",
+            "",
+            "按全部尝试统计，安全拒绝和测试断言失败保留各自原因；任务完成不掩盖工具失败。",
+            "",
+            "| 工具 | 调用 | 成功 | 其他结果原因及次数 |",
+            "|---|---:|---:|---|",
+        ]
+        for name, counts in sorted(tools.items()):
+            reasons = ", ".join(
+                f"{reason}: {count}" for reason, count in sorted(counts["reasons"].items())
+            )
+            lines.append(f"| {name} | {counts['calls']} | {counts['success']} | {reasons or '—'} |")
     failures = [r for r in report["rows"] if not r["passed"]]
     lines += ["", "## 失败与边界", ""]
     for row in failures:
@@ -228,7 +251,7 @@ async def evaluate(args):
     if not tasks:
         raise ValueError("empty evaluation selection")
     mode = "real" if args.real else "scripted"
-    output = Path(args.output or f"artifacts/benchmark-v3-{mode}")
+    output = Path(args.output or f"artifacts/benchmark-v4-{mode}")
     output.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
     archive = output / "runs" / stamp
@@ -236,7 +259,7 @@ async def evaluate(args):
     if args.real and not settings.api_key.get_secret_value():
         raise ValueError("real mode needs configured API key")
     report = {
-        "name": "Aster benchmark v3",
+        "name": "Aster benchmark",
         "mode": mode,
         "at": datetime.now(UTC).isoformat(),
         "source": source_identity(),
@@ -270,7 +293,7 @@ async def evaluate(args):
             for variant in variants:
                 jobs.append((task, attempt, variant))
     semaphore = asyncio.Semaphore(args.concurrency)
-    with tempfile.TemporaryDirectory(prefix="aster-benchmark-v3-") as directory:
+    with tempfile.TemporaryDirectory(prefix="aster-benchmark-v4-") as directory:
 
         async def run_one(task, attempt, variant):
             async with semaphore:

@@ -75,14 +75,17 @@ def main(argv=None):
 
 
 def tui_main(argv=None):
-    argv = list(argv or [])
+    argv = list(sys.argv[1:] if argv is None else argv)
     return main(["--tui", *argv])
 
 
 async def _rl_smoke(root, settings, prompt):
     env = AsterEnv(root, settings)
-    observation, info = env.reset(TaskSpec(prompt=prompt, max_steps=1))
-    print({"observation": observation, "info": info})
+    try:
+        observation, info = env.reset(TaskSpec(prompt=prompt, max_steps=1))
+        print({"observation": observation, "info": info})
+    finally:
+        env.close()
     return 0
 
 
@@ -119,7 +122,10 @@ class Terminal:
                     if b"\n" in self._input_buffer or not chunk:
                         future.set_result(None)
 
-                loop.add_reader(fd, ready)
+                try:
+                    loop.add_reader(fd, ready)
+                except (PermissionError, OSError):
+                    return None  # /dev/null and closed headless input cannot answer.
                 try:
                     await future
                 finally:

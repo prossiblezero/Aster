@@ -18,7 +18,14 @@ class ProviderError(RuntimeError):
     """Safe diagnostics suitable for the trace; never contains request headers/body."""
 
     def __init__(
-        self, message: str, *, category="provider_error", status=None, code="", attempts=1
+        self,
+        message: str,
+        *,
+        category="provider_error",
+        status=None,
+        code="",
+        attempts=1,
+        usage=None,
     ):
         self.details = {
             "category": category,
@@ -26,6 +33,7 @@ class ProviderError(RuntimeError):
             "code": code,
             "message": message,
             "attempts": attempts,
+            "usage": dict(usage or {}),
         }
         super().__init__(json.dumps(self.details, ensure_ascii=False))
 
@@ -215,9 +223,11 @@ class ModelClient:
                 "anthropic": self._anthropic_reply,
             }[protocol]
             return parser(data, self.last_usage)
-        except (ValueError, KeyError, TypeError, IndexError) as exc:
+        except (ValueError, KeyError, TypeError, IndexError, AttributeError) as exc:
             raise ProviderError(
-                "Malformed model response or tool arguments", category="invalid_response"
+                "Malformed model response or tool arguments",
+                category="invalid_response",
+                usage=self.last_usage,
             ) from exc
 
     async def _post(self, suffix: str, payload: dict, extra: dict) -> dict:
@@ -293,9 +303,11 @@ class ModelClient:
 
     @staticmethod
     def _usage(raw: dict) -> dict[str, int]:
+        raw = raw if isinstance(raw, dict) else {}
+
         def find(key):
             value = raw.get(key, 0)
-            return int(value) if isinstance(value, (int, float)) else 0
+            return max(0, value) if isinstance(value, int) and not isinstance(value, bool) else 0
 
         inputs = find("input_tokens") or find("prompt_tokens")
         outputs = find("output_tokens") or find("completion_tokens")
@@ -306,7 +318,32 @@ class ModelClient:
         }
 
     @staticmethod
+    def _check_completion(data, protocol, usage):
+        if protocol == "responses":
+            reason = data.get("status", "")
+            incomplete = reason in {"incomplete", "failed", "cancelled", "queued", "in_progress"}
+            if reason == "incomplete":
+                details = data.get("incomplete_details") or {}
+                cause = details.get("reason") if isinstance(details, dict) else None
+                if cause in {"max_output_tokens", "content_filter"}:
+                    reason = cause
+        elif protocol == "chat":
+            reason = data["choices"][0].get("finish_reason", "")
+            incomplete = reason in {"length", "content_filter"}
+        else:
+            reason = data.get("stop_reason", "")
+            incomplete = reason in {"max_tokens", "pause_turn"}
+        if incomplete:
+            raise ProviderError(
+                "Provider stopped before a complete model response",
+                category="incomplete_response",
+                code=f"{protocol}:{reason}",
+                usage=usage,
+            )
+
+    @staticmethod
     def _responses_reply(data, usage=None):
+        ModelClient._check_completion(data, "responses", usage)
         calls, texts = [], []
         for item in data.get("output", []):
             if item.get("type") == "function_call":
@@ -330,6 +367,7 @@ class ModelClient:
 
     @staticmethod
     def _chat_reply(data, usage=None):
+        ModelClient._check_completion(data, "chat", usage)
         message = data["choices"][0]["message"]
         calls = [
             ToolCall(
@@ -349,6 +387,7 @@ class ModelClient:
 
     @staticmethod
     def _anthropic_reply(data, usage=None):
+        ModelClient._check_completion(data, "anthropic", usage)
         text, calls = "", []
         for block in data.get("content", []):
             if block.get("type") == "text":

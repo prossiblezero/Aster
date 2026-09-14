@@ -14,7 +14,7 @@ aster --tui --cwd examples/demo
 
 模型连接从项目 `.env` 的 `ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY` 读取，默认 Responses 协议。审批界面需明确批准，Escape 拒绝；Ctrl+C 取消当前任务。
 
-任务内容在 [datasets](datasets/README.md)：193 条主任务、42 个机制场景、12 组上下文配置，题目数与运行条件数分开统计。
+任务内容在 [datasets](datasets/README.md)：193 条主任务、69 个机制场景、12 组上下文配置，题目数与运行条件数分开统计。
 
 ```bash
 python scripts/benchmark.py --concurrency 4
