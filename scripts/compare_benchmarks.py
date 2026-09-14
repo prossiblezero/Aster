@@ -205,6 +205,12 @@ def number(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
+def token_change(reduction):
+    if reduction is None:
+        return "—"
+    return f"{'减少' if reduction >= 0 else '增加'} {abs(reduction):.1%}"
+
+
 def markdown(report):
     lines = [
         "# Aster 修复前后对照",
@@ -233,14 +239,14 @@ def markdown(report):
         "",
         "只用于排除提前失败对成本的影响，不能替代上面的全样本成功率。未同时成功的题目仍在主表与失败清单中。",
         "",
-        "| 任务 / 条件 | 同时成功尝试数 | 平均工具调用 前→后 | 平均 token 前→后 | token 减少 |",
+        "| 任务 / 条件 | 同时成功尝试数 | 平均工具调用 前→后 | 平均 token 前→后 | token 变化 |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
     for key, group in report["real"].items():
         suite, variant = key.split("/")
         common = group["common_success"]
         a, b = common["before"], common["after"]
-        rate = "—" if common["token_reduction"] is None else f"{common['token_reduction']:.1%}"
+        rate = token_change(common["token_reduction"])
         lines.append(
             f"| {SUITES[suite]} / {VARIANTS[variant]} | {a['attempts']} | {number(a['mean_tool_calls'])}→{number(b['mean_tool_calls'])} | {number(a['mean_tokens'])}→{number(b['mean_tokens'])} | {rate} |"
         )
@@ -269,14 +275,14 @@ def markdown(report):
         "",
         "全部尝试的完成率先列出，成本补充仅比较两个条件都成功的同题；开关差异不能算模型重试。",
         "",
-        "| 任务 / 条件变化 | 全部尝试通过 前→后 | 两组均成功题次 | 同题工具总次数 前→后 | 同题 token 总数 前→后 | token 减少 |",
+        "| 任务 / 条件变化 | 全部尝试通过 前→后 | 两组均成功题次 | 同题工具总次数 前→后 | 同题 token 总数 前→后 | token 变化 |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for key, group in report["real_variant_comparisons"]["after"].items():
         suite = key.split("/")[0]
         a, b, common = group["before"], group["after"], group["common_success"]
         ca, cb = common["before"], common["after"]
-        rate = "—" if common["token_reduction"] is None else f"{common['token_reduction']:.1%}"
+        rate = token_change(common["token_reduction"])
         lines.append(
             f"| {SUITES[suite]} / {VARIANTS[group['left']]}→{VARIANTS[group['right']]} | {a['passed']}/{a['attempts']}→{b['passed']}/{b['attempts']} | {ca['attempts']} | {ca['total_tool_calls']}→{cb['total_tool_calls']} | {ca['total_tokens']:,}→{cb['total_tokens']:,} | {rate} |"
         )

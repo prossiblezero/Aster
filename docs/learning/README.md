@@ -1,84 +1,87 @@
 # Aster 分阶段学习文档
 
-这份文档是在完整 Harness 实现之后反向整理的学习路径。Aster 的代码结构不为课程拆分，但每一阶段都遵循：**问题 → 机制 → 代码 → 运行 → 验证 → 边界**。
+这是一条配合完整项目阅读的学习路径。代码按职责组织，文档按 **问题 → 机制 → 读代码 → 运行 → 验证 → 边界** 组织；无需切换课程专用分支，每个阶段都能在当前项目运行。先建立整体认识，再进入阶段 12–14 的完整实验。
 
-## 0. 先运行
+## 0. 先运行，再读入口
 
 ```bash
 conda activate aster
-pip install -e '.[dev]'
-ASTER_API_KEY=... aster --cwd examples/demo '查看仓库并说明入口'
+python -m pip install -e '.[dev]'
+python -m pytest -q tests/test_rl_contract.py
+aster --cwd examples/demo '查看仓库并说明入口'
 ```
 
-`ASTER_PROTOCOL`、`ASTER_BASE_URL`、`ASTER_MODEL`、`ASTER_API_KEY` 是 provider 配置。密钥只从环境读取，`.env` 已被 `.gitignore` 忽略。`sandbox` 有 `required / best_effort / off`；默认 required，隔离后端不可用会拒绝执行而不是静默裸跑。
+前三条不调用真实模型。最后一条使用项目 `.env` 中的模型连接设置；不要把密钥复制到文档或提交到 Git。打开 [cli.py](../../src/aster/cli.py)，找到 `load_settings` 与 `Runtime.run`，就能看到命令如何进入系统。全部配置及默认值见 [配置说明](../configuration.md)。
 
-## 1. 数据契约：Run、Turn、Step 和 ToolCall
+## 1. 一次任务、一个轮次、一个步骤分别是什么？
 
-文件：[schema.py](../../src/aster/schema.py)。模型输出不是直接执行的字符串，而是 `ToolCall(name, arguments, call_id)` 或 `Final(answer)`。`RunState` 保存任务、轮次、步骤、验证状态、修改路径和反馈。`call_id` 用来把模型请求、工具结果、trace 和 RL `info` 关联起来。
+读 [schema.py](../../src/aster/schema.py)。`RunState` 是一次运行的状态；`turn` 是模型决定下一步的次数；`step` 是工具执行次数，一轮可以发出多个工具调用。`ToolCall(name, arguments, call_id)` 是工具名称、参数与调用编号；`Final(answer)` 表示外部策略准备结束。`call_id` 把请求和结果配成一对。
 
-`TaskSpec.require_edit / require_verification` 是完成契约；交互任务可由 `verifier.infer` 做保守推断，训练评测应直接传结构化字段。
+`TaskSpec` 定义任务和完成条件：例如 `require_edit` 要求修改，`require_verification` 要求当前代码取得测试证据。运行 `python -m pytest -q tests/test_rl_contract.py`，观察不合法动作会在边界被拒绝。自然语言任务可以保守推断条件，正式评测应显式填写字段。
 
-## 2. 唯一 ToolExecutor 与安全闸门
+## 2. 工具为何分成工作区工具与工作流工具？
 
-文件：[runtime.py](../../src/aster/runtime.py)、[tools.py](../../src/aster/tools.py)、[policy.py](../../src/aster/safety/policy.py)。每个动作按固定顺序经过 schema、fresh-read、deny-first 权限、审批、hook、工具执行和结果分类。`permission=never` 是“无人工审批”，不是“无条件允许”。已有文件修改前必须有当前内容的读取指纹，防止模型依据过期内容 patch。
+读 [Runtime._execute](../../src/aster/runtime.py) 与 [ToolRegistry](../../src/aster/tools.py)。工作区工具读取、修改文件或运行命令；工作流工具修改计划、待办、工具清单、记忆和子任务状态。两者通过一个执行入口校验参数、检查新鲜读取、判断权限、等待审批、调用 Hooks 并记账。`git_diff` 的起点基线属于运行状态，因此由 Runtime 处理。
 
-工具结果区分 `success / error / blocked / timeout / cancelled`；partial success 会保留工作区变化，不能被当成完全失败。
+已有文件修改前必须先读取当前内容。`Outcome` 区分 `success`、`error`、`blocked`、`timeout`、`cancelled`；`changed_paths` 记录真实变化，`partial_success` 表示发生了变化但工具未完全成功。运行 `python -m pytest -q tests/test_runtime_repairs.py -k diff_resume`，确认 todo、plan、diff 都有可运行路径。
 
-## 3. 工作区边界和进程隔离
+## 3. 为什么批准命令以后还需要沙箱？
 
-文件：[workspace.py](../../src/aster/workspace.py)、[runner.py](../../src/aster/safety/runner.py)、[linux.py](../../src/aster/safety/linux.py)。路径先 canonicalize，再检查工作区、symlink、敏感文件和 `.git/.aster/.agents` 等保护目录。
+[policy.py](../../src/aster/safety/policy.py) 决定这个动作是否被允许；[workspace.py](../../src/aster/workspace.py) 限制可访问路径；[runner.py](../../src/aster/safety/runner.py) 和 [linux.py](../../src/aster/safety/linux.py) 约束子进程实际能做什么。默认把可见项目文件复制到临时目录，用 Landlock 限制文件访问、seccomp 限制系统调用，并禁止网络。
 
-shell 在临时副本中运行；Linux 后端使用 Landlock 文件权限、seccomp 系统调用过滤、环境白名单、资源上限和进程组终止，成功后按完整写集原子回写。这样 Agent 即使被 README 中的伪指令欺骗，也不能获得新的文件或网络权限。
+命令结束后先检查整个修改集合、写入范围和源文件是否发生并发变化，再逐文件替换。单文件替换是原子的，整个多文件回写不是数据库事务。运行 `python -m pytest -q tests/test_safety.py` 观察越界、敏感路径、网络与取消行为；安全结论以实际测试场景为范围，不把提示词当权限边界。
 
-## 4. Provider 与 Tool Calling
+## 4. 如何接通不同模型接口？
 
-文件：[provider.py](../../src/aster/provider.py)。Responses、Chat Completions 和 Anthropic-compatible 三种协议都转换为 `ModelReply`。模型返回 tool call 后，Aster 执行工具，再用带 `call_id` 的 function-call-output 回填。安全 system prompt 和 `[untrusted tool observation]` 标签由 [context.py](../../src/aster/context.py) 每轮重建，所以 compact 后不会丢失安全边界。
+[provider.py](../../src/aster/provider.py) 把 Responses、Chat Completions 与 Anthropic 请求适配到 `ModelReply`，保留调用编号、用量和协议所需的原生元数据。错误分为配置问题、连接问题、临时 HTTP 错误和请求被拒绝；只对适合重试的模型请求做有限重试。
 
-## 5. Context Engineering
+运行 `python -m pytest -q tests/test_context_provider.py`，再读 [阶段 13](13-runtime-reliability.md) 的历史配对与重试部分。当前真实模型评测使用 GPT-5.6 Luna 的 Responses 接口；另两种协议有本地契约测试，不宣称经过真实供应商验证。
 
-`ContextBuilder` 为 system、task、memory、skills、history 分配预算，预留输出 token；超预算时优先移除旧的普通观察，保留失败、修改和最近消息。`ContextReport` 记录估算 token、预算、移除数量和各 section 大小。当前上下文策略是固定的，**没有上下文策略自进化**。
+## 5. 怎样控制上下文，而不裁坏当前任务？
 
-v2 压力评测发现当前预算使用中间文本估算，未覆盖最终工具定义；完整输入预算检查尚未通过。不要据此认为任意长历史都可控。
+[ContextBuilder](../../src/aster/context.py) 先构造包含工具定义的实际协议请求，再按 `context_tokens - output_tokens` 检查输入预算。它将调用与结果成组保留，移除可丢弃的旧内容；当前任务与必需交互仍放不下时，明确停止。工具原始输出留在执行记录中，送模型前再裁剪。
 
-token 是估算值：优先使用 `cl100k_base`，没有 tokenizer 时退化为字符估算；真实供应商 usage 仍以 provider 返回值为准。
+当前组织策略是固定的，没有上下文策略自进化。预算是本地 tokenizer 对请求的估算，远端 usage 单列。运行 `python -m pytest -q tests/test_context_provider.py -k budget`，观察正常压缩和无法压缩的请求；字段与裁剪顺序见 [阶段 13](13-runtime-reliability.md)。
 
-## 6. Hooks、停滞和完成治理
+## 6. Hooks、停滞检测和完成条件如何合作？
 
-文件：[hooks.py](../../src/aster/hooks.py)、[recovery.py](../../src/aster/recovery.py)、[verifier.py](../../src/aster/verifier.py)。`Hooks` 接收可注入插件，按 before、成功、失败、停止四个时机运行；插件异常会被隔离，不能扩大权限，before 插件可以拒绝或停止动作。Nexa 的重复动作、ABAB 振荡和相同输出检测被实现为有界 `StallDetector`，最多一次 recovery nudge，继续无进展就停止。
+[Hooks](../../src/aster/hooks.py) 在工具前、成功后、失败后和结束时提供少量插入点；前置检查异常时拒绝动作。停滞检测看是否真的有进展，成功编辑即使没有输出也不会误停。`max_recovery` 限制改变方案的机会，`max_final_revisions` 限制结束前补做的机会。
 
-最终文本先经过 completion contract 和 verifier。`测试通过 → 再修改` 会将验证状态重置为 `missing`，不能把旧测试结果继续当证据。
+[Verifier](../../src/aster/verifier.py) 检查观察、修改、测试和必需文件；再次修改会使旧测试证据失效。运行 `python -m pytest -q tests/test_runtime_repairs.py -k 'hook or stall'`，随后看 [阶段 13](13-runtime-reliability.md) 的成功/取消收尾实验。结束钩子只运行一次，与独立任务评分是不同职责。
 
-## 7. Checkpoint、Trace 和 Resume
+## 7. 如何保存中断现场？
 
-文件：[evidence.py](../../src/aster/evidence.py)。每个 run 生成追加式 hash-linked `trace.jsonl`、checkpoint 和 report。checkpoint 包含工作区 hash、运行边界、状态消息、结构化 provider 历史、验证状态和下一步状态。resume 会重新检查 runtime identity 与工作区 hash；漂移就拒绝恢复。trace 对密钥、token 和图片做脱敏/省略。
+[EvidenceStore](../../src/aster/evidence.py) 保存追加式 `trace.jsonl`、`checkpoint.json` 和 `report.json`。trace 是执行顺序记录；checkpoint 是可恢复状态；report 是结束结果。checkpoint 同时保存内容哈希与文本基线，前者检查漂移，后者还原 diff，并保存完整调用组与剩余恢复预算。
 
-## 8. Layered Memory 与 Memory Evolution
+运行 `python -m pytest -q tests/test_runtime_repairs.py -k 'resume or recovery_persistence'`。工作区或有效配置漂移会阻止恢复；恢复不承诺重建已消失的进程。详细字段见 [阶段 13](13-runtime-reliability.md)。
 
-文件：[memory.py](../../src/aster/memory.py)。每次运行的 `RunState.working_memory` 保存当前任务读过的文件、搜索结果和测试结果摘要；下一轮由 `ContextBuilder` 注入，因此它是会话内的短期工作记忆。文件发生修改时对应摘要会被删除，要求重新读取，避免继续使用旧事实。跨运行经验进入 durable lessons，按关键词召回；evolution ledger 保存 support、contradictions、use feedback、provenance 和 snapshot。没有 `run_id + evidence_id` 的 lesson 会被拒绝；Dream 目前是确定性去重，模型辅助冲突整理留到后续迭代。
+## 8. 短期记忆、长期记忆和自进化各解决什么？
 
-v2 负例显示，持久记忆还会接纳有证据的测试敏感内容和临时目标；来源检查不等于内容适存性检查。
+`RunState.working_memory` 整理本次任务观察，是唯一的会话工作记忆；[Memory](../../src/aster/memory.py) 保存跨运行的文件摘录，并用来源、反馈、失效原因和快照维护它们。关闭 `memory_enabled` 不会关闭工作记忆。持久化前必须引用当前运行成功的 `read_file` 证据、提供原文摘录，并通过内容与来源检查。
 
-记忆被召回后，后续验证成功或失败会记录使用反馈，但这不等于证明单条记忆产生了因果收益。
+Dream 使用确定性规则暂停过期、被否定或反复失败的条目；回滚使用独立深拷贝，不能把已变化的文件事实恢复成真。运行 `python -m pytest -q tests/test_memory_evolution.py`，再进入 [阶段 14](14-memory-and-rollouts.md)。召回节省重复读取，与自进化选择更可靠条目的收益，要分开评测。
 
-## 9. Skills、Plan、Todo、Workers 和多模态
+## 9. 用户和子任务怎样加入同一个运行过程？
 
-skills 只从工作区目录按需加载，skill 文本标记为不可信；plan 模式阻止写文件；todo、plan、worker 使用同一 Runtime。Explore worker 是只读、有限步数的子运行；写 worker 必须有明确 `write_scope`。`inspect_image` 只读取工作区内的 PNG/JPEG/WEBP/GIF，图片不直接写入 trace。
+[TUI](../../src/aster/tui.py) 通过后台任务显示进度，真正等待用户批准或回答；[CLI](../../src/aster/cli.py) 也有可取消的输入回调。`ask_user` 的答案作为工具结果进入后续轮次。`plan` 管执行模式，`todo` 管待办；技能通过 `skill_load` 按需读取，文本只作为不可信观察。`inspect_image` 支持工作区内常见图片，trace 不直接保存整段图片编码。
 
-## 10. Agent-RL 接口
+[WorkerManager](../../src/aster/workers.py) 管理受限子任务：继承父任务权限、限制递归，消息在下一轮开始时交付；完成后释放并发名额。运行 `python -m pytest -q tests/test_interaction_workers.py`，再用 `aster --tui --cwd examples/demo` 体验界面。审批、消息与取消的边界见 [阶段 13](13-runtime-reliability.md)。
 
-文件：[rl.py](../../src/aster/rl.py)。`AsterEnv.reset(task)` 返回 observation/info，`step(action)` 返回 `observation, reward, terminated, truncated, info`。action 与生产 Runtime 使用同一个 `ToolCall` 或 `Final`，所以 RL 不会绕过 permission、sandbox、fresh-read、verification 或 completion gate。
+## 10. 为什么现在就能准备后训练，但还没有训练算法？
 
-这一层只提供环境和轨迹契约，不包含 SFT、GRPO、advantage 或训练脚本。后训练文档等 Aster 评测完成后另行编写。
+[AsterEnv](../../src/aster/rl.py) 提供 `reset`、`step` 和运行轨迹。每次 reset 从种子仓库新建副本；工具与 Runtime 共用执行路径；最终奖励由宿主独立验证器检查候选代码。成功工具不会产生正分，没有独立验证器也不会给任务成功奖励。
 
-## 11. 评测阅读方法
+运行 `python -m pytest -q tests/test_runtime_repairs.py -k rl_`，再读 [阶段 14](14-memory-and-rollouts.md) 的字段表和错误/正确答案实验。SFT、GRPO、训练数据划分与训练文档在真正实现后补充；现有评测题与评测轨迹保持评测用途。
 
-先读 [从一道 bug 修复题读懂评测](12-evaluation.md)，配合 [任务数据](../../datasets/benchmark.md) 与 [benchmark.py](../../scripts/benchmark.py) 实际跑一遍。
+## 11. 从哪里核对数量和成果？
+
+任务定义、文件模板和评分要求放在 [datasets](../../datasets/README.md)，执行脚本放在 [scripts](../../scripts/benchmark.py)。当前结果统一从 [评测说明](../benchmark.md) 进入，学习文档不复制一份容易过期的通过数。旧报告继续保存，作为修改前对照。
 
 ```bash
-conda activate aster
-python -m pytest -q
 python scripts/benchmark.py --task debug-and-fix
+python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms
+# 下面会调用配置好的真实模型并产生费用：
 python scripts/benchmark.py --real --selection real_subset.json --concurrency 2
 ```
 
-当前报告位于 `artifacts/benchmark-v2-scripted/` 和 `artifacts/benchmark-v2-real/`。参考动作回放、真实模型表现、模块开关对照分开统计；含义及未通过项见 [评测说明](../benchmark.md)。v1 报告保留作历史记录，不再引用其中旧量化指标。
+[阶段 12：评测](12-evaluation.md) 解释任务、验证器与对照；[阶段 13：运行可靠性](13-runtime-reliability.md) 解释预算、恢复、Hooks 和交互；[阶段 14：记忆与训练环境](14-memory-and-rollouts.md) 解释记忆维护和奖励边界。按这个顺序运行后，再结合 [实施清单](../implementation.md) 检查自己是否能讲清每项机制的作用与限制。

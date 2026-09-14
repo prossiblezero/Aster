@@ -1,6 +1,6 @@
 # Aster benchmark 任务手册
 
-每个编号对应一条独立任务。运行次数和开关对照不重复计入题目数量。详细参数和参考动作见 [benchmark_tasks.json](benchmark_tasks.json)。
+本手册列出 **193 条主任务 + 42 个机制场景 = 235 个不同编号**，另外单列 12 组上下文压力配置。235 不是仓库修改任务数，其中 164 条是函数题；单元测试数量、重复运行和开关对照都不计入题目数。主任务参数和参考动作见 [benchmark_tasks.json](benchmark_tasks.json)，机制场景见文末两个 JSON 清单。
 
 ## Harness 行为（12 条）
 
@@ -219,4 +219,71 @@
 
 配置见 [context_cases.json](context_cases.json)：12、24、48、96 条观察 × 代码、日志、中文三类内容。每条观察包含 12 份对应模板，以形成实际长度压力；总预算 4096，输出预留 512，输入上限 3584 tokens。
 
-对照使用同样的消息和工具定义，大预算组不触发压缩。测量最终 input 和 tools 两个请求字段，分别检查预算、当前请求与指定验证证据。它不是 12 条代码题，也不是端到端模型成功率。
+对照使用同样的消息和工具定义，大预算组不触发压缩。修复后的评测测量最终序列化请求，包含消息、工具定义及其他请求字段，分别检查预算、当前请求与指定验证证据。旧报告只统计 input/tools，比较新旧 token 数时要说明计量边界变化。它不是 12 条代码题，也不是端到端模型成功率。
+
+## 记忆机制（24 个场景）
+
+定义见 [memory_evolution_cases.json](memory_evolution_cases.json)。每个场景各跑“演化关闭/开启”一次，共 48 次。准入与来源安全检查始终生效；6 个反馈场景使用固定标注，不调用模型判断反馈。
+
+| 编号 | 验证内容 |
+|---|---|
+| `admit_repository_convention` | 接纳可引用的仓库约定 |
+| `admit_config_fact` | 接纳明确的配置事实 |
+| `admit_chinese_fact` | 接纳中文仓库事实 |
+| `reject_secret_token` | 拒绝形似服务凭证的内容 |
+| `reject_short_password` | 拒绝短口令赋值 |
+| `reject_secret_metadata` | 拒绝标签中的凭证 |
+| `reject_task_status` | 拒绝当前任务的临时状态 |
+| `reject_relative_date` | 拒绝缺少绝对日期的临时安排 |
+| `reject_unsupported_claim` | 拒绝无法从观察中引用的结论 |
+| `reject_policy_override` | 拒绝绕过审批的指令 |
+| `reject_missing_observation` | 缺少观察正文时拒绝记忆 |
+| `reject_missing_provenance` | 缺少证据编号时拒绝记忆 |
+| `fresh_source_unchanged` | 来源未变化时正常召回 |
+| `fresh_source_modified` | 来源内容修改后不召回旧事实 |
+| `fresh_source_deleted` | 来源删除后不召回旧事实 |
+| `fresh_source_symlink` | 来源替换为符号链接后拒绝使用 |
+| `evolve_test_command` | 根据成功与失败反馈调整测试命令排序 |
+| `evolve_package_command` | 整理多次失败的构建建议并选取可靠建议 |
+| `evolve_failed_timeout_advice` | 隔离反复失败且没有替代项的超时建议 |
+| `evolve_reliable_retry_advice` | 优先召回多次成功的重试建议 |
+| `evolve_one_failure_keeps_evidence` | 避免因单次失败淘汰可用记忆 |
+| `evolve_success_offsets_failures` | 保留成功证据足以抵消失败的建议 |
+| `rollback_snapshot_is_immutable` | 重复回滚仍恢复原始使用计数 |
+| `rollback_cannot_restore_stale_truth` | 恢复快照不能绕过来源新鲜度检查 |
+
+## 恢复与 Hooks（14 个场景）
+
+定义见 [runtime_cases.json](runtime_cases.json)。通过真实 Runtime 执行文件工具、恢复和停止操作；其中重复读取、交替循环、重复副作用与前置 Hook 异常各有开启/关闭两组，其余是边界控制场景，共 18 次尝试。
+
+| 编号 | 验证内容 |
+|---|---|
+| `recovery_repeated_read` | 重复读取后更换观察方式并完成 |
+| `recovery_oscillation` | 识别两个读取动作之间的来回循环 |
+| `recovery_progressing_empty_writes` | 连续修改不同文件不被空输出误停 |
+| `recovery_distinct_equal_reads` | 不同文件内容相同不被误判为循环 |
+| `recovery_new_run_clears_budget` | 新运行重新获得恢复预算 |
+| `recovery_resume_preserves_budget` | 续跑保留已经用掉的恢复预算 |
+| `recovery_resume_preserves_diff` | 续跑后差异仍与任务初始文件比较 |
+| `resume_refuses_workspace_drift` | 外部修改工作区后拒绝直接续跑 |
+| `resume_refuses_policy_drift` | 运行权限配置变化后拒绝续跑 |
+| `hooks_duplicate_side_effect` | 重复调用编号只执行一次写入副作用 |
+| `hooks_failed_precondition` | 前置 Hook 抛异常时阻止副作用 |
+| `hooks_success_stop_once` | 正常完成只触发一次停止 Hook |
+| `hooks_cancel_stop_once` | 取消只触发一次停止 Hook |
+| `hooks_failure_stop_once` | 失败只触发一次停止 Hook |
+
+## RL 环境边界（4 个场景）
+
+同样定义在 [runtime_cases.json](runtime_cases.json)，每个场景执行一次。它们验证环境的奖励与重置规则，没有执行 SFT 或 GRPO。
+
+| 编号 | 验证内容 |
+|---|---|
+| `rl_tools_do_not_pay_reward` | 普通工具调用不产生正奖励 |
+| `rl_public_tests_are_not_reward` | 篡改公开测试不替代独立结果判定 |
+| `rl_reset_isolates_episodes` | 重置隔离上一次运行的文件和会话状态 |
+| `rl_terminal_step_rejected` | 结束后拒绝继续执行动作 |
+
+运行：`python scripts/benchmark_mechanisms.py`。新增机制数据总计 42 个编号、70 次尝试；报告将“符合本组预期”和“达到两组共同目标”分别统计，关闭组暴露预期缺陷不等于完成目标。
+
+所有主任务和机制场景均为 `evaluation`。题目、参考动作、评分器及这些题产生的轨迹不得再作为后续 SFT/GRPO 训练样本；单元测试只验证程序边界，不额外算题目。独立验证器防护范围及恶意 Python 的剩余边界见 [数据集说明](README.md)。

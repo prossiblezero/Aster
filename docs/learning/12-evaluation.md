@@ -44,6 +44,18 @@ python scripts/benchmark.py --real --task memory_deploy
 
 读 [test_benchmark.py](../../tests/test_benchmark.py)：故意清空公开测试、注入 pytest 配置、关闭已有记忆、给策略一个不同于题库答案的观察。评测器应当识别错误或使用真实观察。
 
-再运行全量 benchmark。出现红色结果就查看 `checks`、trace 和独立测试输出。当前上下文完整输入超预算、持久记忆接纳不合适内容，都应保持失败记录直到修复；评测的作用是找到这些问题。
+再运行全量 benchmark。出现红色结果就查看 `checks`、trace 和独立测试输出。v2 曾发现完整输入超预算、持久记忆接纳不合适内容；v3 修复后重跑相同任务，同时保留旧失败记录。评测的作用是找到并解释变化。
 
 新增任务按 [数据集字段说明](../../datasets/README.md) 操作。任务内容放 datasets，脚本只负责执行和判分；具体实验结果在 [评测说明](../benchmark.md) 中查看。
+
+## 第六步：把模块效果与任务能力分开
+
+```bash
+python scripts/benchmark_mechanisms.py
+```
+
+打开 [记忆场景](../../datasets/memory_evolution_cases.json) 和 [运行场景](../../datasets/runtime_cases.json)。`variants` 指机制开启/关闭两个条件，`expected` 指每个条件本来应该出现什么行为，`goal` 指两组共同想达到的目标。比如关闭恢复时按约定停止，属于契约通过，但没有完成后续修复，所以目标未达成。
+
+[机制报告](../../artifacts/benchmark-v3-mechanisms/report.md) 的两列正是这两个含义。反馈场景把成功/失败标签作为固定输入，检验这些反馈是否改变记忆选择。它证明代码机制生效，不能替代真实模型上的端到端收益实验。
+
+再读 [运行可靠性](13-runtime-reliability.md) 与 [记忆和 rollout](14-memory-and-rollouts.md)，逐个运行配套回归。后训练会复用环境接口，但需要另行设计训练任务、奖励与留出评测，不能直接拿这里的答案训练再报同一份成绩。
