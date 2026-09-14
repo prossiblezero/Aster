@@ -1,3 +1,5 @@
+> 历史报告：其中的旧百分比和 token 数字不再作为当前成果依据。请使用 [v2 评测说明](../docs/benchmark.md) 和 v2 报告。
+
 # Deterministic Harness evaluation
 
 - Cases: 10

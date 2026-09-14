@@ -1,0 +1,52 @@
+[
+  {
+    "task_id": "add-endpoint-with-test",
+    "variant": "core",
+    "attempt": 1,
+    "batch_id": "20260914T112506923042",
+    "reason": "The original prompt specifies a /health endpoint and a test_health test, but does not specify a JSON payload. Remove the unrequested status==ok constraint; regrade both original candidates without new model sampling.",
+    "original_passed": true,
+    "original_verifier": {
+      "passed": true,
+      "exit_code": 0,
+      "status": "success",
+      "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+      "isolation": "landlock+seccomp"
+    },
+    "revised_verifier": {
+      "passed": true,
+      "exit_code": 0,
+      "status": "success",
+      "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+      "isolation": "landlock+seccomp"
+    },
+    "candidate": "/home/dzh/Aster/artifacts/benchmark-v2-real/runs/20260914T112506923042/add-endpoint-with-test/core-1/candidate",
+    "candidate_sha256": "91c8fd35f95278c5bb26b1a4045fd03fd838b80141b36d24e97ea724d76f0ae4",
+    "grader_sha256": "61d0a0e4bb96f8dd4ecd74293e8ba8881aefc2e27aa428a5d7d0428941a3f1af"
+  },
+  {
+    "task_id": "add-endpoint-with-test",
+    "variant": "all",
+    "attempt": 1,
+    "batch_id": "20260914T112506923042",
+    "reason": "The original prompt specifies a /health endpoint and a test_health test, but does not specify a JSON payload. Remove the unrequested status==ok constraint; regrade both original candidates without new model sampling.",
+    "original_passed": false,
+    "original_verifier": {
+      "passed": false,
+      "exit_code": 1,
+      "status": "error",
+      "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        response=app.test_client().get('/health')\n        assert response.status_code == 200\n>       assert response.get_json() == {'status':'ok'}\nE       AssertionError: assert {'status': 'healthy'} == {'status': 'ok'}\nE         \nE         Differing items:\nE         {'status': 'healthy'} != {'status': 'ok'}\nE         Use -v to get more diff\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'status': 'h...\n1 failed, 1 passed in 0.01s\n",
+      "isolation": "landlock+seccomp"
+    },
+    "revised_verifier": {
+      "passed": true,
+      "exit_code": 0,
+      "status": "success",
+      "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+      "isolation": "landlock+seccomp"
+    },
+    "candidate": "/home/dzh/Aster/artifacts/benchmark-v2-real/runs/20260914T112506923042/add-endpoint-with-test/all-1/candidate",
+    "candidate_sha256": "e1d6a05021f513b4a031b3db26329595e8454abe5984f8b637c5996c2683935c",
+    "grader_sha256": "61d0a0e4bb96f8dd4ecd74293e8ba8881aefc2e27aa428a5d7d0428941a3f1af"
+  }
+]
