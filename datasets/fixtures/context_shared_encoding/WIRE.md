@@ -1,0 +1,1 @@
+codec.encode(payload) returns UTF-8 bytes for JSON with sorted keys, no optional whitespace, and literal Unicode (ensure_ascii=False). Both transport.request_body and cache.cache_value must return exactly that same representation for the payload. Keep their public function signatures.

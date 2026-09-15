@@ -1,6 +1,6 @@
 # Aster 评测数据集
 
-当前数据集有 **262 个不同编号的任务或机制场景**：193 条主任务，加 69 个机制场景。另有 **12 组上下文压力配置、16 组工具可见性配置**。配置数、重复运行数、同题不同开关的尝试数，以及 `tests/` 中的单元测试，都不算新增任务。
+当前基础评测包含 **193 条主任务、85 个机制场景**。上下文专项另有 **12 道代码任务和 1 个信息丢失控制**；恢复专项有 **12 个故障注入场景，复用已有 5 道仓库题**，不把它们算成 12 道新代码题。另有 **12 组上下文压力配置、16 组工具可见性配置、10 个停滞检测器边界契约**。配置数、重复次数、开关条件及单元测试都不算新增任务；v4 报告保留当时的 69 个机制场景口径。
 
 | 数据范围 | 数量 | 定义位置 |
 |---|---:|---|
@@ -9,11 +9,14 @@
 | 跨运行记忆问答 | 12 条任务 | `benchmark_tasks.json` |
 | HumanEval 函数实现 | 164 条任务 | `benchmark_tasks.json` |
 | 记忆准入、来源新鲜度、反馈与回滚 | 24 个场景 | `memory_evolution_cases.json` |
-| 恢复、Hooks、终止与续跑 | 14 个场景 | `runtime_cases.json` |
+| 恢复、Hooks、终止与续跑 | 30 个场景 | `runtime_cases.json` |
 | RL 环境奖励与重置边界 | 4 个场景 | `runtime_cases.json` |
 | 测试工具真实执行与失败分类 | 27 个场景 | `tool_contract_cases.json` |
 | 上下文压力 | 12 组配置，单列 | `context_cases.json` |
 | 工具可见性 | 16 组配置，分别检查 core/all | `tool_visibility_cases.json` |
+| 上下文真实代码任务 | 12 道 + 1 个信息丢失控制 | `context_task_cases.json` |
+| 模型接手后的停滞恢复 | 12 个故障场景，复用 5 道仓库题 | `recovery_task_cases.json` |
+| 停滞检测器边界 | 10 个契约，单列 | `runtime_cases.json` 的 `detector_contracts` |
 
 先看 [任务手册](benchmark.md)，再看 [评测方法与结果](../docs/benchmark.md)。任务总数多不等于长任务能力强：164 条函数题用于代码正确性覆盖，5 条仓库题用于多文件工具执行；两类分别统计。
 
@@ -24,7 +27,11 @@
 | `checks/` | 模型运行结束后才加入隔离副本的独立验证器 |
 | `context_cases.json` | 代码、日志、中文三类内容 × 四种历史长度，以及预算和保留证据 |
 | `memory_evolution_cases.json` | 12 个准入、4 个来源新鲜度、6 个反馈调整、2 个快照回滚场景 |
-| `runtime_cases.json` | 14 个 Runtime 场景与 4 个 RL 接口场景；操作、条件开关、期望结果都在 JSON 中 |
+| `runtime_cases.json` | 30 个 Runtime 场景与 4 个 RL 接口场景；操作、条件开关、期望结果都在 JSON 中 |
+| `context_task_cases.json` | 历史、独立代码任务、信息来源位置与隐藏评分器 |
+| `context_history.json` | 两组共用的固定代码、日志和中文历史观察；模拟已结束的无关排查 |
+| `recovery_task_cases.json` | 基础任务编号、故障动作前缀、预期触发原因；没有接手后的预设动作 |
+| `robustness_protocol.json` | 三档输入预算、恢复条件、重复次数和任务顺序随机种子 |
 | `tool_contract_cases.json` | pytest/unittest 的通过、跳过、伪输出、缺报告、子测试与环境错误；包含真实 fixture 与期望状态 |
 | `tool_visibility_cases.json` | 功能开关、审批、计划与隔离组合下的工具目录和执行校验；可见性矩阵不计入自主任务数量 |
 | `real_subset.json` | 在调用真实模型前固定的 29 条任务名单：5 条仓库、12 条记忆、HumanEval/0–11 |
@@ -44,7 +51,7 @@
 
 记忆场景中的 `observation` 是证据摘录，`source` 是来源文件的初始内容，执行器写入后计算哈希；`uses` 是预先标注的成功/失败反馈，`consolidate` 表示执行 Dream 整理。`expected_on/off` 是各条件下预期召回的内容。6 个反馈场景验证排序与淘汰策略，不能充当真实模型的自进化效果。两个开关条件都保留来源检查和敏感内容拒绝，也都保留会话工作记忆；关闭的是长期记忆的反馈演化。
 
-运行主任务使用 `python scripts/benchmark.py`，运行机制场景使用 `python scripts/benchmark_mechanisms.py`。后者共执行 97 次：24 个记忆场景各两个条件，加 18 个 Runtime/RL 场景及其中 4 个场景的关闭条件，再加 27 个测试工具场景。69 个场景不会因为执行 97 次而变成 97 道题。
+运行主任务使用 `python scripts/benchmark.py`，运行机制场景使用 `python scripts/benchmark_mechanisms.py`。当前机制集执行 **123 次**：24 个记忆场景各两个条件，34 个 Runtime/RL 场景共 48 次条件尝试，再加 27 个测试工具场景。85 个场景不会因为执行 123 次而变成 123 道题。恢复相关为 11 个恢复、11 个控制和 3 个续跑场景，共 37 次尝试；另外的 10 个底层契约由 `tests/test_recovery_contracts.py` 执行。
 
 测试工具场景中，`command` 是测试命令，`files` 是临时仓库的文件内容，`status/reason` 是预期结果。执行器读取这个 JSON，与单元测试共用同一题目定义；真实运行日志归档到机制报告的 `runs/` 中。
 

@@ -16,6 +16,8 @@
 
 12 条跨运行记忆任务与上下文压力矩阵为 Aster 组织，具体内容全部列在当前数据文件中。
 
+2026-09 上下文专项的 12 道代码题、1 个不可重读观察控制、历史压力材料及隐藏测试为本项目新编写，见 `context_task_cases.json`、`context_history.json` 和 `checks/context_*.py`。恢复专项在上述已有 5 道仓库题上组织 12 个故障前缀，明确保留 `base_task` 引用，不把故障类型变化称为新独立代码题；16 个新增恢复机制场景及 10 个检测器契约同样为本项目编写。
+
 ## HumanEval
 
 - 官方仓库：<https://github.com/openai/human-eval>。

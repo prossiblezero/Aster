@@ -1,0 +1,1 @@
+redact(value): recursively copy dictionaries and lists. Replace values of keys token, password and api_key (case-insensitive exact matches) with "[redacted]". Preserve other keys and scalar values. Never mutate the input.
