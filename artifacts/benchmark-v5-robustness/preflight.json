@@ -1,0 +1,1963 @@
+{
+  "source": {
+    "git_head": "74876f138cd6e7121d1d96e05230b9ca8fcc34ca",
+    "content_sha256": "aaf80823e7e90acd343d04cba3b19b0176abe8ee7886a75461d4300255d45c29",
+    "python": "3.12.14"
+  },
+  "passed": true,
+  "rows": [
+    {
+      "id": "context_retry_delay",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_retry_delay",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [(\"7.5\", 7.5), (\"-3\", 0.0), (\"900\", 30.0), (\" 0.25 \", 0.25)]:\n            headers = {\"Retry-After\": value, \"Trace\": \"keep\"}\n>           assert retry_delay(headers) == expected\nE           AssertionError: assert 2.0 == 7.5\nE            +  where 2.0 = retry_delay({'Retry-After': '7.5', 'Trace': 'keep'})\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 2.0 == 7.5\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18271,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5936,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_nested_redaction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_nested_redaction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        source = {\n            \"TOKEN\": \"secret\",\n            \"events\": [{\"password\": \"p\", \"token_count\": 4}, {\"nested\": {\"Api_Key\": \"k\"}}],\n        }\n        original = deepcopy(source)\n>       assert redact(source) == {\n            \"TOKEN\": \"[redacted]\",\n            \"events\": [\n                {\"password\": \"[redacted]\", \"token_count\": 4},\n                {\"nested\": {\"Api_Key\": \"[redacted]\"}},\n            ],\n        }\nE       AssertionError: assert {'TOKEN': 'se..._Key': 'k'}}]} == {'TOKEN': '[r...redacted]'}}]}\nE         \nE         Differing items:\nE         {'TOKEN': 'secret'} != {'TOKEN': '[redacted]'}\nE         {'events': [{'password': 'p', 'token_count': 4}, {'nested': {'Api_Key': 'k'}}]} != {'events': [{'password': '[redacted]', 'token_count': 4}, {'nested': {'Api_Key': '[redacted]'}}]}\nE         Use -v to get more diff\n\n__evaluation_tests.py:12: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'TOKEN': 'se...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_nested_redaction",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18277,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      }
+    },
+    {
+      "id": "context_nested_redaction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5937,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      }
+    },
+    {
+      "id": "context_nested_redaction",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3383,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      }
+    },
+    {
+      "id": "context_config_merge",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_config_merge",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        base = {\"db\": {\"host\": \"local\", \"secret\": \"x\"}, \"tags\": [\"old\"]}\n        override = {\n            \"db\": {\"secret\": None, \"port\": 5432},\n            \"tags\": [\"new\"],\n            \"new\": {\"absent\": None, \"ok\": 1},\n        }\n        before = deepcopy((base, override))\n        result = merge_config(base, override)\n>       assert result == {\"db\": {\"host\": \"local\", \"port\": 5432}, \"tags\": [\"new\"], \"new\": {\"ok\": 1}}\nE       AssertionError: assert {'db': {'secr...one, 'ok': 1}} == {'db': {'host...w': {'ok': 1}}\nE         \nE         Omitting 1 identical items, use -vv to show\nE         Differing items:\nE         {'new': {'absent': None, 'ok': 1}} != {'new': {'ok': 1}}\nE         {'db': {'secret': None, 'port': 5432}} != {'db': {'host': 'local', 'port': 5432}}\nE         Use -v to get more diff\n\n__evaluation_tests.py:15: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'db': {'secr...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_config_merge",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18272,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18272,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      }
+    },
+    {
+      "id": "context_config_merge",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18272,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5937,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      }
+    },
+    {
+      "id": "context_config_merge",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18272,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3383,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      }
+    },
+    {
+      "id": "context_name_deduplication",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_name_deduplication",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        values = [\" Ada \", \"ada\", \"\", \"  \", \"STRASSE\", \"Straße\", \"Lin\", \" LIN \"]\n        before = values[:]\n>       assert unique_names(values) == [\" Ada \", \"STRASSE\", \"Lin\"]\nE       AssertionError: assert [' Ada ', 'ad...'Straße', ...] == [' Ada ', 'STRASSE', 'Lin']\nE         \nE         At index 1 diff: 'ada' != 'STRASSE'\nE         Left contains 5 more items, first extra item: '  '\nE         Use -v to get more diff\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert [' Ada ', 'ad...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_name_deduplication",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18278,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18278,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      }
+    },
+    {
+      "id": "context_name_deduplication",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18278,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5984,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      }
+    },
+    {
+      "id": "context_name_deduplication",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18278,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3430,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      }
+    },
+    {
+      "id": "context_decimal_rounding",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_decimal_rounding",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [\n            (\"1.005\", \"1.01\"),\n            (\"-1.005\", \"-1.01\"),\n            (\"2.675\", \"2.68\"),\n            (\"-0.004\", \"0.00\"),\n            (\"99.995\", \"100.00\"),\n        ]:\n>           assert format_amount(value) == expected\nE           AssertionError: assert '1.00' == '1.01'\nE             \nE             - 1.01\nE             ?    ^\nE             + 1.00\nE             ?    ^\n\n__evaluation_tests.py:12: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert '1.00' == '1.01'\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_decimal_rounding",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18277,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      }
+    },
+    {
+      "id": "context_decimal_rounding",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5986,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      }
+    },
+    {
+      "id": "context_decimal_rounding",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18277,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3432,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      }
+    },
+    {
+      "id": "context_cursor_pagination",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_cursor_pagination",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        items = [{\"id\": \"a\"}, {\"id\": \"b\"}, {\"id\": \"a\"}, {\"id\": \"c\"}]\n        before = deepcopy(items)\n>       assert slice_after(items, \"a\", 2) == [{\"id\": \"b\"}, {\"id\": \"a\"}]\nE       AssertionError: assert [{'id': 'a'}, {'id': 'b'}] == [{'id': 'b'}, {'id': 'a'}]\nE         \nE         At index 0 diff: {'id': 'a'} != {'id': 'b'}\nE         Use -v to get more diff\n\n__evaluation_tests.py:10: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert [{'id': 'a'},...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_cursor_pagination",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18292,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18292,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      }
+    },
+    {
+      "id": "context_cursor_pagination",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18292,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 6000,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      }
+    },
+    {
+      "id": "context_cursor_pagination",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18292,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3446,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      }
+    },
+    {
+      "id": "context_timeout_migration",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_timeout_migration",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert load_settings({}) == {\"timeout_ms\": 2000}\nE       AssertionError: assert {'timeout_seconds': 2} == {'timeout_ms': 2000}\nE         \nE         Left contains 1 more item:\nE         {'timeout_seconds': 2}\nE         Right contains 1 more item:\nE         {'timeout_ms': 2000}\nE         Use -v to get more diff\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'timeout_sec...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_timeout_migration",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18297,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18297,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      }
+    },
+    {
+      "id": "context_timeout_migration",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18297,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5940,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      }
+    },
+    {
+      "id": "context_timeout_migration",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18297,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3386,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      }
+    },
+    {
+      "id": "context_disabled_jobs",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_disabled_jobs",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        raw = {\"disabled_jobs\": \" LINT ,test,, lint , STRASSE \"}\n>       assert disabled_names(raw) == {\"lint\", \"test\", \"strasse\"}\nE       AssertionError: assert set() == {'lint', 'strasse', 'test'}\nE         \nE         Extra items in the right set:\nE         'strasse'\nE         'test'\nE         'lint'\nE         Use -v to get more diff\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert set() == {'li...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_disabled_jobs",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18302,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18302,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      }
+    },
+    {
+      "id": "context_disabled_jobs",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18302,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5940,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      }
+    },
+    {
+      "id": "context_disabled_jobs",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18302,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3386,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      }
+    },
+    {
+      "id": "context_shared_encoding",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_shared_encoding",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        payload = {\"z\": [\"中文\", {\"b\": 2, \"a\": 1}], \"a\": True}\n        expected = '{\"a\":true,\"z\":[\"中文\",{\"a\":1,\"b\":2}]}'.encode()\n        for function in [encode, request_body, cache_value]:\n            result = function(payload)\n>           assert result == expected\nE           assert b'{\"z\": [\"\\\\u...], \"a\": true}' == b'{\"a\":true,\"...a\":1,\"b\":2}]}'\nE             \nE             At index 2 diff: b'z' != b'a'\nE             Use -v to get more diff\n\n__evaluation_tests.py:13: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert b'{\"z\": [\"\\\\u...], \"a\": true}...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.02s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_shared_encoding",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18294,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18294,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      }
+    },
+    {
+      "id": "context_shared_encoding",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18294,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5941,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      }
+    },
+    {
+      "id": "context_shared_encoding",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18294,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3387,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      }
+    },
+    {
+      "id": "context_retry_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_retry_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        calls = []\n    \n        def succeeds_on_fourth():\n            calls.append(1)\n            if len(calls) < 4:\n                raise TimeoutError(\"temporary\")\n            return \"recovered\"\n    \n>       assert run_with_retry(succeeds_on_fourth) == \"recovered\"\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n__evaluation_tests.py:14: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nsolution.py:2: in run_with_retry\n    return action()\n           ^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def succeeds_on_fourth():\n        calls.append(1)\n        if len(calls) < 4:\n>           raise TimeoutError(\"temporary\")\nE           TimeoutError: temporary\n\n__evaluation_tests.py:11: TimeoutError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - TimeoutError: temporary\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_retry_correction",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18325,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18325,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      }
+    },
+    {
+      "id": "context_retry_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18325,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 6034,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      }
+    },
+    {
+      "id": "context_retry_correction",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18325,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3480,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      }
+    },
+    {
+      "id": "context_unicode_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_unicode_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for source, expected in [\n            (\"  Straße -- 中文  \", \"strasse_中文\"),\n            (\"A...B___C\", \"a_b_c\"),\n            (\"École № ２\", \"école_２\"),\n            (\"---\", \"\"),\n        ]:\n>           assert make_key(source) == expected\nE           AssertionError: assert '--straße----中文--' == 'strasse_中文'\nE             \nE             - strasse_中文\nE             + --straße----中文--\n\n__evaluation_tests.py:11: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert '--straße----...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_unicode_correction",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18332,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18332,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      }
+    },
+    {
+      "id": "context_unicode_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18332,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 6040,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      }
+    },
+    {
+      "id": "context_unicode_correction",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18332,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3486,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      }
+    },
+    {
+      "id": "context_ordering_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_ordering_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        jobs = [\n            {\"name\": \"low\", \"priority\": -1},\n            {\"name\": \"z\", \"priority\": 5},\n            {\"name\": \"default\"},\n            {\"name\": \"a\", \"priority\": 5},\n            {\"name\": \"zero\", \"priority\": 0},\n        ]\n        before = deepcopy(jobs)\n>       assert [job[\"name\"] for job in order_jobs(jobs)] == [\"z\", \"a\", \"default\", \"zero\", \"low\"]\nE       AssertionError: assert ['low', 'z', ..., 'a', 'zero'] == ['z', 'a', 'd...'zero', 'low']\nE         \nE         At index 0 diff: 'low' != 'z'\nE         Use -v to get more diff\n\n__evaluation_tests.py:15: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert ['low', 'z', ...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_ordering_correction",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18321,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18321,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      }
+    },
+    {
+      "id": "context_ordering_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18321,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 6028,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      }
+    },
+    {
+      "id": "context_ordering_correction",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18321,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3474,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_ephemeral_route",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18266,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 5936,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    },
+    {
+      "id": "debug-and-fix",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_debug-and-fix",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert process([1,2,3]) == 6\nE       assert 3 == 6\nE        +  where 3 = process([1, 2, 3])\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 3 == 6\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "multi-file-refactor",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_multi-file-refactor",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        mod=importlib.import_module('src.profile')\n>       assert callable(getattr(mod,'get_user_name',None))\nE       AssertionError: assert False\nE        +  where False = callable(None)\nE        +    where None = getattr(<module 'src.profile' from '/tmp/aster-exec-n5y5dac1/src/profile.py'>, 'get_user_name', None)\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert False\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "add-endpoint-with-test",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_add-endpoint-with-test",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       response=app.test_client().get('/health')\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n__evaluation_tests.py:4: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <app._Client object at 0x72cf3a291550>, path = '/health'\n\n    def get(self, path):\n>       handler = self.app.routes[path]\n                  ^^^^^^^^^^^^^^^^^^^^^\nE       KeyError: '/health'\n\napp.py:17: KeyError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - KeyError: '/health'\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "config-migration",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "oscillate_config-migration",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for service in ('auth','api','worker','gateway'):\n>           assert yaml.safe_load(open(f'services/{service}/config.yaml'))['schema_version'] == 2\nE           assert 1 == 2\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 1 == 2\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "dependency-upgrade",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "oscillate_dependency-upgrade",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert Path('requirements.txt').read_text().strip() == 'requests==2.31'\nE       AssertionError: assert 'requests==2.28' == 'requests==2.31'\nE         \nE         - requests==2.31\nE         ?             ^^\nE         + requests==2.28\nE         ?             ^^\n\n__evaluation_tests.py:5: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 'requests==2....\n1 failed in 0.03s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    }
+  ]
+}

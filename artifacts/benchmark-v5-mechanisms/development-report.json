@@ -1,0 +1,5146 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-15T08:53:10.598436+00:00",
+  "source": {
+    "git_head": "b605dbaa5e146f2e584faff98beae3ca17253c86",
+    "content_sha256": "0c0fe99755c13635be09d78c1a2fad034e968a1581461f29400cf43383c5afb1",
+    "python": "3.12.14"
+  },
+  "mode": "deterministic_mechanism_scenarios",
+  "limitations": [
+    "Synthetic fixed action sequences and supplied feedback labels; not real-model task success.",
+    "Contract pass matches each arm's declared behavior; goal pass uses the same desired outcome across arms.",
+    "Memory admission/freshness safety remains enabled in both evolution arms."
+  ],
+  "unique_cases": 85,
+  "attempts": 123,
+  "contract_passed": 123,
+  "summary": {
+    "hook_lifecycle/enabled": {
+      "attempts": 3,
+      "contract_passed": 3,
+      "goal_passed": 3
+    },
+    "hooks/before_hook_off": {
+      "attempts": 2,
+      "contract_passed": 2,
+      "goal_passed": 0
+    },
+    "hooks/before_hook_on": {
+      "attempts": 2,
+      "contract_passed": 2,
+      "goal_passed": 2
+    },
+    "memory_admission/evolution_off": {
+      "attempts": 12,
+      "contract_passed": 12,
+      "goal_passed": 12
+    },
+    "memory_admission/evolution_on": {
+      "attempts": 12,
+      "contract_passed": 12,
+      "goal_passed": 12
+    },
+    "memory_feedback/evolution_off": {
+      "attempts": 6,
+      "contract_passed": 6,
+      "goal_passed": 2
+    },
+    "memory_feedback/evolution_on": {
+      "attempts": 6,
+      "contract_passed": 6,
+      "goal_passed": 6
+    },
+    "memory_freshness/evolution_off": {
+      "attempts": 4,
+      "contract_passed": 4,
+      "goal_passed": 4
+    },
+    "memory_freshness/evolution_on": {
+      "attempts": 4,
+      "contract_passed": 4,
+      "goal_passed": 4
+    },
+    "memory_rollback/evolution_off": {
+      "attempts": 2,
+      "contract_passed": 2,
+      "goal_passed": 2
+    },
+    "memory_rollback/evolution_on": {
+      "attempts": 2,
+      "contract_passed": 2,
+      "goal_passed": 2
+    },
+    "recovery/budget_one": {
+      "attempts": 1,
+      "contract_passed": 1,
+      "goal_passed": 0
+    },
+    "recovery/budget_three": {
+      "attempts": 1,
+      "contract_passed": 1,
+      "goal_passed": 1
+    },
+    "recovery/budget_two": {
+      "attempts": 2,
+      "contract_passed": 2,
+      "goal_passed": 1
+    },
+    "recovery/budget_zero": {
+      "attempts": 1,
+      "contract_passed": 1,
+      "goal_passed": 0
+    },
+    "recovery/recovery_off": {
+      "attempts": 9,
+      "contract_passed": 9,
+      "goal_passed": 0
+    },
+    "recovery/recovery_on": {
+      "attempts": 9,
+      "contract_passed": 9,
+      "goal_passed": 9
+    },
+    "recovery_controls/enabled": {
+      "attempts": 11,
+      "contract_passed": 11,
+      "goal_passed": 11
+    },
+    "resume/enabled": {
+      "attempts": 3,
+      "contract_passed": 3,
+      "goal_passed": 3
+    },
+    "rl/enabled": {
+      "attempts": 4,
+      "contract_passed": 4,
+      "goal_passed": 4
+    },
+    "tool_contract/current": {
+      "attempts": 27,
+      "contract_passed": 27,
+      "goal_passed": 27
+    }
+  },
+  "rows": [
+    {
+      "case_id": "admit_repository_convention",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_repository_convention/evolution_off"
+    },
+    {
+      "case_id": "admit_repository_convention",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_repository_convention/evolution_on"
+    },
+    {
+      "case_id": "admit_config_fact",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_config_fact/evolution_off"
+    },
+    {
+      "case_id": "admit_config_fact",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_config_fact/evolution_on"
+    },
+    {
+      "case_id": "admit_chinese_fact",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_chinese_fact/evolution_off"
+    },
+    {
+      "case_id": "admit_chinese_fact",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/admit_chinese_fact/evolution_on"
+    },
+    {
+      "case_id": "reject_secret_token",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_secret_token/evolution_off"
+    },
+    {
+      "case_id": "reject_secret_token",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_secret_token/evolution_on"
+    },
+    {
+      "case_id": "reject_short_password",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_short_password/evolution_off"
+    },
+    {
+      "case_id": "reject_short_password",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_short_password/evolution_on"
+    },
+    {
+      "case_id": "reject_secret_metadata",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_secret_metadata/evolution_off"
+    },
+    {
+      "case_id": "reject_secret_metadata",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_secret_metadata/evolution_on"
+    },
+    {
+      "case_id": "reject_task_status",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_task_status/evolution_off"
+    },
+    {
+      "case_id": "reject_task_status",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_task_status/evolution_on"
+    },
+    {
+      "case_id": "reject_relative_date",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_relative_date/evolution_off"
+    },
+    {
+      "case_id": "reject_relative_date",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_relative_date/evolution_on"
+    },
+    {
+      "case_id": "reject_unsupported_claim",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_unsupported_claim/evolution_off"
+    },
+    {
+      "case_id": "reject_unsupported_claim",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_unsupported_claim/evolution_on"
+    },
+    {
+      "case_id": "reject_policy_override",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_policy_override/evolution_off"
+    },
+    {
+      "case_id": "reject_policy_override",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_policy_override/evolution_on"
+    },
+    {
+      "case_id": "reject_missing_observation",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_missing_observation/evolution_off"
+    },
+    {
+      "case_id": "reject_missing_observation",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_missing_observation/evolution_on"
+    },
+    {
+      "case_id": "reject_missing_provenance",
+      "suite": "memory_admission",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_missing_provenance/evolution_off"
+    },
+    {
+      "case_id": "reject_missing_provenance",
+      "suite": "memory_admission",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admission": true,
+        "reason": true,
+        "rejected_content_absent": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/reject_missing_provenance/evolution_on"
+    },
+    {
+      "case_id": "fresh_source_unchanged",
+      "suite": "memory_freshness",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_unchanged/evolution_off"
+    },
+    {
+      "case_id": "fresh_source_unchanged",
+      "suite": "memory_freshness",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_unchanged/evolution_on"
+    },
+    {
+      "case_id": "fresh_source_modified",
+      "suite": "memory_freshness",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_modified/evolution_off"
+    },
+    {
+      "case_id": "fresh_source_modified",
+      "suite": "memory_freshness",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_modified/evolution_on"
+    },
+    {
+      "case_id": "fresh_source_deleted",
+      "suite": "memory_freshness",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_deleted/evolution_off"
+    },
+    {
+      "case_id": "fresh_source_deleted",
+      "suite": "memory_freshness",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_deleted/evolution_on"
+    },
+    {
+      "case_id": "fresh_source_symlink",
+      "suite": "memory_freshness",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_symlink/evolution_off"
+    },
+    {
+      "case_id": "fresh_source_symlink",
+      "suite": "memory_freshness",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/fresh_source_symlink/evolution_on"
+    },
+    {
+      "case_id": "evolve_test_command",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": false,
+      "observed": "Run project tests with pytest.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_test_command/evolution_off"
+    },
+    {
+      "case_id": "evolve_test_command",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run project tests with python -m pytest.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_test_command/evolution_on"
+    },
+    {
+      "case_id": "evolve_package_command",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": false,
+      "observed": "Run package build with setup.py.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_package_command/evolution_off"
+    },
+    {
+      "case_id": "evolve_package_command",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run package build with python -m build.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_package_command/evolution_on"
+    },
+    {
+      "case_id": "evolve_failed_timeout_advice",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": false,
+      "observed": "Set request timeout to 1 second.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_failed_timeout_advice/evolution_off"
+    },
+    {
+      "case_id": "evolve_failed_timeout_advice",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": null,
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_failed_timeout_advice/evolution_on"
+    },
+    {
+      "case_id": "evolve_reliable_retry_advice",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": false,
+      "observed": "Use unlimited network retry attempts.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_reliable_retry_advice/evolution_off"
+    },
+    {
+      "case_id": "evolve_reliable_retry_advice",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "admitted_1": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Use three network retry attempts.",
+      "effect": "improvement",
+      "artifact": "runs/20260915T085303959801/evolve_reliable_retry_advice/evolution_on"
+    },
+    {
+      "case_id": "evolve_one_failure_keeps_evidence",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run focused tests before the full suite.",
+      "effect": "preservation",
+      "artifact": "runs/20260915T085303959801/evolve_one_failure_keeps_evidence/evolution_off"
+    },
+    {
+      "case_id": "evolve_one_failure_keeps_evidence",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run focused tests before the full suite.",
+      "effect": "preservation",
+      "artifact": "runs/20260915T085303959801/evolve_one_failure_keeps_evidence/evolution_on"
+    },
+    {
+      "case_id": "evolve_success_offsets_failures",
+      "suite": "memory_feedback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run migration tests on a temporary database.",
+      "effect": "preservation",
+      "artifact": "runs/20260915T085303959801/evolve_success_offsets_failures/evolution_off"
+    },
+    {
+      "case_id": "evolve_success_offsets_failures",
+      "suite": "memory_feedback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted_0": true,
+        "expected_variant_recall": true
+      },
+      "goal_passed": true,
+      "observed": "Run migration tests on a temporary database.",
+      "effect": "preservation",
+      "artifact": "runs/20260915T085303959801/evolve_success_offsets_failures/evolution_on"
+    },
+    {
+      "case_id": "rollback_snapshot_is_immutable",
+      "suite": "memory_rollback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "first_rollback": true,
+        "rollback": true,
+        "state_restored": true,
+        "snapshot_unchanged": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/rollback_snapshot_is_immutable/evolution_off"
+    },
+    {
+      "case_id": "rollback_snapshot_is_immutable",
+      "suite": "memory_rollback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "first_rollback": true,
+        "rollback": true,
+        "state_restored": true,
+        "snapshot_unchanged": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": true,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/rollback_snapshot_is_immutable/evolution_on"
+    },
+    {
+      "case_id": "rollback_cannot_restore_stale_truth",
+      "suite": "memory_rollback",
+      "variant": "evolution_off",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "rollback": true,
+        "state_restored": true,
+        "snapshot_unchanged": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/rollback_cannot_restore_stale_truth/evolution_off"
+    },
+    {
+      "case_id": "rollback_cannot_restore_stale_truth",
+      "suite": "memory_rollback",
+      "variant": "evolution_on",
+      "contract_passed": true,
+      "checks": {
+        "admitted": true,
+        "rollback": true,
+        "state_restored": true,
+        "snapshot_unchanged": true,
+        "freshness": true
+      },
+      "goal_passed": true,
+      "observed": false,
+      "effect": "contract",
+      "artifact": "runs/20260915T085303959801/rollback_cannot_restore_stale_truth/evolution_on"
+    },
+    {
+      "case_id": "recovery_repeated_read",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11260597966611385,
+          "evidence_id": "54eb49a5e204f0f880022541b5430868df1b225716b7a17f796434e17d9e9584",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13520312495529652,
+          "evidence_id": "30ce2418b3dfa2c884594f1e0d87757b467d3427f94e0c05ca64b0934966a938",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_read/recovery_off"
+    },
+    {
+      "case_id": "recovery_repeated_read",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11993502266705036,
+          "evidence_id": "7933ddf4a1f6320842cb99ab75e2dc7d7877c5fa57b0c51e2bea682ad476ea26",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09685498662292957,
+          "evidence_id": "4604b08b7e755588d3c29f8fa65aa5e69612323f8e359a39cb8065ec461cd314",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12030499055981636,
+          "evidence_id": "c3760892facbe9cf7346eb40f4f05435b88c53b5f183bda0c90713fb0a6cfe55",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_read/recovery_on"
+    },
+    {
+      "case_id": "recovery_oscillation",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.23970892652869225,
+          "evidence_id": "79be760b93cad419e51ab38697b02fe2b4e497c6cc9389613bffbfcda61959b0",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10691303759813309,
+          "evidence_id": "7a74f1083f33ada135e9c37de711b0f989ec0de256686b96c25cea9bd68f5a04",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09415601380169392,
+          "evidence_id": "d81d0bed36e5fca9552c0a29395f3cb567ca27f0f94f1238452a4a1204dc3b02",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11381716467440128,
+          "evidence_id": "55fcd334c5d2846be3e243adf4de14443921432d9a24f666300c4ec51cfa796f",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_oscillation/recovery_off"
+    },
+    {
+      "case_id": "recovery_oscillation",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09464402683079243,
+          "evidence_id": "89dcc87ff89adc914c5412e990ce36e6f42460d20092f50a2ea03761456f56b4",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09598303586244583,
+          "evidence_id": "ebe199416e2b8ee2b9705a3a4974c8c725926b512095a52cdad7e3fdfa7c1b74",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10289507918059826,
+          "evidence_id": "92083f37c4c742aae37376dbd835395a4e1aedef3e42ec8b07a82a9c48d86d06",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11931406334042549,
+          "evidence_id": "1a4199195e243ee7e596d16533047bca38caa5140977919809d24251c87524a1",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.17822301015257835,
+          "evidence_id": "f204100fb99887d752e099502f24eb00be36e2e4e14e5b099c5c9031ec2e9fd4",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_oscillation/recovery_on"
+    },
+    {
+      "case_id": "recovery_progressing_empty_writes",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "one.py": "ONE = 1\n",
+          "two.py": "TWO = 2\n",
+          "three.py": "THREE = 3\n"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "one.py"
+          ],
+          "partial_success": false,
+          "duration_ms": 43.06146199814975,
+          "evidence_id": "2ea23ebcc3484762c302ad5b6685656d3978b492c3f9737c9bd65beacdf2d7ef",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "two.py"
+          ],
+          "partial_success": false,
+          "duration_ms": 43.66528592072427,
+          "evidence_id": "2f7f1acbe7d262e359b8adf185c9ca055e1370e5255ce69d5b58dd6d03643a21",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "three.py"
+          ],
+          "partial_success": false,
+          "duration_ms": 45.95121811144054,
+          "evidence_id": "a8ee623c97a6ea24c14652211489986e09f984fed237de5d7dfe93588788c1b7",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_progressing_empty_writes/enabled"
+    },
+    {
+      "case_id": "recovery_distinct_equal_reads",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "equal",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13694609515368938,
+          "evidence_id": "d3979909a6736cc7d3590b91abe176c2393e6ee3cbd56d5f80e914699c0cc57c",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "equal",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1204491127282381,
+          "evidence_id": "4cf21cb1bc1bcc175aba43f5c55f0747eb36efb02c7685b334521ac460762735",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "equal",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1057919580489397,
+          "evidence_id": "01300304edd1bfd79b147e04ed3a5e873d6d659c124376aaa0e3577722c9583f",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_distinct_equal_reads/enabled"
+    },
+    {
+      "case_id": "recovery_new_run_clears_budget",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 2,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10852981358766556,
+          "evidence_id": "67fe30e59d46cc13314aed3a73b66af26f19de681e84a499ef7a4add02448a0f",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11423812247812748,
+          "evidence_id": "b932634d9e285ca24b0b315307486583f20ff3e0b46e9fde572f7ebfc6e3aa4e",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10521314106881618,
+          "evidence_id": "39001ca6e90cd00ab08f0a1448f1fcd6b1147f98d0a6d9dd92a929fa9ac1e33b",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10014185681939125,
+          "evidence_id": "4dc260c06e12f47bd2aa4d56c6a2d7898b1c3805a45780d050e624d35e5591ab",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10133511386811733,
+          "evidence_id": "4ada1758e064c339a5b4dd750b958eb95b8050d8d17a615d9b6945ed42772d81",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_new_run_clears_budget/enabled"
+    },
+    {
+      "case_id": "recovery_resume_preserves_budget",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11906493455171585,
+          "evidence_id": "bf9b8dfe2090be004396324a901bb83ead69a60ba353b25953131dee74f587bc",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11988403275609016,
+          "evidence_id": "18e49b4cbda7df74dc2cfd17de79913fd38c3906d00bc85cfc1ce4283d79247a",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09367894381284714,
+          "evidence_id": "bbcb951a8d68c6ff17767e67da7040b41117b84e63b843c425f9a7945a07f229",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11762999929487705,
+          "evidence_id": "e952871a1ca65c0889ff0cb15dc317d533034b32bb64e840f56381b5c11a5bd3",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_preserves_budget/enabled"
+    },
+    {
+      "case_id": "recovery_repeated_search",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "a.txt:1:alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.203185947611928,
+          "evidence_id": "c3e1d43e1285471e45d72452569e1ca4627a5b7e48faf001cf49e32ce881391b",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt:1:alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.18330314196646214,
+          "evidence_id": "9daa3636d979aeb0c5cf1531e149a2bf914103b4bacb9e8bb95e859aad943043",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_search/recovery_off"
+    },
+    {
+      "case_id": "recovery_repeated_search",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "a.txt:1:alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1744711771607399,
+          "evidence_id": "8108472e20129da2563de4605bbf6f67f2574be1e2721a49ce53ae5423a07329",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt:1:alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.17634709365665913,
+          "evidence_id": "3bc2fafaeee649867e295d768b4d79eb1d78e744d6e37c725fc5e4cea5e195f5",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10234792716801167,
+          "evidence_id": "910200b14c627746cf1bf54057b2587ee0158ce5477be99d6d3aecfc04018547",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_search/recovery_on"
+    },
+    {
+      "case_id": "recovery_repeated_listing",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt\nc.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.18791202455759048,
+          "evidence_id": "8eb2c5e4ca647d4514322b9ae8167e6f6756e13879a7309480fc361fa8847e35",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt\nc.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.2083280123770237,
+          "evidence_id": "99bcbc99a549de21ecb07501b686e8ff19bea928683466aa8b7ecf41a1cf7ba5",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_listing/recovery_off"
+    },
+    {
+      "case_id": "recovery_repeated_listing",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt\nc.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1727030612528324,
+          "evidence_id": "c6a67d43813880239cbf3a0693796ae9000576fb2beccc558c2b220aec7ad336",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt\nc.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1980750821530819,
+          "evidence_id": "fd7544d7c6b343f9af4cf09469817067cb199f297a6c2690570fb5d1bf24123d",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11352589353919029,
+          "evidence_id": "c6aaa0cd1ca63d8cd46abf7c0e3200bcb971d14b25bd1df77cf8946b3b777450",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_listing/recovery_on"
+    },
+    {
+      "case_id": "recovery_repeated_failed_patch",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 3,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1115801278501749,
+          "evidence_id": "797c351572bffa775724b94c10bb265591e570d40feb7afdac983f249f9a7ac8",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14819996431469917,
+          "evidence_id": "6bf5bb1014197214e23590ab06d535f79a3dc37bb2fb338eac0e43a1dea5e086",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14229188673198223,
+          "evidence_id": "b580bce4a51f606d0697e224fde4b56b962c5cd6b2f5c0a5eee8e0f0d6b3c0e3",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_failed_patch/recovery_off"
+    },
+    {
+      "case_id": "recovery_repeated_failed_patch",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 2,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09894906543195248,
+          "evidence_id": "85fd83788777b6fcf13ef6635a711450e06c912d6fb7ec4512f7d7990541b606",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12809201143682003,
+          "evidence_id": "ac29da4c620c235b16429b4208f1805e03ff130b4d3481d45af6f8de0b1599f0",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.15993090346455574,
+          "evidence_id": "431cd15a3910b838da7a6d54b895eb53baed470ff5feae5705a60cd11f8d9b5e",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1279660500586033,
+          "evidence_id": "d48084c9847bf090d90bcf57ab11107575b0faa0896a34a014da71802981ae4e",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_repeated_failed_patch/recovery_on"
+    },
+    {
+      "case_id": "recovery_failed_patch_oscillation",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 5,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10257097892463207,
+          "evidence_id": "b506a718738896b929468161bc30046917692dd19c87fadef5778411afd42324",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13991002924740314,
+          "evidence_id": "607502cf1f0f81e1e626f390276ad8116c909f7aa0d7667da7cc4baea3701c0f",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 2 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14456198550760746,
+          "evidence_id": "1e44372087e65f3375c3c96ea45467f36e285aa8a0f71dc9ff5055500d0cbff3",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14338805340230465,
+          "evidence_id": "af550ac6c693da8552e8ba4e91de37db6fef278742be125509ebb5326881b812",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 2 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14679296873509884,
+          "evidence_id": "02f47c773a311286f76555829ee900928723d748812cc932fe483d532778ec94",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_failed_patch_oscillation/recovery_off"
+    },
+    {
+      "case_id": "recovery_failed_patch_oscillation",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 4,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10531488806009293,
+          "evidence_id": "db1142c1dbdd13c44275aab5c6c02495c23ae2ee75bf276e83d38ff0372d4234",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1426110975444317,
+          "evidence_id": "b8e421b1d5a5993fd8d55dff7bfcff84fa1251047f9103f9292dde0be1125523",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 2 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13507390394806862,
+          "evidence_id": "dd0e03fedde52b392f2ea4c5b685e3aaac9191bd6dd98a325d4a34dc247b9929",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14229514636099339,
+          "evidence_id": "9a8dce92c7ae7f42383f2ca45c2ba27a0940b68cde3e5046f03b8604d89e1e63",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 2 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.15643402002751827,
+          "evidence_id": "59d8cd1dcb6b76ad24fda9a5c624a9f850dd01ec43e31308fd016f2fe2328766",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12309406884014606,
+          "evidence_id": "b47f86867995ab182e285d112e463853b4d69005444dcf4b1f362c8d0539718f",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_failed_patch_oscillation/recovery_on"
+    },
+    {
+      "case_id": "recovery_equal_failure_different_arguments",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 4,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11332612484693527,
+          "evidence_id": "3ebb4670b78999d0df974185f00d1e387ac35d97987f7d3865e739625a69d213",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1452299766242504,
+          "evidence_id": "a1c5c1d4a175cd53afcafc814ee0353f3d06c639138ca065a69d1219b986111e",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12724497355520725,
+          "evidence_id": "4bb47206d80f841d56057f54ae2fc07a4ecb0c97ccda11e4c2d2bd2d0e38e89c",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.14365999959409237,
+          "evidence_id": "08426fe28d1e69695531279a71f290551c81da03ce9c4d7070ae4cd78fe32078",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_equal_failure_different_arguments/recovery_off"
+    },
+    {
+      "case_id": "recovery_equal_failure_different_arguments",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 3,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11211796663701534,
+          "evidence_id": "2582e64a6435b6ff0908518e40f11474d9296c158b8e1a369f91688e28ab8317",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13671303167939186,
+          "evidence_id": "e782119898b0cb88bf6eb64e9fa32a253ad8bcf2e1079897564c6222cd5c8331",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.15494786202907562,
+          "evidence_id": "1e89458a09812749affa95d7b0a3976cb615a1cc4bb09226371d45d46d18cfeb",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "found 0 occurrences",
+          "reason": "patch_nonunique",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13787089847028255,
+          "evidence_id": "e41b9f8ac8664b10001dfce855352a011aa35085e80cf181f41c59dc403cb64e",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09708292782306671,
+          "evidence_id": "ae659dc29d5a9915db24c283847c10cc7e17bc6f676bebeda97e39ece8a522b4",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_equal_failure_different_arguments/recovery_on"
+    },
+    {
+      "case_id": "recovery_successful_empty_searches",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.17902301624417305,
+          "evidence_id": "76d3f50b1e4d1128a5012ebea8f58d03a0824a4e91eaa192748a4ac56c4de5c6",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.16168691217899323,
+          "evidence_id": "8de5a98cc9db12de22c63cf91f2bcf524fd55410cad53763f8fd3065f750a801",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.17893686890602112,
+          "evidence_id": "16c3dfd89c45aed7686a47d98a89644a7ff53c486a94fe69ac2a0c082b2cbd64",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_successful_empty_searches/enabled"
+    },
+    {
+      "case_id": "recovery_changed_file_breaks_window",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "a.txt": "updated\n"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11184113100171089,
+          "evidence_id": "c6ed66b637a01276b6cf8996640dc47ae8ed2c5f6e5e0d86e3c3ebcbc8163299",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "a.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 46.20765498839319,
+          "evidence_id": "364be89db5b331fcee95d8be6c54ac1eed75f0051aa19862d75e8a51a328bae7",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "updated",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12202397920191288,
+          "evidence_id": "e7c48706a4e6854f8e7f13d9d66a778d67a46652b3b9d8cee8ca25ed5e603ea4",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_changed_file_breaks_window/enabled"
+    },
+    {
+      "case_id": "recovery_unrelated_edit_breaks_window",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "progress.txt": "step completed\n"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10511581785976887,
+          "evidence_id": "dde7b5b3ca6f0ffb06e97c38b1fe14d66b8a04cbefd17e025ba444aa3325a32c",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "progress.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 44.30617904290557,
+          "evidence_id": "33e69fff8a0004f84cd5b2c38c90e8fa14aad80e28fe5f663e2a9b22c9840cb9",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10230299085378647,
+          "evidence_id": "f063f27493f242193276e401755aa1a2c7f22f76ef28c38d55868ee75cd11498",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_unrelated_edit_breaks_window/enabled"
+    },
+    {
+      "case_id": "recovery_noop_write_is_not_progress",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "a.txt": "alpha\n"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10250718332827091,
+          "evidence_id": "f7fe5ae96fc5055a6862c55c988a05603cae02c38a2a5b166c9d39e1e9fd0a44",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 41.83625290170312,
+          "evidence_id": "7b2b5b00b14f712f664f17c0c719d3d48b5f7aa51d9779e5a86db71fab503ace",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12482586316764355,
+          "evidence_id": "57d4685afd1b6cbfb87809f6eab300e5b1627c23566c9ddf24217d13c4163f30",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 43.578458949923515,
+          "evidence_id": "094258c0b8098b9a0f8786f77ac9349aac8df70336e0328853e70a24a644dd0c",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_noop_write_is_not_progress/enabled"
+    },
+    {
+      "case_id": "recovery_two_stalls_budget_ladder",
+      "suite": "recovery",
+      "variant": "budget_zero",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 3,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11792383156716824,
+          "evidence_id": "6f1d552437905c590dcd976194f8aa53275af6c6b72467231fa947b76ca25884",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10894099250435829,
+          "evidence_id": "52a8e0d8f46fc93a047ca2fff7f919f204534e5836586febeae8d4ea2340ad37",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_two_stalls_budget_ladder/budget_zero"
+    },
+    {
+      "case_id": "recovery_two_stalls_budget_ladder",
+      "suite": "recovery",
+      "variant": "budget_one",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10738102719187737,
+          "evidence_id": "01d9764f9ad839fb08021fea8d9ef2e73a7ec20e1b0207587e2b39aaeee327d5",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10535703040659428,
+          "evidence_id": "2812196b4de00fdad531bdcbf86231447c6ab4e90cad400505d46f7a251d8f7b",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12392201460897923,
+          "evidence_id": "5c07da8b8cfedfb341a94334df6b4e2176d7e1fd68bf4f38cd308e1389116fef",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11497200466692448,
+          "evidence_id": "91b6f495d96527df7f2a0356ef70c89e273e744b70151ff895972c08fa0871eb",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_two_stalls_budget_ladder/budget_one"
+    },
+    {
+      "case_id": "recovery_two_stalls_budget_ladder",
+      "suite": "recovery",
+      "variant": "budget_two",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 2,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10366109199821949,
+          "evidence_id": "97709407628dd35b4c3009c0bebf12b7185cb05bfd5e3c507ae6a84ec22f9250",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10913191363215446,
+          "evidence_id": "b598a69a02e2d858cd16282b606d91bb96be5ada9416ca989af607efd8cb65a6",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13157282955944538,
+          "evidence_id": "62227f4490444c4019b627c8df217bdd2aecdb5c78f6c26ecaead4da46cf7477",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1128611620515585,
+          "evidence_id": "e3bc0ace2821e80e29127407b129f02aed2a28d72cb107e0387f788757bb1f5e",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11815992183983326,
+          "evidence_id": "b1ca3f6452dca5857a140bad5d325fe95fe4d03d20db313940dc8585f4106eb4",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_two_stalls_budget_ladder/budget_two"
+    },
+    {
+      "case_id": "recovery_third_stall_exhausts_budget",
+      "suite": "recovery",
+      "variant": "budget_two",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 2,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.08940300904214382,
+          "evidence_id": "0b3df8253be8dd28ed62f1d5e3924c21642e03acddec42ddd78b93762322a5bc",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09663403034210205,
+          "evidence_id": "0043835b2d49ba2c742976552b9cebafea1388ca69c508e25746f91475030628",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11144601739943027,
+          "evidence_id": "3c4c6dc5018ba3f5837d8fb5e0b231237214b2d32aaea2a7e07baa761dcc8b91",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11339318007230759,
+          "evidence_id": "79b8aee63fe06783d1725234ce2d54704f6f0916fa627ab2872e308084adef40",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12195901945233345,
+          "evidence_id": "6a8f198c72ca933264e3c20206783e5f02f91890ede292970994cecf53e6237a",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10548112913966179,
+          "evidence_id": "843963e4c2d3cd578d092fc5ad95ff468ab5f523ee07a70e1461bfa20abcedc6",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_third_stall_exhausts_budget/budget_two"
+    },
+    {
+      "case_id": "recovery_third_stall_exhausts_budget",
+      "suite": "recovery",
+      "variant": "budget_three",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 3,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10034814476966858,
+          "evidence_id": "95855b9f899141496eab12b7671e0619d95389c802b876b31e502506d5c001fe",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09744800627231598,
+          "evidence_id": "74f172f95b592ca24bbd6f1b98216a33e666323dd5d8dba7882b155e1b50e421",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09736395440995693,
+          "evidence_id": "f8b42c03dbe57ddac5c1f541dad8ccde256ad322ccecb533a7812c170b6808ac",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.12265308760106564,
+          "evidence_id": "3d1cc26b930712c08b3b7f42bf95333a4ee50817d77b3ee1c253a3315db9115b",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11851219460368156,
+          "evidence_id": "e17b5c60342e45197d5f42206a56e8e872993faea24893a37d287b167fb02efc",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11473707854747772,
+          "evidence_id": "85483d39d460fc06414df1002949424c56cadcff60cf9fa57ac81cd212c034bc",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "a.txt\nb.txt\nc.txt",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.19368482753634453,
+          "evidence_id": "92efbd57dfa3f3f5788226a9078fde1527cda8ddd6a7e69a1899624f746ec93b",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_third_stall_exhausts_budget/budget_three"
+    },
+    {
+      "case_id": "recovery_resume_partial_repeat_window",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10436307638883591,
+          "evidence_id": "56366e5bedc647582e98e9f487583fb508deeb05c4c437dd6bbac10551986919",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.0905478373169899,
+          "evidence_id": "d1c36831340516b54db21c27e9cd3e327748c96b6ec46df1c6cf0ed75e61d215",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_partial_repeat_window/recovery_off"
+    },
+    {
+      "case_id": "recovery_resume_partial_repeat_window",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1185049768537283,
+          "evidence_id": "e9377bdd74f938a00fe6eec20deb914e9ac09379c1e00f86fc97b36ac0b06852",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.0980899203568697,
+          "evidence_id": "c1ecd8613de49dbc46b89f30f820598fa5564f2a4acf9ed673a0dc996b100a97",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1173980999737978,
+          "evidence_id": "21a7f2c158259d9aeddfb37989a24374ed801eb1684325cdc1b88722517927bb",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_partial_repeat_window/recovery_on"
+    },
+    {
+      "case_id": "recovery_resume_partial_oscillation_window",
+      "suite": "recovery",
+      "variant": "recovery_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": false,
+        "stop_reason": false
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10076886974275112,
+          "evidence_id": "d936d543de53ae681294eb11abad16243d653135c1634abd3853f68d8d5f5e5c",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09827408939599991,
+          "evidence_id": "0693225d2b53287b64cb2c973889ca8bd811db6f3bfbbd2104f4ebfc66307047",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11175987310707569,
+          "evidence_id": "4345766bd853101a273abe343a8f473790f1d6d8ea0385decebbca15d37e3fe5",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.0980990007519722,
+          "evidence_id": "97744e4f0c9547c1d1962136803f58551d2d7beb942d199f6f68041ce621f32a",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_partial_oscillation_window/recovery_off"
+    },
+    {
+      "case_id": "recovery_resume_partial_oscillation_window",
+      "suite": "recovery",
+      "variant": "recovery_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.13771792873740196,
+          "evidence_id": "e7e4daa0f08af382385f16a9a683b701ba532f568bb228639f87b7a2fc8e3967",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11259899474680424,
+          "evidence_id": "2387eeda80d717acb23372d6d59f391a83a65016e3f80a29a6c71e6efb3c3f54",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11444906704127789,
+          "evidence_id": "8b2c185dac4ac0bfe7331321dc85f3e1e45e6cc49d4fb3c745a53d5bab0771bf",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09165494702756405,
+          "evidence_id": "c579434580ee7d851432faa3924fd8b88f844b841b2fb951db2946d94b1d6efa",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "gamma",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11403998360037804,
+          "evidence_id": "01fbdaa2ffe9bbd64a3e9d9512ababe350e4b2e38e4a4133132f06e73f1b7ca7",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_partial_oscillation_window/recovery_on"
+    },
+    {
+      "case_id": "recovery_terminal_rejects_later_write",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "blocked": true,
+        "stop_calls": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "blocked": true,
+        "stop_calls": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {
+          "must_not_exist.txt": null
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10363804176449776,
+          "evidence_id": "0fdc5104523f485a50961d6740c6e6fdc276b8cc42955a4f9b204c6ad9f6c2b2",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1107130665332079,
+          "evidence_id": "327c14f09c141a62d48f0a892fb4651f04b2255abd76528c92ea7897ea4207d2",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "run_terminal",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_terminal_rejects_later_write/enabled"
+    },
+    {
+      "case_id": "recovery_new_run_clears_partial_window",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "stop_calls": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "stop_calls": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 2,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.1247150357812643,
+          "evidence_id": "175dc34678e090f7caa0b5d0b57cc4d8c46a80d6b7705dd292345ed856325c6a",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09434903040528297,
+          "evidence_id": "523a3b67c28b87212cb52f3eaca40f43bf14a6cfb2ec29feef46c523aab3d73e",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_new_run_clears_partial_window/enabled"
+    },
+    {
+      "case_id": "recovery_progress_does_not_refill_budget",
+      "suite": "recovery_controls",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "recovery_used": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "progress.txt": "step completed\n"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09419606067240238,
+          "evidence_id": "110ccbfd0db80f21f768df82740181e5b2529ae3306db109d04518567c5dd208",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10688812471926212,
+          "evidence_id": "941e7f667718017fb2c9679110ce89f1b6bc7e38a6f322c87810b35dc69ba311",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "progress.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 45.54785299114883,
+          "evidence_id": "40a0d42ad3459eb51a469dccc41ad2e59cc0b3578461db707be5d796a4891641",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10731606744229794,
+          "evidence_id": "dfb3630feb8033ba9ac37e2b2d8c60b4f3faf1a3015eee633b961b4b3dddf93f",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "beta",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11093099601566792,
+          "evidence_id": "d49d9cfabfc6455bfa09f3291479404d71e54e8b584693024ae150dd1da4e827",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_progress_does_not_refill_budget/enabled"
+    },
+    {
+      "case_id": "recovery_resume_preserves_diff",
+      "suite": "resume",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "diff_contains": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "diff_contains": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-alpha\n+updated\n",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09947805665433407,
+          "evidence_id": "bde78f0b951fcdd0955220b408bad3cb1f5579ba647f291ceda1c4696a0720fc",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "a.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 43.91806619241834,
+          "evidence_id": "95f4d95aa5fe1a8465e660b0b9e92c9461852c06dc9863379c95d0ccae8deb64",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "--- a/a.txt\n+++ b/a.txt\n@@ -1 +1 @@\n-alpha\n+updated\n",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.18077390268445015,
+          "evidence_id": "586d2c2abf04563f72b485d046c3a86bac5b6703eee5eba60a89cfc6d156b537",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/recovery_resume_preserves_diff/enabled"
+    },
+    {
+      "case_id": "resume_refuses_workspace_drift",
+      "suite": "resume",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "last_error": true,
+        "phase": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "last_error": true,
+        "phase": true
+      },
+      "observed": {
+        "phase": "running",
+        "stop_reason": "",
+        "recovery_used": 0,
+        "last_error": "workspace_mismatch",
+        "stop_calls": 0,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.09456905536353588,
+          "evidence_id": "799b331318a26ae148078e67f87ced6daab6bfe9a2d12238d2dcfe7de8f5b45c",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/resume_refuses_workspace_drift/enabled"
+    },
+    {
+      "case_id": "resume_refuses_policy_drift",
+      "suite": "resume",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "last_error": true,
+        "phase": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "last_error": true,
+        "phase": true
+      },
+      "observed": {
+        "phase": "running",
+        "stop_reason": "",
+        "recovery_used": 0,
+        "last_error": "runtime_identity_mismatch",
+        "stop_calls": 0,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11060689575970173,
+          "evidence_id": "f98be4b8b349d0a3283ef3e509de277e89dc18442c43fe0269aee9e8dc73cf89",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/resume_refuses_policy_drift/enabled"
+    },
+    {
+      "case_id": "hooks_duplicate_side_effect",
+      "suite": "hooks",
+      "variant": "before_hook_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true,
+        "blocked": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": false
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "events.txt": "xx"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "events.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 39.575163973495364,
+          "evidence_id": "13b8466f05acc86ae735bf73290324a935bfa3964dbb682311b87d96ddd14f7d",
+          "artifact": ""
+        },
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "events.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 41.37924103997648,
+          "evidence_id": "a43dfb84e9c9ca4d3f652a38406a70ec4b081135402ea65a9e0dfc9c9184b285",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_duplicate_side_effect/before_hook_off"
+    },
+    {
+      "case_id": "hooks_duplicate_side_effect",
+      "suite": "hooks",
+      "variant": "before_hook_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true,
+        "blocked": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {
+          "events.txt": "x"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "events.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 43.97565801627934,
+          "evidence_id": "0c226d3fb00a0c7931651160b6034ccc3d7e8acacbe985ed1353275053bd3ba7",
+          "artifact": ""
+        },
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "duplicate_call_id",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_duplicate_side_effect/before_hook_on"
+    },
+    {
+      "case_id": "hooks_failed_precondition",
+      "suite": "hooks",
+      "variant": "before_hook_off",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true,
+        "blocked": true
+      },
+      "goal_passed": false,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": false
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {
+          "events.txt": "x"
+        }
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "",
+          "reason": "",
+          "exit_code": 0,
+          "changed_paths": [
+            "events.txt"
+          ],
+          "partial_success": false,
+          "duration_ms": 42.22808009944856,
+          "evidence_id": "50a5fa6834aac24bd6505bc892063ebe2c241236b2c484477d7c7566bdd13d58",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_failed_precondition/before_hook_off"
+    },
+    {
+      "case_id": "hooks_failed_precondition",
+      "suite": "hooks",
+      "variant": "before_hook_on",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true,
+        "blocked": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "files": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 1,
+        "diff": "",
+        "files": {
+          "events.txt": null
+        }
+      },
+      "outcomes": [
+        {
+          "status": "blocked",
+          "content": "",
+          "reason": "hook_error:before_tool:RuntimeError",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0,
+          "evidence_id": "",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_failed_precondition/before_hook_on"
+    },
+    {
+      "case_id": "hooks_success_stop_once",
+      "suite": "hook_lifecycle",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "observed": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.10495493188500404,
+          "evidence_id": "755f6ab9c571b653288404c5d17926187d194c11e21a0a6131e455ae04eb83e6",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_success_stop_once/enabled"
+    },
+    {
+      "case_id": "hooks_cancel_stop_once",
+      "suite": "hook_lifecycle",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "observed": {
+        "phase": "stopped",
+        "stop_reason": "cancelled",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11945492587983608,
+          "evidence_id": "089086b25d1ae523ef425d416950f0d36e684a96f1c9b0f2e4e3d6295f5931a6",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_cancel_stop_once/enabled"
+    },
+    {
+      "case_id": "hooks_failure_stop_once",
+      "suite": "hook_lifecycle",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "phase": true,
+        "stop_reason": true,
+        "stop_calls": true
+      },
+      "observed": {
+        "phase": "failed",
+        "stop_reason": "fixture_error",
+        "recovery_used": 0,
+        "last_error": "",
+        "stop_calls": 1,
+        "blocked": 0,
+        "diff": "",
+        "files": {}
+      },
+      "outcomes": [
+        {
+          "status": "success",
+          "content": "alpha",
+          "reason": "",
+          "exit_code": null,
+          "changed_paths": [],
+          "partial_success": false,
+          "duration_ms": 0.11582719162106514,
+          "evidence_id": "a4dd5a50d7cb983bcee64f87f940b0920e872f74c496adb0023d30ca33e3f05c",
+          "artifact": ""
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/hooks_failure_stop_once/enabled"
+    },
+    {
+      "case_id": "rl_tools_do_not_pay_reward",
+      "suite": "rl",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "positive_tool_rewards": true,
+        "final_reward": true,
+        "terminated": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "positive_tool_rewards": true,
+        "final_reward": true
+      },
+      "observed": {
+        "positive_tool_rewards": 0,
+        "terminated": true,
+        "truncated": false,
+        "final_reward": 0.0,
+        "reward_verified": null
+      },
+      "transitions": [
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "c62aa712f1e14fde96a64e127028393a",
+            "step": 1,
+            "outcome": {
+              "status": "success",
+              "content": "alpha",
+              "reason": "",
+              "exit_code": null,
+              "changed_paths": [],
+              "partial_success": false,
+              "duration_ms": 0.11046999134123325,
+              "evidence_id": "b04ed1844e07e7ae152d12c8cba1c62c0cc280f759de638ed3ba59ffed7b84d1",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/c62aa712f1e14fde96a64e127028393a/trace.jsonl"
+          }
+        },
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "c62aa712f1e14fde96a64e127028393a",
+            "step": 2,
+            "outcome": {
+              "status": "success",
+              "content": "",
+              "reason": "",
+              "exit_code": 0,
+              "changed_paths": [
+                "new.txt"
+              ],
+              "partial_success": false,
+              "duration_ms": 39.51519704423845,
+              "evidence_id": "dbdf92fd299ccd2b649cb3d922c6e9e3215da3b0413fe12e0e1ce9b48b088774",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "427f500ce872e9d87cd9396228aeec5fd87e4da5c0909602451232b64063373c",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/c62aa712f1e14fde96a64e127028393a/trace.jsonl"
+          }
+        },
+        {
+          "reward": 0.0,
+          "terminated": true,
+          "truncated": false,
+          "info": {
+            "run_id": "c62aa712f1e14fde96a64e127028393a",
+            "step": 2,
+            "outcome": null,
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "427f500ce872e9d87cd9396228aeec5fd87e4da5c0909602451232b64063373c",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": {
+              "passed": true,
+              "reason": "requirements_satisfied",
+              "details": {
+                "changed_paths": [
+                  "new.txt"
+                ]
+              }
+            },
+            "stop_reason": "verified",
+            "trace_path": "state/runs/c62aa712f1e14fde96a64e127028393a/trace.jsonl"
+          }
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/rl_tools_do_not_pay_reward/enabled"
+    },
+    {
+      "case_id": "rl_public_tests_are_not_reward",
+      "suite": "rl",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "positive_tool_rewards": true,
+        "final_reward": true,
+        "terminated": true,
+        "reward_verified": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "final_reward": true,
+        "reward_verified": true
+      },
+      "observed": {
+        "positive_tool_rewards": 0,
+        "terminated": true,
+        "truncated": false,
+        "final_reward": -1.0,
+        "reward_verified": false
+      },
+      "transitions": [
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "5188f50c263d4adaa530237343aa9080",
+            "step": 1,
+            "outcome": {
+              "status": "success",
+              "content": "def test_value():\n    assert True",
+              "reason": "",
+              "exit_code": null,
+              "changed_paths": [],
+              "partial_success": false,
+              "duration_ms": 0.09241607040166855,
+              "evidence_id": "e7a7716d0e3602afe4cc87da04e0ca5ea1b7a7d96ab84744ac12b716cbfbca98",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/5188f50c263d4adaa530237343aa9080/trace.jsonl"
+          }
+        },
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "5188f50c263d4adaa530237343aa9080",
+            "step": 2,
+            "outcome": {
+              "status": "success",
+              "content": "",
+              "reason": "",
+              "exit_code": 0,
+              "changed_paths": [
+                "test_public.py"
+              ],
+              "partial_success": false,
+              "duration_ms": 43.56122203171253,
+              "evidence_id": "ba2cefbe0d92487f07cb21b4acd6ee68e547bcd012103a136c25cedbbff6d0fd",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "8ba47726b505762b68ce8585a28895079bbb97944b72d0f9ed5746231bc6659c",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/5188f50c263d4adaa530237343aa9080/trace.jsonl"
+          }
+        },
+        {
+          "reward": -1.0,
+          "terminated": true,
+          "truncated": false,
+          "info": {
+            "run_id": "5188f50c263d4adaa530237343aa9080",
+            "step": 2,
+            "outcome": null,
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "8ba47726b505762b68ce8585a28895079bbb97944b72d0f9ed5746231bc6659c",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": {
+              "passed": false,
+              "reason": "independent_fixture_comparison",
+              "details": {}
+            },
+            "completion_verification": {
+              "passed": true,
+              "reason": "requirements_satisfied",
+              "details": {
+                "changed_paths": [
+                  "test_public.py"
+                ]
+              }
+            },
+            "stop_reason": "verified",
+            "trace_path": "state/runs/5188f50c263d4adaa530237343aa9080/trace.jsonl"
+          }
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/rl_public_tests_are_not_reward/enabled"
+    },
+    {
+      "case_id": "rl_reset_isolates_episodes",
+      "suite": "rl",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "fresh_reset": true,
+        "seed_unchanged": true,
+        "terminated": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "fresh_reset": true,
+        "seed_unchanged": true
+      },
+      "observed": {
+        "positive_tool_rewards": 0,
+        "terminated": true,
+        "truncated": false,
+        "fresh_reset": true,
+        "seed_unchanged": true,
+        "final_reward": 0.0,
+        "reward_verified": null
+      },
+      "transitions": [
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "8c11af7e103c445e9468fd2a2bff2196",
+            "step": 1,
+            "outcome": {
+              "status": "success",
+              "content": "alpha",
+              "reason": "",
+              "exit_code": null,
+              "changed_paths": [],
+              "partial_success": false,
+              "duration_ms": 0.1041339710354805,
+              "evidence_id": "efc5dc101db463d685d799bb4c165177b89a93d3cd9137abebe14168ae88935b",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/8c11af7e103c445e9468fd2a2bff2196/trace.jsonl"
+          }
+        },
+        {
+          "reward": -0.00125,
+          "terminated": false,
+          "truncated": false,
+          "info": {
+            "run_id": "8c11af7e103c445e9468fd2a2bff2196",
+            "step": 2,
+            "outcome": {
+              "status": "success",
+              "content": "",
+              "reason": "",
+              "exit_code": 0,
+              "changed_paths": [
+                "new.txt"
+              ],
+              "partial_success": false,
+              "duration_ms": 44.86120096407831,
+              "evidence_id": "5a3e23e1b18321efd7db53eae3ae66d29765478eb3d06eb8116d637c5d72537a",
+              "artifact": ""
+            },
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "427f500ce872e9d87cd9396228aeec5fd87e4da5c0909602451232b64063373c",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": null,
+            "stop_reason": "",
+            "trace_path": "state/runs/8c11af7e103c445e9468fd2a2bff2196/trace.jsonl"
+          }
+        },
+        {
+          "reward": 0.0,
+          "terminated": true,
+          "truncated": false,
+          "info": {
+            "run_id": "c2a37ec5469a4b28bfc3dc273825559c",
+            "step": 0,
+            "outcome": null,
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": {
+              "passed": true,
+              "reason": "requirements_satisfied",
+              "details": {
+                "changed_paths": []
+              }
+            },
+            "stop_reason": "verified",
+            "trace_path": "state/runs/c2a37ec5469a4b28bfc3dc273825559c/trace.jsonl"
+          }
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/rl_reset_isolates_episodes/enabled"
+    },
+    {
+      "case_id": "rl_terminal_step_rejected",
+      "suite": "rl",
+      "variant": "enabled",
+      "contract_passed": true,
+      "checks": {
+        "terminal_rejected": true,
+        "final_reward": true
+      },
+      "goal_passed": true,
+      "goal_checks": {
+        "terminal_rejected": true,
+        "final_reward": true
+      },
+      "observed": {
+        "positive_tool_rewards": 0,
+        "terminated": true,
+        "truncated": false,
+        "final_reward": 0.0,
+        "reward_verified": null,
+        "terminal_rejected": true
+      },
+      "transitions": [
+        {
+          "reward": 0.0,
+          "terminated": true,
+          "truncated": false,
+          "info": {
+            "run_id": "88d782054ef24628a3ae6d2e831d4511",
+            "step": 0,
+            "outcome": null,
+            "verification": {
+              "state": "missing",
+              "workspace_hash": "",
+              "evidence_id": "",
+              "command": ""
+            },
+            "reward_verification": null,
+            "completion_verification": {
+              "passed": true,
+              "reason": "requirements_satisfied",
+              "details": {
+                "changed_paths": []
+              }
+            },
+            "stop_reason": "verified",
+            "trace_path": "state/runs/88d782054ef24628a3ae6d2e831d4511/trace.jsonl"
+          }
+        }
+      ],
+      "artifact": "runs/20260915T085303959801/rl_terminal_step_rejected/enabled"
+    },
+    {
+      "case_id": "unittest_skipped",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "s\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (skipped=1)\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 63.22344997897744,
+        "evidence_id": "78e254fc9938878987cd00d17c0a42ba717a6a731da3bd1e4d699648ca4feb30",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "103399061a6afeaf515c1cf9ba8f3f51af20bc3c87ab02b75841fec2b48a07ea",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_skipped/current"
+    },
+    {
+      "case_id": "unittest_mixed",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "success",
+        "content": ".s\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK (skipped=1)\n",
+        "reason": "",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 64.68659685924649,
+        "evidence_id": "e06b016a44be900a08403dbef244f55d9e1cec82845dc77f03c0857ff564a5e4",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "089e7b5bb28ada38ee2a1a7764bed66f3008a502ab68ed222ffe0fc3ecd8a89b",
+          "passed_tests": 1,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_mixed/current"
+    },
+    {
+      "case_id": "unittest_expected_failure",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "x\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (expected failures=1)\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 60.47630216926336,
+        "evidence_id": "e2a8544b6db3fa3e740d33b47b11ed4d0f4744362a3ee99c32aaed37e2c99483",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "8e1789c49a53f68c91ad5f655570abd6bf48f3a836d500aa49b557b438b796f8",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_expected_failure/current"
+    },
+    {
+      "case_id": "unittest_failure",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "F\n======================================================================\nFAIL: test_run (test_sample.Sample.test_run)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/aster-exec-mh3p6kga/test_sample.py\", line 4, in test_run\n    self.assertEqual(2 + 2, 5)\nAssertionError: 4 != 5\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+        "reason": "tests_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 55.377291049808264,
+        "evidence_id": "fd97b858f3592d8065d0611c5dad96738a876e37d3afc76cad2ec749d96aadf1",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "590b47c39f54d5c8a72869fb9ce5d0ec7546166dc6b379f7572696d9ad27376f",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_failure/current"
+    },
+    {
+      "case_id": "pytest_failure",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_run ___________________________________\n\n    def test_run():\n>       assert 2 + 2 == 5\nE       assert (2 + 2) == 5\n\ntest_sample.py:2: AssertionError\n=========================== short test summary info ============================\nFAILED test_sample.py::test_run - assert (2 + 2) == 5\n1 failed in 0.01s\n",
+        "reason": "tests_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 198.16926401108503,
+        "evidence_id": "a9e8433a376a3750fa496a91c19e2357b38ba01cb0d95cf48bd28c9667a2666b",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "19feb0ab7e14f32ce69e214a20b125cec6007e4f498c39a3b88f2906eb2cb4a8",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_failure/current"
+    },
+    {
+      "case_id": "pytest_collection_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "\n==================================== ERRORS ====================================\n_______________________ ERROR collecting test_sample.py ________________________\nImportError while importing test module '/tmp/aster-exec-w5eu5aay/test_sample.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/home/dzh/.conda/envs/aster/lib/python3.12/importlib/__init__.py:90: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\ntest_sample.py:1: in <module>\n    import aster_missing_test_dependency\nE   ModuleNotFoundError: No module named 'aster_missing_test_dependency'\n=========================== short test summary info ============================\nERROR test_sample.py\n!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.05s\n",
+        "reason": "test_collection_failed",
+        "exit_code": 2,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 237.51591914333403,
+        "evidence_id": "e31845342886205b80ac9070dfef21903583ab3f95226cd7baa4790e4e8552ed",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "d67d8da3dcc210fb0336c28f7f41f95c8c882fffe7e3aad863b4e53882399d98",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_collection_error/current"
+    },
+    {
+      "case_id": "pytest_skipped",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "s                                                                        [100%]\n1 skipped in 0.00s\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 184.60623803548515,
+        "evidence_id": "eed92f53885cba63907b84e78d6bcd9cdd975c4e2a772e3ecac59bf35d0d6d85",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "ac883b1778c8d62eb010512389c9513cd4cb6ef85042deabdfc7b8c34b68c597",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_skipped/current"
+    },
+    {
+      "case_id": "pytest_empty",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "\nno tests ran in 0.00s\n",
+        "reason": "no_tests_collected",
+        "exit_code": 5,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 188.60981799662113,
+        "evidence_id": "4ae7c194f2022a255c97deed387678bf179a24681d8f27fcf84fa7b3019b0fbc",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_empty/current"
+    },
+    {
+      "case_id": "pytest_spoofed_pass_with_skip",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "1 passed\ns\n1 skipped in 0.00s\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 180.27908517979085,
+        "evidence_id": "216f2160c54552f5c8554c28068b5600bff1a030297b8e321009eed2b8f04a9c",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "34770b851deacdf0178691dbf2a11a2d6eae1b8ab9941b867cb406def19cc432",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "pytest -q -s"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_spoofed_pass_with_skip/current"
+    },
+    {
+      "case_id": "unittest_spoofed_pass_with_skip",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "s\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (skipped=1)\nRan 1 test\nOK\n1 passed\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 61.537106055766344,
+        "evidence_id": "d10493337504121f22b94bc92c240e76fcfa3ae0003467fa81501c278f1f1570",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "64563768c6271608f960d548e056629e37f32bccb3a5ccb469a41341bae2e62f",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_spoofed_pass_with_skip/current"
+    },
+    {
+      "case_id": "pytest_exit_zero_without_report",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "1 passed\n",
+        "reason": "test_report_missing_or_invalid",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 148.9516538567841,
+        "evidence_id": "d2503c780c1b8057cfba749d7b3bd6b90977f4ce531ee1294cd0d828fadd0bc4",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "4b7d5ba272153a26af3e0c15f216f23226e64c6e8325d7a7e392fb6a31824929",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q -s"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_exit_zero_without_report/current"
+    },
+    {
+      "case_id": "unittest_exit_zero_without_report",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "Ran 1 test\nOK\n",
+        "reason": "test_report_missing_or_invalid",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 53.60201303847134,
+        "evidence_id": "0030619b20f06dd55f3051f81ce2ae5a4f320abba8c9d22b687ba1e3d1f440ab",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "1f7ed4d783628ea4c7334c4e00492acf1f2bc137bb87e637c3a77b70d4b45a00",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_exit_zero_without_report/current"
+    },
+    {
+      "case_id": "pytest_launcher_shadow",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________________________ test_actual __________________________________\n\n    def test_actual():\n>       assert False\nE       assert False\n\ntest_sample.py:2: AssertionError\n=========================== short test summary info ============================\nFAILED test_sample.py::test_actual - assert False\n1 failed in 0.01s\n",
+        "reason": "tests_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 199.33871901594102,
+        "evidence_id": "a9fa1d9f1f3b3199b6c08a595e104544ee132f3cbc4f78a9ab3382630e7beda9",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "85f785540397b52175fca388f07c1439c711d684538812cd3af484c8cd83c2bd",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_launcher_shadow/current"
+    },
+    {
+      "case_id": "unittest_launcher_shadow",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "F\n======================================================================\nFAIL: test_actual (test_sample.Sample.test_actual)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/aster-exec-y575hfs1/test_sample.py\", line 4, in test_actual\n    self.fail()\nAssertionError: None\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+        "reason": "tests_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 58.10485081747174,
+        "evidence_id": "e71e684bcb929b0a56358c5f8adea6a8e6d8328cfc7a2dec2eee7b047ee6036c",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "9f3446959dd6544f50bb8c32f983ef9c2006dbad7dc454057bcb258dddb91e9e",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_launcher_shadow/current"
+    },
+    {
+      "case_id": "pytest_side_effect_discarded",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": ".                                                                        [100%]\n1 passed in 0.00s\n",
+        "reason": "read_only",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 182.27682984434068,
+        "evidence_id": "4fd198ad3e272f2c0787417800ebade61f5645cac34e5efbb6a4e027e942800c",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "e0df43ae47a0ccdedd83618fdda0d7ab2324cfe9abf7395af275f6503e507959",
+          "is_verification": true,
+          "command": "python -m pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_side_effect_discarded/current"
+    },
+    {
+      "case_id": "unittest_empty",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "\n----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nNO TESTS RAN\n",
+        "reason": "no_tests_collected",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 55.875533958896995,
+        "evidence_id": "67b985e85ea0d3ad5f96f4f26633aba9e1238c69355a3758f89540976c6a1f9b",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_empty/current"
+    },
+    {
+      "case_id": "unittest_mixed_subtest_skip",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "success",
+        "content": "test_cases (test_sample.Sample.test_cases) ... \n  test_cases (test_sample.Sample.test_cases) (value=0) ... skipped 'optional case'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (skipped=1)\n",
+        "reason": "",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 55.968054104596376,
+        "evidence_id": "95e52039ccea08edf15197df6c89169047c7941106e804f1f82b15c9289c192e",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "7bdf39c535c7a9b3f9fe6b1c69e31af030f7c11bfe2719c27a331f480a6ced89",
+          "passed_tests": 1,
+          "is_verification": true,
+          "command": "python -m unittest discover -v"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_mixed_subtest_skip/current"
+    },
+    {
+      "case_id": "unittest_all_subtests_skipped",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "ss\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (skipped=2)\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 54.97657391242683,
+        "evidence_id": "25d0c001e37ca9d1f2b6f36a31fcf88e095e2c0c4aecfb6da3b56d3b5d7dd0ff",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "d8820d1eed615083afe0acbb30115342f82a40cf05796ade0e6e27099b589944",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_all_subtests_skipped/current"
+    },
+    {
+      "case_id": "unittest_expected_failure_after_successful_subtest",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "blocked",
+        "content": "x\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK (expected failures=1)\n",
+        "reason": "no_tests_executed",
+        "exit_code": 0,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 61.212936183437705,
+        "evidence_id": "45609f210124a6f20e3e9d10d5900f69c000b12fb6e75970cd40dc6fb5ae50b6",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "87e96351718779098c6b479fb9ec564c98dad8b16762948ab1a8a7ad74cc6b17",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_expected_failure_after_successful_subtest/current"
+    },
+    {
+      "case_id": "unittest_collection_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "E\n======================================================================\nERROR: test_sample (unittest.loader._FailedTest.test_sample)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_sample\nTraceback (most recent call last):\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n  File \"/tmp/aster-exec-0hv3xdah/test_sample.py\", line 1, in <module>\n    import aster_missing_test_dependency\nModuleNotFoundError: No module named 'aster_missing_test_dependency'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "reason": "test_collection_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 60.08050008676946,
+        "evidence_id": "5614ec53ec1256f36dd7649321f3b2eb2d84e1216b44e560b54492de86a27ce6",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "64a37b0489f146baddd184e9aa6d5e329adcc5104b0c898c4ae8e2ed9801c0e8",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_collection_error/current"
+    },
+    {
+      "case_id": "pytest_setup_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "E                                                                        [100%]\n==================================== ERRORS ====================================\n________________________ ERROR at setup of test_service ________________________\n\n    @pytest.fixture\n    def unavailable_service():\n>       raise RuntimeError('service unavailable')\nE       RuntimeError: service unavailable\n\ntest_sample.py:4: RuntimeError\n=========================== short test summary info ============================\nERROR test_sample.py::test_service - RuntimeError: service unavailable\n1 error in 0.01s\n",
+        "reason": "test_setup_or_teardown_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 189.63304883800447,
+        "evidence_id": "62ea837aacf8e423dac374d892f2a9b77e4a576ff90032fd4b26d39c040fa5fd",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "bb66f78589907fcb3e1475eca15025092edda9673fbc6be19af0edd93ec6b68a",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_setup_error/current"
+    },
+    {
+      "case_id": "pytest_teardown_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": ".E                                                                       [100%]\n==================================== ERRORS ====================================\n______________________ ERROR at teardown of test_service _______________________\n\n    @pytest.fixture\n    def service():\n        yield 'ready'\n>       raise RuntimeError('cleanup failed')\nE       RuntimeError: cleanup failed\n\ntest_sample.py:5: RuntimeError\n=========================== short test summary info ============================\nERROR test_sample.py::test_service - RuntimeError: cleanup failed\n1 passed, 1 error in 0.01s\n",
+        "reason": "test_setup_or_teardown_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 188.01880395039916,
+        "evidence_id": "ba4d91aae3c67f0eefd358b4ecd75b43a59b39e19089a54a8f1afc5854edb000",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "832cc640e5100a931727f9ccbf68b78804828ca23bbed21fa730370bbe16d0bf",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_teardown_error/current"
+    },
+    {
+      "case_id": "unittest_setup_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "E\n======================================================================\nERROR: test_service (test_sample.Sample.test_service)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/aster-exec-f_c1n9q_/test_sample.py\", line 4, in setUp\n    raise RuntimeError('service unavailable')\nRuntimeError: service unavailable\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "reason": "test_execution_error",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 62.65636417083442,
+        "evidence_id": "72346030ded3ab4163ccb63cae552cbbbc65faa751979a461c930a59186cc392",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "19285b29d339189ae459840c7a2bf63c976cda9d3d8568c9d5e95155b1c6d3f3",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_setup_error/current"
+    },
+    {
+      "case_id": "unittest_body_exception",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "E\n======================================================================\nERROR: test_service (test_sample.Sample.test_service)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/aster-exec-wahu55hj/test_sample.py\", line 4, in test_service\n    raise RuntimeError('execution interrupted')\nRuntimeError: execution interrupted\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "reason": "test_execution_error",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 60.905426973477006,
+        "evidence_id": "9ab995327de1f49b5888d1bd06e5ce1dc3c801f3de3ace6e843ce506530a0728",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "c772635a938041cd31b847862539fb80991862816dee5468a0467a6c0c33950a",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest discover"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_body_exception/current"
+    },
+    {
+      "case_id": "pytest_body_exception",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "F                                                                        [100%]\n=================================== FAILURES ===================================\n_________________________________ test_service _________________________________\n\n    def test_service():\n>       raise RuntimeError('implementation failed')\nE       RuntimeError: implementation failed\n\ntest_sample.py:2: RuntimeError\n=========================== short test summary info ============================\nFAILED test_sample.py::test_service - RuntimeError: implementation failed\n1 failed in 0.01s\n",
+        "reason": "tests_failed",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 197.41582684218884,
+        "evidence_id": "cfd106b640f6e06fbffc688f470260e9cd189327e6f88954738b0a021fddd50f",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "f2fcf078c3423d1af3182b7b99f7148070c218cfc405aa54097802f2a70d5b35",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_body_exception/current"
+    },
+    {
+      "case_id": "pytest_exit_nonzero_without_report",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "",
+        "reason": "test_runner_error",
+        "exit_code": 1,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 147.0500431023538,
+        "evidence_id": "bd82cfccf94aef1787eeaa053b546c0691da585e4487c7adfe930cc855e5ee44",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "f55d666f0db178dfde427e55290537a0d28e77d7ff48dd881ce9ad8fd2911955",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "pytest -q"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/pytest_exit_nonzero_without_report/current"
+    },
+    {
+      "case_id": "unittest_usage_error",
+      "suite": "tool_contract",
+      "variant": "current",
+      "contract_passed": true,
+      "goal_passed": true,
+      "checks": {
+        "status": true,
+        "reason": true,
+        "verification": true
+      },
+      "outcome": {
+        "status": "error",
+        "content": "usage: unittest [-h] [-v] [-q] [--locals] [--durations N] [-f] [-c] [-b]\n                [-k TESTNAMEPATTERNS]\n                [tests ...]\nunittest: error: unrecognized arguments: --aster-unknown-option\n",
+        "reason": "test_runner_error",
+        "exit_code": 2,
+        "changed_paths": [],
+        "partial_success": false,
+        "duration_ms": 59.43235312588513,
+        "evidence_id": "a3e89b2b8cdf85782d7c3781022c731f7792aeb4304723617e72a80aec1f7aa9",
+        "artifact": "",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "tested_workspace_hash": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "passed_tests": 0,
+          "is_verification": true,
+          "command": "python -m unittest --aster-unknown-option"
+        }
+      },
+      "artifact": "runs/20260915T085303959801/unittest_usage_error/current"
+    }
+  ]
+}

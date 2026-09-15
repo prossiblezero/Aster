@@ -1,0 +1,927 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-15T08:47:20.353897+00:00",
+  "source": {
+    "git_head": "b605dbaa5e146f2e584faff98beae3ca17253c86",
+    "content_sha256": "b683d08dee35422951a341e26145c9897ca875716ed4d6d49d67259e3440a7ea",
+    "python": "3.12.14"
+  },
+  "mode": "real",
+  "settings": {
+    "protocol": "responses",
+    "model": "gpt-5.6-luna",
+    "request_timeout": 90.0,
+    "context_tokens": 24000,
+    "output_tokens": 2048,
+    "tool_output_tokens": 1600,
+    "approval": "auto",
+    "sandbox": "required",
+    "network": false,
+    "read_only": false,
+    "write_scope": null,
+    "rules": [],
+    "max_recovery": 2,
+    "max_final_revisions": 2,
+    "completion": "strict",
+    "memory_enabled": true,
+    "memory_evolution": true,
+    "auto_dream": false,
+    "tool_profile": "core",
+    "max_workers": 0
+  },
+  "protocol": {
+    "schema_version": 1,
+    "split": "evaluation",
+    "repeats": 3,
+    "shuffle_seed": 20260915,
+    "settings": {
+      "approval": "auto",
+      "sandbox": "required",
+      "network": false,
+      "auto_dream": false,
+      "tool_profile": "core",
+      "max_workers": 0,
+      "max_recovery": 2,
+      "output_tokens": 2048,
+      "tool_output_tokens": 1600
+    },
+    "context_budgets": {
+      "full": 32768,
+      "tight": 5632
+    },
+    "recovery_arms": {
+      "feedback": 2,
+      "silent": 2,
+      "stop": 0
+    },
+    "history_file": "context_history.json"
+  },
+  "repeats": 1,
+  "manifest": [
+    {
+      "task_id": "context_ephemeral_route",
+      "variant": "full",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "variant": "tight",
+      "attempt": 1
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "variant": "stop",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_retry_delay",
+      "variant": "tight",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_retry_delay",
+      "variant": "full",
+      "attempt": 1
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "variant": "feedback",
+      "attempt": 1
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "variant": "silent",
+      "attempt": 1
+    }
+  ],
+  "rows": [
+    {
+      "task_id": "context_ephemeral_route",
+      "base_task": "context_ephemeral_route",
+      "experiment": "context",
+      "category": "loss_control",
+      "variant": "full",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18266,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 6,
+      "turns": 4,
+      "read_calls": 1,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 81288,
+      "output_tokens": 442,
+      "total_tokens": 81730,
+      "seconds": 231.176,
+      "autonomous_steps": 6,
+      "autonomous_turns": 4,
+      "model_requests": 4,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 18266,
+        "sha256": "a0ac3adca5f83edcc31082c846b84a94c7887a01a9cf6ff5648bfa72cd816bc2",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 4,
+      "history_compactions": 0,
+      "removed_messages": 0,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_tU6K3lsizFDTn5QExxCNhezq"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/context_ephemeral_route/full-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "base_task": "context_ephemeral_route",
+      "experiment": "context",
+      "category": "loss_control",
+      "variant": "tight",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "context_budget_exceeded",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        }
+      },
+      "steps": 4,
+      "turns": 2,
+      "read_calls": 1,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 6867,
+      "output_tokens": 148,
+      "total_tokens": 7015,
+      "seconds": 51.149,
+      "autonomous_steps": 4,
+      "autonomous_turns": 2,
+      "model_requests": 1,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 3382,
+        "sha256": "5c055b6d0eef9e7c949c6c714c2ecdfc554fd5004a32285232cb6307100e4bcd",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 1,
+      "history_compactions": 1,
+      "removed_messages": 32,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_jJydKVsLrl6LTpy7VyvluW2h"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/context_ephemeral_route/tight-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "context_retry_delay",
+      "base_task": "context_retry_delay",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "full",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18271,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 5,
+          "success": 5,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 12,
+      "turns": 7,
+      "read_calls": 5,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 148444,
+      "output_tokens": 1061,
+      "total_tokens": 149505,
+      "seconds": 420.227,
+      "autonomous_steps": 12,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 18271,
+        "sha256": "8aa9f71370ba551bff49f6cb27fb5f691e77a53d05bcdd55bc277f953c784a67",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 0,
+      "removed_messages": 0,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {},
+        "call_id": "call_POIxTVKv7MBgAoxqQ9ydC5Po"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/context_retry_delay/full-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "context_retry_delay",
+      "base_task": "context_retry_delay",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "tight",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [(\"7.5\", 7.5), (\"-3\", 0.0), (\"900\", 30.0), (\" 0.25 \", 0.25)]:\n            headers = {\"Retry-After\": value, \"Trace\": \"keep\"}\n>           assert retry_delay(headers) == expected\nE           AssertionError: assert 2.0 == 7.5\nE            +  where 2.0 = retry_delay({'Retry-After': '7.5', 'Trace': 'keep'})\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 2.0 == 7.5\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "context_budget_exceeded",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        }
+      },
+      "steps": 4,
+      "turns": 2,
+      "read_calls": 1,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 6867,
+      "output_tokens": 152,
+      "total_tokens": 7019,
+      "seconds": 52.422,
+      "autonomous_steps": 4,
+      "autonomous_turns": 2,
+      "model_requests": 1,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 3382,
+        "sha256": "7a5677a6253a4400ecc18eccba4ec395b44bb24807083bef4c3876471f535f61",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 1,
+      "history_compactions": 1,
+      "removed_messages": 32,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_Ecm1Dn9p2tFT2oR50ljQ5Q6h"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/context_retry_delay/tight-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "experiment": "recovery",
+      "category": "output_loop",
+      "variant": "feedback",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      },
+      "tools": {
+        "run_shell": {
+          "calls": 4,
+          "success": 1,
+          "reasons": {
+            "error": 3
+          }
+        },
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 12,
+      "turns": 7,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 3,
+      "input_tokens": 24971,
+      "output_tokens": 556,
+      "total_tokens": 25527,
+      "seconds": 192.293,
+      "autonomous_steps": 9,
+      "autonomous_turns": 4,
+      "model_requests": 4,
+      "first_request": {
+        "turn": 4,
+        "estimated_tokens": 1786,
+        "sha256": "0cbdcfd29e0b6a503d1a06b7b6f9dd4fa1e51ee6cc6d9b3d301fc4ad4245b1e6",
+        "evidence_present": [],
+        "recovery_feedback_present": true
+      },
+      "context_builds": 4,
+      "history_compactions": 0,
+      "removed_messages": 0,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_BC1EJyzt7wabeZT1DInJ1zDK"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/output_debug-and-fix/feedback-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "experiment": "recovery",
+      "category": "output_loop",
+      "variant": "silent",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      },
+      "tools": {
+        "run_shell": {
+          "calls": 4,
+          "success": 1,
+          "reasons": {
+            "error": 3
+          }
+        },
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 11,
+      "turns": 7,
+      "read_calls": 3,
+      "repeated_calls": 1,
+      "failed_calls": 3,
+      "input_tokens": 24672,
+      "output_tokens": 511,
+      "total_tokens": 25183,
+      "seconds": 215.353,
+      "autonomous_steps": 8,
+      "autonomous_turns": 4,
+      "model_requests": 4,
+      "first_request": {
+        "turn": 4,
+        "estimated_tokens": 1754,
+        "sha256": "47cb5d2f0670f9839886a73494a949a9aceee366c802f43d6ab8caf5f0930c37",
+        "evidence_present": [],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 4,
+      "history_compactions": 0,
+      "removed_messages": 0,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_dxCSUGqIn75c5mk7kzcJgkbC"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/output_debug-and-fix/silent-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    },
+    {
+      "task_id": "output_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "experiment": "recovery",
+      "category": "output_loop",
+      "variant": "stop",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert process([1,2,3]) == 6\nE       assert 3 == 6\nE        +  where 3 = process([1, 2, 3])\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 3 == 6\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "stall_recovery_exhausted",
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      },
+      "tools": {
+        "run_shell": {
+          "calls": 3,
+          "success": 0,
+          "reasons": {
+            "error": 3
+          }
+        }
+      },
+      "steps": 3,
+      "turns": 3,
+      "read_calls": 0,
+      "repeated_calls": 0,
+      "failed_calls": 3,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "seconds": 0.004,
+      "autonomous_steps": 0,
+      "autonomous_turns": 0,
+      "model_requests": 0,
+      "first_request": null,
+      "context_builds": 0,
+      "history_compactions": 0,
+      "removed_messages": 0,
+      "all_within_budget": null,
+      "evidence_read_calls": 0,
+      "first_autonomous_call": null,
+      "first_call_changed": false,
+      "renewed_stalls": 0,
+      "trace_path": "artifacts/benchmark-v5-pilot/runs/20260915T084720353839/output_debug-and-fix/stop-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260915T084720353839"
+    }
+  ],
+  "summary": {
+    "context/file_evidence/full": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 1,
+      "mean_tokens_all": 149505,
+      "mean_steps_all": 12,
+      "mean_seconds_all": 420.227,
+      "history_compactions": 0,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 1
+    },
+    "context/file_evidence/tight": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 0,
+      "mean_tokens_all": 7019,
+      "mean_steps_all": 4,
+      "mean_seconds_all": 52.422,
+      "history_compactions": 1,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    },
+    "context/loss_control/full": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 1,
+      "mean_tokens_all": 81730,
+      "mean_steps_all": 6,
+      "mean_seconds_all": 231.176,
+      "history_compactions": 0,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    },
+    "context/loss_control/tight": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 0,
+      "mean_tokens_all": 7015,
+      "mean_steps_all": 4,
+      "mean_seconds_all": 51.149,
+      "history_compactions": 1,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    },
+    "recovery/output_loop/feedback": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 1,
+      "mean_tokens_all": 25527,
+      "mean_steps_all": 9,
+      "mean_seconds_all": 192.293,
+      "history_compactions": 0,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    },
+    "recovery/output_loop/silent": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 1,
+      "mean_tokens_all": 25183,
+      "mean_steps_all": 8,
+      "mean_seconds_all": 215.353,
+      "history_compactions": 0,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    },
+    "recovery/output_loop/stop": {
+      "scenarios": 1,
+      "attempts": 1,
+      "passed": 0,
+      "mean_tokens_all": 0,
+      "mean_steps_all": 0,
+      "mean_seconds_all": 0.004,
+      "history_compactions": 0,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0
+    }
+  },
+  "pairs": {
+    "context/file_evidence/full/tight": {
+      "pairs": 1,
+      "both_pass": 0,
+      "left_only": 1,
+      "right_only": 0,
+      "neither": 0,
+      "common_success_total_tokens": null,
+      "common_success_autonomous_steps": null,
+      "common_success_seconds": null,
+      "common_success_evidence_read_calls": null
+    },
+    "context/loss_control/full/tight": {
+      "pairs": 1,
+      "both_pass": 0,
+      "left_only": 1,
+      "right_only": 0,
+      "neither": 0,
+      "common_success_total_tokens": null,
+      "common_success_autonomous_steps": null,
+      "common_success_seconds": null,
+      "common_success_evidence_read_calls": null
+    },
+    "recovery/output_loop/silent/feedback": {
+      "pairs": 1,
+      "both_pass": 1,
+      "left_only": 0,
+      "right_only": 0,
+      "neither": 0,
+      "common_success_total_tokens": [
+        25183,
+        25527
+      ],
+      "common_success_autonomous_steps": [
+        8,
+        9
+      ],
+      "common_success_seconds": [
+        215.353,
+        192.293
+      ],
+      "common_success_evidence_read_calls": [
+        0,
+        0
+      ]
+    }
+  }
+}

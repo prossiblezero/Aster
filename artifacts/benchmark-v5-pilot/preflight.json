@@ -1,0 +1,244 @@
+{
+  "source": {
+    "git_head": "b605dbaa5e146f2e584faff98beae3ca17253c86",
+    "content_sha256": "b683d08dee35422951a341e26145c9897ca875716ed4d6d49d67259e3440a7ea",
+    "python": "3.12.14"
+  },
+  "passed": true,
+  "rows": [
+    {
+      "id": "context_retry_delay",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_retry_delay",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [(\"7.5\", 7.5), (\"-3\", 0.0), (\"900\", 30.0), (\" 0.25 \", 0.25)]:\n            headers = {\"Retry-After\": value, \"Trace\": \"keep\"}\n>           assert retry_delay(headers) == expected\nE           AssertionError: assert 2.0 == 7.5\nE            +  where 2.0 = retry_delay({'Retry-After': '7.5', 'Trace': 'keep'})\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 2.0 == 7.5\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18271,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18271,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_ephemeral_route",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "full",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 18266,
+          "budget": 30720,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "tight",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18266,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false
+        },
+        "selected": {
+          "estimated_tokens": 3382,
+          "budget": 3584,
+          "removed_messages": 32,
+          "compacted": true
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    },
+    {
+      "id": "debug-and-fix",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "output_debug-and-fix",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert process([1,2,3]) == 6\nE       assert 3 == 6\nE        +  where 3 = process([1, 2, 3])\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 3 == 6\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    }
+  ]
+}

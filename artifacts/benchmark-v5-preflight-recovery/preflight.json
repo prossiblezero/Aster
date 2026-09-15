@@ -1,0 +1,663 @@
+{
+  "source": {
+    "git_head": "b605dbaa5e146f2e584faff98beae3ca17253c86",
+    "content_sha256": "e46398f2eee978a9f51123d465b3571780c83ad24c642abef31f072c4d7e17e2",
+    "python": "3.12.14"
+  },
+  "passed": true,
+  "rows": [
+    {
+      "id": "debug-and-fix",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_debug-and-fix",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert process([1,2,3]) == 6\nE       assert 3 == 6\nE        +  where 3 = process([1, 2, 3])\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 3 == 6\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "repeat_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "multi-file-refactor",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_multi-file-refactor",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        mod=importlib.import_module('src.profile')\n>       assert callable(getattr(mod,'get_user_name',None))\nE       AssertionError: assert False\nE        +  where False = callable(None)\nE        +    where None = getattr(<module 'src.profile' from '/tmp/aster-exec-qrmvfpyg/src/profile.py'>, 'get_user_name', None)\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert False\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "add-endpoint-with-test",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "repeat_add-endpoint-with-test",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       response=app.test_client().get('/health')\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n__evaluation_tests.py:4: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <app._Client object at 0x72c559a1dfd0>, path = '/health'\n\n    def get(self, path):\n>       handler = self.app.routes[path]\n                  ^^^^^^^^^^^^^^^^^^^^^\nE       KeyError: '/health'\n\napp.py:17: KeyError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - KeyError: '/health'\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "config-migration",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "oscillate_config-migration",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for service in ('auth','api','worker','gateway'):\n>           assert yaml.safe_load(open(f'services/{service}/config.yaml'))['schema_version'] == 2\nE           assert 1 == 2\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert 1 == 2\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "oscillate_config-migration",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "dependency-upgrade",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "oscillate_dependency-upgrade",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert Path('requirements.txt').read_text().strip() == 'requests==2.31'\nE       AssertionError: assert 'requests==2.28' == 'requests==2.31'\nE         \nE         - requests==2.31\nE         ?             ^^\nE         + requests==2.28\nE         ?             ^^\n\n__evaluation_tests.py:5: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 'requests==2....\n1 failed in 0.02s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 4,
+        "seed_turns": 4,
+        "trigger": "oscillation",
+        "recovery_used": 0,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "30ac23923fb69d8ee98f100d8c1b9965fa5c77d9de20ebbf808f2f3ce43720d0"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 1,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 2,
+        "seed_turns": 2,
+        "trigger": "repeated_identical",
+        "recovery_used": 0,
+        "workspace_sha256": "537e656fa22ffc66d7c07f428d745460e8ffceeeb5accc7b503878958683792e"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_debug-and-fix",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "bb6c8c844d4f855c325b22d1d6be1e33951d036eca7d1381899909cc2183a862"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_config-migration",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "8312188fcdfe842d44584736ed9f9400f8d9267cf39fa390f962f103fa73d37b"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "feedback",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "silent",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 1,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "variant": "stop",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "seed_steps": 3,
+        "seed_turns": 3,
+        "trigger": "output_loop",
+        "recovery_used": 0,
+        "workspace_sha256": "ee5c8cc933a38ea03848550d1a7920cf45918d688dc9caac62cff244c62097a1"
+      }
+    }
+  ]
+}
