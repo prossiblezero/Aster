@@ -1,6 +1,6 @@
 # Aster 评测数据集
 
-当前数据集有 **262 个不同编号的任务或机制场景**：193 条主任务，加 69 个机制场景。另有 **12 组上下文压力配置**。配置数、重复运行数、同题不同开关的尝试数，以及 `tests/` 中的单元测试，都不算新增任务。
+当前数据集有 **262 个不同编号的任务或机制场景**：193 条主任务，加 69 个机制场景。另有 **12 组上下文压力配置、16 组工具可见性配置**。配置数、重复运行数、同题不同开关的尝试数，以及 `tests/` 中的单元测试，都不算新增任务。
 
 | 数据范围 | 数量 | 定义位置 |
 |---|---:|---|
@@ -13,6 +13,7 @@
 | RL 环境奖励与重置边界 | 4 个场景 | `runtime_cases.json` |
 | 测试工具真实执行与失败分类 | 27 个场景 | `tool_contract_cases.json` |
 | 上下文压力 | 12 组配置，单列 | `context_cases.json` |
+| 工具可见性 | 16 组配置，分别检查 core/all | `tool_visibility_cases.json` |
 
 先看 [任务手册](benchmark.md)，再看 [评测方法与结果](../docs/benchmark.md)。任务总数多不等于长任务能力强：164 条函数题用于代码正确性覆盖，5 条仓库题用于多文件工具执行；两类分别统计。
 
@@ -25,6 +26,7 @@
 | `memory_evolution_cases.json` | 12 个准入、4 个来源新鲜度、6 个反馈调整、2 个快照回滚场景 |
 | `runtime_cases.json` | 14 个 Runtime 场景与 4 个 RL 接口场景；操作、条件开关、期望结果都在 JSON 中 |
 | `tool_contract_cases.json` | pytest/unittest 的通过、跳过、伪输出、缺报告、子测试与环境错误；包含真实 fixture 与期望状态 |
+| `tool_visibility_cases.json` | 功能开关、审批、计划与隔离组合下的工具目录和执行校验；可见性矩阵不计入自主任务数量 |
 | `real_subset.json` | 在调用真实模型前固定的 29 条任务名单：5 条仓库、12 条记忆、HumanEval/0–11 |
 | `SOURCES.md` | 来源、版本、许可证和对原任务的调整 |
 | `public_benchmarks.md` | HumanEval / SWE-bench 的用法，以及后续训练数据的隔离原则 |
@@ -47,6 +49,20 @@
 测试工具场景中，`command` 是测试命令，`files` 是临时仓库的文件内容，`status/reason` 是预期结果。执行器读取这个 JSON，与单元测试共用同一题目定义；真实运行日志归档到机制报告的 `runs/` 中。
 
 `memory_feedback: neutral` 表示该案例还要验证长期记忆的成功、失败使用次数都不增加。分类保持保守：加载、准备、清理、执行异常和缺报告没有证明记忆有害；任务仍不能通过验证。只有明确的测试失败结果才用于失败反馈。
+
+## 工具可见性配置矩阵
+
+`tool_visibility_cases.json` 的 16 组配置分别在 `core` 和 `all` 下执行，共 32 次配置检查。覆盖关闭 Worker、长期记忆、问答回调、写入范围、计划模式、关闭隔离与缺少审批入口，以及功能同时关闭的情况；另检查仅关闭记忆演化或自动整理时，不应误隐藏正常记忆工具。
+
+`settings` 是在基础配置上覆盖的字段；`mode` 是运行模式；`question_callback=false` 模拟没有人工问答入口；`unavailable` 把预期拒绝原因映射到工具名称；`probes` 给出直接调用的合法参数。每组同时核对模型定义、加载目录、已经加载过的工具及直接调用，并检查禁用工具不能被部分加载。
+
+```bash
+conda activate aster
+python -m pytest -q tests/test_tool_contracts.py -k disabled_capabilities
+python -m pytest -q tests/test_review_regressions.py -k core_catalog_loads
+```
+
+第二条通过真实 Runtime 的连续模型轮次，验证首轮只有核心定义，加载一个可选工具后下一轮才能看到其参数并执行。模型使用固定策略，因此这是工具发现与执行的集成验证，不是模型自主选择工具的能力分数。
 
 ## 独立验证器的边界
 

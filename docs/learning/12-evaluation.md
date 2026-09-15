@@ -58,4 +58,8 @@ python scripts/benchmark_mechanisms.py
 
 [机制报告](../../artifacts/benchmark-v4-mechanisms/report.md) 的两列正是这两个含义。反馈场景把成功/失败标签作为固定输入，检验这些反馈是否改变记忆选择。它证明代码机制生效，不能替代真实模型上的端到端收益实验。
 
+记忆专项包含 12 个准入、4 个来源变化、6 个反馈调整、2 个回滚场景，各运行开启/关闭两种条件。6 个反馈场景包含四个应改善召回的案例和两个不应误删好记忆的控制案例，共同目标由关闭组 2/6 提升至开启组 6/6。可以单独运行 `python -m pytest -q tests/test_memory_evolution.py`。真实任务的“开启记忆更省工具调用”属于召回收益，不能代替“开启演化比固定记忆更好”的实验。
+
+工具分组也需要反例。运行 `python -m pytest -q tests/test_tool_contracts.py -k disabled_capabilities`，检查 [16 组配置](../../datasets/tool_visibility_cases.json) 下的 core/all 定义、加载目录和直接调用。例如禁用 Worker 后，启动、查询、指导和停止工具都应消失；仅关闭记忆演化时，保存和召回工具应保留。工具的完整参数定义是否真的在加载后才出现，由 `test_core_catalog_loads_optional_schema_then_executes_tool` 通过连续 Runtime 轮次检查。
+
 再读 [运行可靠性](13-runtime-reliability.md) 与 [记忆和 rollout](14-memory-and-rollouts.md)，逐个运行配套回归。后训练会复用环境接口，但需要另行设计训练任务、奖励与留出评测，不能直接拿这里的答案训练再报同一份成绩。

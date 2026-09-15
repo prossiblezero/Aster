@@ -886,7 +886,7 @@ class Runtime:
             return "read_only"
         if name.startswith("memory_") and not self.settings.memory_enabled:
             return "memory_disabled"
-        if name == "worker_start" and self.settings.max_workers == 0:
+        if name.startswith("worker_") and self.settings.max_workers == 0:
             return "workers_disabled"
         if name == "ask_user" and self.question_callback is None:
             return "user_input_unavailable"

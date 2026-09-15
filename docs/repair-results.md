@@ -93,3 +93,11 @@ Ponytail 复审采用现有权限函数、标准库 XML、asyncio Task 和已有
 最终交叉审查未发现支持范围内仍未处理的阻断缺陷。远端 CI 未运行，评分器的同解释器限制与多顶层进程事务限制仍按上文公开说明；不宣称任意任务或恶意策略都可靠。下一阶段可讨论可信任务的小规模 rollout、SFT/GRPO 数据与奖励设计。
 
 当前证据：[v4 比较](../artifacts/benchmark-v4-comparison/report.md)、[真实尝试及工具结果](../artifacts/benchmark-v4-real/report.md)、[机制消融](../artifacts/benchmark-v4-mechanisms/report.md)、[回放](../artifacts/benchmark-v4-scripted/report.md)、[工件核验](../artifacts/benchmark-v4-comparison/validation.json)。
+
+## 工具可见性补充修复（2026-09-15）
+
+v4 复审之后确认一处目录遗漏：`max_workers=0` 只隐藏了 `worker_start`，另外三个 Worker 工具仍出现在 `all` 或加载目录中。修复在 `Runtime._unavailable_reason` 中将条件扩展至整组 `worker_*`；模型定义、加载目录、已加载列表及直接调用沿用同一个判断，没有增加管理层。
+
+新增 [16 组配置](../datasets/tool_visibility_cases.json)，在 core/all 下共执行 32 次检查。修复前 4 次暴露遗漏，修复后 32/32 通过。范围涵盖 Worker、长期记忆、人工问答、写范围、计划模式、审批、隔离以及关闭组合；关闭演化或自动整理仍保留正常记忆工具。独立审查另确认真实子任务的目录不会暴露其禁用的 Worker/Memory 能力。
+
+完整工程回归 324/324、Ruff 与差异检查通过；包含 48 次记忆专项场景、环境错误不扣记忆分的集成回归，以及连续 Runtime 轮次中加载一个工具后才显示其完整参数的检查。配置矩阵作为单独的配置覆盖，不计入 262 个任务/机制场景。此补丁没有重跑真实模型；v4 的 57/58 与 token 指标仍对应其原始源码，不能称为新补丁的模型实测。

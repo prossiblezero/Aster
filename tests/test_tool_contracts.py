@@ -7,8 +7,12 @@ import pytest
 from aster.config import Settings
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
+from aster.tools import CORE_TOOLS, SCHEMAS
 
 CASES = json.loads((Path(__file__).parents[1] / "datasets/tool_contract_cases.json").read_text())
+VISIBILITY = json.loads(
+    (Path(__file__).parents[1] / "datasets/tool_visibility_cases.json").read_text()
+)
 
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
@@ -63,42 +67,45 @@ async def test_successful_report_cannot_verify_a_workspace_changed_during_tests(
     assert (tmp_path / "source.txt").read_text() == "changed by another writer"
 
 
-async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(tmp_path):
+@pytest.mark.parametrize("profile", ["core", "all"])
+@pytest.mark.parametrize("case", VISIBILITY["cases"], ids=lambda case: case["id"])
+async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
+    tmp_path, case, profile
+):
     runtime = Runtime(
         tmp_path,
-        Settings(
-            read_only=True,
-            memory_enabled=False,
-            max_workers=0,
-            tool_profile="all",
-            completion="off",
+        Settings.model_validate(
+            {"approval": "auto", "completion": "off", **case["settings"], "tool_profile": profile}
         ),
+        question_callback=(lambda _: "answer") if case.get("question_callback", True) else None,
     )
     runtime.start(TaskSpec(prompt="look around"))
-    disabled = {
-        "write_file",
-        "patch_file",
-        "plan_exit",
-        "worker_start",
-        "ask_user",
-        "memory_store",
-        "memory_retrieve",
-        "memory_update",
-        "memory_discard",
-    }
+    runtime.state.mode = case.get("mode", "work")
+    disabled = {name for names in case["unavailable"].values() for name in names}
+    available = set(SCHEMAS) - disabled
     tools = {tool["name"]: tool for tool in runtime.tool_definitions()}
-    assert not disabled & tools.keys()
+    assert tools.keys() == (available if profile == "all" else available & CORE_TOOLS)
     catalog = tools["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
-    assert not disabled & set(catalog)
-    for name, args, reason in [
-        ("ask_user", {"question": "what next"}, "user_input_unavailable"),
-        ("worker_start", {"task": "look"}, "workers_disabled"),
-        ("memory_retrieve", {"query": "cache"}, "memory_disabled"),
-        ("write_file", {"path": "a.txt", "content": "x"}, "read_only"),
-    ]:
-        outcome = await runtime.step(ToolCall(name=name, arguments=args))
-        assert outcome.reason == reason
-    assert not (tmp_path / "a.txt").exists()
+    assert set(catalog) == available
+    # Earlier loading (including a resumed loaded_tools list) cannot bypass configuration.
+    runtime.state.loaded_tools = list(SCHEMAS)
+    assert {tool["name"] for tool in runtime.tool_definitions()} == available
+    runtime.state.loaded_tools = []
+    if disabled:
+        outcome = await runtime.step(
+            ToolCall(name="tool_load", arguments={"names": ["todo_add", *sorted(disabled)]})
+        )
+        assert outcome.reason == "tool_unavailable" and not runtime.state.loaded_tools
+    for reason, names in case["unavailable"].items():
+        for name in names:
+            # Each probe gets a fresh run so repeated denials don't trigger loop recovery.
+            runtime.start(TaskSpec(prompt="look around"))
+            runtime.state.mode = case.get("mode", "work")
+            outcome = await runtime.step(
+                ToolCall(name=name, arguments=VISIBILITY["probes"][name])
+            )
+            assert (outcome.status, outcome.reason) == ("blocked", reason)
+    assert not runtime.workspace.snapshot()
 
 
 async def test_plan_mode_changes_schema_and_prevents_loading_write_tools(tmp_path):
