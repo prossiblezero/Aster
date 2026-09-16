@@ -1860,9 +1860,9 @@
             "phase": "completed",
             "stop_reason": "verified",
             "files": {
-              "events.txt": "xx"
+              "events.txt": "x"
             },
-            "blocked": 0
+            "blocked": 1
           }
         },
         "before_hook_on": {
@@ -1883,7 +1883,8 @@
         "files": {
           "events.txt": "x"
         }
-      }
+      },
+      "note": "Duplicate call IDs are a mandatory protocol guard even when hooks are disabled. Both arms must execute the side effect once; this case no longer measures incremental hook benefit."
     },
     {
       "id": "hooks_failed_precondition",

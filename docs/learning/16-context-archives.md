@@ -8,7 +8,7 @@
 
 ## 从一次真实请求往回读代码
 
-先看 [Runtime.prepare_request](../../src/aster/runtime.py)。它刷新文件和测试证据，取得工作记忆与已加载技能，再调用 [ContextBuilder.build](../../src/aster/context.py)。正常模型轮次和 `AsterEnv` 都调用它。`context_built` 事件记录策略版本 `deterministic-v2`、实际请求估算量、预算、归档内容哈希与请求工件地址；工件文件名含内容哈希，避免同一轮多次构建覆盖先前证据。
+先看 [Runtime.prepare_request](../../src/aster/runtime.py)。它刷新文件和测试证据，取得工作记忆与已加载技能，再调用 [ContextBuilder.build](../../src/aster/context.py)。正常模型轮次和 `AsterEnv` 都调用它。`context_built` 事件记录策略版本 `deterministic-v2`、实际请求估算量、预算、归档记录哈希与请求工件地址；工件文件名含内容哈希，避免同一轮多次构建覆盖先前证据。
 
 构建器还从现有 `RunState` 渲染一份短状态：未完成待办、实际修改路径、测试状态与命令、验证时的工作区哈希、剩余步骤与轮次。测试通过后再修改文件，验证状态会失效。模型无需从几千行旧日志里猜测试是否通过，但公开测试通过仍不等于外部隐藏验收通过。
 

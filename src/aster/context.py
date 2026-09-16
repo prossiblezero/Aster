@@ -129,11 +129,10 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                         record["observation"] = {
                             "id": ref["id"],
                             "characters": ref["characters"],
-                            "sha256": ref["sha256"],
                         }
                     if validate_archive is not None:
                         validate_archive(record["observation"])
-                    archive_hashes.add(record["observation"]["sha256"])
+                    archive_hashes.add(record["observation"]["id"])
                     value = json.dumps(record, ensure_ascii=False)
                 output = self._clip_tool_output(value)
                 clipped |= output != value
@@ -169,7 +168,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                     key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
                     ref = archive(key, "historical_observation", content)
                     ordinary_refs[id(message)] = ref
-                    archive_hashes.add(ref["sha256"])
+                    archive_hashes.add(ref["id"])
         active_bodies = {
             name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
         }
@@ -242,11 +241,19 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                 ),
                 None,
             )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
             group_index = next(
                 (
                     i
-                    for i, g in enumerate(groups[:-1])
-                    if not any(x.get("role") == "user" for x in g)
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
                 ),
                 None,
             )

@@ -273,6 +273,8 @@
 | `hooks_cancel_stop_once` | 取消只触发一次停止 Hook |
 | `hooks_failure_stop_once` | 失败只触发一次停止 Hook |
 
+上下文重构后，重复调用 ID 检查属于不可关闭的协议边界。`hooks_duplicate_side_effect` 保持相同动作与两种 Hook 条件，但关闭 Hook 也应只执行一次副作用；因此该场景验证协议保护，不再作为 Hook 的额外收益。v5 的历史消融不改写，重构后的 Hook 收益需与 `hooks_failed_precondition` 等实际受开关影响的场景分别说明。
+
 ## RL 环境边界（4 个场景）
 
 同样定义在 [runtime_cases.json](runtime_cases.json)，每个场景执行一次。它们验证环境的奖励与重置规则，没有执行 SFT 或 GRPO。

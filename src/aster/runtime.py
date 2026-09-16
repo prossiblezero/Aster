@@ -257,9 +257,8 @@ class Runtime:
         tool_defs = self.tool_definitions()
 
         def validate_archive(ref):
-            page = self.evidence.read_observation(state.run_id, ref["id"], limit=1)
-            if page["sha256"] != ref["sha256"]:
-                raise ValueError("observation_integrity_error")
+            # The archive id already hashes provenance and body; read verifies both.
+            self.evidence.read_observation(state.run_id, ref["id"], limit=1)
 
         prompt, report = self.context.build(
             state,
@@ -416,7 +415,11 @@ class Runtime:
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
                 "content": self.evidence.redactor.text(outcome.content),
-                **({"page": "observation"} if call.name == "observation_read" else {}),
+                **(
+                    {"page": "observation"}
+                    if call.name == "observation_read" and outcome.status == "success"
+                    else {}
+                ),
             },
             ensure_ascii=False,
         )

@@ -81,7 +81,8 @@ def test_latest_parallel_batch_fits_one_budget_with_all_results(tmp_path, protoc
         )
         assert archived["call_id"] == item["call_id"]
         assert archived["matched"] and archived["content"].startswith("final diagnosis")
-        assert archived["sha256"] == result["observation"]["sha256"]
+        assert archived["id"] == result["observation"]["id"]
+        assert archived["total"] == result["observation"]["characters"]
 
 
 async def test_removed_one_time_evidence_is_searchable_through_the_model_tool(tmp_path):
