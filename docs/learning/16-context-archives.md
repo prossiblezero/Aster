@@ -31,6 +31,8 @@ v4 移除了 `tool_output_tokens`。同一份 6,000 tokens 的结果，整份请
 
 [provider.history_groups](../../src/aster/provider.py) 在内部历史和供应商请求转换后检查空编号、重复编号、孤立结果、缺失结果及回合顺序。Runtime 也在保存和恢复检查点时验证完整组。取消时记录真实的中断状态；是否已经产生副作用不确定，就提示检查工作区，不能补造成功结果。
 
+检查点与审计副本还要区别处理。`encrypted_content` 是 Responses 的加密推理数据；Anthropic 的 `signature` 和 `redacted_thinking.data` 也是必须原样回传的协议字段。它们可能偶然包含类似密钥的随机字符，不能直接套用普通日志正则再拿去恢复。`EvidenceStore.save(..., preserve_native_history=True)` 只在 checkpoint 的原生字段位置保留原值，工具数据里的同名字段没有豁免；请求审计和 trace 继续脱敏。含真实已知凭据、已有 `[REDACTED]` 标记，或签名绑定的思考文字需要脱敏时，明确拒绝保存/恢复，而不把坏记录当成合法状态。
+
 ```bash
 conda activate aster
 python -m pytest -q tests/test_protocol_pairing.py tests/test_context_archives.py
@@ -66,6 +68,6 @@ python -m pytest -q tests/test_context_policy_input.py
 
 ## 如何判断重构有效？
 
-先看 [原题复跑说明](../../datasets/robustness.md)和[实测结果](../context-results.md)：12 道主任务、3 档预算、每档 3 次；另外保留一次性历史证据题的 9 次尝试。题目与隐藏评分器不改，只更换 Harness 实现。观察 Pass@1、Pass@3、预算停止和隐藏测试结果，再看共同成功尝试的 token 与工具成本，不能只比较压缩率。
+先看[中档回归与预算选择](../../datasets/context_budget_protocol.md)和[实测结果](../context-results.md)：12 道主任务，先在原中档各跑 3 次，再对三个固定候选各试 1 次，选中后用新 3 次确认；一次性历史证据题另报。历史三档结果仍保留。本轮题目与隐藏评分器不改，取消单条工具上限的收益由同预算比较回答，放宽预算的效果另报。观察 Pass@1、Pass@3、预算停止和隐藏测试结果，再看共同成功尝试的 token 与工具成本，不能只比较压缩率。
 
 这批原题已经用于诊断，属于开发回归，不能当作未见任务泛化成绩。原始报告与每次失败继续保存；历史前后批次也不能完全排除模型服务随时间变化。归档仅包含执行器实际采集到的内容，无法恢复它采集前已经丢弃的输出。不可压缩的用户要求或最新调用参数超过窗口时，仍需要拆分任务或使用更大的已知安全窗口。

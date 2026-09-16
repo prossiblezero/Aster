@@ -147,6 +147,7 @@ class Runtime:
                 "recovery_used": self._recovery_used,
                 "stall_items": list(self.stall.items),
             },
+            preserve_native_history=True,
         )
 
     def resume(self, run_id: str) -> RunState:
@@ -162,6 +163,7 @@ class Runtime:
         if not state.terminal and "initial_text" not in data:
             raise ValueError("legacy_checkpoint_missing_diff_baseline")
         history_groups(data.get("structured_history", []))
+        self.evidence.validate_native_history(data.get("structured_history", []))
         self.state = state
         self.workers = WorkerManager(self)
         self._initial_text = data.get("initial_text", {})

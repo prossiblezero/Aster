@@ -53,6 +53,23 @@ class Redactor:
         return value
 
 
+def _native_opaque_fields(history):
+    """Exact protocol locations only; tool payloads and same-named metadata stay redacted."""
+    for item in history:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "reasoning" and item.get("role") in {None, "assistant"}:
+            if "encrypted_content" in item:
+                yield item, "encrypted_content"
+        if item.get("role") == "assistant" and isinstance(item.get("content"), list):
+            for block in item["content"]:
+                if not isinstance(block, dict):
+                    continue
+                key = {"thinking": "signature", "redacted_thinking": "data"}.get(block.get("type"))
+                if key and key in block:
+                    yield block, key
+
+
 class EvidenceStore:
     def __init__(self, workspace: Path, redactor: Redactor):
         self.root = workspace / ".aster"
@@ -74,10 +91,45 @@ class EvidenceStore:
             cursor = cursor.parent
         return path
 
-    def save(self, parts: tuple[str, ...], data: Any) -> None:
+    def validate_native_history(self, history) -> None:
+        """Reject damaged opaque state or credentials that cannot be persisted unchanged."""
+        for block, key in _native_opaque_fields(history):
+            value = block[key]
+            if value is None:
+                continue
+            if not isinstance(value, str):
+                raise ValueError("invalid_opaque_history")
+            if "[REDACTED]" in value:
+                raise ValueError("opaque_history_redacted: cannot safely resume damaged state")
+            if any(secret in value for secret in self.redactor.secrets):
+                raise ValueError("opaque_history_contains_credential: cannot safely persist state")
+            if key == "signature":
+                thinking = block.get("thinking", "")
+                if (
+                    not isinstance(thinking, str)
+                    or "[REDACTED]" in thinking
+                    or self.redactor.text(thinking) != thinking
+                ):
+                    raise ValueError(
+                        "signed_thinking_requires_redaction: cannot safely persist state"
+                    )
+
+    def save(
+        self, parts: tuple[str, ...], data: Any, *, preserve_native_history: bool = False
+    ) -> None:
         with self._lock:
             # Checkpoint mappings use file paths as keys; keep their value types intact.
-            atomic_json(self.path(*parts), self.redactor.value(data, mask_fields=False))
+            redacted = self.redactor.value(data, mask_fields=False)
+            if preserve_native_history:
+                history = data.get("structured_history", [])
+                self.validate_native_history(history)
+                for (original, key), (saved, _) in zip(
+                    _native_opaque_fields(history),
+                    _native_opaque_fields(redacted.get("structured_history", [])),
+                    strict=True,
+                ):
+                    saved[key] = original[key]
+            atomic_json(self.path(*parts), redacted)
 
     def archive_observation(self, run_id: str, call_id: str, tool: str, content: str) -> dict:
         """Persist captured text before replacing it with a preview; never silently clip it."""

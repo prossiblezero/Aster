@@ -194,3 +194,156 @@ def test_log_field_redaction_does_not_match_filename_substrings():
     assert result["secret_parser.py"] == {"summary": "ordinary code"}
     assert result["secret"] == "[REDACTED]"
     assert result["events"] == [{"content": "[REDACTED]"}]
+
+
+def opaque_history(kind, value, *, thinking="Check the repository before answering."):
+    if kind == "responses":
+        return [
+            {"type": "reasoning", "id": "reasoning-1", "summary": [], "encrypted_content": value}
+        ]
+    block = (
+        {"type": "thinking", "thinking": thinking, "signature": value}
+        if kind == "thinking"
+        else {"type": "redacted_thinking", "data": value}
+    )
+    return [{"role": "assistant", "content": [block]}]
+
+
+@pytest.mark.parametrize("kind", ["responses", "thinking", "redacted_thinking"])
+async def test_checkpoint_resume_preserves_opaque_wire_state_but_redacts_audit_copies(
+    tmp_path, monkeypatch, kind
+):
+    # Base64-like provider state can accidentally match a credential-shaped substring.
+    opaque = "prefix/sk-" + "Ab9_-" * 280
+    protocol = "responses" if kind == "responses" else "anthropic"
+    settings = Settings(
+        protocol=protocol,
+        api_key="test-provider-credential",
+        memory_enabled=False,
+        completion="off",
+    )
+    runtime = Runtime(tmp_path, settings)
+    runtime.start(TaskSpec(prompt="Inspect the repository"))
+    history = opaque_history(kind, opaque)
+    runtime._structured_history = history
+    runtime.checkpoint()
+    checkpoint = json.loads(
+        runtime.evidence.path("runs", runtime.state.run_id, "checkpoint.json").read_text()
+    )
+    assert checkpoint["structured_history"] == history
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        response = (
+            {
+                "status": "completed",
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": "Reviewed."}],
+                    }
+                ],
+            }
+            if protocol == "responses"
+            else {"stop_reason": "end_turn", "content": [{"type": "text", "text": "Reviewed."}]}
+        )
+        return httpx.Response(200, json=response)
+
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        "aster.provider.httpx.AsyncClient",
+        lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
+    )
+    restored = Runtime(tmp_path, settings)
+    restored.resume(runtime.state.run_id)
+    assert restored._structured_history == history
+    await restored.turn()
+    assert len(requests) == 1 and opaque in json.dumps(requests[0])
+    built = next(
+        row
+        for row in restored.evidence.events(restored.state.run_id)
+        if row["event"] == "context_built"
+    )
+    audit_path = restored.evidence.path(*built["request_artifact"].split("/"))
+    assert opaque not in audit_path.read_text() and "[REDACTED]" in audit_path.read_text()
+    event = restored.evidence.emit(restored.state.run_id, "sample", structured_history=history)
+    assert opaque not in json.dumps(event) and "[REDACTED]" in json.dumps(event)
+
+
+def test_checkpoint_native_exception_does_not_exempt_tool_payloads_or_same_named_metadata(tmp_path):
+    opaque = "bearer " + "abc123" * 30
+    runtime = Runtime(tmp_path, Settings(memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Inspect the repository"))
+    spoofed = {
+        "type": "reasoning",
+        "encrypted_content": opaque,
+        "signature": opaque,
+        "data": opaque,
+        "nested": {"role": "assistant", "content": [{"type": "thinking", "signature": opaque}]},
+    }
+    runtime.state.messages = [{"role": "tool", "content": opaque, "metadata": spoofed}]
+    runtime._structured_history = [
+        *opaque_history("responses", opaque),
+        {"type": "function_call", "call_id": "read-1", "name": "read_file", "arguments": "{}"},
+        {"type": "function_call_output", "call_id": "read-1", "output": json.dumps(spoofed)},
+    ]
+    runtime.checkpoint()
+    checkpoint = json.loads(
+        runtime.evidence.path("runs", runtime.state.run_id, "checkpoint.json").read_text()
+    )
+    assert checkpoint["structured_history"][0]["encrypted_content"] == opaque
+    assert opaque not in json.dumps(checkpoint["structured_history"][-1])
+    assert opaque not in json.dumps(checkpoint["state"]["messages"])
+    assert "[REDACTED]" in json.dumps(checkpoint["state"]["messages"])
+    runtime.evidence.save(
+        ("ordinary.json",), {"structured_history": opaque_history("responses", opaque)}
+    )
+    assert opaque not in runtime.evidence.path("ordinary.json").read_text()
+
+
+@pytest.mark.parametrize("kind", ["responses", "thinking", "redacted_thinking"])
+@pytest.mark.parametrize(
+    "damaged", ["old-[REDACTED]-state", "prefix-known-provider-credential-suffix"]
+)
+def test_checkpoint_and_resume_reject_damaged_opaque_state_without_replacing_valid_state(
+    tmp_path, kind, damaged
+):
+    settings = Settings(api_key="known-provider-credential", memory_enabled=False)
+    runtime = Runtime(tmp_path, settings)
+    runtime.start(TaskSpec(prompt="Inspect the repository"))
+    path = runtime.evidence.path("runs", runtime.state.run_id, "checkpoint.json")
+    before = path.read_bytes()
+    runtime._structured_history = opaque_history(kind, damaged)
+    with pytest.raises(ValueError, match="opaque_history_(redacted|contains_credential)") as error:
+        runtime.checkpoint()
+    assert path.read_bytes() == before and damaged not in str(error.value)
+
+    # Reproduce an old/corrupt checkpoint without passing through the new writer.
+    checkpoint = json.loads(before)
+    checkpoint["structured_history"] = runtime._structured_history
+    path.write_text(json.dumps(checkpoint))
+    restored = Runtime(tmp_path, settings)
+    with pytest.raises(ValueError, match="opaque_history_(redacted|contains_credential)"):
+        restored.resume(runtime.state.run_id)
+    assert restored.state is None and restored._structured_history == []
+
+
+@pytest.mark.parametrize("thinking", ["sk-" + "a" * 40, "[REDACTED] original thought"])
+def test_signed_thinking_cannot_be_silently_changed_by_redaction(tmp_path, thinking):
+    runtime = Runtime(tmp_path, Settings(protocol="anthropic", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Inspect the repository"))
+    path = runtime.evidence.path("runs", runtime.state.run_id, "checkpoint.json")
+    before = path.read_bytes()
+    runtime._structured_history = opaque_history("thinking", "opaque-signature", thinking=thinking)
+    with pytest.raises(ValueError, match="signed_thinking_requires_redaction"):
+        runtime.checkpoint()
+    assert path.read_bytes() == before
+    checkpoint = json.loads(before)
+    checkpoint["structured_history"] = runtime._structured_history
+    path.write_text(json.dumps(checkpoint))
+    restored = Runtime(tmp_path, runtime.settings)
+    with pytest.raises(ValueError, match="signed_thinking_requires_redaction"):
+        restored.resume(runtime.state.run_id)
+    assert restored.state is None
