@@ -25,13 +25,13 @@
 
 例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。`ContextBuilder` 使用与 Provider 相同的请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
 
-这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [阶段 13](learning/13-runtime-reliability.md)。
+这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [上下文预算](learning/06-context-budget.md)。
 
 `todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是脱敏后全文的字符数。先脱敏整份来源再分页，因此密钥替换不会改变页间定位，也不会因跨页拆开密钥而漏掉脱敏。`skill_load` 还需保留技能 `name`。
 
-`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
+`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[上下文归档](learning/07-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 
-普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [阶段 15](learning/15-paged-observations.md)。
+普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [归档与分页](learning/07-context-archives.md)。
 
 ## 权限与执行范围
 
@@ -89,7 +89,7 @@
 | `require_verification` | `false` | 完成前是否必须在当前工作区上取得有效测试结果 |
 | `required_artifacts` | `[]` | 完成时必须存在的文件路径 |
 
-Runtime 只对未显式设置的条件做文字推断；显式 `False` 会保留。正式评测应在任务数据中明确这些条件。`require_edit` 表示本轮发生过修改，目标代码是否正确仍由独立验证器判断。内容或权限位变化会使旧验证失效；checkpoint 指纹现在包含文件权限位，因此旧版本的指纹可能被拒绝恢复，不能将其当作当前有效状态。用于 RL 奖励的独立验证器另行接入，不能用 `completion="off"` 关闭它，见 [阶段 14](learning/14-memory-and-rollouts.md)。
+Runtime 只对未显式设置的条件做文字推断；显式 `False` 会保留。正式评测应在任务数据中明确这些条件。`require_edit` 表示本轮发生过修改，目标代码是否正确仍由独立验证器判断。内容或权限位变化会使旧验证失效；checkpoint 指纹现在包含文件权限位，因此旧版本的指纹可能被拒绝恢复，不能将其当作当前有效状态。用于 RL 奖励的独立验证器另行接入，不能用 `completion="off"` 关闭它，见 [环境接口](learning/15-rl-interface.md)。
 
 同一 Runtime 同时只接受一个运行操作，单个 RL episode 也只允许一个在途 `step`；并发调用明确返回 busy。idle 状态重新 `start` 会以 `superseded` 结束旧任务，`resume` 不会覆盖活动任务。终态自动汇总当前任务 Worker 的修改，旧任务的 Worker ID 不能污染新任务；取消后迟到的审批或模型返回不能继续写文件。
 
@@ -107,7 +107,8 @@ tool_profile = "core"
 ```
 
 ```bash
-aster --config browse.toml --cwd examples/demo '查看仓库并说明入口'
+# 先按学习第 00 章创建演示目录
+aster --config browse.toml --cwd /tmp/aster-learning-demo '查看仓库并说明入口'
 ```
 
 检查代码中的实际行为：

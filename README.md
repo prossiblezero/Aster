@@ -4,14 +4,15 @@
 
 [分阶段学习](docs/learning/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
 
-最近重构：[上下文归档与配对校验](docs/learning/16-context-archives.md)，以及[原题回归结果与限制](docs/context-results.md)。
+最近重构：[上下文归档与配对校验](docs/learning/07-context-archives.md)，以及[原题回归结果与限制](docs/context-results.md)。
 
 ```bash
 conda activate aster
 pip install -e '.[dev]'
 python -m pytest -q
-aster --cwd examples/demo '查看仓库并说明入口'
-aster --tui --cwd examples/demo
+# 无需 API Key，先体验离线循环：
+python docs/learning/run_examples.py 00
+# 真实模型与 TUI 的配置、演示目录见学习第 00 章。
 ```
 
 模型连接从项目 `.env` 的 `ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY` 读取，默认 Responses 协议。审批界面需明确批准，Escape 拒绝；Ctrl+C 取消当前任务。
