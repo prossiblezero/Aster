@@ -1,0 +1,84 @@
+{
+  "source_report": "artifacts/benchmark-v5-robustness/report.json",
+  "source_sha256": "d2e9f841dc18abbae6795554a22ad40ff87bbd13d376116b9f17862ac7412d49",
+  "estimator": "mean over tasks of 1 - C(n-c,k) / C(n,k); n=3 attempts per task and condition",
+  "success_definition": "Original passed: runtime completion and all task checks including hidden tests. Information-loss control excluded.",
+  "interpretation": "Pass@1 is estimated from all three samples; Pass@3 is the fraction of tasks with at least one successful attempt. It does not mean all three attempts pass.",
+  "conditions": {
+    "full": {
+      "tasks": 12,
+      "attempts": 36,
+      "completed_attempts": 35,
+      "pass_at_1": 0.9722222222222222,
+      "pass_at_3": 1.0,
+      "tasks_with_any_success": 12,
+      "per_task_successes": {
+        "context_config_merge": 3,
+        "context_cursor_pagination": 3,
+        "context_decimal_rounding": 3,
+        "context_disabled_jobs": 3,
+        "context_name_deduplication": 3,
+        "context_nested_redaction": 3,
+        "context_ordering_correction": 3,
+        "context_retry_correction": 3,
+        "context_retry_delay": 3,
+        "context_shared_encoding": 2,
+        "context_timeout_migration": 3,
+        "context_unicode_correction": 3
+      }
+    },
+    "balanced": {
+      "tasks": 12,
+      "attempts": 36,
+      "completed_attempts": 27,
+      "pass_at_1": 0.75,
+      "pass_at_3": 1.0,
+      "tasks_with_any_success": 12,
+      "per_task_successes": {
+        "context_config_merge": 1,
+        "context_cursor_pagination": 3,
+        "context_decimal_rounding": 3,
+        "context_disabled_jobs": 2,
+        "context_name_deduplication": 3,
+        "context_nested_redaction": 2,
+        "context_ordering_correction": 3,
+        "context_retry_correction": 2,
+        "context_retry_delay": 3,
+        "context_shared_encoding": 1,
+        "context_timeout_migration": 1,
+        "context_unicode_correction": 3
+      }
+    },
+    "tight": {
+      "tasks": 12,
+      "attempts": 36,
+      "completed_attempts": 1,
+      "pass_at_1": 0.02777777777777778,
+      "pass_at_3": 0.08333333333333333,
+      "tasks_with_any_success": 1,
+      "per_task_successes": {
+        "context_config_merge": 0,
+        "context_cursor_pagination": 0,
+        "context_decimal_rounding": 0,
+        "context_disabled_jobs": 0,
+        "context_name_deduplication": 1,
+        "context_nested_redaction": 0,
+        "context_ordering_correction": 0,
+        "context_retry_correction": 0,
+        "context_retry_delay": 0,
+        "context_shared_encoding": 0,
+        "context_timeout_migration": 0,
+        "context_unicode_correction": 0
+      }
+    }
+  },
+  "recovery_contracts": {
+    "source_report": "artifacts/benchmark-v5-mechanisms/report.json",
+    "source_sha256": "7ae88b33b8c18ee00f1ceb835049df43c4d257cda1cf7f15090eddbf593d1137",
+    "scenarios": 25,
+    "condition_attempts": 37,
+    "passed": 37,
+    "pass_rate": 1.0,
+    "interpretation": "Deterministic mechanism regression, including expected stopping; not an autonomous recovery success rate."
+  }
+}
