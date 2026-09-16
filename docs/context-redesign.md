@@ -1,6 +1,6 @@
 # 上下文改进调研：先采用确定性管理
 
-2026-09-16。本文记录从 v5 评测出发的调研与设计；核心方案现已实现，逐段代码导读见[阶段 16](learning/16-context-archives.md)。v5 原始成绩保留，v6 原题复跑单独报告；以下研究结果不作为 Aster 实测成绩。
+2026-09-16。本文记录从 v5 评测出发的调研与设计；核心方案现已实现，逐段代码导读见[阶段 16](learning/16-context-archives.md)。v5 原始成绩、v6 中间版本和 v7 最终重构版本分别保留，结论见[原题回归结果](context-results.md)；以下研究结果不作为 Aster 实测成绩。
 
 ## 结论
 
@@ -93,7 +93,7 @@ ACON 的 [代码](https://github.com/microsoft/acon)与 Context Folding 的 [Fol
 
 例如模型同时发出 `read_file(call_id=A)` 和 `read_file(call_id=B)`，即使 B 先返回，两条结果仍分别关联 B、A。可以分别把正文缩成预览与归档引用；不能只留下 B 的结果却删除 B 的调用，也不能把两次结果合成一条冒充其中一次的返回。
 
-现有实现已经有这部分基础：`src/aster/context.py` 的 `history_groups()` 按完整交互分组并检查缺失／孤立结果等错误；`src/aster/runtime.py` 在工具批次中断时记录取消结果后保存检查点。这些合同已由协议、归档与运行时回归覆盖，真实供应商仍只评测 Responses 协议。
+重构前，`history_groups()` 位于 `src/aster/context.py`；重构后移至 `src/aster/provider.py`，由上下文构建与供应商转换共用，检查缺失／孤立结果等错误。`src/aster/runtime.py` 在工具批次中断时记录取消结果后保存检查点。这些合同已由协议、归档与运行时回归覆盖，真实供应商仍只评测 Responses 协议。
 
 ### 4. 逐步减少旧观察占用
 

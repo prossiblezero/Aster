@@ -67,9 +67,11 @@ python -m pytest -q tests/test_robustness_benchmark.py tests/test_recovery_contr
 仅重跑上下文专项，仍用原来的 13 个场景、三档预算和每档三次重复，共 117 次。12 道主任务共 108 次，信息控制另计 9 次。预检验证超预算输入实际发生压缩并满足请求预算；不要求一定删掉整条消息，因为缩短正文也属于有效压缩。
 
 ```bash
-conda run --no-capture-output -n aster python scripts/benchmark_robustness.py --real --suite context --repeats 3 --concurrency 8 --output artifacts/benchmark-v6-context
-conda run --no-capture-output -n aster python scripts/compare_context_runs.py --before artifacts/benchmark-v5-robustness/report.json --after artifacts/benchmark-v6-context/report.json --output artifacts/benchmark-v6-context
+conda run --no-capture-output -n aster python scripts/benchmark_robustness.py --real --suite context --repeats 3 --concurrency 8 --output artifacts/context-rerun
+conda run --no-capture-output -n aster python scripts/compare_context_runs.py --before artifacts/benchmark-v5-robustness/report.json --after artifacts/context-rerun/report.json --output artifacts/context-rerun
 ```
+
+这里使用新输出目录，避免覆盖已保存的正式批次。v6 对应 `54e1900`，v7 对应 `67e4415`；各自的 `launch.json` 记录完整运行命令及隔离工作目录。正式运行通过 `PYTHONPATH` 指向冻结工作目录的 `src`，避免 Conda 环境中的 editable install 导入正在修改的主目录。结果与版本取舍见[上下文重构实测](../docs/context-results.md)。
 
 新报告记录题目、长历史、初始仓库和隐藏判分器的独立 SHA-256。比较脚本从 v5 冻结的 Git 提交恢复原文件哈希，并核对相同的模型、设置和实验协议；丢失任务、缺少尝试、重复记录或输入变更会拒绝比较。它分别报告主任务、各题型和信息控制的 Pass@1／Pass@3、隐藏功能通过数、预算停止数，以及双方都成功时的工具／token／耗时成本。`observation_read_calls` 统计归档工具查询或读取的调用次数，`observation_read_successes` 统计成功返回次数，不直接证明读到的内容帮助完成任务。
 

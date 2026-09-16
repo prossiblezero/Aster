@@ -4,6 +4,8 @@
 
 [分阶段学习](docs/learning/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
 
+最近重构：[上下文归档与配对校验](docs/learning/16-context-archives.md)，以及[原题回归结果与限制](docs/context-results.md)。
+
 ```bash
 conda activate aster
 pip install -e '.[dev]'

@@ -1,8 +1,12 @@
 # Aster 评测：任务正确性与机制收益分开看
 
-本次 v5 新增上下文与停滞恢复专项，实验代码和数据在 `74876f1` 冻结：**12 道上下文代码题、1 个信息丢失控制、12 个故障场景**，共安排 **201 次尝试**，其中 **189 次使用真实模型，12 次检查停止边界**。机制集扩至 **85 场景 / 123 次条件尝试**；仅统计 Harness 为 **81 场景 / 119 次**。生产运行代码未在本轮修改。
+最新上下文重构源码冻结于 **`67e4415`（v7）**。实现、原题回归、失败解释和版本取舍集中在[上下文重构实测](context-results.md)，代码导读见[阶段 16](learning/16-context-archives.md)。v6、v7 分别完整运行原来的 **117 次上下文尝试**，与 v5 保持同题同预算；旧结果和中间版本的退步均保留，不把多个版本合并计算 Pass@k。
 
-最新证据：[专项报告](../artifacts/benchmark-v5-robustness/report.md)、[工件核验与汇总](../artifacts/benchmark-v5-robustness/validation.json)、[测试结构审计](../artifacts/benchmark-v5-robustness/test-additions.json)、[机制报告](../artifacts/benchmark-v5-mechanisms/report.md)、[任务手册](../datasets/robustness.md)。
+v7 工程测试 **479/479**，基础参考动作 **205/205**，机制条件检查 **123/123**，上下文专项预检 **52/52**；脚本通过不等于模型完成任务。最新证据：[原题比较](../artifacts/benchmark-v7-context/comparison.md)、[参考回放](../artifacts/benchmark-v7-scripted/report.md)、[机制报告](../artifacts/benchmark-v7-mechanisms/report.md)、[任务手册](../datasets/robustness.md)。
+
+以下按版本保留实验设计与历史成绩。v5 专项代码和数据在 `74876f1` 冻结：**12 道上下文代码题、1 个信息丢失控制、12 个故障场景**，共 **201 次尝试**，其中 **189 次使用真实模型，12 次检查停止边界**。该次仅扩展实验，未修改生产运行代码。机制集为 **85 场景 / 123 次条件尝试**；仅统计 Harness 为 **81 场景 / 119 次**。
+
+v5 证据：[专项报告](../artifacts/benchmark-v5-robustness/report.md)、[工件核验与汇总](../artifacts/benchmark-v5-robustness/validation.json)、[测试结构审计](../artifacts/benchmark-v5-robustness/test-additions.json)、[机制报告](../artifacts/benchmark-v5-mechanisms/report.md)。
 
 v4 历史评测对应代码提交 `fd2fe66`：**193 条主任务、69 个机制场景、12 组静态上下文配置**。主任务包含 164 道 HumanEval；只有固定子集调用真实模型，参考动作回放不算模型成绩。题目、初始仓库、参考动作和预期结果都在 [datasets](../datasets/README.md)。
 
@@ -10,7 +14,7 @@ v4 历史报告：[参考回放](../artifacts/benchmark-v4-scripted/report.md)�
 
 ## 复现命令
 
-v5 专项先检查题目、评分器和故障前缀，再调用真实模型。最后两个命令只读取归档，不再请求模型。
+最新版本的复现命令见[上下文原题回归](../datasets/robustness.md#上下文重构后的原题回归)，使用新输出目录。以下是 v5 历史命令：先检查题目、评分器和故障前缀，再调用真实模型。最后两个命令只读取归档，不再请求模型；不要用它们覆盖已保存的旧批次。
 
 ```bash
 conda activate aster
