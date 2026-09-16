@@ -24,7 +24,7 @@
 
 `todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。正文预算不足时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
 
-`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后才自动暴露，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
+`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 
 普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [阶段 15](learning/15-paged-observations.md)。
 

@@ -13,7 +13,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
     (tmp_path / "config.txt").write_text("timeout=12\n")
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
     initial, _ = env.reset("Inspect the configuration.")
-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v2"
+    assert initial["model_input"] and initial["context_policy"] == "deterministic-v3"
     observation, _, _, _, _ = await env.step(
         ToolCall(name="read_file", arguments={"path": "config.txt"})
     )
@@ -32,7 +32,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
 
 
 async def test_archive_failure_is_a_graded_environment_stop(tmp_path):
-    (tmp_path / "facts.txt").write_text("known fact\n")
+    (tmp_path / "facts.txt").write_text("known fact " * 3000)
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False))
     env.reset("Inspect facts.")
     await env.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
@@ -58,6 +58,25 @@ async def test_rejected_archive_read_remains_a_regular_tool_error(tmp_path):
     assert info["outcome"]["reason"] == "observation_unavailable"
     assert not terminated and not truncated and observation["model_input"]
     assert "invalid_observation_id" in str(observation["model_input"])
+    env.close()
+
+
+async def test_intact_small_results_do_not_pay_for_archive_refs_or_unloaded_schema(tmp_path):
+    (tmp_path / "small.txt").write_text("short observation")
+    env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False))
+    env.reset("Inspect the file.")
+    observation, *_ = await env.step(ToolCall(name="read_file", arguments={"path": "small.txt"}))
+    output = next(
+        item for item in observation["model_input"] if item.get("type") == "function_call_output"
+    )
+    assert "observation" not in json.loads(output["output"])
+    assert "short observation" in output["output"]
+    assert "observation_read" not in {tool["name"] for tool in observation["tools"]}
+    assert env.runtime.evidence.list_observations(env.runtime.state.run_id)["total"] == 1
+    observation, *_ = await env.step(
+        ToolCall(name="tool_load", arguments={"names": ["observation_read"]})
+    )
+    assert "observation_read" in {tool["name"] for tool in observation["tools"]}
     env.close()
 
 

@@ -1087,9 +1087,6 @@ class Runtime:
             if self.settings.tool_profile == "all"
             else (set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
         )
-        selected = set(selected)
-        if not self._unavailable_reason("observation_read"):
-            selected.add("observation_read")
         return sorted(name for name in selected if not self._unavailable_reason(name))
 
     def tool_definitions(self):

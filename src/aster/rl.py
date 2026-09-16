@@ -182,7 +182,7 @@ class AsterEnv:
                 self.runtime.finish("context_archive_unavailable", failed=True)
         return {
             "model_input": copy.deepcopy(prompt),
-            "context_policy": report.policy_version if report else "deterministic-v2",
+            "context_policy": report.policy_version if report else "deterministic-v3",
             "context_tokens": report.estimated_tokens if report else 0,
             "task": state.task.model_dump(),
             "phase": state.phase,

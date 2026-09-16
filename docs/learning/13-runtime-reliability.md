@@ -23,7 +23,7 @@ python -m pytest -q tests/test_runtime_repairs.py -k stall_progress
 
 模型一轮可以同时要求读 A、读 B。下一次请求必须保留“这两个请求”和“这两个结果”的对应关系。如果只取列表最后 40 条，可能剩下 B 的结果，却丢了 B 的请求。`call_id` 就像取件编号：结果必须能找到对应的调用。
 
-[history_groups](../../src/aster/context.py) 把推理元数据、一次调用批次及对应结果组成不可拆开的组。Runtime 保留供应商原生返回结构；Responses 的 reasoning 块、Chat 的推理字段，以及 Anthropic thinking 块所需的签名不会被重写成普通文字。模型一轮中途停止时，尚未执行的调用也补上 `cancelled` 结果，再保存完整 checkpoint。这里保留的是协议需要的数据，不是在 trace 中宣称额外读取了模型隐藏推理。
+[history_groups](../../src/aster/provider.py) 把推理元数据、一次调用批次及对应结果组成不可拆开的组。Runtime 保留供应商原生返回结构；Responses 的 reasoning 块、Chat 的推理字段，以及 Anthropic thinking 块所需的签名不会被重写成普通文字。模型一轮中途停止时，缺少返回的调用记录 `cancelled` 结果，再保存完整 checkpoint；若工具可能已产生副作用，会提示检查工作区，不能把取消当作确定未执行。这里保留的是协议需要的数据，不是在 trace 中宣称额外读取了模型隐藏推理。
 
 读代码的顺序是：`Runtime.turn` → `history_groups` → `ContextBuilder.build` → [request_payload](../../src/aster/provider.py)。最后一个函数同时供预算计数和真正发送请求使用，因此工具 schema 也计入输入。裁剪优先移除可丢弃的旧观察/旧交互，再让可重建的记忆和技能文本让出空间；当前任务和必须配对的最近交互无法容纳时明确停止。
 

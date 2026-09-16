@@ -71,7 +71,9 @@ def test_latest_parallel_batch_fits_one_budget_with_all_results(tmp_path, protoc
     assert len(history_groups(runtime._structured_history)) == 1
     outputs = runtime._structured_history[4:]
     assert {item["call_id"] for item in outputs} == {f"call-{i}" for i in range(4)}
-    assert "observation_read" in {tool["name"] for tool in tools}
+    assert "observation_read" not in {tool["name"] for tool in tools}
+    catalog = next(tool for tool in tools if tool["name"] == "tool_load")
+    assert "observation_read" in catalog["parameters"]["properties"]["names"]["items"]["enum"]
     for item in outputs:
         result = json.loads(item["output"])
         assert result["status"] == "success"
@@ -220,7 +222,9 @@ def test_legacy_observations_are_recoverable_without_inventing_calls(tmp_path):
     assert report.removed_messages > 0
     assert not runtime._structured_history
     assert witness not in str(prompt)
-    assert "observation_read" in {tool["name"] for tool in tools}
+    assert "observation_read" not in {tool["name"] for tool in tools}
+    catalog = next(tool for tool in tools if tool["name"] == "tool_load")
+    assert "observation_read" in catalog["parameters"]["properties"]["names"]["items"]["enum"]
     listing = runtime.evidence.list_observations(runtime.state.run_id, query="MAPLE-43")
     assert len(listing["observations"]) == 1
     assert listing["observations"][0]["tool"] == "historical_observation"
