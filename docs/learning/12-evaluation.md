@@ -130,6 +130,8 @@ python -m pytest -q tests/test_robustness_benchmark.py tests/test_recovery_contr
 
 报告中的 `both_pass` 是两边都完成，`left_only`、`right_only` 是只有一边完成，`neither` 是两边都失败。这四项相加应等于 `pairs`。例如“上下文 / 文件证据 / full / tight”中，左边是充足预算，右边是紧预算；恢复配对则固定为左侧 `silent`、右侧 `feedback`。先看单组完整完成率及这些胜负关系，再讨论 token。
 
+重复三次还可以计算 Pass@1 和 Pass@3。假设某题三次中成功两次：从这三次样本估计的 Pass@1 是 `2/3`，Pass@3 是 `1`，因为三次中至少一次成功。对每题分别计算后再平均，不能把“12 题 × 3 次＝36 次”直接叫作 Pass@3。正式批次中，充足／中等预算的 Pass@1 为 97.22%／75.00%，Pass@3 都为 100%；后者相同并不代表单次可靠性相同，也不代表无需隐藏评分就能选出正确答案。复算复用 [benchmark.py](../../scripts/benchmark.py) 的 `pass_at_k`，逐题计数见 [派生指标](../../artifacts/benchmark-v5-robustness/derived-metrics.json)。
+
 `common_success_total_tokens` 只比较双方都完成的同题配对，数组顺序为 `[左侧平均值, 右侧平均值]`；没有共同成功时为 `null`。工具调用、耗时和补读次数也有对应的 `common_success_*` 字段。这样不会把某组刚启动就失败、花费很少的尝试误当作省成本。共同成功样本仍有选择范围，必须同时报告它包含多少配对，以及全体尝试各自完成多少，不能只展示这一列好看的成本。
 
 可以用下面的命令打印刚才上下文小实验的配对结果，无需再次请求模型：
