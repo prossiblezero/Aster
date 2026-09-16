@@ -9,7 +9,6 @@ import shlex
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -146,24 +145,16 @@ class ImageRead(Record):
     question: str = "Describe this image for the coding task."
 
 
-def text_page(
-    text: str, offset: int, limit: int, count: Callable[[str], int], token_budget: int
-) -> Outcome:
+def text_page(text: str, offset: int, limit: int) -> Outcome:
     if offset > len(text):
         return Outcome(status="blocked", reason="page_out_of_range", content=f"total={len(text)}")
     end = min(offset + limit, len(text))
-    while True:
-        page = {
-            "offset": offset,
-            "next_offset": end if end < len(text) else None,
-            "total": len(text),
-        }
-        content = json.dumps(page) + "\n" + text[offset:end]
-        if count(content) <= token_budget:
-            return Outcome(status="success", content=content, data=page)
-        if end - offset <= 1:
-            return Outcome(status="blocked", reason="page_budget_exceeded")
-        end = offset + max(1, (end - offset) // 2)
+    page = {
+        "offset": offset,
+        "next_offset": end if end < len(text) else None,
+        "total": len(text),
+    }
+    return Outcome(status="success", content=json.dumps(page) + "\n" + text[offset:end], data=page)
 
 
 SCHEMAS = {

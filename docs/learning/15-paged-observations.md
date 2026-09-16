@@ -24,9 +24,9 @@ Aster 保留完整计划、待办与技能来源，同时让 `todo_list` 和 `sk
 
 `content` 是正文；其余四项是描述这次执行的元数据。`status` 表示成功、失败或被阻止；`reason` 给出具体原因；`evidence_id` 关联审计证据；`changed_paths` 列出本次修改路径。若直接截取整段 JSON，可能连正文还没出现就截完，或者得到少一个引号的无效 JSON。
 
-因此 `tool_output_tokens` 限制的是**正文预算**。`ContextBuilder._clip_tool_output` 识别 Runtime 的完整结果结构，只缩短 `content`，随后重新序列化，保留其他字段与合法 JSON。普通原始文本仍按文字裁剪；图片结果保留现有的图文处理方式。
+当前不再设置每条工具结果的固定 token 上限；只有全局请求超预算时才分配本轮需要让出的空间。`ContextBuilder._clip_tool_output` 识别 Runtime 的完整结果结构，只缩短 `content`，随后重新序列化，保留其他字段与合法 JSON。普通原始文本仍按文字裁剪；图片结果保留现有的图文处理方式。
 
-元数据同样消耗模型输入。`context_tokens - output_tokens` 是整个请求的预算，工具定义、元数据、正文、计划状态和历史都计入其中。例如正文限制为 64 tokens，并不代表这条工具消息总共只有 64 tokens。最新交互和必需状态仍无法放入全局预算时，运行会明确停止。
+元数据同样消耗模型输入。`effective_context_tokens - output_tokens` 是整个请求的预算，工具定义、元数据、正文、计划状态和历史都计入其中。例如压缩时正文只保留 64 tokens，并不代表这条工具消息总共只有 64 tokens。最新交互和必需状态仍无法放入全局预算时，运行会明确停止。
 
 ## 问题：offset、limit、next_offset 分别指什么？
 
@@ -48,25 +48,23 @@ Aster 保留完整计划、待办与技能来源，同时让 `todo_list` 和 `sk
 
 下一次仍调用 `skill_load`，保留 `name="guide"`，把 `offset` 改成返回的 `4`。第二页正文是“再修改。”，`next_offset` 为 `null`。
 
-`text_page` 会把分页头和文字一起交给现有 tokenizer 计数；超过正文预算时缩小本页，再计算实际的 `next_offset`。中文、英文和代码的 token 密度不同，实际页面可能少于 `limit`。因此必须跟随返回的 `next_offset`，不能自己执行 `offset += limit`，否则可能跳过尚未读到的文字。
+`text_page` 只按字符生成页面。Runtime 给成功结果加上 `page="text"` 标记；构造完整请求时若全局超预算，`_clip_tool_output` 才按可见连续前缀缩小页面，同时重算 `next_offset`。中文、英文和代码的 token 密度不同，实际页面可能少于 `limit`。因此必须跟随返回的 `next_offset`，不能自己执行 `offset += limit`，否则可能跳过尚未读到的文字。
 
 `todo_list` 分页的原文是包含 `plan` 和 `todos` 的 JSON 文本。一页可能从某个字符串中间开始，单页文字不一定是完整 JSON；外面的工具结果 JSON 始终合法。宿主程序如果要还原完整对象，应从 `offset=0` 开始，去掉每页第一行的分页头，按顺序拼接文字，再解析。兼容保留的 `Outcome.data.plan` / `data.todos` 供宿主访问，不会自动作为完整内容发给模型；分页信息特意写进正文，模型才能看到。
 
-## 动手：用最小正文预算翻完中文原文
+## 动手：用字符分页翻完中文原文
 
 以下示例不调用真实模型，也不写项目文件：
 
 ```bash
 conda activate aster
 python - <<'PY'
-from aster.context import ContextBuilder
 from aster.tools import text_page
 
-context = ContextBuilder(4096, 512, tool_output_tokens=64)
 source = "先读取，再修改。"
 offset = 0
 while offset is not None:
-    page = text_page(source, offset, 4, context.count, context.tool_output_tokens)
+    page = text_page(source, offset, 4)
     print(page.content)
     offset = page.data["next_offset"]
 PY
@@ -78,7 +76,7 @@ PY
 python -m pytest -q tests/test_paged_state.py
 ```
 
-第一个检查拼回全部中文文字，确认没有漏页；第二个检查裁剪后 JSON 仍合法，执行状态与证据编号没有丢失；最后两个检查通过真正的 Runtime 轮次，让模拟模型从首次上下文中缺失的计划或技能尾部开始，沿 `next_offset` 读到结尾。它们使用 `4096` 的全局容量和 `64` 的正文预算，验证的是数据能否送达，不是在评估真实模型是否会主动选择翻页。
+第一个检查拼回全部中文文字，确认没有漏页；第二个检查裁剪后 JSON 仍合法，执行状态与证据编号没有丢失；最后两个检查通过真正的 Runtime 轮次，让模拟模型从首次上下文中缺失的计划或技能尾部开始，沿 `next_offset` 读到结尾。其中游标单元检查主动把每页压到 64 tokens 来验证连续性；Runtime 测试使用 4096 的全局容量，没有单工具固定 token 上限。它们验证数据能否送达，不是在评估真实模型是否会主动选择翻页。
 
 ## 边界：选中技能、读到末页和完成任务是三件事
 

@@ -60,9 +60,7 @@ class Runtime:
         self.model = model or ModelClient(settings)
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
-        self.context = ContextBuilder(
-            settings.context_tokens, settings.output_tokens, settings.tool_output_tokens
-        )
+        self.context = ContextBuilder(settings.effective_context_tokens, settings.output_tokens)
         self.hooks = hooks or Hooks()
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
@@ -242,6 +240,9 @@ class Runtime:
         """One budgeted policy observation for autonomous calls and external rollouts."""
         state = self.state
         assert state is not None
+        # Settings are mutable; the counted request must use the provider's current model limits.
+        self.context.budget = self.settings.effective_context_tokens
+        self.context.output_reserve = self.settings.output_tokens
         self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
@@ -416,8 +417,9 @@ class Runtime:
                 "changed_paths": outcome.changed_paths,
                 "content": self.evidence.redactor.text(outcome.content),
                 **(
-                    {"page": "observation"}
-                    if call.name == "observation_read" and outcome.status == "success"
+                    {"page": "observation" if call.name == "observation_read" else "text"}
+                    if call.name in {"observation_read", "todo_list", "skill_load"}
+                    and outcome.status == "success"
                     else {}
                 ),
             },
@@ -736,11 +738,9 @@ class Runtime:
         if name == "todo_list":
             data = {"plan": state.plan, "todos": state.todos}
             result = text_page(
-                json.dumps(data, ensure_ascii=False),
+                self.evidence.redactor.text(json.dumps(data, ensure_ascii=False)),
                 args["offset"],
                 args["limit"],
-                self.context.count,
-                self.context.tool_output_tokens,
             )
             result.data.update(data)
             return result
@@ -845,13 +845,12 @@ class Runtime:
                 content="lesson discarded" if found else "",
             )
         if name == "skill_load":
-            text = self.skills.load(args["name"])
+            # Page offsets refer to the same redacted text later compacted for the model.
+            text = self.evidence.redactor.text(self.skills.load(args["name"]))
             result = text_page(
                 text,
                 args["offset"],
                 args["limit"],
-                self.context.count,
-                self.context.tool_output_tokens,
             )
             if result.status != "success":
                 return result

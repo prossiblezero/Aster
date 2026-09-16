@@ -3,7 +3,7 @@ import json
 
 from aster.config import Settings
 from aster.runtime import Runtime
-from aster.schema import ModelReply, TaskSpec
+from aster.schema import ModelReply, TaskSpec, ToolCall
 
 
 class EmptyModel:
@@ -23,10 +23,26 @@ def test_auto_dream_emits_event(tmp_path):
     assert any(e["event"] == "memory_dream" for e in runtime.evidence.events(state.run_id))
 
 
-def test_tool_output_budget_is_applied_before_prompt(tmp_path):
-    runtime = Runtime(tmp_path, Settings(tool_output_tokens=64))
-    clipped = runtime.context._clip_tokens("x" * 1000)
-    assert "[tool output clipped]" in clipped
+async def test_large_tool_result_is_intact_until_the_request_exceeds_its_budget(tmp_path):
+    text = "first evidence\n" * 1000 + "MIDDLE_FACT\n" + "last evidence\n" * 1000
+    (tmp_path / "facts.txt").write_text(text)
+    runtime = Runtime(tmp_path, Settings(approval="auto"))
+    runtime.start(TaskSpec(prompt="Inspect the facts."))
+    result = await runtime.step(
+        ToolCall(name="read_file", arguments={"path": "facts.txt", "end": 2001})
+    )
+    assert runtime.context.count(result.content) > 1600
+    prompt, report = runtime.context.build(
+        runtime.state, runtime.state.task.prompt, structured_history=runtime._structured_history
+    )
+    assert json.loads(prompt[-1]["output"])["content"] == result.content
+    assert not report.compacted
+    runtime.context.budget = 4096
+    prompt, report = runtime.context.build(
+        runtime.state, runtime.state.task.prompt, structured_history=runtime._structured_history
+    )
+    assert report.compacted and report.estimated_tokens <= report.budget
+    assert json.loads(prompt[-1]["output"])["content"] != result.content
 
 
 def test_legacy_memory_working_state_is_migrated(tmp_path):

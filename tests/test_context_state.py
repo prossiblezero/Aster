@@ -89,11 +89,15 @@ def test_unfit_workflow_fails_explicitly_without_dropping_pending_tasks():
 def test_loaded_skill_excerpt_is_bounded_and_reported_as_compaction():
     state = workflow_state()
     body = "Inspect public interfaces before changing imports. " * 1000
-    builder = ContextBuilder(4096, 256, tool_output_tokens=128)
+    builder = ContextBuilder(4096, 256)
     prompt, report = builder.build(state, state.task.prompt, skill_bodies={"conventions": body})
     assert "[skill excerpt; reload with skill_load]" in str(prompt)
-    assert report.compacted and report.sections["active_skill_bodies"] < 140
+    assert report.compacted and report.estimated_tokens <= report.budget
     assert body not in str(prompt)
+    prompt, report = ContextBuilder(24000, 256).build(
+        state, state.task.prompt, skill_bodies={"conventions": body}
+    )
+    assert body in str(prompt) and not report.compacted
 
 
 @pytest.mark.asyncio

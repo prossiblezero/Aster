@@ -11,6 +11,12 @@ from pydantic import Field, SecretStr, model_validator
 
 from .schema import Record
 
+# Verified official limits; unknown model aliases deliberately use the small fallback.
+# https://developers.openai.com/api/docs/models/gpt-5.6-luna (2026-09-16)
+MODEL_CONTEXT_LIMITS = {
+    "gpt-5.6-luna": {"window": 1_050_000, "input": 922_000, "output": 128_000},
+}
+
 
 class ExecRule(Record):
     prefix: list[str] = Field(min_length=1)
@@ -36,9 +42,12 @@ class Settings(Record):
     base_url: str = "https://api.openai.com/v1"
     api_key: SecretStr = Field(default_factory=lambda: SecretStr(""))
     request_timeout: float = Field(default=90, gt=0, le=300)
-    context_tokens: int = Field(default=24000, ge=1024)
+    context_tokens: int | None = Field(
+        default=None,
+        ge=1024,
+        description="Total token budget including output reserve; omit for the model default.",
+    )
     output_tokens: int = Field(default=2048, ge=128)
-    tool_output_tokens: int = Field(default=1600, ge=64)
     approval: Literal["ask", "auto", "never"] = "ask"
     sandbox: Literal["required", "best_effort", "off"] = "required"
     network: bool = False
@@ -56,13 +65,41 @@ class Settings(Record):
 
     @model_validator(mode="after")
     def valid_budget(self):
-        if self.context_tokens <= self.output_tokens + 256:
+        if self.effective_context_tokens <= self.output_tokens + 256:
             raise ValueError("context_tokens must reserve output_tokens plus input space")
+        if limits := MODEL_CONTEXT_LIMITS.get(self.model):
+            if self.output_tokens > limits["output"]:
+                raise ValueError("output_tokens exceeds the model output limit")
+            if (
+                self.effective_context_tokens > limits["window"]
+                or self.effective_context_tokens - self.output_tokens > limits["input"]
+            ):
+                raise ValueError("context_tokens exceeds the model input/window limit")
         return self
+
+    @property
+    def effective_context_tokens(self) -> int:
+        """Resolve on access so changing a model never retains another model's auto budget."""
+        if self.context_tokens is not None:
+            return self.context_tokens
+        limits = MODEL_CONTEXT_LIMITS.get(self.model)
+        if limits is None:
+            return 24000
+        input_limit = min(limits["input"], limits["window"] - self.output_tokens)
+        # Local token estimates can differ from the provider's count.
+        return input_limit * 95 // 100 + self.output_tokens
+
+    @property
+    def context_budget_source(self) -> str:
+        if self.context_tokens is not None:
+            return "explicit"
+        return "model_profile" if self.model in MODEL_CONTEXT_LIMITS else "fallback"
 
     def identity(self) -> dict:
         """Checkpoints bind to effective boundaries, not credentials."""
-        return self.model_dump(mode="json", exclude={"api_key", "base_url"})
+        identity = self.model_dump(mode="json", exclude={"api_key", "base_url"})
+        identity["context_tokens"] = self.effective_context_tokens
+        return identity
 
 
 def read_env(path: Path) -> dict[str, str]:

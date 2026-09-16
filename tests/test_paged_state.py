@@ -13,24 +13,27 @@ from aster.tools import text_page
 
 def test_character_pages_cover_chinese_text_without_skipping_clipped_characters():
     source = "部署配置，遵守项目约束。\n" * 80 + "最后必须检查兼容性。"
-    context = ContextBuilder(4096, 512, 64)
+    context = ContextBuilder(4096, 512)
     chunks, offset = [], 0
     while offset is not None:
-        page = text_page(source, offset, 512, context.count, context.tool_output_tokens)
-        assert page.status == "success" and context.count(page.content) <= 64
+        page = text_page(source, offset, 512)
+        assert page.status == "success"
+        envelope = json.dumps({"page": "text", "content": page.content})
+        page.content = json.loads(context._clip_tool_output(envelope, token_limit=64))["content"]
+        assert context.count(page.content) <= 64
         header, body = page.content.split("\n", 1)
         metadata = json.loads(header)
-        assert metadata == page.data
+        assert metadata["total"] == len(source)
         chunks.append(body)
         next_offset = metadata["next_offset"]
         assert next_offset is None or next_offset == offset + len(body) > offset
         offset = next_offset
     assert "".join(chunks) == source
-    assert text_page(source, len(source) + 1, 10, context.count, 64).reason == "page_out_of_range"
+    assert text_page(source, len(source) + 1, 10).reason == "page_out_of_range"
 
 
 def test_native_envelope_stays_valid_json_while_only_its_body_is_clipped():
-    context = ContextBuilder(4096, 512, 64)
+    context = ContextBuilder(4096, 512)
     record = {
         "status": "error",
         "reason": "tests_failed",
@@ -46,7 +49,7 @@ def test_native_envelope_stays_valid_json_while_only_its_body_is_clipped():
         RunState(task=TaskSpec(prompt="Continue")), "Continue", structured_history=history
     )
     received = json.loads(prompt[-1]["output"])
-    assert context.count(received["content"]) <= 64
+    assert context.count(received["content"]) < context.count(record["content"])
     assert "tool output clipped" in received["content"]
     assert {key: value for key, value in received.items() if key != "content"} == {
         key: value for key, value in record.items() if key != "content"
@@ -62,7 +65,6 @@ async def test_model_can_read_the_last_chinese_workflow_or_skill_page(tmp_path, 
         completion="off",
         context_tokens=4096,
         output_tokens=512,
-        tool_output_tokens=64,
     )
     runtime = Runtime(tmp_path, settings)
     runtime.start(TaskSpec(prompt="Continue"))
@@ -108,3 +110,37 @@ async def test_model_can_read_the_last_chinese_workflow_or_skill_page(tmp_path, 
     assert "尾部要求：检查最终兼容性。" in "".join(reader.pieces)
     if tool == "skill_load":
         assert state.active_skills == ["guide"]
+
+
+@pytest.mark.parametrize("tool", ["todo_list", "skill_load"])
+@pytest.mark.parametrize("limit", [7, 512])
+async def test_page_offsets_follow_redacted_source_even_after_compaction(tmp_path, tool, limit):
+    secret = "fake-credential-for-test"
+    body = ("a " + secret + " 0123456789|" * 20 + "\n") * 3
+    runtime = Runtime(tmp_path, Settings(api_key=secret))
+    runtime.start(TaskSpec(prompt="Read the pages."))
+    if tool == "todo_list":
+        runtime.state.plan = body
+        source = json.dumps({"plan": body, "todos": []}, ensure_ascii=False)
+        extra = {}
+    else:
+        directory = tmp_path / ".aster" / "skills"
+        directory.mkdir()
+        (directory / "guide.md").write_text(body)
+        source, extra = body, {"name": "guide"}
+    expected = runtime.evidence.redactor.text(source)
+    pieces, offset = [], 0
+    while offset is not None:
+        args = {**extra, "offset": offset, "limit": limit}
+        result = await runtime.workflow_tool(tool, args)
+        runtime._append_output(ToolCall(name=tool, arguments=args), result)
+        output = runtime._structured_history[-1]["output"]
+        clipped = json.loads(runtime.context._clip_tool_output(output, token_limit=64))
+        header, fragment = clipped["content"].split("\n", 1)
+        metadata = json.loads(header)
+        assert metadata["total"] == len(expected)
+        assert metadata["next_offset"] is None or metadata["next_offset"] > offset
+        offset = metadata["next_offset"]
+        pieces.append(fragment)
+    assert "".join(pieces) == expected
+    assert secret not in "".join(pieces)

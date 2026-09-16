@@ -3,6 +3,7 @@
 import json
 
 import benchmark_robustness
+import pytest
 from benchmark_robustness import (
     ObservedModel,
     action_key,
@@ -11,6 +12,8 @@ from benchmark_robustness import (
     paired_summary,
     read_data,
     run_attempt,
+    runtime_settings,
+    selected_protocol,
     summarize,
 )
 from benchmark_support import ScriptedPolicy
@@ -23,7 +26,7 @@ from aster.workspace import Workspace
 
 async def test_context_treatment_changes_only_budget_and_preserves_archived_evidence(tmp_path):
     protocol = read_data("robustness_protocol.json")
-    settings = Settings(**protocol["settings"])
+    settings = Settings(**runtime_settings(protocol))
     case = next(case for case in load_cases("context") if case["category"] == "loss_control")
     runtimes, setups = [], []
     for variant in ("full", "tight"):
@@ -67,7 +70,7 @@ async def test_silent_continuation_suppresses_only_feedback_and_preserves_seed(t
     states = []
     for variant in ("feedback", "silent", "stop"):
         runtime, setup = await initialize(
-            case, tmp_path / variant, Settings(**protocol["settings"]), variant, protocol
+            case, tmp_path / variant, Settings(**runtime_settings(protocol)), variant, protocol
         )
         rendered = json.dumps(
             [runtime.state.messages, runtime._structured_history, runtime._pending_messages]
@@ -89,7 +92,7 @@ async def test_request_observer_forwards_unchanged_and_matches_escaped_evidence(
     runtime, _ = await initialize(
         load_cases("context")[0],
         tmp_path / "workspace",
-        Settings(**protocol["settings"]),
+        Settings(**runtime_settings(protocol)),
         "full",
         protocol,
     )
@@ -118,7 +121,7 @@ async def test_completed_run_archives_real_requests_and_independent_grade(tmp_pa
         case,
         tmp_path / "workspace",
         tmp_path / "archive",
-        Settings(**protocol["settings"]),
+        Settings(**runtime_settings(protocol)),
         "tight",
         protocol,
         model=ScriptedPolicy(case["actions"]),
@@ -184,7 +187,7 @@ async def test_grader_exception_preserves_completed_run_usage_and_artifacts(tmp_
         case,
         tmp_path / "workspace",
         tmp_path / "archive",
-        Settings(**protocol["settings"]),
+        Settings(**runtime_settings(protocol)),
         "tight",
         protocol,
         model=ScriptedPolicy(case["actions"]),
@@ -193,3 +196,24 @@ async def test_grader_exception_preserves_completed_run_usage_and_artifacts(tmp_
     assert row["autonomous_steps"] > 0 and row["model_requests"] > 0
     assert row["stop_reason"] != "evaluation_setup_error"
     assert row["trace_path"] and "grader unavailable" in row["verifier"]["grader_reason"]
+
+
+def test_condition_selection_preserves_original_protocol_and_labels_input_overrides():
+    protocol = read_data("robustness_protocol.json")
+    original = json.dumps(protocol, sort_keys=True)
+    assert selected_protocol(protocol, "balanced")["context_budgets"] == {"balanced": 8192}
+    assert selected_protocol(protocol, input_budget=8192)["context_budgets"] == {"input_8192": 10240}
+    assert json.dumps(protocol, sort_keys=True) == original
+    assert "tool_output_tokens" not in runtime_settings(protocol)
+    assert protocol["settings"]["tool_output_tokens"] == 1600
+
+
+@pytest.mark.parametrize("arguments", [
+    ["--variant", "balanced"],
+    ["--suite", "recovery", "--input-budget", "8192"],
+    ["--suite", "context", "--variant", "balanced", "--input-budget", "8192"],
+])
+def test_context_condition_options_cannot_silently_change_other_experiments(monkeypatch, arguments):
+    monkeypatch.setattr("sys.argv", ["benchmark_robustness.py", *arguments])
+    with pytest.raises(SystemExit, match="2"):
+        benchmark_robustness.main()

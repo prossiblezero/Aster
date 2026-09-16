@@ -42,6 +42,22 @@ def read_data(name):
     return json.loads(dataset_path(name).read_text())
 
 
+def runtime_settings(protocol):
+    """Keep the historical protocol intact while dropping its removed production setting."""
+    return {key: value for key, value in protocol["settings"].items() if key != "tool_output_tokens"}
+
+
+def selected_protocol(protocol, variant=None, input_budget=None):
+    selected = copy.deepcopy(protocol)
+    if input_budget is not None:
+        selected["context_budgets"] = {
+            f"input_{input_budget}": input_budget + protocol["settings"]["output_tokens"]
+        }
+    elif variant is not None:
+        selected["context_budgets"] = {variant: protocol["context_budgets"][variant]}
+    return selected
+
+
 def dataset_identity(cases, protocol):
     """Hash task text, long history, fixtures and graders independently of implementation."""
     names = {"robustness_protocol.json", protocol["history_file"]}
@@ -154,7 +170,7 @@ class ObservedModel:
 def preview(runtime, budget):
     """Measure without mutating the history that the real request will receive."""
     settings = runtime.settings
-    _, report = ContextBuilder(budget, settings.output_tokens, settings.tool_output_tokens).build(
+    _, report = ContextBuilder(budget, settings.output_tokens).build(
         runtime.state.model_copy(deep=True),
         runtime.state.task.prompt,
         structured_history=copy.deepcopy(runtime._structured_history),
@@ -181,7 +197,7 @@ async def initialize(case, root, settings, variant, protocol):
         overrides = {"context_tokens": protocol["context_budgets"][variant]}
     else:
         overrides = {"max_recovery": protocol["recovery_arms"][variant]}
-    settings = settings.model_copy(update=overrides)
+    settings = type(settings).model_validate({**settings.model_dump(), **overrides})
     runtime = (SilentRecovery if variant == "silent" else Runtime)(root, settings)
     runtime.start(task_spec(case))
     if case["experiment"] == "context":
@@ -377,7 +393,7 @@ def markdown(report):
         "",
         "预置历史/故障前缀，后续由真实模型独立执行；隐藏测试在结束后注入。",
         "恢复的主要对照是 silent 与 feedback：同样允许继续，只改变纠偏提示。stop 不计作提示收益。",
-        "所有计划尝试（含网关失败）保留；三次重复不是三道新题。",
+        f"所有计划尝试（含网关失败）保留；每题每条件重复 {report['repeats']} 次，不视为新增题目。",
         "",
         "| 专项 / 类别 / 条件 | 场景 | 尝试 | 完成 | 平均后续工具调用 | 平均总 token | 平均秒 |",
         "|---|---:|---:|---:|---:|---:|---:|",
@@ -458,9 +474,8 @@ async def preflight(cases, settings, protocol, output):
                 if case["experiment"] == "context":
                     selected = setup["selected"]
                     passed = selected["estimated_tokens"] <= selected["budget"] and (
-                        variant == "full"
+                        setup["untrimmed"]["estimated_tokens"] <= selected["budget"]
                         or selected["compacted"]
-                        and setup["untrimmed"]["estimated_tokens"] > selected["budget"]
                     )
                 else:
                     passed = runtime.state.terminal == (variant == "stop")
@@ -484,16 +499,19 @@ async def preflight(cases, settings, protocol, output):
 
 async def evaluate(args):
     protocol = read_data("robustness_protocol.json")
+    effective_protocol = selected_protocol(protocol, args.variant, args.input_budget)
     cases = load_cases(args.suite)
     if args.task:
         unknown = set(args.task) - {case["id"] for case in cases}
         if unknown:
             raise ValueError(f"unknown scenarios: {sorted(unknown)}")
         cases = [case for case in cases if case["id"] in args.task]
-    settings = load_settings(Path(args.env_file), **protocol["settings"])
+    # Preserve the historical reference-run/settings template. Each real context
+    # condition overrides this with its declared window; this is not its input budget.
+    settings = load_settings(Path(args.env_file), context_tokens=24000, **runtime_settings(protocol))
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
-    if not await preflight(cases, settings, protocol, output):
+    if not await preflight(cases, settings, effective_protocol, output):
         raise ValueError("preflight failed; inspect preflight.json before calling the model")
     if not args.real:
         return 0
@@ -504,7 +522,7 @@ async def evaluate(args):
     jobs = []
     for case in cases:
         variants = (
-            protocol["context_budgets"]
+            effective_protocol["context_budgets"]
             if case["experiment"] == "context"
             else protocol["recovery_arms"]
         )
@@ -520,6 +538,11 @@ async def evaluate(args):
         "mode": "real",
         "settings": settings.identity(),
         "protocol": protocol,
+        "effective_context_budgets": effective_protocol["context_budgets"],
+        "input_budget_override": args.input_budget,
+        "ignored_legacy_settings": {
+            "tool_output_tokens": protocol["settings"]["tool_output_tokens"]
+        },
         "dataset_sha256": dataset_identity(cases, protocol),
         "repeats": repeats,
         "manifest": [
@@ -546,7 +569,7 @@ async def evaluate(args):
                         archive_root / relative,
                         settings,
                         variant,
-                        protocol,
+                        effective_protocol,
                     )
                 except Exception as exc:
                     row = {
@@ -597,6 +620,9 @@ def main():
         help="Without this flag, check setup and independent graders only",
     )
     parser.add_argument("--suite", choices=["context", "recovery"])
+    condition = parser.add_mutually_exclusive_group()
+    condition.add_argument("--variant", choices=["full", "balanced", "tight"])
+    condition.add_argument("--input-budget", type=int, help="Context input tokens; output reserve is added separately")
     parser.add_argument("--task", action="append")
     parser.add_argument("--repeats", type=int)
     parser.add_argument("--concurrency", type=int, default=4)
@@ -605,6 +631,10 @@ def main():
     args = parser.parse_args()
     if args.repeats is not None and args.repeats < 1 or not 1 <= args.concurrency <= 8:
         parser.error("repeats >= 1; concurrency 1..8")
+    if (args.variant is not None or args.input_budget is not None) and args.suite != "context":
+        parser.error("--variant and --input-budget require --suite context")
+    if args.input_budget is not None and args.input_budget < 1024:
+        parser.error("--input-budget must be >= 1024")
     return asyncio.run(evaluate(args))
 
 

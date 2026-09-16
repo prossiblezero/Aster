@@ -13,7 +13,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
     (tmp_path / "config.txt").write_text("timeout=12\n")
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
     initial, _ = env.reset("Inspect the configuration.")
-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v3"
+    assert initial["model_input"] and initial["context_policy"] == "deterministic-v4"
     observation, _, _, _, _ = await env.step(
         ToolCall(name="read_file", arguments={"path": "config.txt"})
     )
@@ -33,7 +33,10 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
 
 async def test_archive_failure_is_a_graded_environment_stop(tmp_path):
     (tmp_path / "facts.txt").write_text("known fact " * 3000)
-    env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False))
+    env = AsterEnv(
+        tmp_path,
+        Settings(approval="auto", auto_dream=False, context_tokens=4096, output_tokens=512),
+    )
     env.reset("Inspect facts.")
     await env.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
     runtime = env.runtime
@@ -82,7 +85,7 @@ async def test_intact_small_results_do_not_pay_for_archive_refs_or_unloaded_sche
 
 def test_compacted_archive_page_cursor_covers_exactly_the_visible_text():
     source = "部署配置与最终约束。" * 200
-    builder = ContextBuilder(4096, 512, 128)
+    builder = ContextBuilder(4096, 512)
     original = {
         "id": "a" * 64,
         "offset": 7,
@@ -98,7 +101,7 @@ def test_compacted_archive_page_cursor_covers_exactly_the_visible_text():
         },
         ensure_ascii=False,
     )
-    clipped = json.loads(builder._clip_tool_output(envelope))
+    clipped = json.loads(builder._clip_tool_output(envelope, token_limit=128))
     page = json.loads(clipped["content"])
     assert page["content"] and source.startswith(page["content"])
     assert page["next_offset"] == 7 + len(page["content"]) < original["next_offset"]

@@ -13,16 +13,21 @@
 | `base_url` | `https://api.openai.com/v1` | API 根地址，不附加 `/responses` 等具体接口路径 |
 | `api_key` | 空 | 连接凭证；建议放在未提交的 `.env` 或进程环境，禁止写入已提交配置 |
 | `request_timeout` | `90` | 一次 HTTP 请求的超时秒数；瞬时错误最多尝试三次，因此整个模型轮次可能超过此值 |
-| `context_tokens` | `24000` | 本地估算的总上下文容量，包含输入与输出预留；不是全部都可用于输入 |
+| `context_tokens` | 不设置（`None`） | 按已知模型规格计算；显式填写时仍表示输入与输出预留之和，可用于网关限制或压力实验 |
 | `output_tokens` | `2048` | 输出预留，也是供应商请求的最大输出长度 |
-| `tool_output_tokens` | `1600` | 单条工具结果正文上限；全局空间不足时还会缩短，不保证每条拿满。Runtime 结果保留状态、原因、证据编号与修改路径，这些元数据仍计入全局输入预算 |
 | `tool_profile` | `core` | 首轮展示可用核心工具，其他工具由 `tool_load` 按需加入；`all` 展示当前配置可用的全部工具 |
+
+默认预算来自已核对的模型配置，而不是接口协议。按 [OpenAI 官方 Luna 规格](https://developers.openai.com/api/docs/models/gpt-5.6-luna)，总窗口为 1,050,000、最大输入为 922,000、最大输出为 128,000 tokens。这三个数字不能互换。自动输入额度为 `floor(min(最大输入, 总窗口 - output_tokens) × 0.95)`，留出 5% 本地计量余量；Luna 默认得到 **875,900 输入 + 2,048 输出预留**。这是容量上限，不会为了填满窗口而构造无关输入。
+
+当前内置规格只有精确名称 `gpt-5.6-luna`；不是从任意兼容接口自动发现窗口。未知名称回退到总额 24,000，并在 CLI / TUI 明示。接入网关若有更小限制，可显式配置 `context_tokens`；已知模型超过官方输入、输出或总窗口上限会报错。显式值不会再次扣除 5%，便于准确复现实验。恢复检查绑定最终生效额度，而不是 `None`。
+
+已移除 `tool_output_tokens`：工具正文不再预先截到固定 token 数，整份请求超预算后才压缩。旧 TOML 中该字段需删除，否则明确报配置错误。执行超时、进程输出采集大小、读取行数和分页字符数仍各管自己的资源边界；它们不等于模型上下文预算。
 
 例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。`ContextBuilder` 使用与 Provider 相同的请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
 
 这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [阶段 13](learning/13-runtime-reliability.md)。
 
-`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。正文预算不足时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
+`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
 
 `observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 
@@ -96,7 +101,7 @@ approval = "never"
 sandbox = "required"
 read_only = true
 network = false
-context_tokens = 24000
+# 不填写 context_tokens，使用接入模型的默认预算
 output_tokens = 2048
 tool_profile = "core"
 ```

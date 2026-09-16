@@ -46,10 +46,29 @@ def main(argv=None):
         approval=args.approval,
         read_only=args.read_only or None,
     )
+    context_source = {
+        "explicit": "configured total budget",
+        "model_profile": "model default with 5% estimation margin",
+        "fallback": "unknown model fallback; set context_tokens in your config to override",
+    }[settings.context_budget_source]
+    print(
+        f"Aster context: {settings.effective_context_tokens - settings.output_tokens:,} input "
+        f"+ {settings.output_tokens:,} output tokens ({context_source}).",
+        file=sys.stderr,
+    )
     if args.tui:
         if AsterTui is None:
             parser.error("TUI requires textual")
-        AsterTui(Path(args.cwd), settings).run()
+        app = AsterTui(Path(args.cwd), settings)
+        label = (
+            "Unknown model fallback"
+            if settings.context_budget_source == "fallback"
+            else settings.model
+        )
+        app.sub_title = (
+            f"{label} | {settings.effective_context_tokens - settings.output_tokens:,} input tokens"
+        )
+        app.run()
         return 0
     if args.rl_smoke:
         return asyncio.run(

@@ -52,7 +52,7 @@ def test_budget_counts_actual_tool_schemas_and_protocol_payload(protocol):
 def test_compaction_retains_full_call_batches_and_reasoning_beyond_old_slice_limit():
     state = RunState(task=TaskSpec(prompt="Keep investigating."))
     history = [item for i in range(24) for item in exchange(i, "long observation " * 300)]
-    builder = ContextBuilder(2100, 512, 300)
+    builder = ContextBuilder(2100, 512)
     prompt, report = builder.build(state, state.task.prompt, structured_history=history)
     assert report.compacted and report.estimated_tokens <= report.budget
     groups = history_groups(history)

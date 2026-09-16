@@ -27,14 +27,13 @@ class ContextReport:
     compacted: bool
     removed_messages: int
     sections: dict[str, int]
-    policy_version: str = "deterministic-v3"
+    policy_version: str = "deterministic-v4"
     archive_hashes: tuple[str, ...] = ()
 
 
 class ContextBuilder:
-    def __init__(self, budget: int, output_reserve: int, tool_output_tokens: int = 1600):
+    def __init__(self, budget: int, output_reserve: int):
         self.budget, self.output_reserve = budget, output_reserve
-        self.tool_output_tokens = max(64, tool_output_tokens)
         self.encoder = tiktoken.get_encoding("cl100k_base") if tiktoken else None
 
     def count(self, value) -> int:
@@ -134,9 +133,6 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                         validate_archive(ref)
                     archive_hashes.add(ref["id"])
                     references[item["call_id"]] = ref
-                output = self._clip_tool_output(value, reference=references.get(item["call_id"]))
-                clipped |= output != value
-                item["output"] = output
         # The native transcript already owns model text, tool observations and user feedback.
         # Ordinary messages remain useful for direct step()/RL callers without a transcript.
         represented_users = {
@@ -158,7 +154,6 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             )
         ]
         ordinary_ids = {id(message) for message in messages}
-        ordinary_refs = {}
         for message in messages:
             if archive is not None and message.get("role") == "tool":
                 content = message.get("content", "")
@@ -167,23 +162,15 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                     # them as observations, never invent protocol calls for old text.
                     key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
                     ref = archive(key, "historical_observation", content)
-                    ordinary_refs[id(message)] = ref
                     archive_hashes.add(ref["id"])
         active_bodies = {
             name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
         }
-        bounded_bodies = {
-            name: self._clip_tokens(
-                body, marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)"
-            )
-            for name, body in active_bodies.items()
-        }
-        clipped |= bounded_bodies != active_bodies
         sections = {
             "memory": memory,
             "skills": skills,
             "active_skill_bodies": "\n".join(
-                f"{name}:\n{body}" for name, body in bounded_bodies.items()
+                f"{name}:\n{body}" for name, body in active_bodies.items()
             ),
             "working_memory": working_memory,
         }
@@ -207,10 +194,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                 role = message.get("role", "user")
                 content = message.get("content", "")
                 if role == "tool":
-                    preview = self._clip_tokens(content)
-                    if preview != content and id(message) in ordinary_refs:
-                        preview += "\nobservation_id=" + ordinary_refs[id(message)]["id"]
-                    content = "[untrusted tool observation]\n" + preview
+                    content = "[untrusted tool observation]\n" + content
                 prompt.append(
                     {
                         "role": role if role in {"user", "assistant", "system"} else "user",
@@ -233,6 +217,19 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
 
         prompt = render()
         before = tokens(prompt)
+
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+
         while tokens(prompt) > limit:
             index = next(
                 (
@@ -289,7 +286,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                 elif group_index is not None:
                     removed += len(groups.pop(group_index))
                 elif any(sections.values()):
-                    sections[next(key for key, value in sections.items() if value)] = ""
+                    shrink_section()
                 else:
                     raise ContextBudgetError(
                         "context_budget_exceeded: mandatory request contains an unshrinkable observation"
@@ -298,8 +295,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                 removed += len(groups.pop(group_index))
             elif any(sections.values()):
                 # Reconstructible recall/skill text yields to the current request and recent evidence.
-                key = next(k for k, value in sections.items() if value)
-                sections[key] = ""
+                shrink_section()
             elif workflow_text_limit > 64:
                 # Keep every pending item identity; only shorten reconstructible prose.
                 workflow_text_limit = max(64, workflow_text_limit // 2)
@@ -352,7 +348,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                 return record
         return {"content": value}
 
-    def _clip_tool_output(self, value, *, token_limit=None, reference=None):
+    def _clip_tool_output(self, value, *, token_limit: int, reference=None):
         """Shorten only permitted body text, retaining status, provenance and call pairing."""
         record = self._output_record(value)
         marker = (
@@ -360,12 +356,26 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             if "observation" in record or reference is not None
             else "\n[tool output clipped]"
         )
-        if record.get("page") == "observation":
-            page = json.loads(record["content"])
-            limit = self.tool_output_tokens if token_limit is None else token_limit
+        page_kind = record.get("page")
+        if page_kind in {"observation", "text"}:
+            if page_kind == "text":
+                header, body = record["content"].split("\n", 1)
+                page = {**json.loads(header), "content": body}
+            else:
+                page = json.loads(record["content"])
+
+            def page_text():
+                if page_kind == "text":
+                    return (
+                        json.dumps({k: v for k, v in page.items() if k != "content"})
+                        + "\n"
+                        + page["content"]
+                    )
+                return json.dumps(page, ensure_ascii=False)
+
             # Preserve the cursor for exactly the visible characters/records, even
             # when the latest parallel batch must share a smaller global budget.
-            while self.count(json.dumps(page, ensure_ascii=False)) > limit:
+            while self.count(page_text()) > token_limit:
                 if "observations" in page and len(page["observations"]) > 1:
                     page["observations"].pop()
                     page["next_offset"] = page["offset"] + len(page["observations"])
@@ -374,7 +384,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
                     page["next_offset"] = page["offset"] + len(page["content"])
                 else:
                     break  # An irreducible page header must fit or explicitly stop.
-            content = json.dumps(page, ensure_ascii=False)
+            content = page_text()
         else:
             content = self._clip_tokens(record["content"], token_limit=token_limit, marker=marker)
         if content == record["content"]:
@@ -384,8 +394,7 @@ actions honestly. Tool calls are structured actions; do not put fake XML tool ca
             record["observation"] = reference
         return json.dumps(record, ensure_ascii=False) if len(record) > 1 else content
 
-    def _clip_tokens(self, value, *, token_limit=None, marker="\n[tool output clipped]"):
-        token_limit = self.tool_output_tokens if token_limit is None else token_limit
+    def _clip_tokens(self, value, *, token_limit: int, marker="\n[tool output clipped]"):
         if isinstance(value, list):
             return [
                 {
