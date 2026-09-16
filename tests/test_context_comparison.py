@@ -70,9 +70,13 @@ def test_selected_condition_uses_full_task_set_and_only_declared_setting_removal
     after["ignored_legacy_settings"] = {"tool_output_tokens": 1600}
     report = compare(before, after)
     assert report["groups"]["primary/balanced"]["after"]["attempts"] == 36
-    assert report["compared_conditions"] == [{
-        "input_budget": 6144, "before_variant": "balanced", "after_variant": "balanced",
-    }]
+    assert report["compared_conditions"] == [
+        {
+            "input_budget": 6144,
+            "before_variant": "balanced",
+            "after_variant": "balanced",
+        }
+    ]
     assert report["uncompared_conditions"]["before"] == {"full": 30720, "tight": 3584}
     assert report["setting_changes"][0]["setting"] == "tool_output_tokens"
     assert all(row["variant"] == "balanced" for row in report["failures"]["before"])

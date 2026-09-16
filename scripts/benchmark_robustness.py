@@ -44,7 +44,9 @@ def read_data(name):
 
 def runtime_settings(protocol):
     """Keep the historical protocol intact while dropping its removed production setting."""
-    return {key: value for key, value in protocol["settings"].items() if key != "tool_output_tokens"}
+    return {
+        key: value for key, value in protocol["settings"].items() if key != "tool_output_tokens"
+    }
 
 
 def selected_protocol(protocol, variant=None, input_budget=None):
@@ -75,7 +77,9 @@ def dataset_identity(cases, protocol):
             for path in fixture.rglob("*")
             if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
         )
-    return {name: hashlib.sha256(dataset_path(name).read_bytes()).hexdigest() for name in sorted(names)}
+    return {
+        name: hashlib.sha256(dataset_path(name).read_bytes()).hexdigest() for name in sorted(names)
+    }
 
 
 def save(path, value):
@@ -309,7 +313,9 @@ async def run_attempt(case, root, destination, settings, variant, protocol, *, m
         if contexts
         else None,
         "evidence_read_calls": evidence_reads,
-        "observation_read_calls": sum(event["call"]["name"] == "observation_read" for event in calls),
+        "observation_read_calls": sum(
+            event["call"]["name"] == "observation_read" for event in calls
+        ),
         "observation_read_successes": sum(
             event["call"]["name"] == "observation_read" and event["outcome"]["status"] == "success"
             for event in calls
@@ -508,7 +514,9 @@ async def evaluate(args):
         cases = [case for case in cases if case["id"] in args.task]
     # Preserve the historical reference-run/settings template. Each real context
     # condition overrides this with its declared window; this is not its input budget.
-    settings = load_settings(Path(args.env_file), context_tokens=24000, **runtime_settings(protocol))
+    settings = load_settings(
+        Path(args.env_file), context_tokens=24000, **runtime_settings(protocol)
+    )
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     if not await preflight(cases, settings, effective_protocol, output):
@@ -622,7 +630,9 @@ def main():
     parser.add_argument("--suite", choices=["context", "recovery"])
     condition = parser.add_mutually_exclusive_group()
     condition.add_argument("--variant", choices=["full", "balanced", "tight"])
-    condition.add_argument("--input-budget", type=int, help="Context input tokens; output reserve is added separately")
+    condition.add_argument(
+        "--input-budget", type=int, help="Context input tokens; output reserve is added separately"
+    )
     parser.add_argument("--task", action="append")
     parser.add_argument("--repeats", type=int)
     parser.add_argument("--concurrency", type=int, default=4)

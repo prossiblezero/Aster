@@ -44,12 +44,17 @@ async def test_context_treatment_changes_only_budget_and_preserves_archived_evid
     for runtime in runtimes:
         records = [
             json.loads(path.read_text())
-            for path in runtime.evidence.path("runs", runtime.state.run_id, "observations").glob("*.json")
+            for path in runtime.evidence.path("runs", runtime.state.run_id, "observations").glob(
+                "*.json"
+            )
         ]
-        archives.append({(record["call_id"], record["tool"]): record["content"] for record in records})
+        archives.append(
+            {(record["call_id"], record["tool"]): record["content"] for record in records}
+        )
     assert archives[0] == archives[1]
     assert set(archives[0].values()) == {
-        message["content"] for message in [*case["history"], *read_data(protocol["history_file"])["messages"]]
+        message["content"]
+        for message in [*case["history"], *read_data(protocol["history_file"])["messages"]]
         if message["role"] == "tool"
     }
     assert setups[0]["selected"]["removed_messages"] == 0
@@ -202,17 +207,22 @@ def test_condition_selection_preserves_original_protocol_and_labels_input_overri
     protocol = read_data("robustness_protocol.json")
     original = json.dumps(protocol, sort_keys=True)
     assert selected_protocol(protocol, "balanced")["context_budgets"] == {"balanced": 8192}
-    assert selected_protocol(protocol, input_budget=8192)["context_budgets"] == {"input_8192": 10240}
+    assert selected_protocol(protocol, input_budget=8192)["context_budgets"] == {
+        "input_8192": 10240
+    }
     assert json.dumps(protocol, sort_keys=True) == original
     assert "tool_output_tokens" not in runtime_settings(protocol)
     assert protocol["settings"]["tool_output_tokens"] == 1600
 
 
-@pytest.mark.parametrize("arguments", [
-    ["--variant", "balanced"],
-    ["--suite", "recovery", "--input-budget", "8192"],
-    ["--suite", "context", "--variant", "balanced", "--input-budget", "8192"],
-])
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--variant", "balanced"],
+        ["--suite", "recovery", "--input-budget", "8192"],
+        ["--suite", "context", "--variant", "balanced", "--input-budget", "8192"],
+    ],
+)
 def test_context_condition_options_cannot_silently_change_other_experiments(monkeypatch, arguments):
     monkeypatch.setattr("sys.argv", ["benchmark_robustness.py", *arguments])
     with pytest.raises(SystemExit, match="2"):

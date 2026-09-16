@@ -22,8 +22,10 @@ def context_budgets(report):
         if variant in report["protocol"]["context_budgets"]:
             if window != report["protocol"]["context_budgets"][variant]:
                 raise ValueError("named budget changed from the frozen protocol")
-        elif (variant != f"input_{window - report['settings']['output_tokens']}"
-              or report.get("input_budget_override") != window - report["settings"]["output_tokens"]):
+        elif (
+            variant != f"input_{window - report['settings']['output_tokens']}"
+            or report.get("input_budget_override") != window - report["settings"]["output_tokens"]
+        ):
             raise ValueError("custom budget must use its explicit input token label")
         budgets[variant] = window - report["settings"]["output_tokens"]
     if len(set(budgets.values())) != len(budgets):
@@ -42,15 +44,20 @@ def index(report):
         for variant in budgets
         for attempt in range(1, report["repeats"] + 1)
     }
-    planned = {
-        (row["task_id"], row["variant"], row["attempt"])
-        for row in manifest
-    }
-    if (not rows or len(indexed) != len(rows) or len(planned) != len(manifest)
-            or indexed.keys() != expected or planned != expected):
+    planned = {(row["task_id"], row["variant"], row["attempt"]) for row in manifest}
+    if (
+        not rows
+        or len(indexed) != len(rows)
+        or len(planned) != len(manifest)
+        or indexed.keys() != expected
+        or planned != expected
+    ):
         raise ValueError("incomplete or duplicate context attempts")
-    if any(row.get("setup", {}).get("selected", {}).get("budget", budgets[row["variant"]])
-           != budgets[row["variant"]] for row in rows):
+    if any(
+        row.get("setup", {}).get("selected", {}).get("budget", budgets[row["variant"]])
+        != budgets[row["variant"]]
+        for row in rows
+    ):
         raise ValueError("observed request budget differs from the declared condition")
     return indexed
 
@@ -91,7 +98,9 @@ def compare(before, after):
     left_budgets, right_budgets = context_budgets(before), context_budgets(after)
     shared = sorted(set(left_budgets.values()) & set(right_budgets.values()), reverse=True)
     if not shared:
-        raise ValueError("no shared input budget; do not present different budgets as a same-budget comparison")
+        raise ValueError(
+            "no shared input budget; do not present different budgets as a same-budget comparison"
+        )
     hashes = after["dataset_sha256"]
     baseline_hashes = before.get("dataset_sha256")
     if baseline_hashes is None:
@@ -112,19 +121,29 @@ def compare(before, after):
     for budget in shared:
         left_variant = next(variant for variant, value in left_budgets.items() if value == budget)
         right_variant = next(variant for variant, value in right_budgets.items() if value == budget)
-        compared_conditions.append({
-            "input_budget": budget, "before_variant": left_variant, "after_variant": right_variant,
-        })
+        compared_conditions.append(
+            {
+                "input_budget": budget,
+                "before_variant": left_variant,
+                "after_variant": right_variant,
+            }
+        )
         for task, _, attempt in [key for key in a if key[1] == left_variant]:
-            if a[(task, left_variant, attempt)]["category"] != b[(task, right_variant, attempt)]["category"]:
+            if (
+                a[(task, left_variant, attempt)]["category"]
+                != b[(task, right_variant, attempt)]["category"]
+            ):
                 raise ValueError("task categories changed")
     for category in ["primary", *sorted({row["category"] for row in a.values()})]:
         for condition in compared_conditions:
             left_variant, right_variant = condition["before_variant"], condition["after_variant"]
             keys = [
-                key for key, row in a.items()
-                if row["variant"] == left_variant and (
-                    row["category"] != "loss_control" if category == "primary"
+                key
+                for key, row in a.items()
+                if row["variant"] == left_variant
+                and (
+                    row["category"] != "loss_control"
+                    if category == "primary"
                     else row["category"] == category
                 )
             ]
@@ -151,11 +170,21 @@ def compare(before, after):
         "groups": groups,
         "failures": {
             version: [
-                {key: row.get(key) for key in (
-                    "task_id", "variant", "attempt", "stop_reason", "failure", "trace_path"
-                )}
-                for row in indexed.values() if not row["passed"]
-                and row["variant"] in {condition[f"{version}_variant"] for condition in compared_conditions}
+                {
+                    key: row.get(key)
+                    for key in (
+                        "task_id",
+                        "variant",
+                        "attempt",
+                        "stop_reason",
+                        "failure",
+                        "trace_path",
+                    )
+                }
+                for row in indexed.values()
+                if not row["passed"]
+                and row["variant"]
+                in {condition[f"{version}_variant"] for condition in compared_conditions}
             ]
             for version, indexed in (("before", a), ("after", b))
         },
@@ -167,12 +196,17 @@ def markdown(report):
         return "—" if value is None else f"{value:.2%}"
 
     lines = [
-        "# 上下文重构前后：同题、同预算对照", "",
+        "# 上下文重构前后：同题、同预算对照",
+        "",
         "题目、长历史、初始仓库和隐藏判分器哈希一致；仅比较双方共同的实际输入预算，其他条件明确列出。",
         "除下列已声明的实现设置变更外，模型与运行参数一致。",
-        *[f"设置变更：{item['setting']} 从 {item['before']} 变为 {item['after']}。" for item in report["setting_changes"]],
+        *[
+            f"设置变更：{item['setting']} 从 {item['before']} 变为 {item['after']}。"
+            for item in report["setting_changes"]
+        ],
         f"未参与对比的预算条件：{json.dumps(report['uncompared_conditions'], ensure_ascii=False)}。",
-        "这是历史批次与新批次的比较，模型和网关的时间波动仍可能影响结果。", "",
+        "这是历史批次与新批次的比较，模型和网关的时间波动仍可能影响结果。",
+        "",
         "| 类别 / 预算 | 完成 前→后 | Pass@1 前→后 | Pass@3 前→后 | 隐藏功能通过 前→后 | 预算停止 前→后 | 归档查询/读取调用 前→后 |",
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
@@ -187,10 +221,14 @@ def markdown(report):
             f"{a['observation_read_calls']}→{b['observation_read_calls']} |"
         )
     lines += [
-        "", "primary 是 12 道主任务；loss_control 是原样保留的一次性证据控制，单列不并入主任务。",
-        f"每题每档重复 {report['repeats']} 次，Pass@k 先逐题估计再取平均；36 次尝试不是 Pass@3 的分母。", "",
-        "## 两个版本都成功的配对成本", "",
-        "失败样本保留在上表和 JSON 清单中；此表只防止把提前失败的低消耗写成成本收益。", "",
+        "",
+        "primary 是 12 道主任务；loss_control 是原样保留的一次性证据控制，单列不并入主任务。",
+        f"每题每档重复 {report['repeats']} 次，Pass@k 先逐题估计再取平均；36 次尝试不是 Pass@3 的分母。",
+        "",
+        "## 两个版本都成功的配对成本",
+        "",
+        "失败样本保留在上表和 JSON 清单中；此表只防止把提前失败的低消耗写成成本收益。",
+        "",
         "| 类别 / 预算 | 共同成功 | 平均 token 前→后 | token 变化 | 平均工具调用 前→后 | 平均秒 前→后 |",
         "|---|---:|---:|---:|---:|---:|",
     ]
@@ -218,7 +256,9 @@ def main():
         for name, path in (("before", args.before), ("after", args.after))
     }
     args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "comparison.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    (args.output / "comparison.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+    )
     (args.output / "comparison.md").write_text(markdown(report))
     print(args.output / "comparison.md")
 
