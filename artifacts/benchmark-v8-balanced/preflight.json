@@ -1,0 +1,790 @@
+{
+  "source": {
+    "git_head": "01638a75b05b7c7f28e24a27bb4b3b09660d4de2",
+    "content_sha256": "8690d5e19c713235ff3934dd47d9162924604bbe0165830430207c7b175d8a80",
+    "python": "3.12.14"
+  },
+  "passed": true,
+  "rows": [
+    {
+      "id": "context_retry_delay",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_retry_delay",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [(\"7.5\", 7.5), (\"-3\", 0.0), (\"900\", 30.0), (\" 0.25 \", 0.25)]:\n            headers = {\"Retry-After\": value, \"Trace\": \"keep\"}\n>           assert retry_delay(headers) == expected\nE           AssertionError: assert 2.0 == 7.5\nE            +  where 2.0 = retry_delay({'Retry-After': '7.5', 'Trace': 'keep'})\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert 2.0 == 7.5\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_retry_delay",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18411,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6076,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      }
+    },
+    {
+      "id": "context_nested_redaction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_nested_redaction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        source = {\n            \"TOKEN\": \"secret\",\n            \"events\": [{\"password\": \"p\", \"token_count\": 4}, {\"nested\": {\"Api_Key\": \"k\"}}],\n        }\n        original = deepcopy(source)\n>       assert redact(source) == {\n            \"TOKEN\": \"[redacted]\",\n            \"events\": [\n                {\"password\": \"[redacted]\", \"token_count\": 4},\n                {\"nested\": {\"Api_Key\": \"[redacted]\"}},\n            ],\n        }\nE       AssertionError: assert {'TOKEN': 'se..._Key': 'k'}}]} == {'TOKEN': '[r...redacted]'}}]}\nE         \nE         Differing items:\nE         {'events': [{'password': 'p', 'token_count': 4}, {'nested': {'Api_Key': 'k'}}]} != {'events': [{'password': '[redacted]', 'token_count': 4}, {'nested': {'Api_Key': '[redacted]'}}]}\nE         {'TOKEN': 'secret'} != {'TOKEN': '[redacted]'}\nE         Use -v to get more diff\n\n__evaluation_tests.py:12: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'TOKEN': 'se...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_nested_redaction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6077,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      }
+    },
+    {
+      "id": "context_config_merge",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_config_merge",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        base = {\"db\": {\"host\": \"local\", \"secret\": \"x\"}, \"tags\": [\"old\"]}\n        override = {\n            \"db\": {\"secret\": None, \"port\": 5432},\n            \"tags\": [\"new\"],\n            \"new\": {\"absent\": None, \"ok\": 1},\n        }\n        before = deepcopy((base, override))\n        result = merge_config(base, override)\n>       assert result == {\"db\": {\"host\": \"local\", \"port\": 5432}, \"tags\": [\"new\"], \"new\": {\"ok\": 1}}\nE       AssertionError: assert {'db': {'secr...one, 'ok': 1}} == {'db': {'host...w': {'ok': 1}}\nE         \nE         Omitting 1 identical items, use -vv to show\nE         Differing items:\nE         {'db': {'secret': None, 'port': 5432}} != {'db': {'host': 'local', 'port': 5432}}\nE         {'new': {'absent': None, 'ok': 1}} != {'new': {'ok': 1}}\nE         Use -v to get more diff\n\n__evaluation_tests.py:15: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'db': {'secr...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_config_merge",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18412,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6077,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      }
+    },
+    {
+      "id": "context_name_deduplication",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_name_deduplication",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        values = [\" Ada \", \"ada\", \"\", \"  \", \"STRASSE\", \"Straße\", \"Lin\", \" LIN \"]\n        before = values[:]\n>       assert unique_names(values) == [\" Ada \", \"STRASSE\", \"Lin\"]\nE       AssertionError: assert [' Ada ', 'ad...'Straße', ...] == [' Ada ', 'STRASSE', 'Lin']\nE         \nE         At index 1 diff: 'ada' != 'STRASSE'\nE         Left contains 5 more items, first extra item: '  '\nE         Use -v to get more diff\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert [' Ada ', 'ad...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_name_deduplication",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18418,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6124,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      }
+    },
+    {
+      "id": "context_decimal_rounding",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_decimal_rounding",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for value, expected in [\n            (\"1.005\", \"1.01\"),\n            (\"-1.005\", \"-1.01\"),\n            (\"2.675\", \"2.68\"),\n            (\"-0.004\", \"0.00\"),\n            (\"99.995\", \"100.00\"),\n        ]:\n>           assert format_amount(value) == expected\nE           AssertionError: assert '1.00' == '1.01'\nE             \nE             - 1.01\nE             ?    ^\nE             + 1.00\nE             ?    ^\n\n__evaluation_tests.py:12: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert '1.00' == '1.01'\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_decimal_rounding",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6126,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      }
+    },
+    {
+      "id": "context_cursor_pagination",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_cursor_pagination",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        items = [{\"id\": \"a\"}, {\"id\": \"b\"}, {\"id\": \"a\"}, {\"id\": \"c\"}]\n        before = deepcopy(items)\n>       assert slice_after(items, \"a\", 2) == [{\"id\": \"b\"}, {\"id\": \"a\"}]\nE       AssertionError: assert [{'id': 'a'}, {'id': 'b'}] == [{'id': 'b'}, {'id': 'a'}]\nE         \nE         At index 0 diff: {'id': 'a'} != {'id': 'b'}\nE         Use -v to get more diff\n\n__evaluation_tests.py:10: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert [{'id': 'a'},...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_cursor_pagination",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18432,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6140,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      }
+    },
+    {
+      "id": "context_timeout_migration",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_timeout_migration",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert load_settings({}) == {\"timeout_ms\": 2000}\nE       AssertionError: assert {'timeout_seconds': 2} == {'timeout_ms': 2000}\nE         \nE         Left contains 1 more item:\nE         {'timeout_seconds': 2}\nE         Right contains 1 more item:\nE         {'timeout_ms': 2000}\nE         Use -v to get more diff\n\n__evaluation_tests.py:6: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert {'timeout_sec...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_timeout_migration",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18437,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6080,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      }
+    },
+    {
+      "id": "context_disabled_jobs",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_disabled_jobs",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        raw = {\"disabled_jobs\": \" LINT ,test,, lint , STRASSE \"}\n>       assert disabled_names(raw) == {\"lint\", \"test\", \"strasse\"}\nE       AssertionError: assert set() == {'lint', 'strasse', 'test'}\nE         \nE         Extra items in the right set:\nE         'lint'\nE         'strasse'\nE         'test'\nE         Use -v to get more diff\n\n__evaluation_tests.py:7: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert set() == {'li...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_disabled_jobs",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18442,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6080,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      }
+    },
+    {
+      "id": "context_shared_encoding",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_shared_encoding",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        payload = {\"z\": [\"中文\", {\"b\": 2, \"a\": 1}], \"a\": True}\n        expected = '{\"a\":true,\"z\":[\"中文\",{\"a\":1,\"b\":2}]}'.encode()\n        for function in [encode, request_body, cache_value]:\n            result = function(payload)\n>           assert result == expected\nE           assert b'{\"z\": [\"\\\\u...], \"a\": true}' == b'{\"a\":true,\"...a\":1,\"b\":2}]}'\nE             \nE             At index 2 diff: b'z' != b'a'\nE             Use -v to get more diff\n\n__evaluation_tests.py:13: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - assert b'{\"z\": [\"\\\\u...], \"a\": true}...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_shared_encoding",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18434,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6081,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      }
+    },
+    {
+      "id": "context_retry_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_retry_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        calls = []\n    \n        def succeeds_on_fourth():\n            calls.append(1)\n            if len(calls) < 4:\n                raise TimeoutError(\"temporary\")\n            return \"recovered\"\n    \n>       assert run_with_retry(succeeds_on_fourth) == \"recovered\"\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\n__evaluation_tests.py:14: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nsolution.py:2: in run_with_retry\n    return action()\n           ^^^^^^^^\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def succeeds_on_fourth():\n        calls.append(1)\n        if len(calls) < 4:\n>           raise TimeoutError(\"temporary\")\nE           TimeoutError: temporary\n\n__evaluation_tests.py:11: TimeoutError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - TimeoutError: temporary\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_retry_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18465,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 5696,
+          "budget": 6144,
+          "removed_messages": 28,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      }
+    },
+    {
+      "id": "context_unicode_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_unicode_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        for source, expected in [\n            (\"  Straße -- 中文  \", \"strasse_中文\"),\n            (\"A...B___C\", \"a_b_c\"),\n            (\"École № ２\", \"école_２\"),\n            (\"---\", \"\"),\n        ]:\n>           assert make_key(source) == expected\nE           AssertionError: assert '--straße----中文--' == 'strasse_中文'\nE             \nE             - strasse_中文\nE             + --straße----中文--\n\n__evaluation_tests.py:11: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert '--straße----...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_unicode_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18472,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 5702,
+          "budget": 6144,
+          "removed_messages": 28,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      }
+    },
+    {
+      "id": "context_ordering_correction",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_ordering_correction",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n        jobs = [\n            {\"name\": \"low\", \"priority\": -1},\n            {\"name\": \"z\", \"priority\": 5},\n            {\"name\": \"default\"},\n            {\"name\": \"a\", \"priority\": 5},\n            {\"name\": \"zero\", \"priority\": 0},\n        ]\n        before = deepcopy(jobs)\n>       assert [job[\"name\"] for job in order_jobs(jobs)] == [\"z\", \"a\", \"default\", \"zero\", \"low\"]\nE       AssertionError: assert ['low', 'z', ..., 'a', 'zero'] == ['z', 'a', 'd...'zero', 'low']\nE         \nE         At index 0 diff: 'low' != 'z'\nE         Use -v to get more diff\n\n__evaluation_tests.py:15: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert ['low', 'z', ...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_ordering_correction",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18461,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 5690,
+          "budget": 6144,
+          "removed_messages": 28,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      }
+    },
+    {
+      "id": "context_ephemeral_route",
+      "kind": "grader",
+      "passed": true,
+      "baseline": {
+        "task_id": "context_ephemeral_route",
+        "fix_fails_before": true,
+        "regression_passes_before": true,
+        "fix": {
+          "passed": false,
+          "exit_code": 1,
+          "status": "error",
+          "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed in 0.01s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 0
+          },
+          "grader_reason": "test_process_failed"
+        },
+        "regression": {
+          "passed": true,
+          "exit_code": 0,
+          "status": "success",
+          "output": ".                                                                        [100%]\n1 passed in 0.00s\n",
+          "isolation": "landlock+seccomp",
+          "tests": {
+            "expected": 1,
+            "executed": 1,
+            "passed": 1
+          },
+          "grader_reason": "all_tests_passed"
+        }
+      },
+      "reference_passed": true
+    },
+    {
+      "id": "context_ephemeral_route",
+      "variant": "balanced",
+      "kind": "setup",
+      "passed": true,
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18406,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 6076,
+          "budget": 6144,
+          "removed_messages": 27,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      }
+    }
+  ]
+}

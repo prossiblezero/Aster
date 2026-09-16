@@ -1,0 +1,5131 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-16T12:24:49.052986+00:00",
+  "source": {
+    "git_head": "01638a75b05b7c7f28e24a27bb4b3b09660d4de2",
+    "content_sha256": "8690d5e19c713235ff3934dd47d9162924604bbe0165830430207c7b175d8a80",
+    "python": "3.12.14"
+  },
+  "mode": "real",
+  "settings": {
+    "protocol": "responses",
+    "model": "gpt-5.6-luna",
+    "request_timeout": 90.0,
+    "context_tokens": 24000,
+    "output_tokens": 2048,
+    "approval": "auto",
+    "sandbox": "required",
+    "network": false,
+    "read_only": false,
+    "write_scope": null,
+    "rules": [],
+    "max_recovery": 2,
+    "max_final_revisions": 2,
+    "completion": "strict",
+    "memory_enabled": true,
+    "memory_evolution": true,
+    "auto_dream": false,
+    "tool_profile": "core",
+    "max_workers": 0
+  },
+  "protocol": {
+    "schema_version": 1,
+    "split": "evaluation",
+    "repeats": 3,
+    "shuffle_seed": 20260915,
+    "settings": {
+      "approval": "auto",
+      "sandbox": "required",
+      "network": false,
+      "auto_dream": false,
+      "tool_profile": "core",
+      "max_workers": 0,
+      "max_recovery": 2,
+      "output_tokens": 2048,
+      "tool_output_tokens": 1600
+    },
+    "context_budgets": {
+      "full": 32768,
+      "balanced": 8192,
+      "tight": 5632
+    },
+    "recovery_arms": {
+      "feedback": 2,
+      "silent": 2,
+      "stop": 0
+    },
+    "history_file": "context_history.json"
+  },
+  "effective_context_budgets": {
+    "input_8192": 10240
+  },
+  "input_budget_override": 8192,
+  "ignored_legacy_settings": {
+    "tool_output_tokens": 1600
+  },
+  "dataset_sha256": {
+    "checks/context_config_merge.py": "a1ff6014607771bc2454b0c090f4d7a2534640103c04e59d40cf4ef6baa44795",
+    "checks/context_cursor_pagination.py": "5e1aedf64c51c6733593d48187c0e8af54501a2e53e88f76f41ed18e978861a8",
+    "checks/context_decimal_rounding.py": "e8791b539779be878ff87acc0539e6bf6ad75698737d56174fe10701ed602d2f",
+    "checks/context_disabled_jobs.py": "a35b4005331859dede7a7b5036fbf4a95a003edd310e5aaaa1c695d57af6ec05",
+    "checks/context_ephemeral_route.py": "2c7d4940d044840e96ad88d84ccf0af4e3029093e0b2a9c551809e8030fd79d6",
+    "checks/context_name_deduplication.py": "b7d58a690ffd3be5f4589a3f2881fd571196b845607d1358f1cd88f2a712c523",
+    "checks/context_nested_redaction.py": "a5c71493b98db8cab43fd8edf99567e55523a52a5684eb6be9e554e181b30c96",
+    "checks/context_ordering_correction.py": "c428b0391537d0f6d26bb1b4cb0645e48d34756c78e9d61c2136643f5d3f87b2",
+    "checks/context_retry_correction.py": "d13a0e3db00c9239fdb403a41ff263fd779e9507e9a460684445a0bcd3799987",
+    "checks/context_retry_delay.py": "8207b965dadb875aff76fb43b13091f1a0a9bdee5da1b7ecc8c97fa52c7a89b1",
+    "checks/context_shared_encoding.py": "647b7b6dd8e3fc202601219a3ed7a3e05432c88cc4f93738a32b8a00cdd90920",
+    "checks/context_timeout_migration.py": "4f85340c29185ac767534236fea751f88b0f988e2651b8e96de508f62923a009",
+    "checks/context_unicode_correction.py": "337bd5208f234fb94a14423e9220ecd63d2802743f42b3fa150cdc1b6452d3ad",
+    "context_history.json": "7e5a5673f545b05111295c1e588e2e2de5b488d9fb9565833d5d72bde2a24a84",
+    "context_task_cases.json": "2edcc4df19c2069f52f7261f917e245db866947b841fbcd87366b8d86b56afb2",
+    "fixtures/context_config_merge/CONFIG.md": "c64ffd95be063b117835a87102ed54271795ebdcefa5ce18b04b0a432a8813f2",
+    "fixtures/context_config_merge/solution.py": "a4d03f6ea9c552460edfa7400a518f35a9ac400be47eaffee3c5c33c8154b4f5",
+    "fixtures/context_config_merge/test_public.py": "33ac9408573fe167806f3848b48198f7b42d242a22671f139bec9fd0ff1b5919",
+    "fixtures/context_cursor_pagination/solution.py": "4d88889228fa83a226b08eec5690199aba3419ed6156150abfdbe9e5ee1d2316",
+    "fixtures/context_cursor_pagination/test_public.py": "0c8b0a24d250fef0fb84aedface755c6078753985ae3e35f0b785e2a1508a47a",
+    "fixtures/context_decimal_rounding/solution.py": "7e36fc96d9eb4d591ec781cb3e547b283761d4f28263d83720896b446c1a24a4",
+    "fixtures/context_decimal_rounding/test_public.py": "34190828bb8b0530aa9b65240ee56ae486613b1c1451d03c0667a2c4fc223b3a",
+    "fixtures/context_disabled_jobs/JOBS.md": "4137546bb6d6f11b6af49a9d8bdad011db1d48ee3c91c32d432134e91aeac071",
+    "fixtures/context_disabled_jobs/scheduler.py": "7812d956e36c2701ceac3b6c6b38bed21e59f4c0a243c1de223cfc74fbadcfa5",
+    "fixtures/context_disabled_jobs/settings.py": "79a3d3eb1c81285fa15df8788b5f1576f0662d6e15dd275dff8e62f4626ab1a2",
+    "fixtures/context_disabled_jobs/test_public.py": "c85b2a62e2461704e5c70a725368d524d80b39cb1dac443a733a0e7d2d8ac25f",
+    "fixtures/context_ephemeral_route/solution.py": "f5669f3aeecc7acf4e4b0ab7c6f92445a51c59e24e56d63c84645ada88b1c7c2",
+    "fixtures/context_ephemeral_route/test_public.py": "8be528ba198909ac63c4d74367717b442df2ff19231ab73dbdc90f5d8b1db887",
+    "fixtures/context_name_deduplication/solution.py": "ea6b5a7c8e5d8056ae257a0b2554bf00bffee2545070ec1e1c44c0ad14159d71",
+    "fixtures/context_name_deduplication/test_public.py": "49556f109db7d99dc5d0d6a1f1990874bab81e5e121eb0d61d2e514aaaa2714c",
+    "fixtures/context_nested_redaction/POLICY.md": "8c614241b3aabebac66e498eb807c20dd1b015bb8f2f2d03792e25b3b0078546",
+    "fixtures/context_nested_redaction/solution.py": "f1b18689aede2b2c3de84447bdad33a8ed7cb2eaf951599fccf47e95fad27d9d",
+    "fixtures/context_nested_redaction/test_public.py": "d4dffe11bf193690ebf1c1142e5629717b2d506c8f00377cf8a0dc224732e3b8",
+    "fixtures/context_ordering_correction/solution.py": "8f3d73890bff6fd666c2a6a4782e74444158afada7bdee5a933d33b45bbe7d9c",
+    "fixtures/context_ordering_correction/test_public.py": "cf337a695bc905e916428fb6eb39635e9175920543b9da67e62e97e85dd84426",
+    "fixtures/context_retry_correction/solution.py": "39fbde56408a0c613373e5ea66b9906ab7a40305d8dffdec4d23e7e12b49d30d",
+    "fixtures/context_retry_correction/test_public.py": "bdade4498bebd459d20bc92dc796b8fb1bea01f33859c47c23bf4b91b674b6f1",
+    "fixtures/context_retry_delay/SPEC.md": "ad81400c664615da607063d2e8420d0fbb6d1c72cfa56c0f2f44182e1c097907",
+    "fixtures/context_retry_delay/solution.py": "440d2b0ab31bace4cc3502c74d43a6c8b9a7456430ee508bfa03e3dd5064f798",
+    "fixtures/context_retry_delay/test_public.py": "04ab9f57958b9ccb72110ec5a6c4022243de9382d3e35cc2783c157902e4553e",
+    "fixtures/context_shared_encoding/WIRE.md": "50f1b9d281cb87364b7b3f9e9beb1d9f79a29f36c591ecf0f690dd4c31c7803d",
+    "fixtures/context_shared_encoding/cache.py": "56806b1a81e4ee09ae75bedf7aec0b287e7752476f007a7c168fe1ed0171dc36",
+    "fixtures/context_shared_encoding/codec.py": "26f00235eca45b791b7e79af20ff71f3fde5bfbacd4c11a83ae2b7fe117c5351",
+    "fixtures/context_shared_encoding/test_public.py": "82c1cd6fef7ca58099570797e972b2c91c9c89bd41ce2df21637d240e7e88623",
+    "fixtures/context_shared_encoding/transport.py": "e7940acee4b199c6b3750fbe5b873450f8e6a76e2ff22c5de56572848ed67c80",
+    "fixtures/context_timeout_migration/MIGRATION.md": "a75a1a20a9a45308830621811dea6d0f0ca1169ed9b89c9cd73f8c9302edcaa2",
+    "fixtures/context_timeout_migration/client.py": "732caf42d4c5888a371ef84dcab728138cd78c2f39d27741d86e9f0c64c00fba",
+    "fixtures/context_timeout_migration/settings.py": "5672b82886b74dd4781a5a996026102adb1d02d9108f82f624e9b76cb64912b4",
+    "fixtures/context_timeout_migration/test_public.py": "a7039f729313a5735a04ee1d02b70b3dc51b525527fc8b3d8acf59c44dea8350",
+    "fixtures/context_unicode_correction/solution.py": "edbcba1207034e0e0251e7966fbb0caf8f64c4047c8f42e9d4e2ed0bce7adc23",
+    "fixtures/context_unicode_correction/test_public.py": "91e537c07710bf20f1edaacd1c795053eeed02b6c177cc845d6326ca3c63768c",
+    "robustness_protocol.json": "042d1f16a6879a65393195f8ca28f29fadb6b6f6d29e6b79e6d130ab610a4abf"
+  },
+  "repeats": 3,
+  "manifest": [
+    {
+      "task_id": "context_name_deduplication",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_name_deduplication",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_retry_delay",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_name_deduplication",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_retry_correction",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_retry_correction",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_config_merge",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_retry_correction",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_retry_delay",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_config_merge",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "variant": "input_8192",
+      "attempt": 3
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_retry_delay",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "variant": "input_8192",
+      "attempt": 2
+    },
+    {
+      "task_id": "context_config_merge",
+      "variant": "input_8192",
+      "attempt": 1
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "variant": "input_8192",
+      "attempt": 1
+    }
+  ],
+  "rows": [
+    {
+      "task_id": "context_config_merge",
+      "base_task": "context_config_merge",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18412,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 5,
+          "success": 5,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "write_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 13,
+      "turns": 7,
+      "read_calls": 5,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 55068,
+      "output_tokens": 1949,
+      "total_tokens": 57017,
+      "seconds": 111.416,
+      "autonomous_steps": 13,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "6a18c239347efbec068ac3c39c3d1adc825a02bb46ba301b00895ec255267ad0",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 61,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_oeYBMnyJWfXG6lf3BoXewT3Y"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_config_merge/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_config_merge",
+      "base_task": "context_config_merge",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18412,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 12,
+      "turns": 7,
+      "read_calls": 4,
+      "repeated_calls": 2,
+      "failed_calls": 0,
+      "input_tokens": 55430,
+      "output_tokens": 1675,
+      "total_tokens": 57105,
+      "seconds": 64.57,
+      "autonomous_steps": 12,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "6a18c239347efbec068ac3c39c3d1adc825a02bb46ba301b00895ec255267ad0",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 59,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_orovr2acqzKbbCSV23QnNBqy"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_config_merge/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_config_merge",
+      "base_task": "context_config_merge",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18412,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "54f05ff4528499daaa8dee5f0ae9b2a6c8916ac5038b9caa65139695aba05fdb"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 11,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 48394,
+      "output_tokens": 1503,
+      "total_tokens": 49897,
+      "seconds": 69.225,
+      "autonomous_steps": 11,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "6a18c239347efbec068ac3c39c3d1adc825a02bb46ba301b00895ec255267ad0",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 55,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_u3Fhy3zccSkDC5gsfkP5EiTD"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_config_merge/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "base_task": "context_cursor_pagination",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18432,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7804,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 9,
+      "turns": 7,
+      "read_calls": 4,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 60006,
+      "output_tokens": 1157,
+      "total_tokens": 61163,
+      "seconds": 79.461,
+      "autonomous_steps": 9,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7804,
+        "sha256": "23434786589b1e4d5adc73c74dd674d91fc40f06ebac40001ffdf68a2ef3641c",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 49,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_OisBDXK4jNVAYEgFeRaSLW8U"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_cursor_pagination/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "base_task": "context_cursor_pagination",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18432,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7804,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 8,
+      "turns": 5,
+      "read_calls": 4,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 45391,
+      "output_tokens": 1146,
+      "total_tokens": 46537,
+      "seconds": 49.996,
+      "autonomous_steps": 8,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7804,
+        "sha256": "23434786589b1e4d5adc73c74dd674d91fc40f06ebac40001ffdf68a2ef3641c",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 41,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {},
+        "call_id": "call_HmFQLQO7Iwd0807jalaWZJVX"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_cursor_pagination/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_cursor_pagination",
+      "base_task": "context_cursor_pagination",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18432,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7804,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "a5c0e3988d3fa0c654270b959c2ba7d4544ce60ad4b355a5e2a10fbde61627b4"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 12,
+      "turns": 7,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 55476,
+      "output_tokens": 1486,
+      "total_tokens": 56962,
+      "seconds": 53.086,
+      "autonomous_steps": 12,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7804,
+        "sha256": "23434786589b1e4d5adc73c74dd674d91fc40f06ebac40001ffdf68a2ef3641c",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 57,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_QaYnnXjm0jJHG9A3KrUFwV9x"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_cursor_pagination/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "base_task": "context_decimal_rounding",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7790,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 7,
+      "turns": 6,
+      "read_calls": 2,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 51357,
+      "output_tokens": 936,
+      "total_tokens": 52293,
+      "seconds": 50.375,
+      "autonomous_steps": 7,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7790,
+        "sha256": "db7a8b7824912f2d385b435528925620fb088c6689a3a7cb88fbf030a1f55ad8",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 41,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {},
+        "call_id": "call_N2m02FrGtiSBquDFfsSiXBMF"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_decimal_rounding/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "base_task": "context_decimal_rounding",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7790,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 6,
+      "read_calls": 4,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 47853,
+      "output_tokens": 981,
+      "total_tokens": 48834,
+      "seconds": 44.02,
+      "autonomous_steps": 10,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7790,
+        "sha256": "db7a8b7824912f2d385b435528925620fb088c6689a3a7cb88fbf030a1f55ad8",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 4,
+      "context_compactions": 4,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 45,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_W4I3WyIO66sM37FuYx4eSOTm"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_decimal_rounding/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_decimal_rounding",
+      "base_task": "context_decimal_rounding",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7790,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "57b78bbb281601defc58263873b89d7fba514eabee5cfa4e25e2f2a603bbd958"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 5,
+      "read_calls": 3,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 41207,
+      "output_tokens": 1107,
+      "total_tokens": 42314,
+      "seconds": 44.417,
+      "autonomous_steps": 10,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7790,
+        "sha256": "db7a8b7824912f2d385b435528925620fb088c6689a3a7cb88fbf030a1f55ad8",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 51,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_DyRFbIKW6NpIOZ3LCpQCxqyI"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_decimal_rounding/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "base_task": "context_disabled_jobs",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18442,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 7,
+          "success": 7,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 16,
+      "turns": 8,
+      "read_calls": 7,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 60436,
+      "output_tokens": 1359,
+      "total_tokens": 61795,
+      "seconds": 47.925,
+      "autonomous_steps": 16,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "2f008da7e44f137a11888173f508c2cae56ae89332729c7824bfaf327aad6564",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 61,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_elqAfZR0iWEo8nGWVN6TW9B1"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_disabled_jobs/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "base_task": "context_disabled_jobs",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18442,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 8,
+          "success": 8,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 17,
+      "turns": 8,
+      "read_calls": 8,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 61223,
+      "output_tokens": 1551,
+      "total_tokens": 62774,
+      "seconds": 73.295,
+      "autonomous_steps": 17,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "2f008da7e44f137a11888173f508c2cae56ae89332729c7824bfaf327aad6564",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 65,
+      "all_within_budget": true,
+      "evidence_read_calls": 2,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_4zZ9P82Ilnjp1ojj9gQpJkHO"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_disabled_jobs/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_disabled_jobs",
+      "base_task": "context_disabled_jobs",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18442,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "d0ff122d2a78cdce1965300a259668ede7e6deb93708f40bf1e7eda645420dd5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 7,
+          "success": 7,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 16,
+      "turns": 6,
+      "read_calls": 7,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 48376,
+      "output_tokens": 1287,
+      "total_tokens": 49663,
+      "seconds": 39.041,
+      "autonomous_steps": 16,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "2f008da7e44f137a11888173f508c2cae56ae89332729c7824bfaf327aad6564",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 65,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_45k7lwqTKDfvc3iX0o1ZBeOL"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_disabled_jobs/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "base_task": "context_ephemeral_route",
+      "experiment": "context",
+      "category": "loss_control",
+      "variant": "input_8192",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert '/read' == 'queue-amber-47'\nE         \nE         - queue-amber-47\nE         + /read\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert '/read' == 'q...\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "step_limit",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18406,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "run_shell": {
+          "calls": 3,
+          "success": 1,
+          "reasons": {
+            "error": 2
+          }
+        },
+        "run_tests": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 16,
+      "turns": 8,
+      "read_calls": 3,
+      "repeated_calls": 3,
+      "failed_calls": 2,
+      "input_tokens": 57428,
+      "output_tokens": 2492,
+      "total_tokens": 59920,
+      "seconds": 75.55,
+      "autonomous_steps": 16,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "01194ff53e175173f942d59a06d2dbb086be56106f893342466256b3deb9184c",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 74,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_64HBaG3uaMCosrVf9mDstu7l"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ephemeral_route/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "base_task": "context_ephemeral_route",
+      "experiment": "context",
+      "category": "loss_control",
+      "variant": "input_8192",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "step_limit",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18406,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 6,
+          "success": 6,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_shell": {
+          "calls": 1,
+          "success": 0,
+          "reasons": {
+            "approval_unavailable": 1
+          }
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 16,
+      "turns": 9,
+      "read_calls": 4,
+      "repeated_calls": 3,
+      "failed_calls": 1,
+      "input_tokens": 62945,
+      "output_tokens": 1431,
+      "total_tokens": 64376,
+      "seconds": 104.848,
+      "autonomous_steps": 16,
+      "autonomous_turns": 9,
+      "model_requests": 9,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "01194ff53e175173f942d59a06d2dbb086be56106f893342466256b3deb9184c",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 9,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 66,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_X1FCMupIJKTwT9k59AmulqcV"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ephemeral_route/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ephemeral_route",
+      "base_task": "context_ephemeral_route",
+      "experiment": "context",
+      "category": "loss_control",
+      "variant": "input_8192",
+      "passed": false,
+      "checks": {
+        "phase": false,
+        "independent_tests": false
+      },
+      "verifier": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "output": "F.                                                                       [100%]\n=================================== FAILURES ===================================\n___________________________________ test_fix ___________________________________\n\n    def test_fix():\n>       assert route_for(\"read\") == \"queue-amber-47\"\nE       AssertionError: assert None == 'queue-amber-47'\nE        +  where None = route_for('read')\n\n__evaluation_tests.py:4: AssertionError\n=========================== short test summary info ============================\nFAILED __evaluation_tests.py::test_fix - AssertionError: assert None == 'queu...\n1 failed, 1 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      },
+      "failure": "phase, independent_tests",
+      "stop_reason": "step_limit",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18406,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "b2ec11951f6794df9657a2fa3811cc9df0e22c0902b69d018239f23b4b4d47f8"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 5,
+          "success": 5,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_shell": {
+          "calls": 1,
+          "success": 0,
+          "reasons": {
+            "error": 1
+          }
+        }
+      },
+      "steps": 16,
+      "turns": 8,
+      "read_calls": 5,
+      "repeated_calls": 5,
+      "failed_calls": 1,
+      "input_tokens": 57547,
+      "output_tokens": 1189,
+      "total_tokens": 58736,
+      "seconds": 83.201,
+      "autonomous_steps": 16,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "01194ff53e175173f942d59a06d2dbb086be56106f893342466256b3deb9184c",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 63,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_5hRp6G9AzXqmsPBAoePuUfOP"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ephemeral_route/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_name_deduplication",
+      "base_task": "context_name_deduplication",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18418,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7788,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 8,
+      "turns": 5,
+      "read_calls": 2,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 41377,
+      "output_tokens": 888,
+      "total_tokens": 42265,
+      "seconds": 33.197,
+      "autonomous_steps": 8,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7788,
+        "sha256": "ec5c86361ca6bc951a3f47c94436e5ebe6ce23332a9ccdf5fd365fb7db3aca17",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 45,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_Julqy8cUCWirmcLpjr5qb5kb"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_name_deduplication/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_name_deduplication",
+      "base_task": "context_name_deduplication",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18418,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7788,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 9,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 47915,
+      "output_tokens": 974,
+      "total_tokens": 48889,
+      "seconds": 49.859,
+      "autonomous_steps": 9,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7788,
+        "sha256": "ec5c86361ca6bc951a3f47c94436e5ebe6ce23332a9ccdf5fd365fb7db3aca17",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 49,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_XLvCa3FJ2hUsTpabI7cbOybI"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_name_deduplication/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_name_deduplication",
+      "base_task": "context_name_deduplication",
+      "experiment": "context",
+      "category": "history_only",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18418,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7788,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "4d5887b3dc364cf3687ffab6a6765a4febc5cfd28fa837fbd15240eb858a0fcf"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 5,
+      "read_calls": 4,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 41215,
+      "output_tokens": 938,
+      "total_tokens": 42153,
+      "seconds": 46.458,
+      "autonomous_steps": 10,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7788,
+        "sha256": "ec5c86361ca6bc951a3f47c94436e5ebe6ce23332a9ccdf5fd365fb7db3aca17",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 51,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_Wxo5ShJCsayoBjcTxLC7YXPY"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_name_deduplication/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "base_task": "context_nested_redaction",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 47218,
+      "output_tokens": 1338,
+      "total_tokens": 48556,
+      "seconds": 88.349,
+      "autonomous_steps": 10,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "ddacfa086ad17850d5d64561f7a1c7c3afa696404e75487884d80fe8b37029d3",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 55,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_4Syq3qGoE4Iym5gJxx1NDjuZ"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_nested_redaction/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "base_task": "context_nested_redaction",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 5,
+          "success": 5,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 13,
+      "turns": 5,
+      "read_calls": 5,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 41845,
+      "output_tokens": 1271,
+      "total_tokens": 43116,
+      "seconds": 34.882,
+      "autonomous_steps": 13,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "ddacfa086ad17850d5d64561f7a1c7c3afa696404e75487884d80fe8b37029d3",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 56,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_cPUhJGp2XxE1glF7sgqcCf8u"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_nested_redaction/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_nested_redaction",
+      "base_task": "context_nested_redaction",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18417,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7741,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "3f097ebf9c2974e906ddc92b378ce3140eede75d93e8ed1a1fc382226d8978c5"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 11,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 46901,
+      "output_tokens": 1185,
+      "total_tokens": 48086,
+      "seconds": 45.249,
+      "autonomous_steps": 11,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7741,
+        "sha256": "ddacfa086ad17850d5d64561f7a1c7c3afa696404e75487884d80fe8b37029d3",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 56,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_pjpIx74gcoapTdT0Mx7tKccQ"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_nested_redaction/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "base_task": "context_ordering_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18461,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7832,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 5,
+      "read_calls": 3,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 41748,
+      "output_tokens": 1281,
+      "total_tokens": 43029,
+      "seconds": 33.595,
+      "autonomous_steps": 10,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7832,
+        "sha256": "663af65de4644b41641d70b8ccb0757f4a61f06f63a965bb49ffb61bad3493eb",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 51,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_AQhmqNVY64NvconfMaOt7EGq"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ordering_correction/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "base_task": "context_ordering_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18461,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7832,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 5,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 41832,
+      "output_tokens": 1311,
+      "total_tokens": 43143,
+      "seconds": 44.857,
+      "autonomous_steps": 10,
+      "autonomous_turns": 5,
+      "model_requests": 5,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7832,
+        "sha256": "663af65de4644b41641d70b8ccb0757f4a61f06f63a965bb49ffb61bad3493eb",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 5,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 51,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_SJiGUH9MpdDUE1Ka5sgG3jkT"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ordering_correction/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_ordering_correction",
+      "base_task": "context_ordering_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18461,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7832,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "accb7473c89ef4e9d2ac0273a36fa1b2591719d9e8c49616666f6aaa94d96296"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 48293,
+      "output_tokens": 1291,
+      "total_tokens": 49584,
+      "seconds": 48.29,
+      "autonomous_steps": 10,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7832,
+        "sha256": "663af65de4644b41641d70b8ccb0757f4a61f06f63a965bb49ffb61bad3493eb",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 56,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_jl5hLPQj4XlriiAdhlrdkzEG"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_ordering_correction/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_correction",
+      "base_task": "context_retry_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18465,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7838,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 6,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 50545,
+      "output_tokens": 1033,
+      "total_tokens": 51578,
+      "seconds": 74.157,
+      "autonomous_steps": 10,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7838,
+        "sha256": "d0aa0d7b65fb6d93bbbb8ef375ed558e60785d1006c9ff30f9e1b17ffa07c802",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 45,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_TeAzHdpzgzo0EviRsGoczNBh"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_correction/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_correction",
+      "base_task": "context_retry_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18465,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7838,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 9,
+      "turns": 6,
+      "read_calls": 2,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 48380,
+      "output_tokens": 1060,
+      "total_tokens": 49440,
+      "seconds": 45.73,
+      "autonomous_steps": 9,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7838,
+        "sha256": "d0aa0d7b65fb6d93bbbb8ef375ed558e60785d1006c9ff30f9e1b17ffa07c802",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 51,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_wQ52oYxmjf7Do2kgr9IzaQ3V"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_correction/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_correction",
+      "base_task": "context_retry_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18465,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7838,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "663a58874c96d7630df436b180a28dc7cd29320559e854bef6f847af21bd87bc"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 7,
+      "turns": 7,
+      "read_calls": 2,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 57921,
+      "output_tokens": 1093,
+      "total_tokens": 59014,
+      "seconds": 49.497,
+      "autonomous_steps": 7,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7838,
+        "sha256": "d0aa0d7b65fb6d93bbbb8ef375ed558e60785d1006c9ff30f9e1b17ffa07c802",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 41,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {},
+        "call_id": "call_z6tAxZu84T3wTMcdxzTeYJcd"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_correction/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_delay",
+      "base_task": "context_retry_delay",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18411,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 12,
+      "turns": 7,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 53836,
+      "output_tokens": 1323,
+      "total_tokens": 55159,
+      "seconds": 69.54,
+      "autonomous_steps": 12,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "ea9eeb098087edbe2d437c66a1d50c68fc12c5da3f214212740603943243be1b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 59,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_YneBiAIK99tqCq828rvfdtXa"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_delay/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_delay",
+      "base_task": "context_retry_delay",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18411,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 4,
+          "success": 3,
+          "reasons": {
+            "fresh_read_required": 1
+          }
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 13,
+      "turns": 9,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 1,
+      "input_tokens": 66708,
+      "output_tokens": 1372,
+      "total_tokens": 68080,
+      "seconds": 111.466,
+      "autonomous_steps": 13,
+      "autonomous_turns": 9,
+      "model_requests": 9,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "ea9eeb098087edbe2d437c66a1d50c68fc12c5da3f214212740603943243be1b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 9,
+      "history_compactions": 8,
+      "context_compactions": 8,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 62,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_yzHyJ15Xl46nMzE8NKKHoSL5"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_delay/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_retry_delay",
+      "base_task": "context_retry_delay",
+      "experiment": "context",
+      "category": "file_evidence",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18411,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7740,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "aaea2299da62b34f7832b5be84e764dab35a449bb93a79449ca40cd0f72753d6"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 10,
+      "turns": 6,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 47710,
+      "output_tokens": 1137,
+      "total_tokens": 48847,
+      "seconds": 53.394,
+      "autonomous_steps": 10,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7740,
+        "sha256": "ea9eeb098087edbe2d437c66a1d50c68fc12c5da3f214212740603943243be1b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 53,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_oedaVMYazI0kN4O4ave8AMjx"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_retry_delay/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "base_task": "context_shared_encoding",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18434,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7745,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 9,
+          "success": 9,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 19,
+      "turns": 8,
+      "read_calls": 9,
+      "repeated_calls": 0,
+      "failed_calls": 0,
+      "input_tokens": 61518,
+      "output_tokens": 1399,
+      "total_tokens": 62917,
+      "seconds": 93.505,
+      "autonomous_steps": 19,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7745,
+        "sha256": "8d115c7c7595b66b70e7e025487ebdb612a476eb459b2059f95c3cc04f6d8a8b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 63,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_c6uQus0Z9vkPWW6RumNX3eDd"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_shared_encoding/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "base_task": "context_shared_encoding",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18434,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7745,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 9,
+          "success": 9,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 19,
+      "turns": 6,
+      "read_calls": 9,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 49375,
+      "output_tokens": 1274,
+      "total_tokens": 50649,
+      "seconds": 48.727,
+      "autonomous_steps": 19,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7745,
+        "sha256": "8d115c7c7595b66b70e7e025487ebdb612a476eb459b2059f95c3cc04f6d8a8b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 59,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_7wi54p7xVZPVVQq19Q2G8fBr"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_shared_encoding/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_shared_encoding",
+      "base_task": "context_shared_encoding",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18434,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7745,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "bb03071b1e581405e25adc8b2f424cb54c049a12e7803b33cd80b8275d64d4c9"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 6,
+          "success": 6,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 6,
+          "success": 5,
+          "reasons": {
+            "fresh_read_required": 1
+          }
+        },
+        "run_tests": {
+          "calls": 2,
+          "success": 1,
+          "reasons": {
+            "test_collection_failed": 1
+          }
+        }
+      },
+      "steps": 20,
+      "turns": 9,
+      "read_calls": 6,
+      "repeated_calls": 4,
+      "failed_calls": 2,
+      "input_tokens": 68939,
+      "output_tokens": 1582,
+      "total_tokens": 70521,
+      "seconds": 80.325,
+      "autonomous_steps": 20,
+      "autonomous_turns": 9,
+      "model_requests": 9,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7745,
+        "sha256": "8d115c7c7595b66b70e7e025487ebdb612a476eb459b2059f95c3cc04f6d8a8b",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 9,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 74,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_U3JoeoXu55G0LCZqOcBS5S5j"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_shared_encoding/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "base_task": "context_timeout_migration",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18437,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 7,
+          "success": 7,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 15,
+      "turns": 6,
+      "read_calls": 7,
+      "repeated_calls": 3,
+      "failed_calls": 0,
+      "input_tokens": 48027,
+      "output_tokens": 1360,
+      "total_tokens": 49387,
+      "seconds": 50.76,
+      "autonomous_steps": 15,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "d0642fecb61f5d2b346136109d74b08c0172be5279febe3fba31ad4cabc51913",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 62,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_1Ez17nXnG2mnhxU2cnxA7LWY"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_timeout_migration/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "base_task": "context_timeout_migration",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18437,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 7,
+          "success": 7,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 18,
+      "turns": 8,
+      "read_calls": 7,
+      "repeated_calls": 5,
+      "failed_calls": 0,
+      "input_tokens": 60802,
+      "output_tokens": 1952,
+      "total_tokens": 62754,
+      "seconds": 94.294,
+      "autonomous_steps": 18,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "d0642fecb61f5d2b346136109d74b08c0172be5279febe3fba31ad4cabc51913",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 61,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_kxCLRTlyMVOCFGYeGUcAhI7e"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_timeout_migration/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_timeout_migration",
+      "base_task": "context_timeout_migration",
+      "experiment": "context",
+      "category": "multi_file",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.01s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18437,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7744,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "db6a8ac592fdcfba2ead90d0cb4d3894e3586ad78cfb539d32d2060c7ecec203"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 13,
+      "turns": 6,
+      "read_calls": 4,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 47173,
+      "output_tokens": 1528,
+      "total_tokens": 48701,
+      "seconds": 47.543,
+      "autonomous_steps": 13,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7744,
+        "sha256": "d0642fecb61f5d2b346136109d74b08c0172be5279febe3fba31ad4cabc51913",
+        "evidence_present": [
+          false
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 5,
+      "context_compactions": 5,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 57,
+      "all_within_budget": true,
+      "evidence_read_calls": 1,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_QQYbO1MjP1mcaezKDSDN5Qdo"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_timeout_migration/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "base_task": "context_unicode_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18472,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7844,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 2,
+          "reasons": {
+            "fresh_read_required": 1
+          }
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 9,
+      "turns": 8,
+      "read_calls": 3,
+      "repeated_calls": 0,
+      "failed_calls": 1,
+      "input_tokens": 58555,
+      "output_tokens": 1376,
+      "total_tokens": 59931,
+      "seconds": 100.295,
+      "autonomous_steps": 9,
+      "autonomous_turns": 8,
+      "model_requests": 8,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7844,
+        "sha256": "0377150de618c86bd234e9ea30fc0971a4a732bc105ab2d2bba4f1c38643cf27",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 8,
+      "history_compactions": 7,
+      "context_compactions": 7,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 53,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_mcGR7YviRdhxLLsRt4gtwkZY"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_unicode_correction/input_8192-1/run/trace.jsonl",
+      "attempt": 1,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "base_task": "context_unicode_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18472,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7844,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 4,
+          "success": 4,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 3,
+          "success": 3,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 2,
+          "success": 1,
+          "reasons": {
+            "tests_failed": 1
+          }
+        }
+      },
+      "steps": 13,
+      "turns": 7,
+      "read_calls": 4,
+      "repeated_calls": 3,
+      "failed_calls": 1,
+      "input_tokens": 55204,
+      "output_tokens": 1297,
+      "total_tokens": 56501,
+      "seconds": 60.279,
+      "autonomous_steps": 13,
+      "autonomous_turns": 7,
+      "model_requests": 7,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7844,
+        "sha256": "0377150de618c86bd234e9ea30fc0971a4a732bc105ab2d2bba4f1c38643cf27",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 7,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 57,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_e8kmOn63Wfb43I80wRJZW6BO"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_unicode_correction/input_8192-2/run/trace.jsonl",
+      "attempt": 2,
+      "batch_id": "20260916T122449052941"
+    },
+    {
+      "task_id": "context_unicode_correction",
+      "base_task": "context_unicode_correction",
+      "experiment": "context",
+      "category": "corrected_history",
+      "variant": "input_8192",
+      "passed": true,
+      "checks": {
+        "phase": true,
+        "independent_tests": true
+      },
+      "verifier": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "output": "..                                                                       [100%]\n2 passed in 0.00s\n",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      },
+      "failure": "",
+      "stop_reason": "verified",
+      "runtime_feedback": "",
+      "setup": {
+        "untrimmed": {
+          "estimated_tokens": 18472,
+          "budget": 997952,
+          "removed_messages": 0,
+          "compacted": false,
+          "policy_version": "deterministic-v4"
+        },
+        "selected": {
+          "estimated_tokens": 7844,
+          "budget": 8192,
+          "removed_messages": 23,
+          "compacted": true,
+          "policy_version": "deterministic-v4"
+        },
+        "workspace_sha256": "2fcf2d97fa7cebedeb786a10f041867f6a2b9fb44c9430b934aceccfad50097d"
+      },
+      "tools": {
+        "list_files": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "read_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "search": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        },
+        "git_diff": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "patch_file": {
+          "calls": 2,
+          "success": 2,
+          "reasons": {}
+        },
+        "run_tests": {
+          "calls": 1,
+          "success": 1,
+          "reasons": {}
+        }
+      },
+      "steps": 9,
+      "turns": 6,
+      "read_calls": 2,
+      "repeated_calls": 1,
+      "failed_calls": 0,
+      "input_tokens": 49725,
+      "output_tokens": 997,
+      "total_tokens": 50722,
+      "seconds": 44.24,
+      "autonomous_steps": 9,
+      "autonomous_turns": 6,
+      "model_requests": 6,
+      "first_request": {
+        "turn": 1,
+        "estimated_tokens": 7844,
+        "sha256": "0377150de618c86bd234e9ea30fc0971a4a732bc105ab2d2bba4f1c38643cf27",
+        "evidence_present": [
+          true
+        ],
+        "recovery_feedback_present": false
+      },
+      "context_builds": 6,
+      "history_compactions": 6,
+      "context_compactions": 6,
+      "context_policy_versions": [
+        "deterministic-v4"
+      ],
+      "removed_messages": 45,
+      "all_within_budget": true,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0,
+      "observation_read_successes": 0,
+      "first_autonomous_call": {
+        "kind": "tool",
+        "name": "list_files",
+        "arguments": {
+          "path": "."
+        },
+        "call_id": "call_6iq2EEd0kot6ioM5WrJ4sko4"
+      },
+      "first_call_changed": true,
+      "renewed_stalls": 0,
+      "trace_path": "/home/dzh/Aster/artifacts/benchmark-v8-confirmation/runs/20260916T122449052941/context_unicode_correction/input_8192-3/run/trace.jsonl",
+      "attempt": 3,
+      "batch_id": "20260916T122449052941"
+    }
+  ],
+  "summary": {
+    "context/corrected_history/input_8192": {
+      "scenarios": 3,
+      "attempts": 9,
+      "passed": 9,
+      "mean_tokens_all": 51438,
+      "mean_steps_all": 9.666666666666666,
+      "mean_seconds_all": 55.66,
+      "history_compactions": 53,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0
+    },
+    "context/file_evidence/input_8192": {
+      "scenarios": 3,
+      "attempts": 9,
+      "passed": 9,
+      "mean_tokens_all": 52873.666666666664,
+      "mean_steps_all": 11.666666666666666,
+      "mean_seconds_all": 72.01011111111112,
+      "history_compactions": 53,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 9,
+      "observation_read_calls": 0
+    },
+    "context/history_only/input_8192": {
+      "scenarios": 3,
+      "attempts": 9,
+      "passed": 9,
+      "mean_tokens_all": 49045.555555555555,
+      "mean_steps_all": 9.222222222222221,
+      "mean_seconds_all": 50.096555555555554,
+      "history_compactions": 49,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0
+    },
+    "context/loss_control/input_8192": {
+      "scenarios": 1,
+      "attempts": 3,
+      "passed": 0,
+      "mean_tokens_all": 61010.666666666664,
+      "mean_steps_all": 16,
+      "mean_seconds_all": 87.86633333333333,
+      "history_compactions": 21,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 0,
+      "observation_read_calls": 0
+    },
+    "context/multi_file/input_8192": {
+      "scenarios": 3,
+      "attempts": 9,
+      "passed": 9,
+      "mean_tokens_all": 57684.555555555555,
+      "mean_steps_all": 17,
+      "mean_seconds_all": 63.934999999999995,
+      "history_compactions": 53,
+      "renewed_stalls": 0,
+      "evidence_read_calls": 10,
+      "observation_read_calls": 0
+    }
+  },
+  "pairs": {}
+}

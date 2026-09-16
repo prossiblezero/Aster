@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "purpose": "Fixed development-set budget selection after removing the per-tool body token cap",
+  "base_protocol": "robustness_protocol.json",
+  "task_file": "context_task_cases.json",
+  "history_file": "context_history.json",
+  "historical_baseline": "artifacts/benchmark-v7-context/report.json",
+  "same_budget_regression": {
+    "variant": "balanced",
+    "input_tokens": 6144,
+    "repeats": 3,
+    "include_loss_control": true,
+    "planned_attempts": 39
+  },
+  "selection": {
+    "input_token_candidates": [8192, 10240, 12288],
+    "repeats": 1,
+    "exclude_categories": ["loss_control"],
+    "primary_task_count": 12,
+    "planned_attempts": 36,
+    "minimum_completed": 11,
+    "minimum_mean_first_request_compression": 0.3,
+    "compression_formula": "mean(1 - first_request.estimated_tokens / setup.untrimmed.estimated_tokens) over all 12 primary attempts",
+    "required_measurements": "All 12 attempts must have actual first requests and valid untrimmed estimates; missing measurements do not disappear from the selection criterion",
+    "rule": "Run every fixed candidate and retain every result. Choose the smallest input budget meeting both thresholds. If none qualifies, report no selected budget; do not expand the grid or retry only failures."
+  },
+  "confirmation": {
+    "budget": "The selected input budget, frozen before new attempts",
+    "repeats": 3,
+    "include_loss_control": true,
+    "planned_attempts": 39,
+    "minimum_primary_completed": 33,
+    "minimum_mean_first_request_compression": 0.3,
+    "rule": "Report all 36 primary attempts and all 3 loss controls separately. A selection-stage success is not a confirmation success; if confirmation misses the thresholds, report failure without selecting another budget from these results."
+  },
+  "legacy_setting": {
+    "name": "tool_output_tokens",
+    "historical_value": 1600,
+    "handling": "Preserve the base protocol and dataset hashes verbatim; ignore this removed field only when constructing production settings, and record ignored_legacy_settings in the report."
+  },
+  "fixed_controls": [
+    "Original task prompts, initial repositories, long history and hidden graders",
+    "Model, output reserve, tool profile, memory flags, safety boundaries and action/turn budgets",
+    "All failed attempts, errors, requests and trace artifacts are retained",
+    "Budget overrides use input_N labels; they are never mislabeled as the original balanced condition"
+  ],
+  "limitations": [
+    "These are previously inspected development tasks, not an unseen generalization set.",
+    "Confirmation uses fresh model attempts on the same tasks; it does not make the tasks held out.",
+    "First-request local token compression is not total provider token savings or a guarantee of retained semantics.",
+    "The one-attempt candidate scores are development selection measurements; do not present them as Pass@3.",
+    "Higher-budget runs cannot establish the causal benefit of removing the per-tool cap; use the separate 6144-input comparison for that question."
+  ]
+}

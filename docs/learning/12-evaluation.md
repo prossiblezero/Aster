@@ -68,7 +68,7 @@ python scripts/benchmark_mechanisms.py
 
 选择 `context_retry_delay` 阅读：早期工具观察包含重试规则，同样的规则也能从仓库 `SPEC.md` 补读。再看 `context_decimal_rounding`：舍入约束只出现在用户历史里，不能靠重新读实现猜出要求。其他题检查跨文件一致性，以及用户后续纠正旧决定时是否采用最终版本。额外的 `context_ephemeral_route` 是信息丢失控制：答案只存在于旧工具观察，没有文件副本；它用来暴露裁剪的能力边界，单独统计，不混进十二道普通任务的成绩。
 
-接下来打开 [benchmark_robustness.py](../../scripts/benchmark_robustness.py) 的 `initialize`。它为每次尝试复制独立工作区，先加入题目 `history`，再加入 [共同长历史](../../datasets/context_history.json)。三个条件使用相同内容和顺序，只改变 [实验协议](../../datasets/robustness_protocol.json) 中的 `context_tokens`：
+接下来打开 [benchmark_robustness.py](../../scripts/benchmark_robustness.py) 的 `initialize`。它为每次尝试复制独立工作区，先加入题目 `history`，再加入 [共同长历史](../../datasets/context_history.json)。历史 v5–v7 的三个条件使用相同内容和顺序，只改变 [实验协议](../../datasets/robustness_protocol.json) 中的 `context_tokens`：
 
 | 条件 | `context_tokens`：总窗口 | `output_tokens`：输出预留 | 实际输入上限 |
 |---|---:|---:|---:|
@@ -76,21 +76,21 @@ python scripts/benchmark_mechanisms.py
 | `balanced` | 8,192 | 2,048 | 6,144 |
 | `tight` | 5,632 | 2,048 | 3,584 |
 
-实际输入上限等于 `context_tokens - output_tokens`，其中还要容纳系统提示、工具定义和当前请求，并非全部留给历史。`tool_output_tokens` 是单份工具正文的上限，也不是整个输入上限。中间档用于观察更实用的预算折中；这三个固定配置不能证明某个数值对所有仓库都最优。
+实际输入上限等于 `context_tokens - output_tokens`，其中还要容纳系统提示、工具定义和当前请求，并非全部留给历史。历史版本还设置了单份工具正文上限；当前已取消，只在全局超预算时压缩。本轮只复跑原中档并试三个稍宽候选，方案见[有限预算选择](../../datasets/context_budget_protocol.md)。生产默认按接入模型规格计算；压测数值不是正常使用建议，也不表示所有仓库的最优预算。
 
 顺着 `initialize` 的 `preview` 走到 [context.py](../../src/aster/context.py) 的 `ContextBuilder.build`：预览使用状态副本，正式运行仍由生产策略处理历史。用户消息保留，可裁剪的旧工具观察让出空间，结构化工具调用与结果保持配对。因此早期文件证据可能需要补读，而仅存在于用户历史的要求应该仍可见。预算太紧时，连最近完整的工具交换都装不下，运行也可能报预算错误；初始请求能发送不等于整个任务都能发送。
 
 再读 `ObservedModel.complete`。它包在真实模型外面，先把实际请求归档，再原样转发。`history_evidence` 只是待查找的历史原文列表，用来测量这些内容有没有进入请求；执行器不会重新注入这些文字，也不会给它们加 `important` 保留标记。否则相当于考试时把删掉的答案重新递给模型，无法检验真正的裁剪效果。
 
-先做不调用模型的预检，再对同一道题运行三档预算各一次：
+先做不调用模型的预检，再对同一道题运行原中档预算一次：
 
 ```bash
 conda activate aster
-python scripts/benchmark_robustness.py --suite context --task context_retry_delay --output artifacts/learning-context-preflight
-python scripts/benchmark_robustness.py --real --suite context --task context_retry_delay --repeats 1 --concurrency 1 --output artifacts/learning-context
+python scripts/benchmark_robustness.py --suite context --variant balanced --task context_retry_delay --output artifacts/learning-context-preflight
+python scripts/benchmark_robustness.py --real --suite context --variant balanced --task context_retry_delay --repeats 1 --concurrency 1 --output artifacts/learning-context
 ```
 
-第一条检查原始目标失败、原有行为通过、参考修复可通过，以及三档初始输入是否满足预设裁剪条件。第二条才回答模型在不同预算下能否完成任务。打开 `artifacts/learning-context/report.json` 的 `rows`，沿每条 `trace_path` 找到执行记录；同次尝试目录下的 `requests/request-001.json` 是首次实际请求，`candidate` 是最终代码，`patch.diff` 是改动，`result.json` 包含隐藏测试结果。
+第一条检查原始目标失败、原有行为通过、参考修复可通过，以及当前条件的初始输入是否满足预设裁剪要求。第二条才回答模型在压缩后能否完成任务。打开 `artifacts/learning-context/report.json` 的 `rows`，沿每条 `trace_path` 找到执行记录；同次尝试目录下的 `requests/request-001.json` 是首次实际请求，`candidate` 是最终代码，`patch.diff` 是改动，`result.json` 包含隐藏测试结果。
 
 阅读时重点区分以下三个字段：
 

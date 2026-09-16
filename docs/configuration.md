@@ -27,7 +27,7 @@
 
 这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [阶段 13](learning/13-runtime-reliability.md)。
 
-`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
+`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是脱敏后全文的字符数。先脱敏整份来源再分页，因此密钥替换不会改变页间定位，也不会因跨页拆开密钥而漏掉脱敏。`skill_load` 还需保留技能 `name`。
 
 `observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 

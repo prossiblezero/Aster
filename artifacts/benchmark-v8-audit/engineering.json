@@ -1,0 +1,35 @@
+{
+  "source": {
+    "git_head": "4bb221bcf1f5a3cccffe09d92b613cbdb8954231",
+    "content_sha256": "ab15449a83347b7b7217f5769f936e5b261940262a045542dc2cd1a7cfee883e",
+    "python": "3.12.14"
+  },
+  "environment": "Conda aster; Python 3.12.14",
+  "isolated_checkout": "/tmp/aster-v8-checkpoint-check",
+  "pythonpath": "/tmp/aster-v8-checkpoint-check/src",
+  "checks": [
+    {
+      "command": "conda run -n aster python -m pytest -q",
+      "exit_code": 0,
+      "passed": 521
+    },
+    {
+      "command": "conda run -n aster python -m ruff check src scripts tests",
+      "exit_code": 0
+    },
+    {
+      "command": "conda run -n aster python scripts/benchmark.py --output /home/dzh/Aster/artifacts/benchmark-v8-scripted --concurrency 4",
+      "exit_code": 0,
+      "reference_replays_passed": 205,
+      "reference_replays_total": 205
+    },
+    {
+      "command": "conda run -n aster python scripts/benchmark_mechanisms.py --output /home/dzh/Aster/artifacts/benchmark-v8-mechanisms",
+      "exit_code": 0,
+      "contract_checks_passed": 123,
+      "contract_checks_total": 123
+    }
+  ],
+  "real_model_source": "01638a75b05b7c7f28e24a27bb4b3b09660d4de2",
+  "scope": "The subsequent source change preserves native opaque provider state only in checkpoints and validates resume. It does not change the continuous-run context policy used by the frozen real-model evaluation."
+}
