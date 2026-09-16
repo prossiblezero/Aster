@@ -15,7 +15,7 @@
 | `request_timeout` | `90` | 一次 HTTP 请求的超时秒数；瞬时错误最多尝试三次，因此整个模型轮次可能超过此值 |
 | `context_tokens` | `24000` | 本地估算的总上下文容量，包含输入与输出预留；不是全部都可用于输入 |
 | `output_tokens` | `2048` | 输出预留，也是供应商请求的最大输出长度 |
-| `tool_output_tokens` | `1600` | 单条工具结果的正文预算；Runtime 结果保留状态、原因、证据编号与修改路径，这些元数据仍计入全局输入预算 |
+| `tool_output_tokens` | `1600` | 单条工具结果正文上限；全局空间不足时还会缩短，不保证每条拿满。Runtime 结果保留状态、原因、证据编号与修改路径，这些元数据仍计入全局输入预算 |
 | `tool_profile` | `core` | 首轮展示可用核心工具，其他工具由 `tool_load` 按需加入；`all` 展示当前配置可用的全部工具 |
 
 例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。`ContextBuilder` 使用与 Provider 相同的请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
@@ -23,6 +23,8 @@
 这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [阶段 13](learning/13-runtime-reliability.md)。
 
 `todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。正文预算不足时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是原文字符数。`skill_load` 还需保留技能 `name`。
+
+`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后才自动暴露，不开放其他运行或任意状态文件。实现与限制见[阶段 16](learning/16-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 
 普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [阶段 15](learning/15-paged-observations.md)。
 

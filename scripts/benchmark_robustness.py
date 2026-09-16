@@ -42,6 +42,26 @@ def read_data(name):
     return json.loads(dataset_path(name).read_text())
 
 
+def dataset_identity(cases, protocol):
+    """Hash task text, long history, fixtures and graders independently of implementation."""
+    names = {"robustness_protocol.json", protocol["history_file"]}
+    names.update(
+        "context_task_cases.json" if case["experiment"] == "context" else "recovery_task_cases.json"
+        for case in cases
+    )
+    if any(case["experiment"] == "recovery" for case in cases):
+        names.add("benchmark_tasks.json")
+    for case in cases:
+        names.add(case["checks"]["verifier"])
+        fixture = dataset_path(case["fixture"])
+        names.update(
+            str(path.relative_to(dataset_path(".")))
+            for path in fixture.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+        )
+    return {name: hashlib.sha256(dataset_path(name).read_bytes()).hexdigest() for name in sorted(names)}
+
+
 def save(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
@@ -142,12 +162,16 @@ def preview(runtime, budget):
         tools=runtime.tool_definitions(),
         protocol=settings.protocol,
         model=settings.model,
+        archive=lambda call_id, tool, content: runtime.evidence.archive_observation(
+            runtime.state.run_id, call_id, tool, content
+        ),
     )
     return {
         "estimated_tokens": report.estimated_tokens,
         "budget": report.budget,
         "removed_messages": report.removed_messages,
         "compacted": report.compacted,
+        "policy_version": report.policy_version,
     }
 
 
@@ -262,11 +286,18 @@ async def run_attempt(case, root, destination, settings, variant, protocol, *, m
         "first_request": observer.requests[0] if observer.requests else None,
         "context_builds": len(contexts),
         "history_compactions": sum(event["removed_messages"] > 0 for event in contexts),
+        "context_compactions": sum(event["compacted"] for event in contexts),
+        "context_policy_versions": sorted({event["policy_version"] for event in contexts}),
         "removed_messages": sum(event["removed_messages"] for event in contexts),
         "all_within_budget": all(event["estimated_tokens"] <= event["budget"] for event in contexts)
         if contexts
         else None,
         "evidence_read_calls": evidence_reads,
+        "observation_read_calls": sum(event["call"]["name"] == "observation_read" for event in calls),
+        "observation_read_successes": sum(
+            event["call"]["name"] == "observation_read" and event["outcome"]["status"] == "success"
+            for event in calls
+        ),
         "first_autonomous_call": first_call,
         "first_call_changed": first_key is not None and first_key not in seed_keys,
         "renewed_stalls": sum(event["event"] == "stall_detected" for event in after),
@@ -298,6 +329,7 @@ def summarize(rows):
             "history_compactions": sum(row.get("history_compactions", 0) for row in values),
             "renewed_stalls": sum(row.get("renewed_stalls", 0) for row in values),
             "evidence_read_calls": sum(row.get("evidence_read_calls", 0) for row in values),
+            "observation_read_calls": sum(row.get("observation_read_calls", 0) for row in values),
         }
         for key, values in sorted(groups.items())
     }
@@ -424,9 +456,12 @@ async def preflight(cases, settings, protocol, output):
                     case, Path(directory) / case["id"] / variant, settings, variant, protocol
                 )
                 if case["experiment"] == "context":
-                    passed = (setup["selected"]["removed_messages"] > 0) == (
-                        variant != "full"
-                    ) and setup["selected"]["estimated_tokens"] <= setup["selected"]["budget"]
+                    selected = setup["selected"]
+                    passed = selected["estimated_tokens"] <= selected["budget"] and (
+                        variant == "full"
+                        or selected["compacted"]
+                        and setup["untrimmed"]["estimated_tokens"] > selected["budget"]
+                    )
                 else:
                     passed = runtime.state.terminal == (variant == "stop")
                 rows.append(
@@ -485,6 +520,7 @@ async def evaluate(args):
         "mode": "real",
         "settings": settings.identity(),
         "protocol": protocol,
+        "dataset_sha256": dataset_identity(cases, protocol),
         "repeats": repeats,
         "manifest": [
             {"task_id": case["id"], "variant": variant, "attempt": attempt}

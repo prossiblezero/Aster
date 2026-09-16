@@ -17,7 +17,7 @@ from .context import ContextBudgetError, ContextBuilder, ContextHistoryError
 from .evidence import EvidenceStore, Redactor
 from .hooks import Hooks
 from .memory import Memory
-from .provider import ModelClient, ProviderError
+from .provider import ModelClient, ProviderError, history_groups, request_payload
 from .recovery import StallDetector, completion_feedback
 from .safety.policy import Decision, permission
 from .safety.runner import SandboxRunner
@@ -135,6 +135,7 @@ class Runtime:
     def checkpoint(self):
         if not self.state or self._in_turn:
             return
+        history_groups(self._structured_history)
         self.evidence.save(
             ("runs", self.state.run_id, "checkpoint.json"),
             {
@@ -162,6 +163,7 @@ class Runtime:
         state = RunState.model_validate(data["state"])
         if not state.terminal and "initial_text" not in data:
             raise ValueError("legacy_checkpoint_missing_diff_baseline")
+        history_groups(data.get("structured_history", []))
         self.state = state
         self.workers = WorkerManager(self)
         self._initial_text = data.get("initial_text", {})
@@ -219,7 +221,27 @@ class Runtime:
         if state.turn >= state.task.max_turns:
             self.finish("turn_limit")
             return state
+        try:
+            prompt, tool_defs, report = self.prepare_request()
+        except (ContextBudgetError, ContextHistoryError) as exc:
+            state.feedback = str(exc)
+            self.finish(
+                "context_history_invalid"
+                if isinstance(exc, ContextHistoryError)
+                else "context_budget_exceeded"
+            )
+            return state
+        except (OSError, ValueError) as exc:
+            state.feedback = f"context_archive_unavailable:{type(exc).__name__}"
+            self.finish("context_archive_unavailable", failed=True)
+            return state
         state.turn += 1
+        return await self._model_turn(prompt, tool_defs)
+
+    def prepare_request(self):
+        """One budgeted policy observation for autonomous calls and external rollouts."""
+        state = self.state
+        assert state is not None
         self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
@@ -233,27 +255,45 @@ class Runtime:
                     "[Skill unavailable; check the skill catalog before reloading.]"
                 )
         tool_defs = self.tool_definitions()
-        try:
-            prompt, report = self.context.build(
-                state,
-                state.task.prompt,
-                memory_text,
-                skills,
-                self._structured_history,
-                working_memory,
-                tools=tool_defs,
-                protocol=self.settings.protocol,
-                model=self.settings.model,
-                skill_bodies=skill_bodies,
-            )
-        except (ContextBudgetError, ContextHistoryError) as exc:
-            state.feedback = str(exc)
-            self.finish(
-                "context_history_invalid"
-                if isinstance(exc, ContextHistoryError)
-                else "context_budget_exceeded"
-            )
-            return state
+
+        def validate_archive(ref):
+            page = self.evidence.read_observation(state.run_id, ref["id"], limit=1)
+            if page["sha256"] != ref["sha256"]:
+                raise ValueError("observation_integrity_error")
+
+        prompt, report = self.context.build(
+            state,
+            state.task.prompt,
+            memory_text,
+            skills,
+            self._structured_history,
+            working_memory,
+            tools=tool_defs,
+            protocol=self.settings.protocol,
+            model=self.settings.model,
+            skill_bodies=skill_bodies,
+            archive=lambda call_id, tool, content: self.evidence.archive_observation(
+                state.run_id, call_id, tool, content
+            ),
+            validate_archive=validate_archive,
+        )
+        payload = request_payload(
+            prompt,
+            tool_defs,
+            protocol=self.settings.protocol,
+            model=self.settings.model,
+            output_tokens=self.settings.output_tokens,
+        )
+        # Keep the actual model observation apart from the full execution trace.
+        request_hash = hashlib.sha256(
+            json.dumps(
+                self.evidence.redactor.value(payload, mask_fields=False),
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()
+        artifact = ("runs", state.run_id, "requests", f"{state.turn + 1:04d}-{request_hash}.json")
+        self.evidence.save(artifact, {"policy_version": report.policy_version, "payload": payload})
         self.evidence.emit(
             state.run_id,
             "context_built",
@@ -262,7 +302,16 @@ class Runtime:
             compacted=report.compacted,
             removed_messages=report.removed_messages,
             sections=report.sections,
+            policy_version=report.policy_version,
+            archive_hashes=report.archive_hashes,
+            request_artifact="/".join(artifact),
+            request_sha256=request_hash,
         )
+        return prompt, tool_defs, report
+
+    async def _model_turn(self, prompt, tool_defs):
+        state = self.state
+        assert state is not None
         try:
             request_messages = prompt
             reply = await self.model.complete(request_messages, tool_defs)
@@ -279,6 +328,20 @@ class Runtime:
             return state
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
+        ids = [call.call_id for call in reply.calls]
+        previous = set(state.used_call_ids) | {
+            item["call_id"]
+            for item in self._structured_history
+            if item.get("type") == "function_call_output"
+        }
+        if (
+            any(not call_id.strip() for call_id in ids)
+            or len(ids) != len(set(ids))
+            or previous.intersection(ids)
+        ):
+            state.feedback = "invalid_tool_id: model returned an empty or reused call id"
+            self.finish("context_history_invalid", failed=True)
+            return state
         self._structured_history.extend(reply.raw)
         # Test policies may omit wire records; real providers preserve their native metadata.
         if reply.calls and not any(
@@ -332,7 +395,12 @@ class Runtime:
             for call in reply.calls:
                 if call.call_id not in answered:
                     self._append_output(
-                        call, Outcome(status="cancelled", reason="turn_interrupted")
+                        call,
+                        Outcome(
+                            status="cancelled",
+                            reason="turn_interrupted",
+                            content="Interrupted; inspect workspace before assuming side effects completed.",
+                        ),
                     )
             self._structured_history.extend(self._pending_messages)
             self._pending_messages.clear()
@@ -347,7 +415,8 @@ class Runtime:
                 "reason": outcome.reason,
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
-                "content": outcome.content,
+                "content": self.evidence.redactor.text(outcome.content),
+                **({"page": "observation"} if call.name == "observation_read" else {}),
             },
             ensure_ascii=False,
         )
@@ -362,7 +431,51 @@ class Runtime:
 
     async def step(self, call: ToolCall) -> Outcome:
         with self._operation():
-            return await self._step(call)
+            if self._in_turn or (self.state and self.state.terminal):
+                return await self._step(call)
+            if not call.call_id.strip():
+                return Outcome(status="blocked", reason="invalid_tool_id")
+            if self.state and (
+                call.call_id in self.state.used_call_ids
+                or any(
+                    item.get("type") == "function_call_output" and item["call_id"] == call.call_id
+                    for item in self._structured_history
+                )
+            ):
+                self.evidence.emit(
+                    self.state.run_id,
+                    "tool_rejected",
+                    call_id=call.call_id,
+                    reason="duplicate_call_id",
+                )
+                return Outcome(status="blocked", reason="duplicate_call_id")
+            # External policies use the same native transcript as autonomous turns.
+            self._structured_history.append(
+                {
+                    "type": "function_call",
+                    "call_id": call.call_id,
+                    "name": call.name,
+                    "arguments": json.dumps(call.arguments),
+                }
+            )
+            self._in_turn = True
+            outcome = None
+            try:
+                outcome = await self._step(call)
+                return outcome
+            finally:
+                self._append_output(
+                    call,
+                    outcome
+                    or Outcome(
+                        status="cancelled",
+                        reason="turn_interrupted",
+                        content="Interrupted; inspect workspace before assuming side effects completed.",
+                    ),
+                )
+                self._structured_history.extend(self._pending_messages)
+                self._pending_messages.clear()
+                self._in_turn = False
 
     async def _step(self, call: ToolCall) -> Outcome:
         state = self.state
@@ -562,6 +675,39 @@ class Runtime:
     async def workflow_tool(self, name: str, args: dict) -> Outcome:
         state = self.state
         assert state is not None
+        if name == "observation_read":
+            try:
+                if args["observation_id"]:
+                    page = self.evidence.read_observation(
+                        state.run_id,
+                        args["observation_id"],
+                        offset=args["offset"],
+                        limit=args["limit"],
+                        query=args["query"],
+                    )
+                else:
+                    page = self.evidence.list_observations(
+                        state.run_id,
+                        offset=args["offset"],
+                        limit=min(10, args["limit"]),
+                        query=args["query"],
+                    )
+            except (OSError, ValueError) as exc:
+                return Outcome(status="blocked", reason="observation_unavailable", content=str(exc))
+            # Wire previews need only the locator and paging fields; full provenance
+            # stays in the archive and trace rather than every prompt.
+            if args["observation_id"]:
+                page = {
+                    key: value
+                    for key, value in page.items()
+                    if key not in {"sha256", "tool", "call_id"}
+                }
+            else:
+                page["observations"] = [
+                    {key: value for key, value in ref.items() if key != "sha256"}
+                    for ref in page["observations"]
+                ]
+            return Outcome(status="success", content=json.dumps(page, ensure_ascii=False))
         if name == "todo_add":
             item = {
                 "id": str(len(state.todos) + 1),
@@ -863,6 +1009,15 @@ class Runtime:
         )
 
     def _unavailable_reason(self, name):
+        if name == "observation_read" and not (
+            self.state
+            and (
+                any(item.get("type") == "function_call_output" for item in self._structured_history)
+                or any(item.get("role") == "tool" for item in self.state.messages)
+                or self.evidence.path("runs", self.state.run_id, "observations").is_dir()
+            )
+        ):
+            return "no_archived_observations"
         if self.settings.sandbox == "off" and (
             name == "run_tests"
             or (
@@ -895,10 +1050,7 @@ class Runtime:
         )
         if no_approval and (
             name in {"write_file", "patch_file", "plan_exit"}
-            or (
-                name in {"run_shell", "run_tests"}
-                and not self._has_allowed_command(name)
-            )
+            or (name in {"run_shell", "run_tests"} and not self._has_allowed_command(name))
         ):
             return "approval_unavailable"
         return ""
@@ -916,7 +1068,10 @@ class Runtime:
                 else:
                     continue
                 decision = permission(
-                    name, "process", {"command": shlex.join(candidate)}, self.settings,
+                    name,
+                    "process",
+                    {"command": shlex.join(candidate)},
+                    self.settings,
                     self.state.mode if self.state else "work",
                 )
                 if decision.action == "allow":
@@ -929,6 +1084,9 @@ class Runtime:
             if self.settings.tool_profile == "all"
             else (set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
         )
+        selected = set(selected)
+        if not self._unavailable_reason("observation_read"):
+            selected.add("observation_read")
         return sorted(name for name in selected if not self._unavailable_reason(name))
 
     def tool_definitions(self):

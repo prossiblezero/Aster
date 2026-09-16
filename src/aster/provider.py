@@ -14,6 +14,95 @@ from .evidence import Redactor
 from .schema import ModelReply, ToolCall
 
 
+class ContextHistoryError(ValueError):
+    pass
+
+
+def history_groups(history):
+    """Validate complete tool exchanges and keep their reasoning in the same cut group."""
+    groups, group, pending, seen, returned = [], [], set(), set(), set()
+    accepting_calls = False
+    for item in history:
+        kind, role = item.get("type"), item.get("role")
+        calls, outputs = [], []
+        if kind == "function_call":
+            calls = [item.get("call_id")]
+        elif kind == "function_call_output":
+            outputs = [item.get("call_id")]
+        if item.get("tool_calls"):
+            if role != "assistant":
+                raise ContextHistoryError("invalid_tool_role: calls require an assistant message")
+            calls.extend(call.get("id") for call in item["tool_calls"])
+        if role == "tool":
+            outputs.append(item.get("tool_call_id"))
+        content = item.get("content")
+        if isinstance(content, list):
+            saw_other_block = False
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "tool_use":
+                    if role != "assistant":
+                        raise ContextHistoryError(
+                            "invalid_tool_role: tool_use requires an assistant message"
+                        )
+                    calls.append(block.get("id"))
+                elif block.get("type") == "tool_result":
+                    if role != "user" or saw_other_block:
+                        raise ContextHistoryError(
+                            "invalid_tool_order: tool_result must lead a user message"
+                        )
+                    outputs.append(block.get("tool_use_id"))
+                else:
+                    saw_other_block = True
+        if any(not isinstance(key, str) or not key.strip() for key in calls + outputs):
+            raise ContextHistoryError("invalid_tool_id: tool calls and results need nonempty ids")
+        if len(calls) != len(set(calls)) or seen.intersection(calls):
+            raise ContextHistoryError("duplicate_tool_call: history contains a reused call id")
+        if calls and outputs:
+            raise ContextHistoryError(
+                "invalid_tool_order: calls and results cannot share a message"
+            )
+        if outputs:
+            for key in outputs:
+                if key in returned:
+                    raise ContextHistoryError("duplicate_tool_output: each call needs one result")
+                if key not in pending:
+                    raise ContextHistoryError(
+                        "orphan_tool_output: history must retain complete exchanges"
+                    )
+                pending.remove(key)
+                returned.add(key)
+            if role == "user" and pending:
+                raise ContextHistoryError("missing_tool_output: native result batch is incomplete")
+            group.append(item)
+            accepting_calls = False
+            if not pending:
+                groups.append(group)
+                group = []
+            continue
+        if pending and not (kind == "function_call" and accepting_calls):
+            raise ContextHistoryError("missing_tool_output: next turn starts before results")
+        new_turn = kind == "reasoning" or role in {"user", "assistant", "system"}
+        if group and not pending and new_turn:
+            # Contiguous reasoning belongs to the following assistant response/call batch.
+            if role in {"user", "system"} or any(x.get("type") != "reasoning" for x in group):
+                groups.append(group)
+                group = []
+        pending.update(calls)
+        seen.update(calls)
+        accepting_calls = bool(calls) and kind == "function_call"
+        group.append(item)
+        if role in {"user", "system"}:
+            groups.append(group)
+            group = []
+    if pending:
+        raise ContextHistoryError("missing_tool_output: history ends before results")
+    if group:
+        groups.append(group)
+    return groups
+
+
 class ProviderError(RuntimeError):
     """Safe diagnostics suitable for the trace; never contains request headers/body."""
 
@@ -152,10 +241,12 @@ def _anthropic_messages(messages):
 
 def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
     """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
+    history_groups(messages)
     if protocol == "chat":
-        return {
+        history = _chat_messages(messages)
+        payload = {
             "model": model,
-            "messages": _chat_messages(messages),
+            "messages": history,
             "max_tokens": output_tokens,
             "tools": [
                 {
@@ -165,9 +256,9 @@ def request_payload(messages, tools, *, protocol="responses", model="", output_t
                 for tool in tools
             ],
         }
-    if protocol == "anthropic":
+    elif protocol == "anthropic":
         system, history = _anthropic_messages(messages)
-        return {
+        payload = {
             "model": model,
             "system": system,
             "messages": history,
@@ -181,13 +272,16 @@ def request_payload(messages, tools, *, protocol="responses", model="", output_t
                 for t in tools
             ],
         }
-    return {
-        "model": model,
-        "input": messages,
-        "tools": tools,
-        "max_output_tokens": output_tokens,
-        "store": False,
-    }
+    else:
+        payload = {
+            "model": model,
+            "input": messages,
+            "tools": tools,
+            "max_output_tokens": output_tokens,
+            "store": False,
+        }
+    history_groups(payload.get("input", payload.get("messages", [])))
+    return payload
 
 
 class ModelClient:

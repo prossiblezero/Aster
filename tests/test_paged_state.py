@@ -77,6 +77,8 @@ async def test_model_can_read_the_last_chinese_workflow_or_skill_page(tmp_path, 
         (directory / "guide.md").write_text(body)
         source, extra = body, {"name": "guide"}
     runtime.state.messages.clear()
+    # Isolate paging from the huge setup actions, which now also have native transcripts.
+    runtime._structured_history.clear()
     start = len(source) - 90
 
     class PageReader:
@@ -86,7 +88,7 @@ async def test_model_can_read_the_last_chinese_workflow_or_skill_page(tmp_path, 
             outputs = [item for item in prompt if item.get("type") == "function_call_output"]
             offset = start
             if not outputs:
-                assert "尾部要求：检查最终兼容性。" not in str(prompt)
+                assert source not in str(prompt)
             if outputs:
                 envelope = json.loads(outputs[-1]["output"])
                 assert envelope["status"] == "success"

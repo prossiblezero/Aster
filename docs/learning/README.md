@@ -1,6 +1,6 @@
 # Aster 分阶段学习文档
 
-这是一条配合完整项目阅读的学习路径。代码按职责组织，文档按 **问题 → 机制 → 读代码 → 运行 → 验证 → 边界** 组织；无需切换课程专用分支，每个阶段都能在当前项目运行。先建立整体认识，再进入阶段 12–15 的完整实验。
+这是一条配合完整项目阅读的学习路径。代码按职责组织，文档按 **问题 → 机制 → 读代码 → 运行 → 验证 → 边界** 组织；无需切换课程专用分支，每个阶段都能在当前项目运行。先建立整体认识，再进入阶段 12–16 的完整实验。
 
 ## 0. 先运行，再读入口
 
@@ -39,9 +39,9 @@ aster --cwd examples/demo '查看仓库并说明入口'
 
 ## 5. 怎样控制上下文，而不裁坏当前任务？
 
-[ContextBuilder](../../src/aster/context.py) 先构造包含工具定义的实际协议请求，再按 `context_tokens - output_tokens` 检查输入预算。它将调用与结果成组保留，移除可丢弃的旧内容；当前任务与必需交互仍放不下时，明确停止。工具原始输出留在执行记录中，送模型前再裁剪。
+[ContextBuilder](../../src/aster/context.py) 先构造包含工具定义的实际协议请求，再按 `context_tokens - output_tokens` 检查输入预算。它将调用与结果成组保留，移除可丢弃的旧内容；当前任务与必需交互仍放不下时，明确停止。已采集的工具正文先脱敏归档，模型通过 `observation_read` 回读；最近完整批次共享剩余输入空间。
 
-当前组织策略是固定的，没有上下文策略自进化。预算是本地 tokenizer 对请求的估算，远端 usage 单列。运行 `python -m pytest -q tests/test_context_provider.py -k budget`，观察正常压缩和无法压缩的请求；字段与裁剪顺序见 [阶段 13](13-runtime-reliability.md)。
+当前组织策略是固定的，没有上下文策略自进化。预算是本地 tokenizer 对请求的估算，远端 usage 单列。运行 `python -m pytest -q tests/test_context_provider.py -k budget`，观察正常压缩和无法压缩的请求；字段与最新裁剪顺序见 [阶段 16](16-context-archives.md)。
 
 工具结果只裁正文，执行状态与证据编号仍保留并计入全局预算；长计划和技能可以继续翻页。[阶段 15](15-paged-observations.md) 解释 `offset`、`next_offset` 和正文预算，并验证如何读到被摘要省略的最后一页。
 
@@ -86,4 +86,4 @@ python scripts/benchmark_mechanisms.py --output artifacts/learning-mechanisms
 python scripts/benchmark.py --real --selection real_subset.json --concurrency 2
 ```
 
-[阶段 12：评测](12-evaluation.md) 解释任务、验证器与对照；[阶段 13：运行可靠性](13-runtime-reliability.md) 解释预算、恢复、Hooks 和交互；[阶段 14：记忆与训练环境](14-memory-and-rollouts.md) 解释记忆维护和奖励边界；[阶段 15：分页观察](15-paged-observations.md) 解释工具正文裁剪、完整 JSON 与长文本读取。按这个顺序运行后，再结合 [实施清单](../implementation.md) 检查自己是否能讲清每项机制的作用与限制。
+[阶段 12：评测](12-evaluation.md) 解释任务、验证器与对照；[阶段 13：运行可靠性](13-runtime-reliability.md) 解释预算、恢复、Hooks 和交互；[阶段 14：记忆与训练环境](14-memory-and-rollouts.md) 解释记忆维护和奖励边界；[阶段 15：分页观察](15-paged-observations.md) 解释工具正文裁剪、完整 JSON 与长文本读取。[阶段 16：上下文归档与回读](16-context-archives.md) 配合这次重构说明全局预算、归档恢复与统一模型输入。按这个顺序运行后，再结合 [实施清单](../implementation.md) 检查自己是否能讲清每项机制的作用与限制。

@@ -21,7 +21,7 @@ from aster.tools import SCHEMAS
 from aster.workspace import Workspace
 
 
-async def test_context_treatment_changes_only_budget_and_really_drops_old_evidence(tmp_path):
+async def test_context_treatment_changes_only_budget_and_preserves_archived_evidence(tmp_path):
     protocol = read_data("robustness_protocol.json")
     settings = Settings(**protocol["settings"])
     case = next(case for case in load_cases("context") if case["category"] == "loss_control")
@@ -31,7 +31,24 @@ async def test_context_treatment_changes_only_budget_and_really_drops_old_eviden
         runtimes.append(runtime)
         setups.append(setup)
     assert setups[0]["workspace_sha256"] == setups[1]["workspace_sha256"]
-    assert setups[0]["untrimmed"] == setups[1]["untrimmed"]
+    full, tight = [setup["untrimmed"].copy() for setup in setups]
+    full_tokens, tight_tokens = full.pop("estimated_tokens"), tight.pop("estimated_tokens")
+    assert full == tight
+    # Archive IDs bind to distinct run IDs; hex tokenization can change measured size
+    # slightly even though both conditions contain exactly the same source observations.
+    assert abs(full_tokens - tight_tokens) / full_tokens < 0.01
+    archives = []
+    for runtime in runtimes:
+        records = [
+            json.loads(path.read_text())
+            for path in runtime.evidence.path("runs", runtime.state.run_id, "observations").glob("*.json")
+        ]
+        archives.append({(record["call_id"], record["tool"]): record["content"] for record in records})
+    assert archives[0] == archives[1]
+    assert set(archives[0].values()) == {
+        message["content"] for message in [*case["history"], *read_data(protocol["history_file"])["messages"]]
+        if message["role"] == "tool"
+    }
     assert setups[0]["selected"]["removed_messages"] == 0
     assert setups[1]["selected"]["removed_messages"] > 0
     assert setups[1]["selected"]["estimated_tokens"] <= 3584

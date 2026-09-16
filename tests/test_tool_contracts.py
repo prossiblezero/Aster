@@ -82,7 +82,7 @@ async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
     runtime.start(TaskSpec(prompt="look around"))
     runtime.state.mode = case.get("mode", "work")
     disabled = {name for names in case["unavailable"].values() for name in names}
-    available = set(SCHEMAS) - disabled
+    available = set(SCHEMAS) - disabled - {"observation_read"}
     tools = {tool["name"]: tool for tool in runtime.tool_definitions()}
     assert tools.keys() == (available if profile == "all" else available & CORE_TOOLS)
     catalog = tools["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
@@ -101,9 +101,7 @@ async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
             # Each probe gets a fresh run so repeated denials don't trigger loop recovery.
             runtime.start(TaskSpec(prompt="look around"))
             runtime.state.mode = case.get("mode", "work")
-            outcome = await runtime.step(
-                ToolCall(name=name, arguments=VISIBILITY["probes"][name])
-            )
+            outcome = await runtime.step(ToolCall(name=name, arguments=VISIBILITY["probes"][name]))
             assert (outcome.status, outcome.reason) == ("blocked", reason)
     assert not runtime.workspace.snapshot()
 

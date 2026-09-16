@@ -79,6 +79,140 @@ class EvidenceStore:
             # Checkpoint mappings use file paths as keys; keep their value types intact.
             atomic_json(self.path(*parts), self.redactor.value(data, mask_fields=False))
 
+    def archive_observation(self, run_id: str, call_id: str, tool: str, content: str) -> dict:
+        """Persist captured text before replacing it with a preview; never silently clip it."""
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", run_id):
+            raise BoundaryError("invalid_observation_run")
+        record = self.redactor.value(
+            {"run_id": run_id, "call_id": call_id, "tool": tool, "content": content},
+            mask_fields=False,
+        )
+        observation_id = digest(json.dumps(record, sort_keys=True, ensure_ascii=False))
+        with self._lock:
+            path = self.path("runs", run_id, "observations", f"{observation_id}.json")
+            if path.exists() and not path.is_file():
+                raise BoundaryError("observation_not_file")
+            # Reuse unchanged archives; a damaged body can be replaced while its source exists.
+            if not path.exists() or json.loads(path.read_text()) != record:
+                atomic_json(path, record)
+        return {
+            "id": observation_id,
+            "sha256": digest(record["content"]),
+            "call_id": record["call_id"],
+            "tool": record["tool"],
+            "characters": len(record["content"]),
+        }
+
+    def read_observation(
+        self,
+        run_id: str,
+        observation_id: str,
+        *,
+        offset: int = 0,
+        limit: int = 1000,
+        query: str = "",
+    ) -> dict:
+        """Read only a current-run tool observation, with bounded character pages."""
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", run_id):
+            raise BoundaryError("invalid_observation_run")
+        if not re.fullmatch(r"[a-f0-9]{64}", observation_id):
+            raise BoundaryError("invalid_observation_id")
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+            or not isinstance(query, str)
+            or len(query) > 1000
+        ):
+            raise ValueError("invalid_observation_page")
+        with self._lock:
+            path = self.path("runs", run_id, "observations", f"{observation_id}.json")
+            if path.exists() and not path.is_file():
+                raise BoundaryError("observation_not_file")
+            record = json.loads(path.read_text())
+        if (
+            not isinstance(record, dict)
+            or set(record) != {"run_id", "call_id", "tool", "content"}
+            or not all(isinstance(value, str) for value in record.values())
+            or record.get("run_id") != run_id
+            or digest(json.dumps(record, sort_keys=True, ensure_ascii=False)) != observation_id
+        ):
+            raise ValueError("observation_integrity_error")
+        content = record["content"]
+        if offset > len(content):
+            raise ValueError("page_out_of_range")
+        start = content.find(query, offset) if query else offset
+        end = min(start + limit, len(content)) if start >= 0 else offset
+        return {
+            "id": observation_id,
+            "sha256": digest(content),
+            "tool": record["tool"],
+            "call_id": record["call_id"],
+            "offset": start if start >= 0 else offset,
+            "next_offset": end if start >= 0 and end < len(content) else None,
+            "total": len(content),
+            "matched": start >= 0,
+            "content": content[start:end] if start >= 0 else "",
+        }
+
+    def list_observations(
+        self, run_id: str, *, offset: int = 0, limit: int = 10, query: str = ""
+    ) -> dict:
+        """Discover archived observations; pagination counts records, not characters."""
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", run_id):
+            raise BoundaryError("invalid_observation_run")
+        if (
+            type(offset) is not int
+            or offset < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 20
+            or not isinstance(query, str)
+            or len(query) > 1000
+        ):
+            raise ValueError("invalid_observation_page")
+        with self._lock:
+            directory = self.path("runs", run_id, "observations")
+            paths = [
+                self.path("runs", run_id, "observations", path.name)
+                for path in directory.glob("*.json")
+                if re.fullmatch(r"[a-f0-9]{64}\.json", path.name)
+            ]
+            paths.sort(key=lambda path: path.name)
+            if query:
+                # ponytail: literal scan for bounded local runs; add an index only if measured
+                # search latency warrants it. Never search checkpoint or raw trace payloads.
+                matches = []
+                for path in paths:
+                    page = self.read_observation(run_id, path.stem, query=query, limit=200)
+                    if page["matched"]:
+                        matches.append(page)
+                total = len(matches)
+                pages = matches[offset : offset + limit]
+            else:
+                total = len(paths)
+                # Read and verify only this page when no content search is requested.
+                pages = [
+                    self.read_observation(run_id, path.stem, limit=1)
+                    for path in paths[offset : offset + limit]
+                ]
+            if offset > total:
+                raise ValueError("page_out_of_range")
+            observations = []
+            for page in pages:
+                reference = {key: page[key] for key in ("id", "sha256", "tool", "call_id")}
+                reference["characters"] = page["total"]
+                if query:
+                    reference.update(match_offset=page["offset"], preview=page["content"])
+                observations.append(reference)
+            end = offset + len(observations)
+        return {
+            "observations": observations,
+            "offset": offset,
+            "next_offset": end if end < total else None,
+            "total": total,
+        }
+
     def emit(self, run_id: str, event: str, **payload) -> dict:
         with self._lock:
             path = self.path("runs", run_id, "trace.jsonl")

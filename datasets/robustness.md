@@ -4,7 +4,7 @@
 
 ## 上下文：相同历史，三档预算
 
-[context_task_cases.json](context_task_cases.json) 有 12 道不同的代码题，每类 3 道；另有 1 个不可恢复信息丢失控制，单独统计。
+[context_task_cases.json](context_task_cases.json) 有 12 道不同的代码题，每类 3 道；另有 1 个一次性信息控制，单独统计。
 
 | 类别 | 题目 | 关键证据在哪里 |
 |---|---|---|
@@ -15,6 +15,8 @@
 | `loss_control` | 一次性协商的路由映射 | 只有旧工具观察；没有文件、工作记忆或长期记忆副本 |
 
 `history` 是初始历史；`history_evidence` 是用于检查实际发送请求的原文片段，不会被执行器额外注入或标记保留；`evidence_paths` 是可重读来源，用于统计成功的 `read_file` 补读，不能据此声称没有通过 search 或 shell 获取证据。用户历史按生产策略保留；工具观察会被裁剪。
+
+`loss_control` 的题目、历史与隐藏测试固定：在 v5 中，旧工具观察被删除后没有回读入口，因此作为信息丢失控制。重构增加观察归档后，这道原题也用于检查模型能否自主找回一次性证据；它不是新增题，不改评分，不并入 12 道主任务的完成率。
 
 [context_history.json](context_history.json) 提供共同的长历史：36 条固定代码、日志、中文观察，模拟之前完成的无关排查。所有条件使用相同内容和顺序，不是让模型现场生成一段长任务，也不把历史生成成本计入后续任务费用。
 
@@ -59,3 +61,16 @@ python -m pytest -q tests/test_robustness_benchmark.py tests/test_recovery_contr
 `--real` 也会先检查原题失败、已有行为通过、参考修复通过以及前缀/预算条件；预检失败时不调用模型。`--suite context|recovery` 选择专项，`--task` 选择具体场景，`--repeats` 可覆盖协议默认重复数。正式运行会先保存全部计划尝试的 manifest；保留每次 request、trace、checkpoint、候选代码、diff 和隐藏测试结果，连接错误也计入报告。
 
 题目使用 Python 测试作为可执行判分标准，判断行为而非候选代码必须包含参考解字串。所有源任务、试跑和报告版本保留，不用后续好看的批次覆盖失败。
+
+## 上下文重构后的原题回归
+
+仅重跑上下文专项，仍用原来的 13 个场景、三档预算和每档三次重复，共 117 次。12 道主任务共 108 次，信息控制另计 9 次。预检验证超预算输入实际发生压缩并满足请求预算；不要求一定删掉整条消息，因为缩短正文也属于有效压缩。
+
+```bash
+conda run --no-capture-output -n aster python scripts/benchmark_robustness.py --real --suite context --repeats 3 --concurrency 8 --output artifacts/benchmark-v6-context
+conda run --no-capture-output -n aster python scripts/compare_context_runs.py --before artifacts/benchmark-v5-robustness/report.json --after artifacts/benchmark-v6-context/report.json --output artifacts/benchmark-v6-context
+```
+
+新报告记录题目、长历史、初始仓库和隐藏判分器的独立 SHA-256。比较脚本从 v5 冻结的 Git 提交恢复原文件哈希，并核对相同的模型、设置和实验协议；丢失任务、缺少尝试、重复记录或输入变更会拒绝比较。它分别报告主任务、各题型和信息控制的 Pass@1／Pass@3、隐藏功能通过数、预算停止数，以及双方都成功时的工具／token／耗时成本。`observation_read_calls` 统计归档工具查询或读取的调用次数，`observation_read_successes` 统计成功返回次数，不直接证明读到的内容帮助完成任务。
+
+这是历史版本与重构版本的回归比较，不能消除跨时间的模型或网关波动。v5 的 117 次上下文尝试共记录 8,470,543 tokens，累计任务耗时约 4.21 小时；并发 8 时理想运行约 32 分钟，实际时间和新版本成本以本次记录为准。未记录网关单价，不据此推算美元费用。原题已用于定位问题，属于开发回归证据，不能代替未参与调参的泛化评测。

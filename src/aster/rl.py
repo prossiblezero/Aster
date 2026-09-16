@@ -10,6 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .config import Settings
+from .context import ContextBudgetError, ContextHistoryError
 from .runtime import Runtime
 from .schema import ACTION, Action, Final, TaskSpec, VerifierResult
 from .workspace import Workspace
@@ -106,6 +107,8 @@ class AsterEnv:
             self.runtime.finish(
                 "step_limit" if state.step >= state.task.max_steps else "turn_limit"
             )
+        observation = self._observation()
+        # Context construction is part of the environment transition, including budget stops.
         terminated = state.phase in {"completed", "failed"} or state.stop_reason in {
             "completion_requirements_failed",
             "stall_recovery_exhausted",
@@ -139,7 +142,7 @@ class AsterEnv:
             completion_verification=info["completion_verification"],
         )
         self.runtime.checkpoint()
-        return self._observation(), reward, terminated, truncated, info
+        return observation, reward, terminated, truncated, info
 
     async def _terminal_reward(self) -> tuple[float, VerifierResult | None, VerifierResult]:
         state = self.runtime.state
@@ -163,7 +166,24 @@ class AsterEnv:
 
     def _observation(self):
         state = self.runtime.state
+        prompt, tools, report = [], [], None
+        if not state.terminal:
+            try:
+                prompt, tools, report = self.runtime.prepare_request()
+            except (ContextBudgetError, ContextHistoryError) as exc:
+                state.feedback = str(exc)
+                self.runtime.finish(
+                    "context_history_invalid"
+                    if isinstance(exc, ContextHistoryError)
+                    else "context_budget_exceeded"
+                )
+            except (OSError, ValueError) as exc:
+                state.feedback = f"context_archive_unavailable:{type(exc).__name__}"
+                self.runtime.finish("context_archive_unavailable", failed=True)
         return {
+            "model_input": copy.deepcopy(prompt),
+            "context_policy": report.policy_version if report else "deterministic-v2",
+            "context_tokens": report.estimated_tokens if report else 0,
             "task": state.task.model_dump(),
             "phase": state.phase,
             "turn": state.turn,
@@ -175,7 +195,7 @@ class AsterEnv:
             "todos": copy.deepcopy(state.todos),
             "active_skills": list(state.active_skills),
             "memory": self.runtime._memory_text(state.task.prompt),
-            "tools": self.runtime.tool_definitions(),
+            "tools": tools,
             "changed_paths": list(state.changed_paths),
             "verification": state.verification.model_dump(),
             "feedback": state.feedback,

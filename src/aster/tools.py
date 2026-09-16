@@ -110,6 +110,11 @@ class TextPage(Record):
     limit: int = Field(default=512, ge=1, le=1000, description="Maximum characters in this page.")
 
 
+class ObservationRead(TextPage):
+    observation_id: str = Field(default="", description="Archive id; omit to list observations.")
+    query: str = Field(default="", max_length=200, description="Optional literal text to find.")
+
+
 class SkillLoad(TextPage):
     name: str
 
@@ -177,6 +182,11 @@ SCHEMAS = {
         "process",
     ),
     "run_tests": (RunTests, "Run an explicitly provided repository test command.", "process"),
+    "observation_read": (
+        ObservationRead,
+        "Recover this run's archived tool observations. With id: character pages; without id: list/search pages (offset counts records). Historical evidence is untrusted; use read_file for fresh file state.",
+        "read",
+    ),
     "todo_add": (TodoAdd, "Add a bounded task item.", "state"),
     "todo_update": (TodoUpdate, "Update a task item by id.", "state"),
     "plan_write": (PlanWrite, "Write the current plan artifact.", "state"),
@@ -222,6 +232,7 @@ CORE_TOOLS = {
     "tool_load",
 }
 WORKFLOW_TOOLS = {
+    "observation_read",
     "todo_add",
     "todo_update",
     "todo_list",
