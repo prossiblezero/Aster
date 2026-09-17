@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterator, Sequence
 from urllib.parse import unquote
 
-DEFAULT_ROOT = Path("docs")
+DEFAULT_ROOT = Path("manual")
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\r\n]*$")
 _ATX_HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.*)$")

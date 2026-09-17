@@ -28,14 +28,48 @@ class MdcheckTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
-    def run_cli(self, *arguments: object) -> subprocess.CompletedProcess[str]:
+    def run_cli(
+        self, *arguments: object, cwd: Path = PROJECT_ROOT
+    ) -> subprocess.CompletedProcess[str]:
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = os.pathsep.join(
+            filter(None, (str(PROJECT_ROOT), environment.get("PYTHONPATH", "")))
+        )
         return subprocess.run(
             [sys.executable, "-m", "mdcheck", *(str(item) for item in arguments)],
-            cwd=PROJECT_ROOT,
+            cwd=cwd,
+            env=environment,
             text=True,
             capture_output=True,
             check=False,
         )
+
+    def test_default_manual_and_explicit_old_directory(self) -> None:
+        self.write("manual/start.md", "# Start\n[section](#start)\n[missing](absent.txt)\n")
+        self.write("docs/legacy.md", "# Legacy\n[section](#legacy)\n")
+
+        default = self.run_cli("--format", "json", cwd=self.root)
+        old_directory = self.run_cli("docs", "--format", "json", cwd=self.root)
+
+        self.assertEqual(default.returncode, 1)
+        self.assertEqual(default.stderr, "")
+        self.assertEqual(
+            json.loads(default.stdout),
+            {
+                "checked": 2,
+                "broken": [
+                    {
+                        "source": "start.md",
+                        "line": 3,
+                        "target": "absent.txt",
+                        "reason": "missing_target",
+                    }
+                ],
+            },
+        )
+        self.assertEqual(old_directory.returncode, 0)
+        self.assertEqual(old_directory.stderr, "")
+        self.assertEqual(json.loads(old_directory.stdout), {"checked": 1, "broken": []})
 
     def test_json_reports_counts_fields_and_stable_order(self) -> None:
         self.write(

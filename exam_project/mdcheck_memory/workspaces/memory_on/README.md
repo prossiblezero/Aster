@@ -18,9 +18,10 @@ Installation provides both the `mdcheck` command and the `python -m mdcheck` mod
 python -m mdcheck [ROOT] [--format text|json]
 ```
 
-`ROOT` may be one Markdown file or a directory. Directories are scanned recursively for `.md` files. The default root is `docs`, and the default output format is `text`.
+`ROOT` may be one Markdown file or a directory. Directories are scanned recursively for `.md` files. With no `ROOT`, the current working directory's `manual` directory is checked. The default output format is `text`; an explicit `ROOT` overrides the default.
 
 ```sh
+python -m mdcheck
 python -m mdcheck examples
 python -m mdcheck README.md --format json
 mdcheck docs
