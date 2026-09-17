@@ -8,6 +8,8 @@
 
 教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；后续实验项目统一放在 `exam_project/`。课程正文仍以 `docs/learning/` 为来源。
 
+最新实战：[mdcheck 与 Memory 对照报告](exam_project/mdcheck_memory/report.md) · [后训练准备度与设计前提](docs/post-training-readiness.md)。
+
 ```bash
 conda activate aster
 pip install -e '.[dev]'
