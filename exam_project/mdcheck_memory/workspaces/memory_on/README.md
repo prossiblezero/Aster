@@ -36,13 +36,16 @@ JSON output is one object with a `checked` count and a `broken` array. Each brok
 - Existing files and directories as valid targets
 - Deterministic recursive scanning and result ordering
 - Fenced code blocks opened by three or more backticks or tildes
+- Heading anchors in pure fragment links (`#heading`) and local Markdown targets (`guide.md#heading`)
 
-URL schemes such as `http`, `https`, and `mailto`, protocol-relative URLs beginning with `//`, and pure fragment links such as `#heading` are skipped. For a target containing both a path and fragment, only the path is checked. Anchor existence is not checked. Reference-style links and full CommonMark parsing are outside the current scope. Symbolic-link files and directories are not scanned, and the checker never accesses the network or modifies documents.
+Anchors come from ATX headings outside fenced code: lines starting with 1-6 `#` characters followed by a space. Slugs lowercase the heading, remove ASCII punctuation except hyphens and underscores, replace whitespace sequences with `-`, and preserve non-ASCII characters. Repeated heading slugs receive `-1`, `-2`, and subsequent suffixes. Fragments are percent-decoded and matched exactly (case-sensitive). Pure fragment links refer to the source document and count toward `checked`. Empty fragments skip anchor validation. Missing paths report `missing_target`; existing Markdown files with missing anchors report `missing_anchor`. Non-Markdown targets, including directories, only require an existing path, regardless of their fragment.
+
+URL schemes such as `http`, `https`, and `mailto`, and protocol-relative URLs beginning with `//`, are skipped. Reference-style links, Setext headings, and full CommonMark parsing are outside the current scope. Symbolic-link files and directories are not scanned, and the checker never accesses the network or modifies documents.
 
 ## Exit codes
 
-- `0`: all checked local targets exist
-- `1`: one or more local targets are missing
+- `0`: all checked local paths and Markdown anchors exist
+- `1`: one or more local paths or Markdown anchors are missing
 - `2`: invalid arguments, a missing root, or an input/read error
 
 ## Tests

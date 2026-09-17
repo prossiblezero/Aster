@@ -25,3 +25,6 @@
 
 标题范围为围栏外的 ATX 标题：行首 1–6 个 `#` 后跟空格。slug 规则：标题转小写，删除 ASCII 标点（保留连字符与下划线），空白序列替换为 `-`，保留非 ASCII 字符。重复 slug 后缀依次为 `-1`、`-2`。fragment 做百分号解码后精确匹配；缺失锚点 reason 为 `missing_anchor`。纯片段 now 计入 checked。
 
+## 阶段 3
+
+默认目录改为 `manual`，由修改后的 `PROJECT.md` 明确记录；显式 ROOT 仍按用户参数生效。阶段 2 其余接口和规则全部保留，同步修改 README、示例和测试。旧记忆是否失效由实验观察，不额外要求修改 Aster 的 Memory 实现。

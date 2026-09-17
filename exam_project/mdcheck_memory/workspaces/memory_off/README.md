@@ -18,12 +18,15 @@ Installation provides both the `mdcheck` command and the `python -m mdcheck` mod
 python -m mdcheck [ROOT] --format text|json
 ```
 
-`ROOT` may be a Markdown file or a directory. It defaults to `docs`. The output format defaults to `text`; `json` emits exactly one object with `checked` and `broken` fields.
+`ROOT` may be a Markdown file or a directory. When omitted, it defaults to `manual`. An explicitly supplied root is always used, including an existing `docs` directory. The output format defaults to `text`; `json` emits exactly one object with `checked` and `broken` fields.
 
 Examples:
 
 ```console
+# Check ./manual
 python -m mdcheck
+
+# Explicit file and directory roots still work
 python -m mdcheck README.md
 python -m mdcheck examples/docs --format json
 ```

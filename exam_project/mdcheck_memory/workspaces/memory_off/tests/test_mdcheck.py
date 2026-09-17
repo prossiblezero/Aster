@@ -1,6 +1,7 @@
 """End-to-end and API checks for the mdcheck CLI."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -23,14 +24,45 @@ class MdcheckTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
         return path
 
-    def cli(self, *args):
+    def cli(self, *args, cwd=None):
+        project_root = Path(__file__).resolve().parents[1]
+        environment = os.environ.copy()
+        python_path = environment.get("PYTHONPATH")
+        environment["PYTHONPATH"] = str(project_root) + (
+            os.pathsep + python_path if python_path else ""
+        )
         return subprocess.run(
             [sys.executable, "-m", "mdcheck", *map(str, args)],
-            cwd=Path(__file__).resolve().parents[1],
+            cwd=cwd or project_root,
+            env=environment,
             capture_output=True,
             text=True,
             encoding="utf-8",
             check=False,
+        )
+
+    def test_default_manual_and_explicit_docs_root(self):
+        sandbox = Path(self.temp.name)
+        manual = sandbox / "manual"
+        manual.mkdir()
+        (manual / "index.md").write_text(
+            "# Manual\n[section](#manual)\n", encoding="utf-8"
+        )
+        self.write("index.md", "# Docs\n[section](#docs) [directory](.)\n")
+
+        default_result = self.cli("--format", "json", cwd=sandbox)
+        explicit_result = self.cli("docs", "--format", "json", cwd=sandbox)
+
+        self.assertEqual(mdcheck.DEFAULT_ROOT, Path("manual"))
+        self.assertEqual(default_result.returncode, 0, default_result.stderr)
+        self.assertEqual(default_result.stderr, "")
+        self.assertEqual(
+            json.loads(default_result.stdout), {"checked": 1, "broken": []}
+        )
+        self.assertEqual(explicit_result.returncode, 0, explicit_result.stderr)
+        self.assertEqual(explicit_result.stderr, "")
+        self.assertEqual(
+            json.loads(explicit_result.stdout), {"checked": 2, "broken": []}
         )
 
     def test_json_paths_images_fragments_and_duplicates(self):

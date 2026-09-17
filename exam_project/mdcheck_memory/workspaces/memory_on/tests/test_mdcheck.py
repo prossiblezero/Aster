@@ -102,16 +102,18 @@ class MdcheckTests(unittest.TestCase):
         self.assertEqual(checked, 5)
         self.assertEqual(broken, [])
 
-    def test_skips_external_fragments_and_fenced_code(self) -> None:
+    def test_skips_external_links_and_fenced_code(self) -> None:
         markdown = self.write(
             "readme.md",
             "\n".join(
                 (
+                    "# Heading",
                     "[web](https://example.com/x)",
                     "[mail](mailto:user@example.com)",
                     "[host](//example.com/x)",
                     "[anchor](#heading)",
                     "```python",
+                    "# Not an anchor",
                     "[missing](inside-backticks.txt)",
                     "`````",
                     "~~~~",
@@ -126,7 +128,122 @@ class MdcheckTests(unittest.TestCase):
         result = self.run_cli(markdown, "--format", "json")
 
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(json.loads(result.stdout), {"checked": 1, "broken": []})
+        self.assertEqual(json.loads(result.stdout), {"checked": 2, "broken": []})
+
+    def test_checks_atx_anchors_percent_decoding_and_duplicate_slugs(self) -> None:
+        self.write(
+            "guide.md",
+            "\n".join(
+                (
+                    "# Install & Setup!",
+                    "## Install & Setup!",
+                    "###### Install & Setup!",
+                    "### 标题 示例",
+                    "#### under_score and-hyphen",
+                )
+            ),
+        )
+        self.write(
+            "index.md",
+            "\n".join(
+                (
+                    "[first](guide.md#install-setup)",
+                    "[duplicate](guide.md#install-setup-1)",
+                    "[third](guide.md#install-setup-2)",
+                    "[unicode](guide.md#%E6%A0%87%E9%A2%98-%E7%A4%BA%E4%BE%8B)",
+                    "[punctuation](guide.md#under_score-and-hyphen)",
+                    "[empty fragment](guide.md#)",
+                )
+            ),
+        )
+
+        checked, broken = mdcheck.check(self.root)
+
+        self.assertEqual(checked, 6)
+        self.assertEqual(broken, [])
+
+    def test_reports_missing_anchors_for_pure_and_markdown_links(self) -> None:
+        self.write("other.md", "# Present\n")
+        page = self.write(
+            "page.md",
+            "\n".join(
+                (
+                    "# Local",
+                    "[missing local](#absent)",
+                    "[missing remote](other.md#absent)",
+                    "[present local](#local)",
+                )
+            ),
+        )
+
+        result = self.run_cli(page, "--format", "json")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "checked": 3,
+                "broken": [
+                    {
+                        "source": "page.md",
+                        "line": 2,
+                        "target": "#absent",
+                        "reason": "missing_anchor",
+                    },
+                    {
+                        "source": "page.md",
+                        "line": 3,
+                        "target": "other.md#absent",
+                        "reason": "missing_anchor",
+                    },
+                ],
+            },
+        )
+
+    def test_non_markdown_fragments_only_require_existing_path(self) -> None:
+        self.write("asset.txt")
+        self.write(
+            "page.md",
+            "[unchecked anchor](asset.txt#absent) [missing](absent.txt#anchor)\n",
+        )
+
+        checked, broken = mdcheck.check(self.root)
+
+        self.assertEqual(checked, 2)
+        self.assertEqual(
+            broken,
+            [mdcheck.BrokenLink("page.md", 1, "absent.txt#anchor", "missing_target")],
+        )
+
+    def test_only_atx_headings_outside_fences_create_anchors(self) -> None:
+        page = self.write(
+            "page.md",
+            "\n".join(
+                (
+                    "# Valid",
+                    "No ATX heading",
+                    "---",
+                    "   # Indented",
+                    "####### Too many",
+                    "#Missing space",
+                    "```",
+                    "# Fenced",
+                    "```",
+                    "[links](#valid) [setext](#no-atx-heading) [fenced](#fenced)",
+                )
+            ),
+        )
+
+        checked, broken = mdcheck.check(page)
+
+        self.assertEqual(checked, 3)
+        self.assertEqual(
+            broken,
+            [
+                mdcheck.BrokenLink("page.md", 10, "#fenced", "missing_anchor"),
+                mdcheck.BrokenLink("page.md", 10, "#no-atx-heading", "missing_anchor"),
+            ],
+        )
 
     def test_relative_targets_are_resolved_from_source_directory(self) -> None:
         self.write("shared.txt")

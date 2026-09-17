@@ -19,3 +19,9 @@
 
 默认目录是 `docs`。目标有路径和 fragment 时只检查路径是否存在，不校验 fragment；纯 `#fragment` 链接跳过且不计入 checked。
 
+## 阶段 2
+
+增加 Markdown 标题锚点检查。对纯片段以及指向 `.md` 的本地链接进行 fragment 校验；空 fragment 跳过锚点检查。非 Markdown 文件的 fragment 仍只检查路径。
+
+标题范围为围栏外的 ATX 标题：行首 1–6 个 `#` 后跟空格。slug 规则：标题转小写，删除 ASCII 标点（保留连字符与下划线），空白序列替换为 `-`，保留非 ASCII 字符。重复 slug 后缀依次为 `-1`、`-2`。fragment 做百分号解码后精确匹配；缺失锚点 reason 为 `missing_anchor`。纯片段 now 计入 checked。
+

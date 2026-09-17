@@ -1,5 +1,5 @@
 # mdcheck example
 
-Read the [guide](guide.md) or inspect the [docs directory](.).
+Read the [guide](guide.md) or inspect this explicitly selected [docs directory](.).
 
-The [section link](#mdcheck-example) and [project site](https://example.com/mdcheck) are intentionally skipped.
+The [section link](#mdcheck-example) is checked against this heading; the external [project site](https://example.com/mdcheck) is skipped.

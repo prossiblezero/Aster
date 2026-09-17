@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 from urllib.parse import unquote
 
-DEFAULT_ROOT = Path("docs")
+DEFAULT_ROOT = Path("manual")
 _FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})[ \t]*$")
 _LINK_START_RE = re.compile(r"!?\[[^\]\n]*\]\(")
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")

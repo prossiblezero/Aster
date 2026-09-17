@@ -16,7 +16,15 @@ from urllib.parse import unquote
 DEFAULT_ROOT = Path("docs")
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 _FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\r\n]*$")
+_ATX_HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.*)$")
 _ESCAPABLE = frozenset(string.punctuation)
+_SLUG_PUNCTUATION = str.maketrans("", "", string.punctuation.replace("-", "").replace("_", ""))
+
+
+@dataclass(frozen=True)
+class LocalTarget:
+    path: str
+    fragment: str | None
 
 
 @dataclass(frozen=True, order=True)
@@ -154,7 +162,7 @@ def _inline_targets(line: str) -> Iterator[str]:
         index = label_end + 1
 
 
-def _targets_outside_fences(text: str) -> Iterator[tuple[int, str]]:
+def _lines_outside_fences(text: str) -> Iterator[tuple[int, str]]:
     fence_char: str | None = None
     fence_length = 0
     for line_number, line in enumerate(text.splitlines(), start=1):
@@ -173,6 +181,11 @@ def _targets_outside_fences(text: str) -> Iterator[tuple[int, str]]:
             fence_char = fence[0]
             fence_length = len(fence)
             continue
+        yield line_number, line
+
+
+def _targets_outside_fences(text: str) -> Iterator[tuple[int, str]]:
+    for line_number, line in _lines_outside_fences(text):
         for target in _inline_targets(line):
             yield line_number, target
 
@@ -192,14 +205,38 @@ def _markdown_unescape(value: str) -> str:
     return "".join(result)
 
 
-def _local_path(target: str) -> str | None:
+def _local_target(target: str) -> LocalTarget | None:
     unescaped = _markdown_unescape(target)
-    if not unescaped or unescaped.startswith("#"):
-        return None if unescaped.startswith("#") else ""
     if unescaped.startswith("//") or _SCHEME_RE.match(unescaped):
         return None
-    path = unescaped.split("#", 1)[0].split("?", 1)[0]
-    return unquote(path, encoding="utf-8", errors="replace")
+
+    path_and_query, separator, fragment = unescaped.partition("#")
+    path = path_and_query.split("?", 1)[0]
+    return LocalTarget(
+        path=unquote(path, encoding="utf-8", errors="replace"),
+        fragment=(
+            unquote(fragment, encoding="utf-8", errors="replace")
+            if separator
+            else None
+        ),
+    )
+
+
+def _heading_anchors(text: str) -> frozenset[str]:
+    anchors: set[str] = set()
+    slug_counts: dict[str, int] = {}
+    for _, line in _lines_outside_fences(text):
+        heading = _ATX_HEADING_RE.fullmatch(line)
+        if heading is None:
+            continue
+        base_slug = re.sub(
+            r"\s+", "-", heading.group(1).lower().translate(_SLUG_PUNCTUATION)
+        )
+        duplicate_number = slug_counts.get(base_slug, 0)
+        slug_counts[base_slug] = duplicate_number + 1
+        slug = base_slug if duplicate_number == 0 else f"{base_slug}-{duplicate_number}"
+        anchors.add(slug)
+    return frozenset(anchors)
 
 
 def check(root: Path) -> tuple[int, list[BrokenLink]]:
@@ -207,18 +244,37 @@ def check(root: Path) -> tuple[int, list[BrokenLink]]:
     source_base, files = _markdown_files(root)
     checked = 0
     broken: list[BrokenLink] = []
+    anchor_cache: dict[Path, frozenset[str]] = {}
 
     for source in files:
         text = source.read_text(encoding="utf-8")
         source_name = source.relative_to(source_base).as_posix()
+        anchor_cache[source] = _heading_anchors(text)
         for line_number, target in _targets_outside_fences(text):
-            local_path = _local_path(target)
-            if local_path is None:
+            local_target = _local_target(target)
+            if local_target is None:
                 continue
             checked += 1
-            candidate = source if local_path == "" else source.parent / local_path
+            candidate = (
+                source if local_target.path == "" else source.parent / local_target.path
+            )
             if not candidate.exists():
                 broken.append(BrokenLink(source_name, line_number, target))
+                continue
+            if (
+                local_target.fragment in (None, "")
+                or candidate.suffix.lower() != ".md"
+                or not candidate.is_file()
+            ):
+                continue
+            anchors = anchor_cache.get(candidate)
+            if anchors is None:
+                anchors = _heading_anchors(candidate.read_text(encoding="utf-8"))
+                anchor_cache[candidate] = anchors
+            if local_target.fragment not in anchors:
+                broken.append(
+                    BrokenLink(source_name, line_number, target, "missing_anchor")
+                )
 
     broken.sort()
     return checked, broken
