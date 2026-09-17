@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import re
+import string
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -16,6 +17,11 @@ DEFAULT_ROOT = Path("docs")
 _FENCE_RE = re.compile(r"^[ \t]*(`{3,}|~{3,})[ \t]*$")
 _LINK_START_RE = re.compile(r"!?\[[^\]\n]*\]\(")
 _SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_ATX_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.*)$")
+_CLOSING_HEADING_MARKERS_RE = re.compile(r"[ \t]+#+[ \t]*$")
+_ASCII_SLUG_PUNCTUATION = str.maketrans(
+    "", "", string.punctuation.replace("-", "").replace("_", "")
+)
 
 
 class MdcheckError(Exception):
@@ -118,16 +124,61 @@ def _destinations(line: str) -> Iterable[str]:
         position = cursor + 1
 
 
-def _local_path(target: str) -> str | None:
-    """Return a decoded local path, or None for a target that is skipped."""
-    if not target or target.startswith("#"):
+def _local_target(target: str) -> tuple[str, str | None] | None:
+    """Return a decoded local path and fragment, or None when skipped."""
+    if not target or target.startswith("//") or _SCHEME_RE.match(target):
         return None
-    if target.startswith("//") or _SCHEME_RE.match(target):
-        return None
-    path_part = target.split("#", 1)[0]
-    if not path_part:
-        return None
-    return unquote(path_part)
+    if "#" in target:
+        path_part, fragment = target.split("#", 1)
+        return unquote(path_part), unquote(fragment)
+    return unquote(target), None
+
+
+def _unfenced_lines(lines: Iterable[str]) -> Iterable[tuple[int, str]]:
+    """Yield numbered lines outside supported fenced code blocks."""
+    fence_character: str | None = None
+    fence_length = 0
+    for line_number, line in enumerate(lines, start=1):
+        fence = _FENCE_RE.fullmatch(line)
+        if fence:
+            marker = fence.group(1)
+            if fence_character is None:
+                fence_character = marker[0]
+                fence_length = len(marker)
+            elif marker[0] == fence_character and len(marker) >= fence_length:
+                fence_character = None
+                fence_length = 0
+            continue
+        if fence_character is None:
+            yield line_number, line
+
+
+def _heading_slug(heading: str) -> str:
+    heading = _CLOSING_HEADING_MARKERS_RE.sub("", heading).strip().lower()
+    heading = heading.translate(_ASCII_SLUG_PUNCTUATION)
+    return re.sub(r"\s+", "-", heading)
+
+
+def _anchors(lines: Iterable[str]) -> set[str]:
+    """Build ATX heading anchors, including deterministic duplicate suffixes."""
+    anchors: set[str] = set()
+    slug_counts: dict[str, int] = {}
+    for _line_number, line in _unfenced_lines(lines):
+        heading = _ATX_HEADING_RE.match(line)
+        if heading is None:
+            continue
+        slug = _heading_slug(heading.group(2))
+        duplicate_number = slug_counts.get(slug, 0)
+        slug_counts[slug] = duplicate_number + 1
+        anchors.add(slug if duplicate_number == 0 else f"{slug}-{duplicate_number}")
+    return anchors
+
+
+def _read_lines(path: Path) -> list[str]:
+    try:
+        return path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as error:
+        raise MdcheckError(f"cannot read {path}: {error}") from error
 
 
 def check(root: str | os.PathLike[str] = DEFAULT_ROOT) -> CheckResult:
@@ -136,37 +187,21 @@ def check(root: str | os.PathLike[str] = DEFAULT_ROOT) -> CheckResult:
     display_base, _scan_root, files = _markdown_files(requested_root)
     checked = 0
     broken: list[BrokenLink] = []
+    anchor_cache: dict[Path, set[str]] = {}
 
     for source_path in files:
-        try:
-            lines = source_path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError) as error:
-            raise MdcheckError(f"cannot read {source_path}: {error}") from error
-
+        lines = _read_lines(source_path)
         source = source_path.relative_to(display_base).as_posix()
-        fence_character: str | None = None
-        fence_length = 0
-        for line_number, line in enumerate(lines, start=1):
-            fence = _FENCE_RE.fullmatch(line)
-            if fence:
-                marker = fence.group(1)
-                if fence_character is None:
-                    fence_character = marker[0]
-                    fence_length = len(marker)
-                elif marker[0] == fence_character and len(marker) >= fence_length:
-                    fence_character = None
-                    fence_length = 0
-                continue
-            if fence_character is not None:
-                continue
 
+        for line_number, line in _unfenced_lines(lines):
             for target in _destinations(line):
-                local_path = _local_path(target)
-                if local_path is None:
+                local_target = _local_target(target)
+                if local_target is None:
                     continue
+                local_path, fragment = local_target
                 checked += 1
-                candidate = Path(local_path)
-                if not candidate.is_absolute():
+                candidate = source_path if not local_path else Path(local_path)
+                if local_path and not candidate.is_absolute():
                     candidate = source_path.parent / candidate
                 try:
                     exists = candidate.exists()
@@ -180,6 +215,27 @@ def check(root: str | os.PathLike[str] = DEFAULT_ROOT) -> CheckResult:
                             target=target,
                         )
                     )
+                    continue
+
+                if (
+                    fragment is not None
+                    and fragment
+                    and candidate.suffix.lower() == ".md"
+                    and candidate.is_file()
+                ):
+                    cache_key = candidate.resolve()
+                    if cache_key not in anchor_cache:
+                        target_lines = lines if candidate == source_path else _read_lines(candidate)
+                        anchor_cache[cache_key] = _anchors(target_lines)
+                    if fragment not in anchor_cache[cache_key]:
+                        broken.append(
+                            BrokenLink(
+                                source=source,
+                                line=line_number,
+                                target=target,
+                                reason="missing_anchor",
+                            )
+                        )
 
     broken.sort()
     return CheckResult(checked=checked, broken=tuple(broken))

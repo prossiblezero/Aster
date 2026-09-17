@@ -34,7 +34,7 @@ class MdcheckTests(unittest.TestCase):
         )
 
     def test_json_paths_images_fragments_and_duplicates(self):
-        self.write("sub/guide one.md", "# Title\n")
+        self.write("sub/guide one.md", "# Missing\n")
         self.write("sub/assets/icon.png", "image")
         self.write(
             "sub/index.md",
@@ -42,7 +42,8 @@ class MdcheckTests(unittest.TestCase):
             "[dir](../) [unicode](caf%C3%A9.md)\n"
             "[bad](gone.md) [bad again](gone.md) [fragment](#section)\n"
             "[web](https://example.org/no.md) [mail](mailto:x@y.z) "
-            "[cdn](//host/no.md)\n",
+            "[cdn](//host/no.md)\n"
+            "# Section\n",
         )
         self.write("sub/café.md", "# Café\n")
         result = self.cli(self.root, "--format", "json")
@@ -51,10 +52,84 @@ class MdcheckTests(unittest.TestCase):
         self.assertEqual(
             json.loads(result.stdout),
             {
-                "checked": 6,
+                "checked": 7,
                 "broken": [
                     {"source": "sub/index.md", "line": 2, "target": "gone.md", "reason": "missing_target"},
                     {"source": "sub/index.md", "line": 2, "target": "gone.md", "reason": "missing_target"},
+                ],
+            },
+        )
+
+    def test_atx_anchors_percent_decoding_and_duplicate_slugs(self):
+        self.write(
+            "guide.md",
+            "# Hello, World!\n"
+            "## Repeat_Name\n"
+            "## Repeat_Name\n"
+            "### 中文 标题 ###\n"
+            "#### Mixed—Punctuation!\n"
+            "Not an ATX heading\n"
+            "```\n# Hidden Heading\n```\n",
+        )
+        self.write(
+            "index.md",
+            "# Current Page\n"
+            "[same](#current-page) [empty](#)\n"
+            "[punctuation](guide.md#hello-world) "
+            "[duplicate](guide.md#repeat_name-1)\n"
+            "[unicode](guide.md#%E4%B8%AD%E6%96%87-%E6%A0%87%E9%A2%98) "
+            "[non-ascii punctuation](guide.md#mixed—punctuation)\n"
+            "[missing duplicate](guide.md#repeat_name-2) "
+            "[hidden](guide.md#hidden-heading)\n",
+        )
+
+        result = mdcheck.check(self.root)
+
+        self.assertEqual(result.checked, 8)
+        self.assertEqual(
+            [(item.source, item.line, item.target, item.reason) for item in result.broken],
+            [
+                ("index.md", 5, "guide.md#hidden-heading", "missing_anchor"),
+                ("index.md", 5, "guide.md#repeat_name-2", "missing_anchor"),
+            ],
+        )
+
+    def test_anchor_validation_scope_and_missing_target_precedence(self):
+        self.write("asset.txt", "plain text")
+        self.write("folder.md/item.txt", "plain text")
+        self.write(
+            "index.md",
+            "[non-markdown](asset.txt#anything) [directory](folder.md#anything)\n"
+            "[missing path](missing.md#anchor) [empty fragment](asset.txt#)\n",
+        )
+
+        result = mdcheck.check(self.root)
+
+        self.assertEqual(result.checked, 4)
+        self.assertEqual(
+            [(item.target, item.reason) for item in result.broken],
+            [("missing.md#anchor", "missing_target")],
+        )
+
+    def test_pure_fragments_exact_matching_and_json_anchor_errors(self):
+        page = self.write(
+            "page.md",
+            "# Repeat\n## Repeat\n###### Repeat\n"
+            "[second](#repeat-1) [third](#repeat-2) [empty](#)\n"
+            "[case](#Repeat) [missing](#absent) [missing again](#absent)\n"
+            "~~~\n# Fenced\n[ignored](#absent)\n~~~~\n",
+        )
+        result = self.cli(page, "--format", "json")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "checked": 6,
+                "broken": [
+                    {"source": "page.md", "line": 5, "target": target,
+                     "reason": "missing_anchor"}
+                    for target in ("#Repeat", "#absent", "#absent")
                 ],
             },
         )
