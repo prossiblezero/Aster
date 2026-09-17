@@ -27,15 +27,19 @@ jobs:
       - name: Install fixed site dependencies
         run: python -m pip install 'markdown-it-py==4.2.0' 'pygments==2.21.0' 'pytest==9.1.1'
       - name: Build site
-        run: python website/build.py
+        run: python learn_web/build.py
       - name: Test site
-        run: python -m pytest -q website/tests
+        run: python -m pytest -q learn_web/tests/test_site.py
+      - name: Stage public site files
+        run: |
+          mkdir -p "$RUNNER_TEMP/aster-course"
+          cp -R learn_web/index.html learn_web/assets learn_web/lessons learn_web/source learn_web/search.json learn_web/.nojekyll "$RUNNER_TEMP/aster-course/"
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: website
+          path: ${{ runner.temp }}/aster-course
 
   deploy:
     environment:

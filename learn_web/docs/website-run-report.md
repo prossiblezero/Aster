@@ -1,8 +1,10 @@
 # Aster 自建教学网站：运行与问题记录
 
-最终状态：已交付 [`website/`](../website/README.md)，共16章、57份HTML、74个站点文件。第14阶段Aster真实运行以`completed / verified`结束；562项本体/操作脚本测试、6项网站测试、11+22项独立浏览器检查通过。网站实现均来自Aster，操作员进行了多轮反馈和调度；尚未执行Git提交、推送或线上发布。
+原始交付状态（目录整理前）：已交付 [`website/`](../README.md)，共16章、57份HTML、74个站点文件。第14阶段Aster真实运行以`completed / verified`结束；562项本体/操作脚本测试、6项网站测试、11+22项独立浏览器检查通过。网站实现均来自Aster，操作员进行了多轮反馈和调度；尚未执行Git提交、推送或线上发布。
 
-后续缓存、空目录能力及工具/Skills 审计汇总见 [长程实战问题与改进建议](long-task-improvement-plan.md)，后续实施优先级以该文档为准；本文保留实际运行与干预记录。
+目录整理说明：当前入口为 [`learn_web/index.html`](../index.html)，构建与运行说明见[网站 README](../README.md)。专用脚本、测试、文档和原始证据现统一位于 `learn_web/`；证据现址为 `learn_web/artifacts/website-build/`。下文保留实验发生时的 `website/`、`scripts/` 和 `artifacts/website-build/` 路径及当时状态，原始请求、轨迹与归档内容未改写。后续目录迁移和源码页重建属于操作员维护，不属于当时 Aster 生成结果；本报告的旧指纹和计数仍只描述原始交付。
+
+后续缓存、空目录能力及工具/Skills 审计汇总见 [长程实战问题与改进建议](../../docs/long-task-improvement-plan.md)，后续实施优先级以该文档为准；本文保留实际运行与干预记录。
 
 ## 任务与证据范围
 

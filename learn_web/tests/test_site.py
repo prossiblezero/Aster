@@ -1,7 +1,7 @@
+import re
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
-import re
 from urllib.parse import unquote, urlsplit
 
 SITE = Path(__file__).resolve().parents[1]
@@ -139,6 +139,15 @@ def parse_page(path):
     return parser
 
 
+def site_pages():
+    # Historical evidence under artifacts/ contains old sites with their original links.
+    return [
+        SITE / "index.html",
+        *sorted(LESSONS.glob("*.html")),
+        *sorted((SITE / "source").rglob("*.html")),
+    ]
+
+
 def markdown_blocks(path):
     blocks = []
     for info, body in FENCE.findall(path.read_text(encoding="utf-8")):
@@ -171,7 +180,7 @@ def test_all_sixteen_lessons_have_real_content():
 
 
 def test_every_html_reference_and_anchor_is_valid():
-    pages = sorted(SITE.rglob("*.html"))
+    pages = site_pages()
     assert pages
     parsed_pages = {page.resolve(): parse_page(page) for page in pages}
     for page, parsed in parsed_pages.items():
@@ -244,7 +253,7 @@ def test_site_specific_contracts():
         for page in sorted(LESSONS.glob("*.html"))
         for text in parse_page(page).all_text
     )
-    generated = "\n".join(page.read_text(encoding="utf-8") for page in SITE.rglob("*.html"))
+    generated = "\n".join(page.read_text(encoding="utf-8") for page in site_pages())
     assert "REPLACE_LESSONS" not in generated
     assert not re.search(r"\{\{[^}]+\}\}|\$\{[^}]+\}", generated)
 

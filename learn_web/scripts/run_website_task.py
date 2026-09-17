@@ -25,7 +25,7 @@ async def run(args):
         approval="auto",
         sandbox="required",
         network=False,
-        write_scope=args.write_scope or ["website"],
+        write_scope=args.write_scope or ["learn_web"],
         output_tokens=args.output_tokens,
         context_tokens=args.context_tokens,
         request_timeout=300,
@@ -65,7 +65,7 @@ async def run(args):
         require_observation=True,
         require_edit=True,
         require_verification=not args.skip_verification,
-        required_artifacts=args.required_artifact or ["website/index.html", "website/README.md", "website/.nojekyll"],
+        required_artifacts=args.required_artifact or ["learn_web/index.html", "learn_web/README.md", "learn_web/.nojekyll"],
     )
     launch = {
         "python": sys.executable,

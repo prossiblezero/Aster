@@ -2,9 +2,11 @@
 
 面向本地代码仓库的轻量 Coding Agent Harness。一个 Runtime 统一模型、工具、权限、工作记忆、恢复与交互，也供外部策略做 rollout；尚未实现 SFT 或 GRPO。
 
-[分阶段学习](docs/learning/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
+[分阶段学习](docs/learning/README.md) · [教学网站](learn_web/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
 
 最近重构：[上下文归档与配对校验](docs/learning/07-context-archives.md)，以及[原题回归结果与限制](docs/context-results.md)。
+
+教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；后续实验项目统一放在 `exam_project/`。课程正文仍以 `docs/learning/` 为来源。
 
 ```bash
 conda activate aster

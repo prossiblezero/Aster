@@ -19,7 +19,7 @@
 | Skills / Memory / Worker | 三个运行副本均未配置 Skills；16 次运行全部关闭持久记忆、自动 Dream 和 Worker。本次没有评测这些能力的收益；单次运行内的 working memory 仍是 Runtime 的一部分 |
 | 与 pi 的差距 | 可以对比工具、会话和扩展设计；没有相同任务、模型、网关、预算的 pi 对照运行，不能给出胜率或成本排名，也不能假定 pi 必然完成任意项目 |
 
-详细交付轨迹和验收见 [网站运行报告](website-run-report.md)。**当前合理定位：可用于受监督工程开发的轻量 Coding Agent Harness；尚不足以宣称已经可靠实现通用的从零自主交付。** 作为简历项目，真实失败分析、可复现修复和任务结果比功能清单更有说服力。
+详细交付轨迹和验收见 [网站运行报告](../learn_web/docs/website-run-report.md)。**当前合理定位：可用于受监督工程开发的轻量 Coding Agent Harness；尚不足以宣称已经可靠实现通用的从零自主交付。** 作为简历项目，真实失败分析、可复现修复和任务结果比功能清单更有说服力。
 
 ## 2. 已经修复或完成的工作
 
@@ -197,15 +197,15 @@ Memory 和 Worker 可以保留，不需要先删除再重写。建议让常规�
 
 | 范围 | 文件 |
 |---|---|
-| 任务要求、运行干预与最终验收 | [website-task.md](website-task.md)、[website-run-report.md](website-run-report.md) |
-| 真实启动方式、实验传输 | [run_website_task.py](../scripts/run_website_task.py)、[website_stream_transport.py](../scripts/website_stream_transport.py) |
-| 缓存请求审计 | [cache-prefix-audit.json](../artifacts/website-build/20260917/cache-prefix-audit.json)、[audit_cache_prefix.py](../artifacts/website-build/20260917/audit_cache_prefix.py) |
-| 空目录、网络、依赖、Git 探针 | [capability-probes/results.json](../artifacts/website-build/20260917/capability-probes/results.json)、[offline.py](../artifacts/website-build/20260917/capability-probes/offline.py)、[network.py](../artifacts/website-build/20260917/capability-probes/network.py) |
-| 工具调用与 Skills 使用 | [skills-tools-audit.json](../artifacts/website-build/20260917/skills-tools-audit.json)、[audit_skills_tools.py](../artifacts/website-build/20260917/audit_skills_tools.py) |
-| Skills 机制离线验证 | [skills-mechanism-audit.json](../artifacts/website-build/20260917/skills-mechanism-audit.json) |
-| 搜索/列表缺陷与工具计时 | [tool-limits.json](../artifacts/website-build/20260917/additional-audit/tool-limits.json)、[tool-timing.json](../artifacts/website-build/20260917/additional-audit/tool-timing.json) |
-| 单次输出预算与终止原因 | [output-budget.json](../artifacts/website-build/20260917/additional-audit/output-budget.json) |
-| pi 源码查阅记录 | [source.json](../artifacts/website-build/20260917/cache-audit/pi-current/source.json) |
+| 任务要求、运行干预与最终验收 | [website-task.md](../learn_web/docs/website-task.md)、[website-run-report.md](../learn_web/docs/website-run-report.md) |
+| 真实启动方式、实验传输 | [run_website_task.py](../learn_web/scripts/run_website_task.py)、[website_stream_transport.py](../learn_web/scripts/website_stream_transport.py) |
+| 缓存请求审计 | [cache-prefix-audit.json](../learn_web/artifacts/website-build/20260917/cache-prefix-audit.json)、[audit_cache_prefix.py](../learn_web/artifacts/website-build/20260917/audit_cache_prefix.py) |
+| 空目录、网络、依赖、Git 探针 | [capability-probes/results.json](../learn_web/artifacts/website-build/20260917/capability-probes/results.json)、[offline.py](../learn_web/artifacts/website-build/20260917/capability-probes/offline.py)、[network.py](../learn_web/artifacts/website-build/20260917/capability-probes/network.py) |
+| 工具调用与 Skills 使用 | [skills-tools-audit.json](../learn_web/artifacts/website-build/20260917/skills-tools-audit.json)、[audit_skills_tools.py](../learn_web/artifacts/website-build/20260917/audit_skills_tools.py) |
+| Skills 机制离线验证 | [skills-mechanism-audit.json](../learn_web/artifacts/website-build/20260917/skills-mechanism-audit.json) |
+| 搜索/列表缺陷与工具计时 | [tool-limits.json](../learn_web/artifacts/website-build/20260917/additional-audit/tool-limits.json)、[tool-timing.json](../learn_web/artifacts/website-build/20260917/additional-audit/tool-timing.json) |
+| 单次输出预算与终止原因 | [output-budget.json](../learn_web/artifacts/website-build/20260917/additional-audit/output-budget.json) |
+| pi 源码查阅记录 | [source.json](../learn_web/artifacts/website-build/20260917/cache-audit/pi-current/source.json) |
 | 既有设计、修复和小任务记忆评测的边界 | [repair-plan.md](repair-plan.md)、[repair-results.md](repair-results.md)、[resume-draft.md](resume-draft.md) |
 
-`artifacts/website-build/` 是本地 Git 忽略证据目录，不会随普通提交上传；公开报告的主要结论已在正文说明。探针是操作员给定动作的机制验证，没有冒充真实模型自主行为。证据来源、实测范围和未验证建议应随后续实现一起更新。
+`learn_web/artifacts/website-build/` 是迁移后的本地 Git 忽略证据目录，内部历史路径保持原样，不会随普通提交上传；公开报告的主要结论已在正文说明。探针是操作员给定动作的机制验证，没有冒充真实模型自主行为。证据来源、实测范围和未验证建议应随后续实现一起更新。
