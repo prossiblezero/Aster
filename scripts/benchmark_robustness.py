@@ -152,7 +152,7 @@ class ObservedModel:
             tools,
             protocol=settings.protocol,
             model=settings.model,
-            output_tokens=settings.output_tokens,
+            output_tokens=settings.effective_output_tokens,
         )
         rendered = json.dumps(payload, ensure_ascii=False)
         row = {
@@ -174,7 +174,7 @@ class ObservedModel:
 def preview(runtime, budget):
     """Measure without mutating the history that the real request will receive."""
     settings = runtime.settings
-    _, report = ContextBuilder(budget, settings.output_tokens).build(
+    _, report = ContextBuilder(budget, settings.effective_output_tokens).build(
         runtime.state.model_copy(deep=True),
         runtime.state.task.prompt,
         structured_history=copy.deepcopy(runtime._structured_history),

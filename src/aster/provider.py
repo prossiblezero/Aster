@@ -296,7 +296,7 @@ class ModelClient:
             tools,
             protocol=protocol,
             model=self.settings.model,
-            output_tokens=self.settings.output_tokens,
+            output_tokens=self.settings.effective_output_tokens,
         )
         suffix = {"responses": "/responses", "chat": "/chat/completions", "anthropic": "/messages"}[
             protocol
@@ -359,7 +359,7 @@ class ModelClient:
                         and data
                         and not data.get("error")
                     ):
-                        self.last_usage = self._usage(data.get("usage", {}))
+                        self.last_usage = self._usage(data.get("usage"), self.settings.protocol)
                         return data
                     raw = data.get("error", {}) if isinstance(data, dict) else {}
                     raw = raw if isinstance(raw, dict) else {"message": str(raw)}
@@ -396,20 +396,60 @@ class ModelClient:
         raise error  # pragma: no cover
 
     @staticmethod
-    def _usage(raw: dict) -> dict[str, int]:
+    def _usage(raw: dict, protocol: str = "responses") -> dict[str, int]:
+        """Known token counts plus per-metric coverage; absent is unknown, not zero."""
         raw = raw if isinstance(raw, dict) else {}
 
-        def find(key):
-            value = raw.get(key, 0)
-            return max(0, value) if isinstance(value, int) and not isinstance(value, bool) else 0
+        def find(*path):
+            value = raw
+            for key in path:
+                value = value.get(key) if isinstance(value, dict) else None
+            return value if type(value) is int and value >= 0 else None
 
-        inputs = find("input_tokens") or find("prompt_tokens")
-        outputs = find("output_tokens") or find("completion_tokens")
-        return {
-            "input_tokens": inputs,
-            "output_tokens": outputs,
-            "total_tokens": find("total_tokens") or inputs + outputs,
-        }
+        # Some compatible gateways use Responses names in Chat usage envelopes.
+        inputs, outputs = find("input_tokens"), find("output_tokens")
+        if inputs is None:
+            inputs = find("prompt_tokens")
+        if outputs is None:
+            outputs = find("completion_tokens")
+        counts = {"input_tokens": inputs, "output_tokens": outputs}
+        if protocol == "anthropic":
+            counts.update(
+                uncached_input_tokens=inputs,
+                cache_read_input_tokens=find("cache_read_input_tokens"),
+                cache_creation_input_tokens=find("cache_creation_input_tokens"),
+            )
+            components = [
+                counts[key]
+                for key in (
+                    "uncached_input_tokens",
+                    "cache_read_input_tokens",
+                    "cache_creation_input_tokens",
+                )
+            ]
+            # Anthropic cache tokens are additional input; OpenAI cache tokens are a subset.
+            counts["input_tokens"] = (
+                sum(components) if all(value is not None for value in components) else None
+            )
+        else:
+            input_details = (
+                "prompt_tokens_details" if protocol == "chat" else "input_tokens_details"
+            )
+            output_details = (
+                "completion_tokens_details" if protocol == "chat" else "output_tokens_details"
+            )
+            counts["cache_read_input_tokens"] = find(input_details, "cached_tokens")
+            counts["reasoning_tokens"] = find(output_details, "reasoning_tokens")
+        total = find("total_tokens")
+        if total is None and counts["input_tokens"] is not None and outputs is not None:
+            total = counts["input_tokens"] + outputs
+        counts["total_tokens"] = total
+        usage = {"usage_requests": 1}
+        for name, value in counts.items():
+            if value is not None:
+                usage[name] = value
+                usage[f"{name}_requests"] = 1
+        return usage
 
     @staticmethod
     def _check_completion(data, protocol, usage):

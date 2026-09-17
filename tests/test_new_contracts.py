@@ -26,7 +26,8 @@ def test_auto_dream_emits_event(tmp_path):
 async def test_large_tool_result_is_intact_until_the_request_exceeds_its_budget(tmp_path):
     text = "first evidence\n" * 1000 + "MIDDLE_FACT\n" + "last evidence\n" * 1000
     (tmp_path / "facts.txt").write_text(text)
-    runtime = Runtime(tmp_path, Settings(approval="auto"))
+    # Pin the reserve while this test manually shrinks only the context window.
+    runtime = Runtime(tmp_path, Settings(approval="auto", output_tokens=2048))
     runtime.start(TaskSpec(prompt="Inspect the facts."))
     result = await runtime.step(
         ToolCall(name="read_file", arguments={"path": "facts.txt", "end": 2001})

@@ -47,7 +47,7 @@ flowchart TD
 ```python
 # 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。
 self.context.budget = self.settings.effective_context_tokens
-self.context.output_reserve = self.settings.output_tokens
+self.context.output_reserve = self.settings.effective_output_tokens
 self._refresh_observations()
 memory_text = self._memory_text(state.task.prompt)
 working_memory = self.memory.working_section(state.working_memory)
@@ -190,7 +190,7 @@ async def main():
         settings.context_tokens = 4096
         prompt, tools, tight = runtime.prepare_request()
         payload = request_payload(
-            prompt, tools, model=settings.model, output_tokens=settings.output_tokens,
+            prompt, tools, model=settings.model, output_tokens=settings.effective_output_tokens,
         )
         assert runtime.context.count(payload) == tight.estimated_tokens
         assert tight.estimated_tokens <= 4096 - 512

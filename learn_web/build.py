@@ -216,7 +216,7 @@ def main() -> None:
         text = source.read_text(encoding="utf-8")
         text = re.sub(
             r"\[([^]]+)\]\(([^)]+)\)",
-            lambda match: rewrite_link(match, page_path),
+            lambda match, page_path=page_path: rewrite_link(match, page_path),
             text,
         )
         body = unique_heading_ids(md.render(text))

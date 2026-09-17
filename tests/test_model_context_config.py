@@ -9,10 +9,10 @@ from aster.config import MODEL_CONTEXT_LIMITS, Settings, load_settings
 def test_verified_luna_default_reserves_output_and_token_estimation_margin():
     settings = Settings()
     assert settings.context_tokens is None
-    assert settings.effective_context_tokens == 877948
-    assert settings.effective_context_tokens - settings.output_tokens == 875900
+    assert settings.effective_context_tokens == 908668
+    assert settings.effective_context_tokens - settings.effective_output_tokens == 875900
     assert settings.context_budget_source == "model_profile"
-    assert settings.identity()["context_tokens"] == 877948
+    assert settings.identity()["context_tokens"] == 908668
     assert settings.model_dump()["context_tokens"] is None
 
 
@@ -21,7 +21,7 @@ def test_explicit_gateway_cap_keeps_existing_total_budget_semantics(tmp_path):
     config.write_text("context_tokens = 4096\noutput_tokens = 512\n")
     settings = load_settings(config_file=config)
     assert settings.context_tokens == settings.effective_context_tokens == 4096
-    assert settings.effective_context_tokens - settings.output_tokens == 3584
+    assert settings.effective_context_tokens - settings.effective_output_tokens == 3584
     assert settings.context_budget_source == "explicit"
 
 
@@ -39,12 +39,12 @@ def test_automatic_budget_tracks_model_changes_and_serialization():
     settings.model = "local-model"
     assert settings.effective_context_tokens == settings.identity()["context_tokens"] == 24000
     settings.model = "gpt-5.6-luna"
-    assert settings.effective_context_tokens == 877948
+    assert settings.effective_context_tokens == 908668
     copied = settings.model_copy(update={"model": "local-model"})
     assert copied.effective_context_tokens == 24000
     restored = Settings.model_validate_json(copied.model_dump_json())
     restored.model = "gpt-5.6-luna"
-    assert restored.effective_context_tokens == 877948
+    assert restored.effective_context_tokens == 908668
 
 
 def test_identity_binds_effective_limits_and_excludes_credentials():
@@ -65,7 +65,7 @@ def test_a_profile_update_changes_checkpoint_identity_without_recreating_setting
         "gpt-5.6-luna",
         {"window": 1_000_000, "input": 900_000, "output": 100_000},
     )
-    assert settings.identity()["context_tokens"] == 857048
+    assert settings.identity()["context_tokens"] == 887768
     assert settings.identity() != previous
 
 
@@ -100,14 +100,14 @@ def test_runtime_request_tracks_the_current_model_and_output_reserve(tmp_path):
 def test_luna_maximum_output_is_reserved_separately_from_input_allowance():
     settings = Settings(output_tokens=128000)
     assert settings.effective_context_tokens == 1003900
-    assert settings.effective_context_tokens - settings.output_tokens == 875900
+    assert settings.effective_context_tokens - settings.effective_output_tokens == 875900
 
 
 @pytest.mark.parametrize(
     "overrides, error",
     [
         ({"output_tokens": 128001}, "model output limit"),
-        ({"context_tokens": 925000}, "model input/window limit"),
+        ({"context_tokens": 925000, "output_tokens": 2048}, "model input/window limit"),
         ({"context_tokens": 1050001, "output_tokens": 128000}, "model input/window limit"),
         ({"context_tokens": 2048, "output_tokens": 2048}, "reserve output_tokens"),
         ({"model": "unknown", "output_tokens": 24000}, "reserve output_tokens"),
@@ -132,7 +132,7 @@ def test_removed_single_tool_token_cap_is_rejected_instead_of_silently_ignored(t
     [
         (
             "gpt-5.6-luna",
-            "875,900 input + 2,048 output tokens (model default with 5% estimation margin)",
+            "875,900 input + 32,768 output tokens (model default with 5% estimation margin)",
         ),
         ("local-model", "21,952 input + 2,048 output tokens (unknown model fallback"),
     ],

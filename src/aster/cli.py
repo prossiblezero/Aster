@@ -29,6 +29,10 @@ def main(argv=None):
     parser.add_argument("--env-file", type=Path, default=None)
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--model")
+    parser.add_argument("--context-tokens", type=int, help="Total input plus output token budget")
+    parser.add_argument("--output-tokens", type=int, help="Maximum tokens per model response")
+    parser.add_argument("--max-steps", type=int, help="Tool action cap for a one-shot task")
+    parser.add_argument("--max-turns", type=int, help="Model turn cap for a one-shot task")
     parser.add_argument("--protocol", choices=["responses", "chat", "anthropic"])
     parser.add_argument("--sandbox", choices=["required", "best_effort", "off"])
     parser.add_argument("--approval", choices=["ask", "auto", "never"])
@@ -36,11 +40,15 @@ def main(argv=None):
     parser.add_argument("--rl-smoke", action="store_true")
     parser.add_argument("--tui", action="store_true")
     args = parser.parse_args(argv)
+    if (args.tui or args.rl_smoke) and (args.max_steps is not None or args.max_turns is not None):
+        parser.error("--max-steps and --max-turns apply only to one-shot tasks")
     env_file = args.env_file or (Path.cwd() / ".env")
     settings = load_settings(
         env_file if env_file.exists() else None,
         args.config,
         model=args.model,
+        context_tokens=args.context_tokens,
+        output_tokens=args.output_tokens,
         protocol=args.protocol,
         sandbox=args.sandbox,
         approval=args.approval,
@@ -51,9 +59,16 @@ def main(argv=None):
         "model_profile": "model default with 5% estimation margin",
         "fallback": "unknown model fallback; set context_tokens in your config to override",
     }[settings.context_budget_source]
+    output_source = {
+        "explicit": "configured",
+        "context_budget": "automatic, up to one quarter of the configured total",
+        "model_profile": "automatic 32,768 ceiling, within model limit",
+        "fallback": "unknown model fallback; use --output-tokens to override",
+    }[settings.output_budget_source]
+    output = settings.effective_output_tokens
     print(
-        f"Aster context: {settings.effective_context_tokens - settings.output_tokens:,} input "
-        f"+ {settings.output_tokens:,} output tokens ({context_source}).",
+        f"Aster context: {settings.effective_context_tokens - output:,} input "
+        f"+ {output:,} output tokens ({context_source}); output: {output_source}.",
         file=sys.stderr,
     )
     if args.tui:
@@ -65,9 +80,7 @@ def main(argv=None):
             if settings.context_budget_source == "fallback"
             else settings.model
         )
-        app.sub_title = (
-            f"{label} | {settings.effective_context_tokens - settings.output_tokens:,} input tokens"
-        )
+        app.sub_title = f"{label} | {settings.effective_context_tokens - output:,} input tokens"
         app.run()
         return 0
     if args.rl_smoke:
@@ -84,7 +97,12 @@ def main(argv=None):
         question_callback=terminal.question,
     )
     try:
-        state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt)))
+        task_limits = {
+            name: value
+            for name, value in {"max_steps": args.max_steps, "max_turns": args.max_turns}.items()
+            if value is not None
+        }
+        state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt, **task_limits)))
     except KeyboardInterrupt:
         print("Aster cancelled.")
         return 130

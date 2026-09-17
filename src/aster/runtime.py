@@ -61,7 +61,7 @@ class Runtime:
         self.model = model or ModelClient(settings)
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
-        self.context = ContextBuilder(settings.effective_context_tokens, settings.output_tokens)
+        self.context = ContextBuilder(settings.effective_context_tokens, settings.effective_output_tokens)
         self.hooks = hooks or Hooks()
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
@@ -245,7 +245,7 @@ class Runtime:
         assert state is not None
         # Settings are mutable; the counted request must use the provider's current model limits.
         self.context.budget = self.settings.effective_context_tokens
-        self.context.output_reserve = self.settings.output_tokens
+        self.context.output_reserve = self.settings.effective_output_tokens
         self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
@@ -285,7 +285,7 @@ class Runtime:
             tool_defs,
             protocol=self.settings.protocol,
             model=self.settings.model,
-            output_tokens=self.settings.output_tokens,
+            output_tokens=self.settings.effective_output_tokens,
         )
         # Keep the actual model observation apart from the full execution trace.
         request_hash = hashlib.sha256(
@@ -419,6 +419,15 @@ class Runtime:
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
                 "content": self.evidence.redactor.text(outcome.content),
+                **(
+                    {
+                        key: outcome.data[key]
+                        for key in ("offset", "count", "total", "truncated", "next_offset")
+                        if key in outcome.data
+                    }
+                    if call.name in {"list_files", "search"} and outcome.status == "success"
+                    else {}
+                ),
                 **(
                     {"page": "observation" if call.name == "observation_read" else "text"}
                     if call.name in {"observation_read", "todo_list", "skill_load"}

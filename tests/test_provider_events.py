@@ -55,6 +55,8 @@ async def test_truncated_generation_is_not_finalized_or_retried(
 ):
     requests = []
     response["usage"] = {"input_tokens": 10, "output_tokens": 20}
+    if protocol == "anthropic":
+        response["usage"].update(cache_read_input_tokens=0, cache_creation_input_tokens=0)
 
     def handler(request):
         requests.append(request)
@@ -153,7 +155,7 @@ def test_listeners_cannot_mutate_authoritative_rows_or_other_observers(tmp_path)
     "raw", [None, [], {"input_tokens": -1, "output_tokens": True}, {"input_tokens": float("inf")}]
 )
 def test_malformed_usage_never_crashes_a_response(raw):
-    assert ModelClient._usage(raw) == {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+    assert ModelClient._usage(raw) == {"usage_requests": 1}
 
 
 async def test_redaction_preserves_checkpoint_mapping_types_on_resume(tmp_path):

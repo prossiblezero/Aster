@@ -47,7 +47,7 @@ class Settings(Record):
         ge=1024,
         description="Total token budget including output reserve; omit for the model default.",
     )
-    output_tokens: int = Field(default=2048, ge=128)
+    output_tokens: int | None = Field(default=None, ge=128)
     approval: Literal["ask", "auto", "never"] = "ask"
     sandbox: Literal["required", "best_effort", "off"] = "required"
     network: bool = False
@@ -65,14 +65,15 @@ class Settings(Record):
 
     @model_validator(mode="after")
     def valid_budget(self):
-        if self.effective_context_tokens <= self.output_tokens + 256:
+        output = self.effective_output_tokens
+        if self.effective_context_tokens <= output + 256:
             raise ValueError("context_tokens must reserve output_tokens plus input space")
         if limits := MODEL_CONTEXT_LIMITS.get(self.model):
-            if self.output_tokens > limits["output"]:
+            if output > limits["output"]:
                 raise ValueError("output_tokens exceeds the model output limit")
             if (
                 self.effective_context_tokens > limits["window"]
-                or self.effective_context_tokens - self.output_tokens > limits["input"]
+                or self.effective_context_tokens - output > limits["input"]
             ):
                 raise ValueError("context_tokens exceeds the model input/window limit")
         return self
@@ -85,9 +86,27 @@ class Settings(Record):
         limits = MODEL_CONTEXT_LIMITS.get(self.model)
         if limits is None:
             return 24000
-        input_limit = min(limits["input"], limits["window"] - self.output_tokens)
+        output = self.effective_output_tokens
+        input_limit = min(limits["input"], limits["window"] - output)
         # Local token estimates can differ from the provider's count.
-        return input_limit * 95 // 100 + self.output_tokens
+        return input_limit * 95 // 100 + output
+
+    @property
+    def effective_output_tokens(self) -> int:
+        if self.output_tokens is not None:
+            return self.output_tokens
+        limits = MODEL_CONTEXT_LIMITS.get(self.model)
+        if self.context_tokens is not None:
+            return min(32768, self.context_tokens // 4, limits["output"] if limits else 32768)
+        return min(32768, limits["output"]) if limits else 2048
+
+    @property
+    def output_budget_source(self) -> str:
+        if self.output_tokens is not None:
+            return "explicit"
+        if self.context_tokens is not None:
+            return "context_budget"
+        return "model_profile" if self.model in MODEL_CONTEXT_LIMITS else "fallback"
 
     @property
     def context_budget_source(self) -> str:
@@ -99,6 +118,7 @@ class Settings(Record):
         """Checkpoints bind to effective boundaries, not credentials."""
         identity = self.model_dump(mode="json", exclude={"api_key", "base_url"})
         identity["context_tokens"] = self.effective_context_tokens
+        identity["output_tokens"] = self.effective_output_tokens
         return identity
 
 
