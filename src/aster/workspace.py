@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import stat
+import subprocess
 from pathlib import Path
 
 CONTROL = {".aster", ".git", ".agents", ".codex", ".claude"}
@@ -38,6 +39,28 @@ class Workspace:
         self.root = root.resolve(strict=True)
         if not self.root.is_dir():
             raise ValueError("workspace must be a directory")
+        self._git_repository = False
+        result = self._git("rev-parse", "--is-inside-work-tree")
+        self._git_repository = bool(result and result.stdout.strip() == b"true")
+
+    def _git(self, *arguments: str) -> subprocess.CompletedProcess | None:
+        try:
+            result = subprocess.run(
+                ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-C", str(self.root), *arguments],
+                capture_output=True,
+                timeout=10,
+                # An inherited GIT_DIR/INDEX_FILE must not redirect workspace checks.
+                env={k: v for k, v in os.environ.items() if not k.startswith("GIT_")},
+            )
+        except FileNotFoundError:
+            if not self._git_repository:
+                return None
+            raise BoundaryError("git_ignore_unavailable") from None
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise BoundaryError("git_ignore_unavailable") from exc
+        if self._git_repository and result.returncode not in (0, 1):
+            raise BoundaryError("git_ignore_unavailable")
+        return result
 
     def path(self, raw: str, *, write: bool = False) -> Path:
         candidate = Path(raw)
@@ -68,12 +91,24 @@ class Workspace:
             raise BoundaryError("sensitive_path")
         if write and resolved == self.root:
             raise BoundaryError("cannot_write_workspace_root")
+        if write and self._git_repository:
+            result = self._git("check-ignore", "-q", "--", str(relative))
+            if result.returncode == 0:
+                raise BoundaryError("git_ignored_path")
         return resolved
 
     def files(self, raw: str = ".") -> list[Path]:
         start = self.path(raw)
         if start.is_file():
             return [start]
+        ignored = set()
+        if self._git_repository:
+            result = self._git(
+                "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"
+            )
+            ignored = {self.root / os.fsdecode(p) for p in result.stdout.split(b"\0") if p}
+        if any(parent in ignored for parent in (start, *start.parents)):
+            return []
         result = []
         for directory, dirs, files in os.walk(start, followlinks=False):
             dirs[:] = sorted(
@@ -82,6 +117,7 @@ class Workspace:
                 if d not in CONTROL | IGNORED
                 and not sensitive(Path(d))
                 and not (Path(directory) / d).is_symlink()
+                and Path(directory) / d not in ignored
             )
             for name in sorted(files):
                 path = Path(directory) / name
@@ -90,6 +126,7 @@ class Workspace:
                     or path.is_symlink()
                     or sensitive(Path(name))
                     or name.endswith(".pyc")
+                    or path in ignored
                 ):
                     continue
                 if not path.is_file():

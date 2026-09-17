@@ -30,6 +30,7 @@ from .tools import (
     ToolContext,
     ToolRegistry,
     definitions,
+    read_edit_source,
     text_page,
 )
 from .verifier import Verifier
@@ -611,20 +612,27 @@ class Runtime:
         unavailable = self._unavailable_reason(call.name)
         if unavailable:
             return Outcome(status="blocked", reason=unavailable)
+        expected_files = None
         if call.name in {"write_file", "patch_file"}:
             path = call.arguments.get("path", "")
             try:
-                current = self.workspace.read(path)
-            except (FileNotFoundError, ValueError):
-                current = None
+                target = self.workspace.path(path, write=True)
+                current, fingerprint = read_edit_source(target) if target.exists() else (None, None)
+            except (OSError, ValueError) as exc:
+                return Outcome(status="blocked", reason=type(exc).__name__, content=str(exc))
             if current is not None:
-                fingerprint = hashlib.sha256(current.encode()).hexdigest()
-                if state.read_evidence.get(path) != fingerprint:
+                if state.read_evidence.get(path) != hashlib.sha256(current.encode()).hexdigest():
                     return Outcome(
                         status="blocked",
                         reason="fresh_read_required",
-                        content=f"Read {path} immediately before editing it.",
+                        content=(
+                            f"Call read_file on {path} before retrying. Every successful edit "
+                            "invalidates the previous read, including edits in the same batch. "
+                            "Combine planned changes in one write_file or patch_file when possible."
+                        ),
                     )
+            # Raw bytes preserve newline-only edits too; None means create-only.
+            expected_files = {str(target.relative_to(self.workspace.root)): fingerprint}
         decision = permission(call.name, effect, call.arguments, self.settings, state.mode)
         self.evidence.emit(
             state.run_id,
@@ -651,7 +659,7 @@ class Runtime:
             return Outcome(status="blocked", reason=before.feedback or "hook_stop")
         if before.action == "deny":
             return Outcome(status="blocked", reason=before.feedback or "hook_denied")
-        context = ToolContext(self.workspace, self.sandbox, state.run_id, self)
+        context = ToolContext(self.workspace, self.sandbox, state.run_id, self, expected_files)
         registry = ToolRegistry(context)
         started = time.monotonic()
         outcome = await registry.execute(call)

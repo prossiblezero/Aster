@@ -1,0 +1,210 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>13 · 人工交互与子任务：同一个 Runtime，多种参与方式 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="13-interaction-and-workers" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="current" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 13</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><aside class="course-note"><strong>实现核对</strong>当前 CLI 和 TUI 每次提交都会调用 Runtime 启动一个新任务；checkpoint 只恢复某一次运行的状态，不等于持续聊天会话。Memory 与 Dream 是确定性的证据维护和排序规则，不是训练或自主学习模型。</aside><h1 id="13-人工交互与子任务同一个-runtime多种参与方式">13 · 人工交互与子任务：同一个 Runtime，多种参与方式</h1>
+<blockquote>
+<p>一句话：界面负责与人交流，worker 负责一个受限子任务；它们都复用同一套执行规则。</p>
+</blockquote>
+<p>上一章：<a href="12-plans-and-skills.html">计划与 Skills</a> · <a href="../index.html">目录</a> · 下一章：<a href="14-evaluation.html">评测</a></p>
+<h2 id="两类等别人回答">两类“等别人回答”</h2>
+<p>Agent 要修改导出格式，但用户还没决定用 CSV 还是 JSON：这需要向人提问。
+Agent 需要同时调查测试入口与模块结构：这可以交给一个只读子任务。
+两者都会暂停部分工作，但权限和返回结果很不一样，不能都塞进一个没有明确语义的“消息工具”。</p>
+<p>Aster 将人工问题接到回调，将子任务接到 <code>WorkerManager</code>。
+CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点和权限逻辑。</p>
+<figure class="diagram" data-edge-count="10"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">父 Runtime</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">ask_user</span><span class="diagram-node" data-node="B">question_callback</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">question_callback</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">CLI 输入 / TUI 弹窗</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">CLI 输入 / TUI 弹窗</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">回答作为工具结果返回</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">回答作为工具结果返回</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="A">父 Runtime</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">父 Runtime</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">worker_start</span><span class="diagram-node" data-node="E">WorkerManager</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">WorkerManager</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">权限收窄的子 Runtime</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">父 Runtime</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">worker_message</span><span class="diagram-node" data-node="G">inbox 消息队列</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">inbox 消息队列</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">下一轮开始前</span><span class="diagram-node" data-node="F">权限收窄的子 Runtime</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">权限收窄的子 Runtime</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">状态 / 最终回答 / changed_paths</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">状态 / 最终回答 / changed_paths</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">worker_status</span><span class="diagram-node" data-node="A">父 Runtime</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 父 Runtime</span><span class="diagram-key"><code>B</code> question_callback</span><span class="diagram-key"><code>C</code> CLI 输入 / TUI 弹窗</span><span class="diagram-key"><code>D</code> 回答作为工具结果返回</span><span class="diagram-key"><code>E</code> WorkerManager</span><span class="diagram-key"><code>F</code> 权限收窄的子 Runtime</span><span class="diagram-key"><code>G</code> inbox 消息队列</span><span class="diagram-key"><code>H</code> 状态 / 最终回答 / changed_paths</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[父 Runtime] --&gt;|ask_user| B[question_callback]
+    B --&gt; C[CLI 输入 / TUI 弹窗]
+    C --&gt; D[回答作为工具结果返回]
+    D --&gt; A
+    A --&gt;|worker_start| E[WorkerManager]
+    E --&gt; F[权限收窄的子 Runtime]
+    A --&gt;|worker_message| G[inbox 消息队列]
+    G --&gt;|下一轮开始前| F
+    F --&gt; H[状态 / 最终回答 / changed_paths]
+    H --&gt;|worker_status| A
+</code></pre></details></figure>
+<h2 id="ask_user-是真正的等待不是占位返回"><code>ask_user</code> 是真正的等待，不是占位返回</h2>
+<p>在 <a href="../source/src/aster/runtime.py.html">Runtime.workflow_tool()</a> 中，人工提问的执行路径如下：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">question_callback</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"question"</span><span class="p">])</span>
+<span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isawaitable</span><span class="p">(</span><span class="n">answer</span><span class="p">):</span>
+    <span class="n">answer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">answer</span>
+<span class="k">if</span> <span class="n">answer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Outcome</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">"blocked"</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"user_input_cancelled"</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">Outcome</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">"success"</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">answer</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code>question_callback</code> 可以同步返回字符串，也可以异步等待输入。
+<code>None</code> 表示取消，不是空白批准。问题回答是工具结果，会进入后续模型请求。
+没有回调时，能力目录和完整工具列表都隐藏 <code>ask_user</code>；即便直接调用也返回 <code>user_input_unavailable</code>。</p>
+<p>批准动作使用另一个回调 <code>approval_callback(call, decision)</code>，返回布尔值。
+回答“用 JSON”不会变成批准删除文件；批准一个写入动作也不等于回答需求问题。
+它们在 TUI 可以长得相似，运行语义却始终分开。</p>
+<h2 id="tui-改变的是交互方式">TUI 改变的是交互方式</h2>
+<p><a href="../source/src/aster/tui.py.html">AsterTui</a> 使用 Textual，包含输入框、执行日志、轮次/工具次数和验证状态。
+提交任务后由异步 worker 驱动 Runtime，输入框暂时禁用，避免两个前台任务争用同一个运行状态。
+日志订阅 <code>EvidenceStore</code> 的事件，因此界面显示与执行记录来自同一条事件流。</p>
+<p>人工弹窗使用一个异步锁：父运行和子运行如果同时提问，问题会排队，而不是叠放两个互相遮挡的批准框。
+批准框默认聚焦 <code>Deny</code>；Escape 取消当前问题，Ctrl+C 取消任务，Ctrl+Q 退出界面。
+取消会传播到正在运行的协程和工具清理路径，不只是把屏幕上的状态改成“取消”。</p>
+<p>想手动体验时，在项目根目录、已激活的 <code>aster</code> 环境运行：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>aster<span class="w"> </span>--tui<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-tui-practice<span class="w"> </span>--env-file<span class="w"> </span>.env<span class="w"> </span>--approval<span class="w"> </span>ask
+</pre></div>
+</div>
+<p>目录不存在时会创建。启动界面本身不请求模型，提交任务后使用 <code>.env</code> 配置的真实 API 并产生费用。
+可以输入“列出当前目录，不要修改文件”，观察日志和状态；再尝试创建一个文件，查看批准框。
+本节后面的自动实验完全离线，不依赖人工操作这个界面。</p>
+<h2 id="worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</h2>
+<p>查看 <a href="../source/src/aster/workers.py.html">WorkerManager.start()</a>。它创建新的 Runtime、新的 <code>RunState</code> 和检查点，并记录 <code>parent_run_id</code>。
+子运行与父运行共享工作区；这是有写入范围检查的协作，不是每个 worker 都有 Git worktree。</p>
+<table>
+<thead>
+<tr>
+<th>字段或配置</th>
+<th>具体含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode=&quot;explore&quot;</code></td>
+<td>只读调查；不能向工作区发布改动</td>
+</tr>
+<tr>
+<td><code>mode=&quot;worker&quot;</code></td>
+<td>可写子任务，但只在指定 <code>write_scope</code> 内写回</td>
+</tr>
+<tr>
+<td><code>write_scope</code></td>
+<td>相对工作区路径列表；与父范围取交集，不扩大权限</td>
+</tr>
+<tr>
+<td><code>max_workers</code></td>
+<td>同时活跃的子任务上限，默认 2；结束后名额可复用</td>
+</tr>
+<tr>
+<td><code>worker_id</code></td>
+<td>父运行管理子任务的编号，不是子运行的 <code>run_id</code></td>
+</tr>
+<tr>
+<td><code>future</code></td>
+<td>Python 的异步任务句柄，供调度器等待和取消</td>
+</tr>
+<tr>
+<td><code>inbox</code></td>
+<td>尚未投递给子运行的补充要求</td>
+</tr>
+</tbody>
+</table>
+<p>子运行固定最多 12 次模型轮次、12 次工具调用，<code>max_workers=0</code> 禁止继续派生。
+它保留自己的短期工作记忆，但关闭跨运行记忆写入与演化，由父任务负责长期经验维护。
+如果两个活跃写入 worker 的范围重叠，启动会返回 <code>worker_scope_busy</code>。
+这并不禁止用户的编辑器或另一个 Aster 进程修改文件，所以第 04 章的并发变更检查仍然必要。</p>
+<h2 id="消息要在明确边界生效">消息要在明确边界生效</h2>
+<p><code>worker_message</code> 成功时返回 <code>queued</code>，只意味着消息进入队列。
+worker 在下一轮模型请求前把队列内容写入自己的消息状态，然后清空队列；不会修改已经发出的 HTTP 请求。
+正在执行最后一轮的 worker 如果直接完成，刚排队的消息可能来不及送达；需要区分入队记录与 <code>worker_message_delivered</code> 事件。</p>
+<p>每个队列最多 8 条待投递消息，单条最长 8192 字符。
+worker 已结束再发送会返回 <code>worker_finished</code>；未知编号返回 <code>worker_missing</code>。
+这些是明确的生命周期结果，不是“这个工具永远不支持”的占位实现。</p>
+<p><code>worker_status</code> 返回状态、最终回答和改动路径，并让父运行吸收新增改动信息。
+<code>worker_stop</code> 取消仍在运行的任务并等待清理；不能用“子任务已结束”推断它一定成功完成了目标。</p>
+<h2 id="离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</h2>
+<p>激活 <code>aster</code>，保存为 <code>/tmp/aster_lesson13.py</code>，运行 <code>python /tmp/aster_lesson13.py</code>。
+<code>PausedModel</code> 是确定性的教学替身：第一轮请求列文件，第二轮回答。它不调用 API，不代表真实模型的规划能力。
+事件 <code>entered</code> 与 <code>release</code> 控制暂停点，避免用猜测的睡眠时间制造并发效果。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelReply</span><span class="p">,</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PausedModel</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entered</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">release</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saw_guidance</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">requests</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">entered</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">release</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="n">call</span> <span class="o">=</span> <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"list_files"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">calls</span><span class="o">=</span><span class="p">[</span><span class="n">call</span><span class="p">],</span> <span class="n">raw</span><span class="o">=</span><span class="p">[{</span>
+                <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"function_call"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">"call_id"</span><span class="p">:</span> <span class="n">call</span><span class="o">.</span><span class="n">call_id</span><span class="p">,</span> <span class="s2">"arguments"</span><span class="p">:</span> <span class="s2">"</span><span class="si">{}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="p">}])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saw_guidance</span> <span class="o">=</span> <span class="s2">"还要检查许可证"</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">"目录已查看，补充要求已收到。"</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">PausedModel</span><span class="p">()</span>
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">),</span> <span class="n">Settings</span><span class="p">(</span><span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">max_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">question_callback</span><span class="o">=</span><span class="k">lambda</span> <span class="n">question</span><span class="p">:</span> <span class="s2">"JSON"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"演示人机交互和子任务"</span><span class="p">))</span>
+
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">arguments</span><span class="p">):</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="n">arguments</span><span class="p">))</span>
+
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">"ask_user"</span><span class="p">,</span> <span class="s2">"worker_start"</span><span class="p">,</span> <span class="s2">"worker_message"</span><span class="p">,</span> <span class="s2">"worker_status"</span><span class="p">,</span>
+        <span class="p">])</span>
+        <span class="n">answer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"ask_user"</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="s2">"导出用 CSV 还是 JSON？"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"人工回答:"</span><span class="p">,</span> <span class="n">answer</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">answer</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
+        <span class="n">started</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"worker_start"</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="s2">"查看目录"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"explore"</span><span class="p">)</span>
+        <span class="n">worker_id</span> <span class="o">=</span> <span class="n">started</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"worker_id"</span><span class="p">]</span>
+        <span class="n">worker</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">workers</span><span class="o">.</span><span class="n">workers</span><span class="p">[</span><span class="n">worker_id</span><span class="p">]</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">entered</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">queued</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"worker_message"</span><span class="p">,</span> <span class="n">worker_id</span><span class="o">=</span><span class="n">worker_id</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">"还要检查许可证"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"首轮进行中:"</span><span class="p">,</span> <span class="n">queued</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"status"</span><span class="p">],</span> <span class="s2">"已看见补充:"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">saw_guidance</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"子运行只读 / 可派生数:"</span><span class="p">,</span> <span class="n">worker</span><span class="o">.</span><span class="n">runtime</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">read_only</span><span class="p">,</span> <span class="n">worker</span><span class="o">.</span><span class="n">runtime</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">max_workers</span><span class="p">)</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">release</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">worker</span><span class="o">.</span><span class="n">future</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"worker_status"</span><span class="p">,</span> <span class="n">worker_id</span><span class="o">=</span><span class="n">worker_id</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"第二轮看见补充:"</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">saw_guidance</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"子任务状态:"</span><span class="p">,</span> <span class="n">status</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"status"</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">saw_guidance</span> <span class="ow">and</span> <span class="n">status</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"completed"</span>
+        <span class="n">late</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"worker_message"</span><span class="p">,</span> <span class="n">worker_id</span><span class="o">=</span><span class="n">worker_id</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">"来晚的补充"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"结束后发消息:"</span><span class="p">,</span> <span class="n">late</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">late</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"worker_finished"</span>
+        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">workers</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>人工回答: success JSON
+首轮进行中: queued 已看见补充: False
+子运行只读 / 可派生数: True 0
+第二轮看见补充: True
+子任务状态: completed
+结束后发消息: worker_finished
+</pre></div>
+</div>
+<h2 id="练习与核对">练习与核对</h2>
+<ol>
+<li>删掉 <code>question_callback</code> 后，<code>ask_user</code> 应该出现在工具目录里吗？</li>
+<li>父运行只允许写 <code>src/allowed</code>，子任务申请 <code>src</code>，最终范围是什么？</li>
+<li>在第一轮阻塞期间把 <code>model.release.set()</code> 换成停止 worker，为什么还要等待异步清理？</li>
+</ol>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>不应出现，直接调用也要拒绝。本实验整组 <code>tool_load</code> 会因此失败，可改成只加载 worker 工具后单独探测。</li>
+<li>交集是 <code>src/allowed</code>；子任务不能通过更宽的路径扩大父权限。</li>
+<li>取消请求与清理完成不同。需要等待正在运行的协程、工具进程和检查点收尾，避免退出后仍有后台副作用。</li>
+</ol>
+</details>
+<p><a href="../source/tests/test_interaction_workers.py.html">test_interaction_workers.py</a> 还用 Textual 的无头界面测试验证了真实弹窗、拒绝、回答与取消。
+这个设计没有跨机器消息队列、持久化团队调度或自动合并分支；先把有界协作做完整，再由评测判断是否值得继续扩展。</p>
+<nav class="chapter-nav"><a href="12-plans-and-skills.html">← 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</a><a href="14-evaluation.html">14｜从“能跑”到“证明有用” →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#两类等别人回答">两类“等别人回答”</a><a href="#ask_user-是真正的等待不是占位返回">ask_user 是真正的等待，不是占位返回</a><a href="#tui-改变的是交互方式">TUI 改变的是交互方式</a><a href="#worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</a><a href="#消息要在明确边界生效">消息要在明确边界生效</a><a href="#离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

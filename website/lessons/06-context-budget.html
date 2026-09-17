@@ -1,0 +1,244 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>06｜上下文预算：决定这一轮模型看见什么 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="06-context-budget" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="current" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 06</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="06上下文预算决定这一轮模型看见什么">06｜上下文预算：决定这一轮模型看见什么</h1>
+<p><a href="05-state-and-evidence.html">上一章：状态与证据</a> · <a href="../index.html">学习目录</a> · <a href="07-context-archives.html">下一章：归档与回读</a></p>
+<blockquote>
+<p>模型窗口决定能装多少；Harness 决定装什么，以及删掉的东西去哪里找。</p>
+</blockquote>
+<p>读完本章，你应该能沿着 <code>Runtime.prepare_request()</code> 找到一次请求的组成，
+说明为什么 Aster 不再给每条工具输出设置固定 token 上限，
+并用一个离线实验检查压缩后的请求预算和工具调用配对。</p>
+<h2 id="从一个具体问题开始">从一个具体问题开始</h2>
+<p>Agent 刚读了两千行日志，又搜索了三个目录，接着还要修改代码。
+下一轮若把历史原样带上，可能超出模型输入窗口；如果不分内容直接截断，
+又可能把真正的错误行删掉，甚至只留下工具结果而丢掉对应调用。</p>
+<p>所以“上下文管理”不是把字符串变短这一件事。
+它至少要同时回答：当前目标有没有保留、下一步需要的状态还在不在、
+请求是否合法、模型能否找回移出窗口的证据。</p>
+<p>Aster 当前采用固定策略 <code>deterministic-v4</code>。
+<code>deterministic</code> 表示同样的输入和预算按照同样规则处理；<code>v4</code> 是策略版本标记。
+这里没有额外调用 LLM 生成摘要，也没有让 Agent 自行训练或修改压缩策略。</p>
+<h2 id="这一轮请求从哪里来">这一轮请求从哪里来</h2>
+<figure class="diagram" data-edge-count="10"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">TaskSpec 当前目标</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">ContextBuilder.build</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">RunState 计划、待办、验证状态</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">ContextBuilder.build</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">工作记忆、长期记忆召回、Skills</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">ContextBuilder.build</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">原生调用与结果历史</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">ContextBuilder.build</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">当前可见工具定义</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">ContextBuilder.build</span></li><li class="diagram-edge"><span class="diagram-node" data-node="P">ContextBuilder.build</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">转换为 provider 请求并估算 token</span></li><li class="diagram-edge"><span class="diagram-node" data-node="R">转换为 provider 请求并估算 token</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="Q">输入预算内?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="Q">输入预算内?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="S">保存请求工件并调用模型</span></li><li class="diagram-edge"><span class="diagram-node" data-node="Q">输入预算内?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="T">按固定顺序收缩，再检查</span></li><li class="diagram-edge"><span class="diagram-node" data-node="T">按固定顺序收缩，再检查</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">转换为 provider 请求并估算 token</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> TaskSpec 当前目标</span><span class="diagram-key"><code>P</code> ContextBuilder.build</span><span class="diagram-key"><code>B</code> RunState 计划、待办、验证状态</span><span class="diagram-key"><code>C</code> 工作记忆、长期记忆召回、Skills</span><span class="diagram-key"><code>D</code> 原生调用与结果历史</span><span class="diagram-key"><code>E</code> 当前可见工具定义</span><span class="diagram-key"><code>R</code> 转换为 provider 请求并估算 token</span><span class="diagram-key"><code>Q</code> 输入预算内?</span><span class="diagram-key"><code>S</code> 保存请求工件并调用模型</span><span class="diagram-key"><code>T</code> 按固定顺序收缩，再检查</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[TaskSpec 当前目标] --&gt; P[ContextBuilder.build]
+    B[RunState 计划、待办、验证状态] --&gt; P
+    C[工作记忆、长期记忆召回、Skills] --&gt; P
+    D[原生调用与结果历史] --&gt; P
+    E[当前可见工具定义] --&gt; P
+    P --&gt; R[转换为 provider 请求并估算 token]
+    R --&gt; Q{输入预算内?}
+    Q --&gt;|是| S[保存请求工件并调用模型]
+    Q --&gt;|否| T[按固定顺序收缩，再检查]
+    T --&gt; R
+</code></pre></details></figure>
+<p>注意最后参与计数的不是只有聊天消息。
+工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
+工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。</p>
+<p><a href="../source/src/aster/runtime.py.html">Runtime.prepare_request()</a> 的入口如下，节选：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">budget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">effective_context_tokens</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">output_reserve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">output_tokens</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">_refresh_observations</span><span class="p">()</span>
+<span class="n">memory_text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_memory_text</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">prompt</span><span class="p">)</span>
+<span class="n">working_memory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">working_section</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">working_memory</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code>_refresh_observations()</code> 检查文件证据是否过期；例如用户在外部修改了文件，
+旧文件摘要就不能继续当作现状使用。
+随后 <code>ContextBuilder.build()</code> 组装请求，返回 <code>prompt</code> 和 <code>ContextReport</code>。</p>
+<h2 id="预算不需要用户每次手算">预算不需要用户每次手算</h2>
+<p><a href="../source/src/aster/config.py.html">Settings</a> 中最容易混淆的几个字段如下。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>context_tokens</code></td>
+<td>显式总预算，包含输入和输出预留；<code>None</code> 表示用模型配置</td>
+<td>实验设为 <code>4096</code></td>
+</tr>
+<tr>
+<td><code>output_tokens</code></td>
+<td>本次模型生成的最大输出及对应预留空间</td>
+<td><code>512</code></td>
+</tr>
+<tr>
+<td><code>effective_context_tokens</code></td>
+<td>解析后的实际总预算</td>
+<td>显式配置时为 <code>4096</code></td>
+</tr>
+<tr>
+<td><code>context_budget_source</code></td>
+<td>预算来源：显式、已登记模型或未知模型回退</td>
+<td><code>explicit</code>、<code>model_profile</code>、<code>fallback</code></td>
+</tr>
+<tr>
+<td><code>ContextReport.budget</code></td>
+<td>这一轮允许的输入预算</td>
+<td><code>4096 - 512 = 3584</code></td>
+</tr>
+<tr>
+<td><code>estimated_tokens</code></td>
+<td>序列化请求的本地 token 估算</td>
+<td>应不超过 <code>budget</code></td>
+</tr>
+</tbody>
+</table>
+<p>正常运行可以省略 <code>context_tokens</code>。已登记模型使用代码里的窗口、输入和输出上限，
+输入侧再保留 5% 余量；未知模型使用 24,000 总预算，并在界面显示回退来源。
+这是本地模型配置表，不是自动询问任意网关的能力接口；新模型或别名需要正确配置。
+模型配置表及算例见<a href="../source/docs/configuration.md">配置说明（Markdown 原文下载）</a>。</p>
+<p>核心公式是：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>显式配置：输入预算 = context_tokens - output_tokens
+自动配置：输入预算 = floor(min(模型输入上限, 模型总窗口 - output_tokens) × 0.95)
+</pre></div>
+</div>
+<p><code>count()</code> 优先用 <code>tiktoken</code> 的 <code>cl100k_base</code> 编码；没有依赖时按 UTF-8 字节数估算。
+这不是每一种模型的精确 tokenizer，因此不能把本地数直接叫作 API 计费 token。
+也不要把本章为了触发压力而设置的几千 token 当作日常推荐上限。</p>
+<h2 id="超预算后具体先动哪里">超预算后，具体先动哪里</h2>
+<p><a href="../source/src/aster/context.py.html">ContextBuilder.build()</a> 每收缩一次就重新构造请求并计数。
+能装下就立即停，不会为了追求漂亮压缩率继续删。</p>
+<ol>
+<li><strong>先做准备。</strong> 校验原生工具历史，给可归档的文本结果落盘；不超预算就保留完整正文。</li>
+<li><strong>删普通旧消息。</strong> 先删不属于原生历史、不是 <code>user</code>、也没有 <code>important=True</code> 的普通消息。</li>
+<li><strong>处理旧历史组。</strong> 按时间选择可移除的旧原生历史组；有较大工具正文时先缩短，否则删除整组。纯 assistant 文本也可能组成一个旧组。</li>
+<li><strong>让可重建的附加文本让位。</strong> 依次收缩长期记忆召回、技能目录、已加载技能正文、工作记忆展示。</li>
+<li><strong>收缩工作流说明。</strong> 缩短计划和未完成待办的长描述，保留待办身份；最后仍装不下就明确停止。</li>
+</ol>
+<p>步骤 3 中，最近一次工具交互优先保留。没有可处理的旧交互时，
+最近交互的结果正文也可能被缩短，但不把调用 ID、结果状态等协议外壳切坏。
+这不是“最近结果永不裁剪”的保证。</p>
+<p>步骤 2 的“普通消息”尤其值得注意：模型原生历史中已经保存的 assistant/tool 内容，
+不会又作为 <code>state.messages</code> 的重复副本塞进请求。
+<code>important</code> 是普通消息的删除保护标记，不是给所有文本无限预算的通行证。</p>
+<p>步骤 4 缩短的是发送给模型的展示，<code>RunState.working_memory</code> 的原数据仍在。
+计划、待办也有独立状态，而不是只能从一段旧聊天里猜测。</p>
+<p>下面是裁剪分支的真实节选，省略了后续分支：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">messages</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">removed</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="k">elif</span> <span class="n">candidates</span><span class="p">:</span>
+    <span class="n">item</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">candidates</span><span class="p">,</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_record</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">"output"</span><span class="p">])[</span><span class="s2">"content"</span><span class="p">]),</span>
+    <span class="p">)</span>
+    <span class="n">body_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_record</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"output"</span><span class="p">])[</span><span class="s2">"content"</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><code>index</code> 指可移除普通消息的位置，<code>candidates</code> 是当前候选交互中可缩短的工具结果。
+这里的 <code>96</code> token 等内部阈值用于避免对过短正文反复加工，
+不是给每个工具预先设置一个统一上限。旧的 <code>tool_output_tokens</code> 配置已移除。</p>
+<h2 id="调用和结果为什么要成组">调用和结果为什么要成组</h2>
+<p>考虑模型并行发起两次读取：<code>call-A</code> 和 <code>call-B</code>。
+返回顺序可以不同，但两个结果都必须有对应调用，调用也不能没有结果。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>一个交互组：reasoning（若存在）→ call-A、call-B → result-B、result-A
+可以：缩短 result-A.content；必要时移除整个旧组
+不可以：只移除 call-A，却保留 result-A
+</pre></div>
+</div>
+<p><a href="../source/src/aster/provider.py.html">history_groups()</a> 校验非空 ID、重复调用、孤儿结果、
+重复结果和未完成批次，并把相关推理项放进相同裁剪组。
+<code>ContextBuilder</code> 先在历史副本上处理，整次请求满足预算后才更新正式历史。
+格式出错会抛出 <code>ContextHistoryError</code>，不会把不合法请求送给模型碰运气。</p>
+<h2 id="动手从能完整放下切换到必须压缩">动手：从“能完整放下”切换到“必须压缩”</h2>
+<p>先完成<a href="00-quickstart.html">第 00 章</a>的安装，然后在项目根目录激活环境。
+将下面完整代码保存到 <code>/tmp/aster-context-budget-lesson.py</code>，执行：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>conda<span class="w"> </span>run<span class="w"> </span>--no-capture-output<span class="w"> </span>-n<span class="w"> </span>aster<span class="w"> </span>python<span class="w"> </span>/tmp/aster-context-budget-lesson.py
+</pre></div>
+</div>
+<p>实验只调用真实 Harness 和本地工具，不调用模型 API；临时日志和运行工件自动清理。
+<code>_structured_history</code> 是内部属性，本实验只读它来检查协议，并不教调用方手动拼装生产请求。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.provider</span><span class="w"> </span><span class="kn">import</span> <span class="n">history_groups</span><span class="p">,</span> <span class="n">request_payload</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-budget-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="s2">"header: service log</span><span class="se">\n</span><span class="s2">"</span> <span class="o">+</span> <span class="s2">"worker retry latency</span><span class="se">\n</span><span class="s2">"</span> <span class="o">*</span> <span class="mi">1200</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"service.log"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span>
+            <span class="n">context_tokens</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">output_tokens</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+            <span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"查阅日志，判断是否需要继续排查。"</span><span class="p">))</span>
+        <span class="n">outcome</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"service.log"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">:</span> <span class="mi">1600</span><span class="p">},</span>
+        <span class="p">))</span>
+        <span class="k">assert</span> <span class="n">outcome</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
+        <span class="n">runtime</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"旧的探索思路。"</span> <span class="o">*</span> <span class="mi">200</span><span class="p">,</span> <span class="n">native</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">wide_prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">wide</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">wide</span><span class="o">.</span><span class="n">compacted</span>
+        <span class="k">assert</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"output"</span><span class="p">])[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="n">outcome</span><span class="o">.</span><span class="n">content</span>
+
+        <span class="c1"># 调小的是实验预算；日常使用可以省略 context_tokens。</span>
+        <span class="n">settings</span><span class="o">.</span><span class="n">context_tokens</span> <span class="o">=</span> <span class="mi">4096</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">tools</span><span class="p">,</span> <span class="n">tight</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="n">request_payload</span><span class="p">(</span>
+            <span class="n">prompt</span><span class="p">,</span> <span class="n">tools</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">output_tokens</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">output_tokens</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">runtime</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span> <span class="o">==</span> <span class="n">tight</span><span class="o">.</span><span class="n">estimated_tokens</span>
+        <span class="k">assert</span> <span class="n">tight</span><span class="o">.</span><span class="n">estimated_tokens</span> <span class="o">&lt;=</span> <span class="mi">4096</span> <span class="o">-</span> <span class="mi">512</span>
+        <span class="k">assert</span> <span class="n">tight</span><span class="o">.</span><span class="n">compacted</span> <span class="ow">and</span> <span class="n">tight</span><span class="o">.</span><span class="n">removed_messages</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">)</span> <span class="o">==</span> <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">prompt</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">prompt</span><span class="p">)</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">history_groups</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"output"</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">record</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="s2">"observation"</span> <span class="ow">in</span> <span class="n">record</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"压缩前本地估算:"</span><span class="p">,</span> <span class="n">wide</span><span class="o">.</span><span class="n">estimated_tokens</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"压缩后本地估算:"</span><span class="p">,</span> <span class="n">tight</span><span class="o">.</span><span class="n">estimated_tokens</span><span class="p">,</span> <span class="s2">"/"</span><span class="p">,</span> <span class="n">tight</span><span class="o">.</span><span class="n">budget</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"移除旧消息:"</span><span class="p">,</span> <span class="n">tight</span><span class="o">.</span><span class="n">removed_messages</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"调用和结果仍然成组:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"策略版本:"</span><span class="p">,</span> <span class="n">tight</span><span class="o">.</span><span class="n">policy_version</span><span class="p">)</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>一次执行得到：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>压缩前本地估算: 9449
+压缩后本地估算: 2617 / 3584
+移除旧消息: 1
+调用和结果仍然成组: 2
+策略版本: deterministic-v4
+</pre></div>
+</div>
+<p>每次生成的调用 ID、证据标识不同，工具描述和依赖版本也可能变化，
+token 数会略有变化；重要的是断言一直成立。
+第一次读完日志时，正文没有被固定工具上限提前切掉；第二次预算变小后，
+旧的普通消息被移除，日志留下有界摘录与归档引用，调用和结果仍是一组。</p>
+<p><code>report.removed_messages</code> 统计移除的消息/协议项数量，不是“删除了多少事实”。
+<code>report.compacted=True</code> 也只说明上下文发生收缩，不能独立证明模型仍能完成任务。
+真实任务通过率和成本需要另测，见<a href="../source/docs/context-results.md">上下文评测结果（Markdown 原文下载）</a>和<a href="14-evaluation.html">第 14 章</a>。</p>
+<h2 id="练习与参考答案">练习与参考答案</h2>
+<p><strong>练习 1：只把实验中的旧普通消息变短，压缩后一定还会裁日志吗？</strong></p>
+<p>不一定。是否裁日志取决于删完普通消息后整次请求是否仍超预算。
+你可以把 <code>context_tokens</code> 调到刚好容纳工具全文的附近，观察 <code>compacted</code> 和正文。
+不要假设“触发压缩”等于“必须截断每条工具输出”。</p>
+<p><strong>练习 2：为什么不能只对 <code>prompt</code> 中的字符串逐条相加？</strong></p>
+<p>协议转换和工具 schema 也占空间。
+实验使用 <code>request_payload()</code> 得到与当前协议一致的完整请求，再交给同一个计数器检查。</p>
+<p><strong>练习 3：预算小到当前目标和必要状态本身都放不下，Aster 会怎样？</strong></p>
+<p>抛出 <code>ContextBudgetError</code>；自主运行把它记为 <code>context_budget_exceeded</code> 并停止。
+它不会偷偷裁掉当前请求，也不会自动新增一次摘要模型调用。</p>
+<h2 id="本章的边界">本章的边界</h2>
+<p>这里证明的是预算控制和协议完整性，不是有损压缩后的语义无损。
+旧结果正文移出窗口之后，模型能否发现需要回读、是否读到关键证据，
+仍属于任务层面的能力；下一章会把“可以找回”这条路径跑通。</p>
+<p>源码继续读：<a href="../source/src/aster/context.py.html">context.py</a>、<a href="../source/src/aster/provider.py.html">provider.py</a>。
+对应合同检查见 <a href="../source/tests/test_context_archives.py.html">test_context_archives.py</a>
+和 <a href="../source/tests/test_protocol_pairing.py.html">test_protocol_pairing.py</a>。
+本章借鉴 learn-claude-code 的“问题 → 机制 → 实验”组织；Aster 的压缩顺序与无 LLM 策略以自己的源码为准。</p>
+<p><a href="05-state-and-evidence.html">上一章：状态与证据</a> · <a href="../index.html">学习目录</a> · <a href="07-context-archives.html">下一章：归档与回读</a></p>
+<nav class="chapter-nav"><a href="05-state-and-evidence.html">← 05｜状态、历史和证据分别放在哪里</a><a href="07-context-archives.html">07｜归档与回读：让移出窗口的证据仍然可找 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从一个具体问题开始">从一个具体问题开始</a><a href="#这一轮请求从哪里来">这一轮请求从哪里来</a><a href="#预算不需要用户每次手算">预算不需要用户每次手算</a><a href="#超预算后具体先动哪里">超预算后，具体先动哪里</a><a href="#调用和结果为什么要成组">调用和结果为什么要成组</a><a href="#动手从能完整放下切换到必须压缩">动手：从“能完整放下”切换到“必须压缩”</a><a href="#练习与参考答案">练习与参考答案</a><a href="#本章的边界">本章的边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

@@ -1,0 +1,143 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>00｜先让 Aster 完成一次任务 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="00-quickstart" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="current" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 00</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="00先让-aster-完成一次任务">00｜先让 Aster 完成一次任务</h1>
+<p><a href="../index.html">目录</a> · 下一章：<a href="01-agent-loop.html">Agent 循环</a></p>
+<blockquote>
+<p>先看到“读取文件 → 收到结果 → 回答”，再拆开里面的机制。</p>
+</blockquote>
+<h2 id="这门课要解决什么问题">这门课要解决什么问题</h2>
+<p>你可能已经会调用模型 API：输入一句话，得到一段回答。但 Coding Agent 要完成“修复代码并测试”，中间必须多次接触真实工作区。模型负责提出下一步，Harness 负责组织输入、执行允许的动作、保存结果，并决定什么时候继续或停止。</p>
+<p>Aster 的入口并不神秘。终端界面把任务交给 <code>Runtime</code>，它循环调用模型和工具。后面的章节都是在这条主线上回答一个工程问题，例如“文件刚被别人改过，还能照着旧内容写吗？”或“聊天历史太长了，如何保住调用与结果的配对？”</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>用户任务
+   ↓
+Runtime：组装输入 → 模型选择动作 → 检查权限 → 执行工具
+             ↑                               ↓
+             └──────── 工具结果与反馈 ─────────┘
+   ↓
+检查完成条件 → 最终回答 + 运行记录
+</pre></div>
+</div>
+<p>本课程围绕当前项目做源码导读。章节是学习顺序，不是十几份独立的 Agent 实现；每个实验都直接使用 <code>src/aster</code> 的实际代码。</p>
+<h2 id="准备环境">准备环境</h2>
+<p>以下命令在 <strong>Aster 仓库根目录</strong>执行。你已有 <code>aster</code> 环境时，只需激活；新机器第一次安装才需要创建环境。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 仅首次安装时运行：</span>
+conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>aster<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span>-y
+conda<span class="w"> </span>activate<span class="w"> </span>aster
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s1">'.[dev]'</span>
+</pre></div>
+</div>
+<p><code>-e</code> 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。<code>[dev]</code> 加装 pytest 等开发工具。项目依赖见 <a href="../source/pyproject.toml">pyproject.toml</a>：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>aster
+python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import sys, aster; print(sys.executable); print(aster.__file__)"</span>
+</pre></div>
+</div>
+<p>第一行应指向 <code>aster</code> 环境里的 Python，第二行应指向本仓库的 <code>src/aster/__init__.py</code>。如果不对，先修正环境再继续；后续的 <code>python</code> 都指这个解释器。</p>
+<h2 id="第一个离线实验">第一个离线实验</h2>
+<p>下面不需要 API Key。我们用一个很小的模型替身：第一次提出读取请求，第二次根据真正读到的结果回答。只有模型回复被替换，运行循环、工具、权限、证据记录都使用 Aster。</p>
+<p>把标有 <code># 可运行实验</code> 的完整 Python 代码块保存到 <code>/tmp/aster-lesson.py</code>，然后在项目根目录运行 <code>python /tmp/aster-lesson.py</code>。后续章节沿用这个方法；其他短代码块是源码节选或数据示意，不需要单独执行。</p>
+<p>也可以直接运行 <code>python docs/learning/run_examples.py 00</code>；小脚本会提取下面这个完整实验执行，无需手工复制。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelReply</span><span class="p">,</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ReadThenAnswer</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="p">):</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"function_call_output"</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outputs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">calls</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"hello.txt"</span><span class="p">})</span>
+            <span class="p">])</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"output"</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"success"</span>
+        <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">"文件内容："</span> <span class="o">+</span> <span class="n">result</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-lesson-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"hello.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"Hello, Aster!</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span>
+            <span class="n">Settings</span><span class="p">(</span><span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">auto_dream</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">ReadThenAnswer</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span>
+            <span class="n">prompt</span><span class="o">=</span><span class="s2">"查看 hello.txt 并告诉我内容"</span><span class="p">,</span>
+            <span class="n">require_observation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">final</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"phase=</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="si">}</span><span class="s2">, turn=</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="si">}</span><span class="s2">, step=</span><span class="si">{</span><span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"checkpoint:"</span><span class="p">,</span> <span class="n">runtime</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">path</span><span class="p">(</span>
+            <span class="s2">"runs"</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">run_id</span><span class="p">,</span> <span class="s2">"checkpoint.json"</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">())</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="s2">"completed"</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>你会看到包含 <code>Hello, Aster!</code> 的回答，以及：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>phase=completed, turn=2, step=1
+checkpoint: True
+</pre></div>
+</div>
+<p>为什么有两轮却只有一步？第一轮模型选择读文件，执行了一次工具；第二轮模型给最终回答，没有再调用工具。<code>turn</code> 数模型决策轮次，<code>step</code> 数工具执行步骤。更多细节留到下一章。</p>
+<p><code>TemporaryDirectory</code> 创建临时工作区，退出后自动清理，实验不会改你的业务仓库。<code>memory_enabled=False</code> 关闭跨运行记忆，方便单独观察循环；本次任务的工作记忆仍然存在。<code>auto_dream=False</code> 关闭任务结束后的长期记忆整理，本章无需它。</p>
+<p>这次实验验证的是 Harness 数据流；下一步动作是提前写好的，所以它不能证明模型自主解决任务的能力。</p>
+<h2 id="换成真实模型">换成真实模型</h2>
+<p>离线实验跑通以后，再按需配置真实连接。项目根目录 <code>.env</code> 使用以下字段，填写你自己的值，不把密钥提交到 Git：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><pre><code>ASTER_PROTOCOL=responses
+ASTER_MODEL=gpt-5.6-luna
+ASTER_BASE_URL=https://api.openai.com/v1
+ASTER_API_KEY=填写自己的密钥
+</code></pre></div>
+<p><code>protocol</code> 表示接口的消息格式，<code>base_url</code> 是接口前缀，<code>model</code> 是服务接受的模型名。兼容网关可能需要不同的地址，但不应把完整 <code>/responses</code> 路径重复写进前缀。</p>
+<p>下面会发送真实请求并产生费用。准备一个新的演示目录后，再启动 CLI 或 TUI：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/aster-learning-demo
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'Hello, Aster!\n'</span><span class="w"> </span>&gt;<span class="w"> </span>/tmp/aster-learning-demo/hello.txt
+aster<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-demo<span class="w"> </span>--read-only<span class="w"> </span><span class="s1">'查看 hello.txt 并说明内容'</span>
+<span class="c1"># 终端交互界面：</span>
+aster<span class="w"> </span>--tui<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-demo
+</pre></div>
+</div>
+<p><code>.env</code> 默认从<strong>启动命令时的当前目录</strong>读取，<code>--cwd</code> 决定 Agent 的工作区，两者不同。这里从项目根启动，因而会用项目的 <code>.env</code>。也可以通过 <code>--env-file</code> 显式指定。</p>
+<p>CLI 启动时会打印输入预算及来源。通常让 Aster 根据模型配置自动选择；学习实验里的小预算只用来制造上下文压力，详见 <a href="06-context-budget.html">第 06 章</a>。</p>
+<h2 id="源码怎么读">源码怎么读</h2>
+<table>
+<thead>
+<tr>
+<th>文件与入口</th>
+<th>这一轮只需要理解的事情</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../source/src/aster/cli.py.html">cli.py</a> 的 <code>main</code></td>
+<td>解析命令行，装配 Runtime</td>
+</tr>
+<tr>
+<td><a href="../source/src/aster/schema.py.html">schema.py</a> 的 <code>TaskSpec</code> / <code>ModelReply</code></td>
+<td>用户任务和模型回复的数据结构</td>
+</tr>
+<tr>
+<td><a href="../source/src/aster/runtime.py.html">runtime.py</a> 的 <code>run</code> / <code>_run</code></td>
+<td>模型与工具为何可以反复交互</td>
+</tr>
+<tr>
+<td><a href="../source/src/aster/config.py.html">config.py</a> 的 <code>load_settings</code></td>
+<td>TOML、环境变量和显式参数如何合并</td>
+</tr>
+</tbody>
+</table>
+<p>不用立刻把 <code>runtime.py</code> 从头读到尾。先找到实验中调用的 <code>run</code>，只跟着它进入 <code>_run</code> 和 <code>turn</code>；暂时把上下文、权限、记忆当作已经装配好的组件。</p>
+<h2 id="自己改一次">自己改一次</h2>
+<p>把文件内容改为 <code>你好，Aster！</code>，但不要改模型替身的回答逻辑。输出应跟随文件变化。这说明回答来自真实工具结果，而不是代码里预先写死的答案。</p>
+<p>再思考：如果删掉 <code>hello.txt</code>，能否仍说任务成功？当前实验会在模型替身里的断言失败。正式模型可以根据错误结果继续行动，但 Harness 不该把“读取失败”转换成虚构的文件内容。</p>
+<p>下一章将去掉外围细节，只盯着这两轮中状态如何变化。</p>
+<p><a href="../index.html">目录</a> · 下一章：<a href="01-agent-loop.html">01｜Agent 循环</a></p>
+<nav class="chapter-nav"><a href="../index.html">← 课程首页</a><a href="01-agent-loop.html">01｜一个循环，三种操作 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#这门课要解决什么问题">这门课要解决什么问题</a><a href="#准备环境">准备环境</a><a href="#第一个离线实验">第一个离线实验</a><a href="#换成真实模型">换成真实模型</a><a href="#源码怎么读">源码怎么读</a><a href="#自己改一次">自己改一次</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

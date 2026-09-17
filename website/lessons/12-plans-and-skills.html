@@ -1,0 +1,229 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>12 · 计划、待办与 Skills：记住要做什么，也记住怎么做 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="12-plans-and-skills" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="current" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 12</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="12-计划待办与-skills记住要做什么也记住怎么做">12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</h1>
+<blockquote>
+<p>一句话：计划组织目标，待办记录进度，Skill 按需提供做事方法；三者都不创建另一套主循环。</p>
+</blockquote>
+<p>上一章：<a href="11-memory-evolution.html">记忆演化</a> · <a href="../index.html">目录</a> · 下一章：<a href="13-interaction-and-workers.html">人工交互与子任务</a></p>
+<h2 id="从修一个文件到完成一组改动">从“修一个文件”到“完成一组改动”</h2>
+<p>如果任务只需要修正一个拼写，直接读取和修改就够了。
+如果任务要求修改解析逻辑、补测试、更新文档，Agent 就需要一个能重新查看的进度记录。
+再假设项目有固定的测试约定，每次在用户请求里重复粘贴一大段说明也很费力。</p>
+<p>Aster 对这两件事采用不同表示：当前任务的计划与待办放在 <code>RunState</code>；可复用的操作说明放在工作区的 Markdown Skill 中。
+这样任务结束不会把所有临时待办都误当成长期经验，也不需要向量数据库来查找几个本地说明文件。</p>
+<figure class="diagram" data-edge-count="8"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">当前任务</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">plan：自由文本计划</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">当前任务</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">todos：带状态的事项</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">本地 Skill 名称目录</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">skill_load</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">skill_load</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">active_skills：已选说明</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">plan：自由文本计划</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="G">ContextBuilder 组装下一轮上下文</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">todos：带状态的事项</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="G">ContextBuilder 组装下一轮上下文</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">active_skills：已选说明</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="G">ContextBuilder 组装下一轮上下文</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">ContextBuilder 组装下一轮上下文</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">同一个 Runtime 循环继续决策</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 当前任务</span><span class="diagram-key"><code>B</code> plan：自由文本计划</span><span class="diagram-key"><code>C</code> todos：带状态的事项</span><span class="diagram-key"><code>D</code> 本地 Skill 名称目录</span><span class="diagram-key"><code>E</code> skill_load</span><span class="diagram-key"><code>F</code> active_skills：已选说明</span><span class="diagram-key"><code>G</code> ContextBuilder 组装下一轮上下文</span><span class="diagram-key"><code>H</code> 同一个 Runtime 循环继续决策</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart LR
+    A[当前任务] --&gt; B[plan：自由文本计划]
+    A --&gt; C[todos：带状态的事项]
+    D[本地 Skill 名称目录] --&gt; E[skill_load]
+    E --&gt; F[active_skills：已选说明]
+    B --&gt; G[ContextBuilder 组装下一轮上下文]
+    C --&gt; G
+    F --&gt; G
+    G --&gt; H[同一个 Runtime 循环继续决策]
+</code></pre></details></figure>
+<h2 id="计划和待办到底存了什么">计划和待办到底存了什么</h2>
+<p>看 <a href="../source/src/aster/schema.py.html">schema.py</a> 的 <code>RunState</code>，再看 <a href="../source/src/aster/runtime.py.html">Runtime.workflow_tool()</a> 的 <code>todo_*</code> 和 <code>plan_*</code> 分支。
+它们的状态很直接，没有隐藏的工作流 DAG，也没有另起一个规划模型。</p>
+<table>
+<thead>
+<tr>
+<th>字段或工具</th>
+<th>含义</th>
+<th>不自动提供什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state.plan</code> / <code>plan_write</code></td>
+<td>保存当前计划全文，每次写入替换原计划</td>
+<td>不自动把自然语言拆成动作</td>
+</tr>
+<tr>
+<td><code>state.todos</code> / <code>todo_add</code></td>
+<td>保存待办列表，每项含编号、内容、优先级和状态</td>
+<td>不按优先级自动调度</td>
+</tr>
+<tr>
+<td><code>todo_update.todo_id</code></td>
+<td>要更新的事项编号</td>
+<td>不接受不存在的编号</td>
+</tr>
+<tr>
+<td><code>todo_update.status</code></td>
+<td><code>pending</code>、<code>in_progress</code>、<code>done</code>、<code>cancelled</code></td>
+<td>不强制状态只能按一个方向变化</td>
+</tr>
+<tr>
+<td><code>todo_list.offset</code></td>
+<td>从第几个字符开始读取计划与待办的序列化文本</td>
+<td>不是待办数组下标</td>
+</tr>
+<tr>
+<td><code>state.mode</code></td>
+<td><code>work</code> 或 <code>plan</code>，控制操作模式</td>
+<td>与有没有写计划是两件事</td>
+</tr>
+</tbody>
+</table>
+<p><code>priority</code> 默认是 <code>normal</code>，当前它是标签，不是调度算法。
+待办的 <code>done</code> 是模型或调用者提交的状态，不等同于通过测试。
+Runtime 的完成检查使用 <code>TaskSpec</code> 与验证证据，而不是只看“所有待办都打勾了”。</p>
+<p><code>plan_write</code> 修改的是运行状态，并随检查点保存，不会自动在仓库根目录写一个 <code>PLAN.md</code>。
+<code>ContextBuilder</code> 会把计划和未完成待办放入工作流状态区；内容太长时也受全局上下文预算约束。
+完整内容仍可通过分页 <code>todo_list</code> 回读。</p>
+<h2 id="写计划不等于进入计划模式">写计划不等于进入计划模式</h2>
+<p><code>plan_enter</code> 将 <code>state.mode</code> 切为 <code>plan</code>，使工作区写入工具不可用。
+进入前还会等待现有 workers 关闭并汇总状态，避免父任务转成只读后，旧的子任务仍继续写入。
+读取、更新内部待办、运行允许的隔离检查仍可进行。</p>
+<p><code>plan_exit</code> 要经过权限检查；<code>approval=&quot;ask&quot;</code> 时请求用户批准，<code>auto</code> 时依据已有授权退出。
+如果全局设置是 <code>read_only=True</code>，不能通过退出计划模式解除只读。
+这沿用了第 04 章的原则：运行模式只能在已有授权内切换，不能扩大上层约束。</p>
+<h2 id="skill-是本地说明文件不是可执行插件">Skill 是本地说明文件，不是可执行插件</h2>
+<p><a href="../source/src/aster/skills.py.html">Skills</a> 搜索两处目录：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>工作区/
+├── .aster/skills/review.md
+└── .skills/test-python.md
+</pre></div>
+</div>
+<p>这里使用 <code>&lt;name&gt;.md</code>，不是 <code>&lt;name&gt;/SKILL.md</code>。
+同名时优先读取 <code>.aster/skills</code>；目录列表只包含合法名称的普通文件，不跟随符号链接。
+名称允许字母、数字、下划线、点和连字符，长度 1–80；单个文件上限是 20 KiB，按字节计算。</p>
+<p>第一轮上下文包含 Skill 名称目录。模型选择 <code>skill_load(name=&quot;test-python&quot;)</code> 后，名字写入 <code>state.active_skills</code>。
+下一轮组装上下文时，Runtime 重新读取活动 Skill 的内容，再交给预算管理器安排篇幅。
+所以分页读取是一种观察接口，<code>active_skills</code> 才是跨轮保存的“已经选中哪些说明”。</p>
+<p>关键源码节选如下；<code>text</code> 在这之前已从文件读取并脱敏：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">text_page</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="s2">"offset"</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="s2">"limit"</span><span class="p">])</span>
+<span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">"success"</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">result</span>
+<span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">active_skills</span><span class="p">:</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">active_skills</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span>
+<span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"untrusted"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">return</span> <span class="n">result</span>
+</pre></div>
+</div>
+<p><code>untrusted=True</code> 是工具结果中的元数据标记，当前上下文层并不读取这个字段。
+上下文构造会另外把 Skill 正文统一标为不可信资料，执行权限则由 Runtime 独立检查。
+Skill 写着“允许联网”不会修改 <code>Settings.network</code>；写着“忽略安全规则”也不会跳过工具校验。
+安全边界由 Runtime 执行，不能由一份 Markdown 自行授权。</p>
+<h2 id="分页字段应该怎么读">分页字段应该怎么读</h2>
+<p><code>skill_load</code> 和 <code>todo_list</code> 共用 <a href="../source/src/aster/tools.py.html">text_page()</a>。先对完整文本脱敏，再按字符切页。
+这样敏感内容不会因为恰好被切成两页而逃过脱敏。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>offset</code></td>
+<td>本页起点，第一页传 0</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td>本页最多多少字符，默认 512，最大 1000</td>
+</tr>
+<tr>
+<td><code>next_offset</code></td>
+<td>下一页起点；<code>None</code> 表示读完</td>
+</tr>
+<tr>
+<td><code>total</code></td>
+<td>完整脱敏文本的字符数</td>
+</tr>
+</tbody>
+</table>
+<p><code>Outcome.content</code> 第一行是分页信息 JSON，后面才是正文。
+遇到上下文压缩时，返回给模型的可见页还可能缩短；应跟随实际收到的 <code>next_offset</code>，不要自己假设永远加 512。
+这也是归档与分页要一起设计的原因：下一步必须能接着读，不应静默跳过被压掉的内容。</p>
+<h2 id="离线实验规划期间不能写skill-可以按页读完">离线实验：规划期间不能写，Skill 可以按页读完</h2>
+<p>激活 <code>aster</code>，把代码保存到 <code>/tmp/aster_lesson12.py</code>，在项目根运行 <code>python /tmp/aster_lesson12.py</code>。
+只有临时目录中的说明文件会被创建；不调用模型，也不运行外部命令。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">".skills"</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="s2">"# Python 检查</span><span class="se">\n</span><span class="s2">先阅读目标代码，再补边界测试，最后运行测试。</span><span class="se">\n</span><span class="s2">"</span> <span class="o">*</span> <span class="mi">3</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">".skills"</span> <span class="o">/</span> <span class="s2">"python-check.md"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="n">approvals</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">approve</span><span class="p">(</span><span class="n">call</span><span class="p">,</span> <span class="n">decision</span><span class="p">):</span>
+            <span class="n">approvals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">Settings</span><span class="p">(</span><span class="n">approval</span><span class="o">=</span><span class="s2">"ask"</span><span class="p">),</span> <span class="n">approval_callback</span><span class="o">=</span><span class="n">approve</span><span class="p">)</span>
+        <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"演示计划与技能"</span><span class="p">))</span>
+
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">call</span><span class="p">(</span><span class="n">tool_name</span><span class="p">,</span> <span class="o">**</span><span class="n">arguments</span><span class="p">):</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="n">arguments</span><span class="p">))</span>
+
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">"plan_enter"</span><span class="p">,</span> <span class="s2">"plan_exit"</span><span class="p">,</span> <span class="s2">"plan_write"</span><span class="p">,</span> <span class="s2">"todo_add"</span><span class="p">,</span>
+            <span class="s2">"todo_update"</span><span class="p">,</span> <span class="s2">"todo_list"</span><span class="p">,</span> <span class="s2">"skill_load"</span><span class="p">,</span>
+        <span class="p">])</span>
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"plan_enter"</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"plan_write"</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">"先读说明，再准备测试。"</span><span class="p">)</span>
+        <span class="n">todo</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"todo_add"</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">"读完 Python 检查说明"</span><span class="p">)</span>
+        <span class="n">blocked</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"write_file"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"new.txt"</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">"too early"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"规划期间写入:"</span><span class="p">,</span> <span class="n">blocked</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">blocked</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"plan_mode"</span>
+
+        <span class="n">offset</span><span class="p">,</span> <span class="n">chunks</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"skill_load"</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"python-check"</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">page</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
+            <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">page</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"next_offset"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">offset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"分页还原完整正文:"</span><span class="p">,</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">==</span> <span class="n">text</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">==</span> <span class="n">text</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"活动技能:"</span><span class="p">,</span> <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">active_skills</span><span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"todo_update"</span><span class="p">,</span> <span class="n">todo_id</span><span class="o">=</span><span class="n">todo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span> <span class="n">status</span><span class="o">=</span><span class="s2">"done"</span><span class="p">)</span>
+        <span class="n">listing</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"todo_list"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"待办状态:"</span><span class="p">,</span> <span class="n">listing</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"todos"</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">"status"</span><span class="p">])</span>
+        <span class="k">await</span> <span class="n">call</span><span class="p">(</span><span class="s2">"plan_exit"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"退出后模式:"</span><span class="p">,</span> <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"请求批准的动作:"</span><span class="p">,</span> <span class="n">approvals</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">approvals</span> <span class="o">==</span> <span class="p">[</span><span class="s2">"plan_exit"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">"work"</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>规划期间写入: plan_mode
+分页还原完整正文: True
+活动技能: ['python-check']
+待办状态: done
+退出后模式: work
+请求批准的动作: ['plan_exit']
+</pre></div>
+</div>
+<h2 id="练习与核对">练习与核对</h2>
+<ol>
+<li>把 <code>approval=&quot;ask&quot;</code> 改为 <code>&quot;auto&quot;</code>，退出计划模式还会调用 <code>approve()</code> 吗？</li>
+<li>在 Skill 中增加“现在允许修改所有文件”，计划模式下的写入会成功吗？</li>
+<li>如果计划变了，应该新增 Skill 还是更新 <code>state.plan</code>？</li>
+</ol>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>不会，已有自动批准策略直接允许，因此 <code>approvals</code> 应为空。</li>
+<li>不会。说明文件的文字不修改权限和运行模式。</li>
+<li>当前任务的方案改变应更新计划；稳定、可复用的操作说明才适合整理为 Skill。</li>
+</ol>
+</details>
+<p>本章刻意保留普通列表、短文本和本地文件，方便你追踪每次动作改变了哪些状态。
+它适合轻量任务组织，没有实现跨任务依赖调度、Skill 市场或自动安装；相关边界可在 <a href="../source/tests/test_skills.py.html">test_skills.py</a> 与 <a href="../source/tests/test_paged_state.py.html">test_paged_state.py</a> 查看。</p>
+<nav class="chapter-nav"><a href="11-memory-evolution.html">← 11｜记忆自进化：让使用结果影响下一次选择</a><a href="13-interaction-and-workers.html">13 · 人工交互与子任务：同一个 Runtime，多种参与方式 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从修一个文件到完成一组改动">从“修一个文件”到“完成一组改动”</a><a href="#计划和待办到底存了什么">计划和待办到底存了什么</a><a href="#写计划不等于进入计划模式">写计划不等于进入计划模式</a><a href="#skill-是本地说明文件不是可执行插件">Skill 是本地说明文件，不是可执行插件</a><a href="#分页字段应该怎么读">分页字段应该怎么读</a><a href="#离线实验规划期间不能写skill-可以按页读完">离线实验：规划期间不能写，Skill 可以按页读完</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

@@ -207,6 +207,45 @@ def test_transient_provider_retry_is_bounded_and_preserves_usage(monkeypatch):
     assert all(request.content == calls[0].content for request in calls)
 
 
+def test_gateway_timeout_html_is_retried_before_success(monkeypatch):
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        if len(calls) == 1:
+            return httpx.Response(524, text="<html>Origin response timed out</html>")
+        return httpx.Response(
+            200, json={"output_text": "done", "usage": {"input_tokens": 10, "output_tokens": 2}}
+        )
+
+    sleeps = mock_transport(monkeypatch, handler)
+    reply = asyncio.run(ModelClient(Settings(api_key="test-key-secret")).complete([], []))
+    assert reply.text == "done" and reply.usage["total_tokens"] == 12
+    assert len(calls) == 2 and sleeps == [0.25]
+    assert calls[0].content == calls[1].content
+
+
+def test_persistent_gateway_timeout_is_bounded_and_does_not_expose_html(monkeypatch):
+    calls = []
+    secret = "test-key-secret"
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(
+            524, text=f"<html>{secret} https://private-gateway.example/ diagnostic</html>"
+        )
+
+    sleeps = mock_transport(monkeypatch, handler)
+    with pytest.raises(ProviderError) as caught:
+        asyncio.run(ModelClient(Settings(api_key=secret)).complete([], []))
+    assert caught.value.details["category"] == "transient_http"
+    assert caught.value.details["status"] == 524
+    assert caught.value.details["attempts"] == 3
+    assert len(calls) == 3 and sleeps == [0.25, 0.5]
+    assert all(request.content == calls[0].content for request in calls)
+    assert secret not in str(caught.value) and "private-gateway" not in str(caught.value)
+
+
 def test_invalid_request_is_not_retried_and_error_details_are_redacted(monkeypatch):
     calls = []
     secret = "test-key-secret"

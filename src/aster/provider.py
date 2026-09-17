@@ -373,7 +373,7 @@ class ModelClient:
                         detail,
                     )
                     code = redactor.text(str(raw.get("code", raw.get("type", ""))))[:120]
-                    retryable = response.status_code in {408, 409, 425, 429, 500, 502, 503, 504}
+                    retryable = response.status_code in {408, 409, 425, 429, 500, 502, 503, 504, 524}
                     category = (
                         "transient_http"
                         if retryable

@@ -1,0 +1,213 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>14｜从“能跑”到“证明有用” · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="14-evaluation" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="current" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 14</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="14从能跑到证明有用">14｜从“能跑”到“证明有用”</h1>
+<p>上一章：<a href="13-interaction-and-workers.html">交互与 Worker</a> · <a href="../index.html">目录</a> · 下一章：<a href="15-rl-interface.html">环境接口（选读）</a></p>
+<blockquote>
+<p>先定义要证明的结论，再决定任务、对照和指标。</p>
+</blockquote>
+<h2 id="一个看起来成功的实验">一个看起来成功的实验</h2>
+<p>你给 Agent 很长的历史，它压缩了 60%，最后说“完成了”。这能证明什么？只知道输入变短、循环结束，还不知道代码是否正确。再补隐藏测试，才能判断压缩后任务是否完成。若要说“压缩节省了任务成本”，还需要同题对照，以及全部请求的真实用量。</p>
+<p>这正是 Aster 把评测分层的原因。不同层回答不同问题，不应把几百条规则检查、少量真实模型任务和若干 token 配置加成一个总成功率。</p>
+<table>
+<thead>
+<tr>
+<th>评测层</th>
+<th>想回答的问题</th>
+<th>主要入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础回归</td>
+<td>工具、状态、权限、恢复能按约定工作吗？</td>
+<td><code>benchmark.py</code> 的参考动作模式、<code>tests/</code></td>
+</tr>
+<tr>
+<td>上下文治理</td>
+<td>输入是否合法、是否变短、压缩后还能做对吗？</td>
+<td>上下文压力配置及真实代码专项</td>
+</tr>
+<tr>
+<td>记忆收益</td>
+<td>后续任务是否少读文件？旧事实失效时会不会误用？</td>
+<td>跨运行任务、记忆演化场景</td>
+</tr>
+<tr>
+<td>恢复正确性</td>
+<td>重复、震荡、中断、漂移是否按边界处理？</td>
+<td>Runtime 机制场景、故障注入任务</td>
+</tr>
+</tbody>
+</table>
+<p>任务完成、效率、鲁棒性、安全是观察这些层的评价维度。例如权限拒绝可以是安全成功，但绝不能不分任务要求就算成任务完成。</p>
+<h2 id="题目执行器和评分器分开">题目、执行器和评分器分开</h2>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>datasets/benchmark_tasks.json：题目与条件
+           ↓
+fixtures/ → 复制成干净工作区 → Runtime + 策略
+                                     ↓ 候选代码
+checks/   → 评分副本加入隐藏测试 → 独立验收
+                                     ↓
+结果目录：逐次记录 + 轨迹 + 检查点 + patch.diff
+</pre></div>
+</div>
+<p><code>fixtures</code> 是初始仓库。<code>checks</code> 是评测器持有的测试文件，在模型结束后才加入评分副本。这里“隐藏”指没有交给本次执行中的模型，不表示开源测试从未出现在基础模型的预训练数据中。</p>
+<p>具体读一条 <a href="../source/datasets/benchmark_tasks.json">debug-and-fix 任务</a>：它要求根据错误日志修复 <code>src/handler.py</code> 的循环，并执行测试。以下是原始数据节选，省略参考动作：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"debug-and-fix"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"suite"</span><span class="p">:</span><span class="w"> </span><span class="s2">"repository"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"split"</span><span class="p">:</span><span class="w"> </span><span class="s2">"evaluation"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"fixture"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fixtures/long_session_debug_fix"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"max_steps"</span><span class="p">:</span><span class="w"> </span><span class="mi">32</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"max_turns"</span><span class="p">:</span><span class="w"> </span><span class="mi">24</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"require_edit"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"require_verification"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"checks"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"phase"</span><span class="p">:</span><span class="w"> </span><span class="s2">"completed"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"verifier"</span><span class="p">:</span><span class="w"> </span><span class="s2">"checks/debug-and-fix.py"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>意思</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>稳定题号，跨批次用它对齐</td>
+</tr>
+<tr>
+<td><code>suite</code></td>
+<td>题型，例如仓库修改或函数实现</td>
+</tr>
+<tr>
+<td><code>split</code></td>
+<td>数据用途；当前这些题属于评测</td>
+</tr>
+<tr>
+<td><code>fixture</code></td>
+<td>在 <code>datasets/</code> 下查找的初始文件目录</td>
+</tr>
+<tr>
+<td><code>checks.phase</code></td>
+<td>运行必须达到的状态</td>
+</tr>
+<tr>
+<td><code>checks.verifier</code></td>
+<td>结束后运行的独立代码测试</td>
+</tr>
+<tr>
+<td><code>actions</code></td>
+<td>参考动作，只给确定性回放使用</td>
+</tr>
+</tbody>
+</table>
+<p>先读 <a href="../source/datasets/checks/debug-and-fix.py.html">checks/debug-and-fix.py</a>：<code>test_fix</code> 检查最后一个元素是否被计入，<code>test_regression</code> 检查空输入仍返回 0。然后读 <a href="../source/scripts/benchmark_support.py.html">benchmark_support.py</a> 的 <code>prepare</code>、<code>run_task</code>、<code>external_check</code>，跟踪一条题目如何变成一次实验。</p>
+<h2 id="三种通过分别是什么">三种“通过”分别是什么</h2>
+<p>第一种是 <strong>Runtime 完成检查</strong>：有没有看过工作区、发生修改、执行有效测试、产生要求的文件。这是约束执行过程，不能单独证明代码满足所有功能要求。</p>
+<p>第二种是 <strong>独立代码验收</strong>：结束后在评分副本运行隐藏测试，检查候选代码。在 Aster 的主代码任务中，它与运行条件一起决定是否完整完成。代码通过但工具预算耗尽、没有正常收尾，报告仍保留这个差异。</p>
+<p>第三种是 <strong>机制符合预期</strong>：例如关闭恢复时应停止、开启时应继续。这两组都符合各自预期，不等于两组都完成了同一个目标。因此机制报告把 <code>expected</code>（是否按约定工作）与 <code>goal</code>（目标是否达成）分开。</p>
+<p>独立评分读取结构化 JUnit 测试结果，核对测试数量、名称、跳过、采集错误等；不是在 stdout 里搜一个 <code>passed</code> 就算通过。但候选 Python 代码与测试仍共享解释器，这不构成对任意恶意代码的绝对防作弊隔离。详见 <a href="../source/docs/grader-boundary.md">评分边界（Markdown 原文下载）</a>。</p>
+<h2 id="实验一真正运行一条参考回放">实验一：真正运行一条参考回放</h2>
+<p>本实验不调用真实模型。它从数据文件加载已有参考动作，走实际 Runtime 和 Linux 沙箱，保留一次临时报告，并检查原始版本失败、参考修复通过。需在项目根目录、Conda <code>aster</code> 中执行。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="n">repo</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">repo</span> <span class="o">/</span> <span class="s2">"scripts/benchmark.py"</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">(),</span> <span class="s2">"请从 Aster 根目录运行"</span>
+<span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-eval-lesson-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="s2">"scripts/benchmark.py"</span><span class="p">,</span> <span class="s2">"--task"</span><span class="p">,</span> <span class="s2">"debug-and-fix"</span><span class="p">,</span>
+         <span class="s2">"--env-file"</span><span class="p">,</span> <span class="s2">"/dev/null"</span><span class="p">,</span> <span class="s2">"--output"</span><span class="p">,</span> <span class="n">directory</span><span class="p">],</span>
+        <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">180</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">((</span><span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"report.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">"rows"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">baseline</span> <span class="o">=</span> <span class="n">report</span><span class="p">[</span><span class="s2">"baseline_checks"</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">"fix_fails_before"</span><span class="p">]</span> <span class="ow">and</span> <span class="n">baseline</span><span class="p">[</span><span class="s2">"regression_passes_before"</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">report</span><span class="p">[</span><span class="s2">"mode"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"scripted"</span> <span class="ow">and</span> <span class="n">row</span><span class="p">[</span><span class="s2">"passed"</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"参考动作通过:"</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s2">"passed"</span><span class="p">],</span> <span class="s2">"模型用量:"</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s2">"total_tokens"</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>预期看到 <code>baseline_target_fails=True</code>、<code>regression_passes=True</code>、<code>PASS</code>，最后模型用量为 0。它证明参考动作能穿过真实执行链并产出正确候选，不能写成模型自主修复成功率。</p>
+<p>需要保留文件慢慢看时，单独执行下面这条命令，打开报告中的运行目录：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>python<span class="w"> </span>scripts/benchmark.py<span class="w"> </span>--task<span class="w"> </span>debug-and-fix<span class="w"> </span>--env-file<span class="w"> </span>/dev/null<span class="w"> </span>--output<span class="w"> </span>artifacts/learning-evaluation
+</pre></div>
+</div>
+<p>如果 Linux 隔离能力不可用，应检查 <a href="04-permissions-sandbox.html">第 04 章</a> 的前提；不应为了得到绿色结果而绕过当前评测的 <code>sandbox=&quot;required&quot;</code>。</p>
+<h2 id="实验二自己算一次-passk">实验二：自己算一次 Pass@k</h2>
+<p>每道题采样 3 次，不等于“36 次通过数就是 Pass@3”。设某题做了 <code>n</code> 次，其中 <code>c</code> 次成功，从这些尝试里随机选 <code>k</code> 次，至少一次成功的估计是：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>Pass@k = 1 - C(n-c, k) / C(n, k)
+</pre></div>
+</div>
+<p><code>C(a,b)</code> 是从 a 个元素中选 b 个的组合数；失败次数不够选 k 个时，全失败概率为 0。对每题算完再平均，才是任务集合的指标。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">"scripts"</span><span class="p">))</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">pass_at_k</span>
+
+<span class="c1"># 教学数字，不是 Aster 的实测成绩。</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">"task_id"</span><span class="p">:</span> <span class="n">task</span><span class="p">,</span> <span class="s2">"passed"</span><span class="p">:</span> <span class="n">passed</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">task</span><span class="p">,</span> <span class="n">attempts</span> <span class="ow">in</span> <span class="p">{</span>
+        <span class="s2">"easy"</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+        <span class="s2">"hard"</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span>
+    <span class="p">}</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">passed</span> <span class="ow">in</span> <span class="n">attempts</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pass@1 = </span><span class="si">{</span><span class="n">pass_at_k</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pass@3 = </span><span class="si">{</span><span class="n">pass_at_k</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="n">pass_at_k</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-9</span>
+<span class="k">assert</span> <span class="n">pass_at_k</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>输出是 <code>66.67%</code> 和 <code>100.00%</code>。这说明“每题三次内至少成功一次”可以很好看，但单次可靠性仍有不足。若每题只有一次样本，项目函数对 Pass@3 返回 <code>None</code>，不会编一个三次成功率。</p>
+<h2 id="如何设计一个可信的模块对照">如何设计一个可信的模块对照</h2>
+<p>以记忆为例，先让两组经历相同的读取与记录阶段，再在新的 Runtime 中回答同一问题；开关只控制长期记忆召回，源文件仍在。分别统计答案是否正确、重复读取次数和调用成本。不能只给开启组看过资料，再说关闭组输掉证明设计好。</p>
+<p>以恢复为例，先固定重复调用或交替震荡的故障前缀，再比较后续是否达到同一目标。规则回放能证明运行时识别、阻止、纠偏是否触发；真实模型接手实验才能观察它是否会利用反馈。若真实模型两组都成功，应如实写“当前任务未显示增益”，继续按机制作用范围解释，不能硬造提升。</p>
+<p>以压缩为例，要同时看下面四件事：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>计算或判断方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>压缩前后输入长度</td>
+<td>对同一初始任务请求、相同协议和工具定义计数</td>
+</tr>
+<tr>
+<td>平均压缩率</td>
+<td>每次算 <code>1 - after/before</code>，再平均</td>
+</tr>
+<tr>
+<td>压缩后的完成率</td>
+<td>模型实际执行代码题，通过独立验收及运行条件</td>
+</tr>
+<tr>
+<td>完整任务成本</td>
+<td>汇总所有模型请求的 usage、工具调用和耗时</td>
+</tr>
+</tbody>
+</table>
+<p>首请求压缩 60% 不能直接写成总计费节省 60%。提前失败的任务往往更便宜，所以成功率和全部尝试成本必须同时保留；比较成功任务成本时，最好列出共同成功样本数量，防止两组恰好留下了不同难度的题。</p>
+<h2 id="当前报告从哪里读">当前报告从哪里读</h2>
+<p>任务分类和数量以 <a href="../source/datasets/README.md">datasets/README.md（Markdown 原文下载）</a> 为入口，方法总览见 <a href="../source/docs/benchmark.md">评测说明（Markdown 原文下载）</a>，当前上下文结论见 <a href="../source/docs/context-results.md">上下文结果（Markdown 原文下载）</a>。最新上下文报告同时保留：主任务确认、同预算退步、一次性证据控制失败、代码版本和全部尝试清单。</p>
+<p>这些题包含公开 HumanEval 的函数改造及自建仓库任务。仓库验收借鉴 SWE-bench 的思路，不代表跑过 SWE-bench 官方全集；选定的 HumanEval 子集也不能写成完整榜单成绩。来源与许可证见 <a href="../source/datasets/SOURCES.md">SOURCES.md（Markdown 原文下载）</a>。</p>
+<h2 id="最后的练习">最后的练习</h2>
+<p>为“修改后旧测试结论失效”设计一条机制场景。先明确目标，再列操作：跑测试成功 → 改文件 → 尝试结束。预期应是旧验证失效、要求重新测试，而不是仅检查返回值含有一个错误单词。场景参数放在 <code>datasets/</code>；执行器读取场景，复用现有 Runtime。</p>
+<p>再想一个反例：如果关闭与开启 Hooks 两组都阻止重复 <code>call_id</code>，能把差异归给 Hooks 吗？不能。重复编号还有不可关闭的协议校验，需要隔离你真正消融的那项机制，见 <a href="08-hooks-and-completion.html">第 08 章</a>。</p>
+<p>到这里已经走完 Harness 主线。后续写简历时，每个量化结论都应能指回“任务定义 → 实验条件 → 原始运行 → 评分规则 → 汇总”。下一章只解释已有环境接口，为以后讨论训练留出接口认知。</p>
+<p>上一章：<a href="13-interaction-and-workers.html">13｜交互与 Worker</a> · <a href="../index.html">目录</a> · 下一章：<a href="15-rl-interface.html">15｜环境接口（选读）</a></p>
+<nav class="chapter-nav"><a href="13-interaction-and-workers.html">← 13 · 人工交互与子任务：同一个 Runtime，多种参与方式</a><a href="15-rl-interface.html">15｜选读：把同一个 Harness 接到外部策略 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#一个看起来成功的实验">一个看起来成功的实验</a><a href="#题目执行器和评分器分开">题目、执行器和评分器分开</a><a href="#三种通过分别是什么">三种“通过”分别是什么</a><a href="#实验一真正运行一条参考回放">实验一：真正运行一条参考回放</a><a href="#实验二自己算一次-passk">实验二：自己算一次 Pass@k</a><a href="#如何设计一个可信的模块对照">如何设计一个可信的模块对照</a><a href="#当前报告从哪里读">当前报告从哪里读</a><a href="#最后的练习">最后的练习</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

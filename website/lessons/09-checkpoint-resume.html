@@ -1,0 +1,290 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>09｜检查点与恢复：继续一个任务之前先确认世界没变 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="09-checkpoint-resume" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="current" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 09</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="09检查点与恢复继续一个任务之前先确认世界没变">09｜检查点与恢复：继续一个任务之前先确认世界没变</h1>
+<p><a href="08-hooks-and-completion.html">上一章：Hooks 与任务完成</a> · <a href="../index.html">学习目录</a> · <a href="10-layered-memory.html">下一章：分层记忆</a></p>
+<blockquote>
+<p>恢复的不只是聊天内容，还有“做到哪里、依据是什么、哪些动作不能再做一次”。</p>
+</blockquote>
+<p>本章接着第 05 章的运行状态和第 07 章的落盘证据，解释如何恢复一次任务。
+读完之后，你应该能说清检查点保存了什么、什么时候允许保存，
+以及为什么有时正确的恢复行为是拒绝继续。</p>
+<h2 id="为什么只存-messages-不够">为什么只存 messages 不够</h2>
+<p>假设 Agent 已经读过 <code>app.py</code>，修改了两个文件，并且测试通过。
+此时进程退出。如果只恢复聊天文本，新的 Runtime 不知道测试对应哪版文件、
+已经消耗了多少步、还有哪些待办，更不知道某次写入是否已经执行过。</p>
+<p>即使恢复了这些字段，工作区也可能在重启前被用户改过。
+如果还拿旧测试结果证明新代码正确，就把恢复做成了误信旧状态。
+Aster 因而把任务状态、原生协议历史、运行配置和工作区指纹绑定在一个检查点里。</p>
+<h2 id="一次恢复的检查顺序">一次恢复的检查顺序</h2>
+<figure class="diagram" data-edge-count="7"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">读取 checkpoint.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">有效配置相同?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">有效配置相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">有效配置相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="C">工作区指纹相同?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">工作区指纹相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">工作区指纹相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="D">校验 RunState 和差异基线</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">校验 RunState 和差异基线</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">校验工具配对与原生不透明字段</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">校验工具配对与原生不透明字段</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">安装恢复状态，重建运行管理对象</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 读取 checkpoint.json</span><span class="diagram-key"><code>B</code> 有效配置相同?</span><span class="diagram-key"><code>X</code> 拒绝恢复</span><span class="diagram-key"><code>C</code> 工作区指纹相同?</span><span class="diagram-key"><code>D</code> 校验 RunState 和差异基线</span><span class="diagram-key"><code>E</code> 校验工具配对与原生不透明字段</span><span class="diagram-key"><code>F</code> 安装恢复状态，重建运行管理对象</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[读取 checkpoint.json] --&gt; B{有效配置相同?}
+    B --&gt;|否| X[拒绝恢复]
+    B --&gt;|是| C{工作区指纹相同?}
+    C --&gt;|否| X
+    C --&gt;|是| D[校验 RunState 和差异基线]
+    D --&gt; E[校验工具配对与原生不透明字段]
+    E --&gt; F[安装恢复状态，重建运行管理对象]
+</code></pre></details></figure>
+<p><a href="../source/src/aster/runtime.py.html">Runtime.resume()</a> 的真实入口节选：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="s2">"runs"</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="s2">"checkpoint.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+<span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">"runtime_identity"</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">identity</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"runtime_identity_mismatch"</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">"workspace_hash"</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">fingerprint</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"workspace_mismatch"</span><span class="p">)</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">RunState</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"state"</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>这里先验证再给 <code>self.state</code> 赋值，避免失败时安装一半状态。
+另外，当前 Runtime 若正在执行操作、有运行中的 worker，或者已有未结束任务，
+不能直接覆盖成另一个运行；教学实验会使用一个新 Runtime 对象代表进程重启。</p>
+<h2 id="检查点里的每组字段负责什么">检查点里的每组字段负责什么</h2>
+<p>完整结构在 <a href="../source/src/aster/runtime.py.html">Runtime.checkpoint()</a>，
+本章把容易混淆的字段按用途展开：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>保存的内容</th>
+<th>少了它会怎样</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>state</code></td>
+<td><code>RunState</code>：任务、阶段、计数、待办、验证、工作记忆等</td>
+<td>只能靠聊天猜当前进度</td>
+</tr>
+<tr>
+<td><code>structured_history</code></td>
+<td>provider 的原生历史和完整工具交互</td>
+<td>工具结果可能失去调用；模型续接状态可能损坏</td>
+</tr>
+<tr>
+<td><code>workspace_hash</code></td>
+<td>当前受管理文件快照的整体指纹</td>
+<td>无法判断恢复时工作区是否已经变化</td>
+</tr>
+<tr>
+<td><code>workspace</code></td>
+<td>路径到文件指纹的映射</td>
+<td>少了用于分析差异的具体快照；恢复准入用整体 hash</td>
+</tr>
+<tr>
+<td><code>runtime_identity</code></td>
+<td>不含密钥与 Base URL 的有效配置</td>
+<td>权限、模型或预算变化可能被静默忽略</td>
+</tr>
+<tr>
+<td><code>initial_text</code>、<code>initial_modes</code></td>
+<td>任务开始时的文本与权限位基线</td>
+<td>重启后的 diff 可能漏掉重启前的修改</td>
+</tr>
+<tr>
+<td><code>recovery_used</code>、<code>stall_items</code></td>
+<td>已使用纠偏次数与停滞检测窗口</td>
+<td>重启可能重置纠偏预算，重复绕过限制</td>
+</tr>
+</tbody>
+</table>
+<p><code>state</code> 内还有几个恢复时特别重要的字段：</p>
+<table>
+<thead>
+<tr>
+<th><code>RunState</code> 字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>step</code> / <code>turn</code></td>
+<td>已执行工具步骤数 / 决策轮数；自主运行数模型请求，外部策略接口数策略动作；恢复后不清零</td>
+</tr>
+<tr>
+<td><code>working_memory</code></td>
+<td>本次运行的短期记忆，包括已读文件的简要信息</td>
+</tr>
+<tr>
+<td><code>read_evidence</code></td>
+<td>路径对应最近读取内容的指纹，用于新鲜度判断</td>
+</tr>
+<tr>
+<td><code>used_call_ids</code></td>
+<td>已经执行的调用标识，阻止相同 ID 被再次执行</td>
+</tr>
+<tr>
+<td><code>verification</code></td>
+<td>测试状态及其对应的工作区指纹和证据</td>
+</tr>
+<tr>
+<td><code>loaded_tools</code>、<code>active_skills</code></td>
+<td>已加载工具及技能身份；后续请求据此重建展示</td>
+</tr>
+</tbody>
+</table>
+<p>工作记忆属于 <code>RunState</code>，没有第二套需要手动同步的 working memory。
+关闭跨运行记忆 <code>memory_enabled=False</code>，也不会让这份任务状态消失。</p>
+<h2 id="工作区指纹检查到了什么">工作区指纹检查到了什么</h2>
+<p><a href="../source/src/aster/workspace.py.html">Workspace.snapshot()</a> 遍历受管理文件，
+对<strong>文件权限位与内容</strong>一起计算指纹，再由 <code>fingerprint()</code> 聚合路径映射。
+文件新增、删除、内容改动、权限位改动都可能改变整体结果。</p>
+<p>这是 Aster 自己的文件视图，不是对整台机器做磁盘快照。
+<code>.aster</code>、<code>.git</code> 等受保护目录、依赖缓存和敏感路径不会被纳入普通工作区扫描。
+所以仅仅新增 trace 行不会导致下一次恢复失败，环境变量和系统服务状态也不在检查范围内。</p>
+<p>配置指纹也有类似边界。<code>Settings.identity()</code> 排除了 <code>api_key</code>、<code>base_url</code>，
+并把自动预算解析成有效值；更换密钥不等于任务语义变化。
+但模型、协议、权限、沙箱或有效预算等配置变化会触发拒绝。
+Base URL 不参与一致性比较，因此恢复检查不是服务提供商身份认证。</p>
+<h2 id="什么时候写完整交互的边界">什么时候写：完整交互的边界</h2>
+<p>不能在“调用已经写进历史，结果还没回来”的瞬间保存可恢复检查点。
+<a href="../source/src/aster/runtime.py.html">Runtime.checkpoint()</a> 开头有两个关键保护：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_turn</span><span class="p">:</span>
+    <span class="k">return</span>
+<span class="n">history_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code>_in_turn</code> 表示正在处理工具批次；此时先延迟写盘。
+在批次的 <code>finally</code> 中，若调用被取消而没有结果，Runtime 会补充
+<code>status=&quot;cancelled&quot;</code>、<code>reason=&quot;turn_interrupted&quot;</code> 的结果，再校验和保存。
+这个结果明确表示执行中断，不能把它解读为“工具肯定没有副作用”。</p>
+<p>第 02、06 章的调用/结果配对，在恢复这里仍然必须成立。
+<code>history_groups()</code> 是复用的协议合同，不是为 checkpoint 再写一套宽松校验。</p>
+<p>真正写盘由 <a href="../source/src/aster/evidence.py.html">atomic_json()</a> 完成：
+先在目标目录写临时文件，flush、fsync 后用 <code>os.replace()</code> 替换正式文件。
+这减少写到一半留下坏 JSON 的风险，不能把整个文件系统和外部命令变成一个事务。</p>
+<h2 id="一个容易漏掉的细节模型原生状态不能随意改字符">一个容易漏掉的细节：模型原生状态不能随意改字符</h2>
+<p>有些 provider 需要下一轮原样带回一段字符串；Harness 不解释它，称为“不透明字段”。
+其中一段编码碰巧长得像密钥时，普通脱敏可能把它改坏，导致恢复后模型拒绝继续。
+Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是放过所有同名字段。</p>
+<table>
+<thead>
+<tr>
+<th>协议位置</th>
+<th>含义</th>
+<th>保存要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Responses <code>reasoning.encrypted_content</code></td>
+<td>服务端返回的加密推理状态</td>
+<td>检查点原样保留</td>
+</tr>
+<tr>
+<td>Anthropic <code>thinking.signature</code></td>
+<td>thinking 块的签名</td>
+<td>签名及其对应正文不能被静默改写</td>
+</tr>
+<tr>
+<td>Anthropic <code>redacted_thinking.data</code></td>
+<td>服务端返回的不透明数据块</td>
+<td>检查点原样保留</td>
+</tr>
+</tbody>
+</table>
+<p><a href="../source/src/aster/evidence.py.html">EvidenceStore.save()</a> 默认仍然脱敏。
+只有检查点调用 <code>preserve_native_history=True</code>，并且先调用
+<code>validate_native_history()</code>：已出现 <code>[REDACTED]</code>、包含配置中已知凭据，
+或签名 thinking 正文必须脱敏的记录会被拒绝。</p>
+<p>工具结果里伪造一个 <code>signature</code> 字段不会获得这个例外。
+请求审计副本与 trace 继续脱敏，也不等于可以拿脱敏后的审计 JSON 直接恢复原生请求。
+这一设计属于协议续接正确性，不是让项目读取或解释模型私有推理。</p>
+<h2 id="动手恢复进度再故意制造两种漂移">动手：恢复进度，再故意制造两种漂移</h2>
+<p>将下面代码保存到 <code>/tmp/aster-checkpoint-lesson.py</code>，在完成安装的项目根目录运行：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>conda<span class="w"> </span>run<span class="w"> </span>--no-capture-output<span class="w"> </span>-n<span class="w"> </span>aster<span class="w"> </span>python<span class="w"> </span>/tmp/aster-checkpoint-lesson.py
+</pre></div>
+</div>
+<p>实验只用本地读取与待办工具。两个 Runtime 对象不共享 <code>state</code>，
+第二个必须从 JSON 恢复；最后在临时目录改配置、改文件，验证拒绝分支。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-resume-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"app.py"</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"ANSWER = 42</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span><span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">)</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="n">first</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"读取 app.py，记住之后还要解释 ANSWER。"</span><span class="p">))</span>
+        <span class="n">call</span> <span class="o">=</span> <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"app.py"</span><span class="p">})</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="k">await</span> <span class="n">first</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">call</span><span class="p">))</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="k">await</span> <span class="n">first</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"todo_add"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"content"</span><span class="p">:</span> <span class="s2">"解释 ANSWER 的用途"</span><span class="p">},</span>
+        <span class="p">)))</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
+        <span class="n">first</span><span class="o">.</span><span class="n">checkpoint</span><span class="p">()</span>
+        <span class="n">run_id</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">run_id</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="s2">"runs"</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="s2">"checkpoint.json"</span><span class="p">)</span>
+        <span class="n">saved</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">checkpoint</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+
+        <span class="c1"># 新对象代表重启后的进程，不共享 first.state。</span>
+        <span class="n">second</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="n">restored</span> <span class="o">=</span> <span class="n">second</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">restored</span><span class="o">.</span><span class="n">step</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">restored</span><span class="o">.</span><span class="n">todos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"pending"</span>
+        <span class="k">assert</span> <span class="s2">"app.py"</span> <span class="ow">in</span> <span class="n">restored</span><span class="o">.</span><span class="n">working_memory</span>
+        <span class="k">assert</span> <span class="n">second</span><span class="o">.</span><span class="n">_structured_history</span> <span class="o">==</span> <span class="n">saved</span><span class="p">[</span><span class="s2">"structured_history"</span><span class="p">]</span>
+        <span class="n">duplicate</span> <span class="o">=</span> <span class="k">await</span> <span class="n">second</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">duplicate</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"duplicate_call_id"</span>
+        <span class="k">assert</span> <span class="n">restored</span><span class="o">.</span><span class="n">step</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"恢复步数:"</span><span class="p">,</span> <span class="n">restored</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"待办:"</span><span class="p">,</span> <span class="n">restored</span><span class="o">.</span><span class="n">todos</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"content"</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"重复调用:"</span><span class="p">,</span> <span class="n">duplicate</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+
+        <span class="n">changed_settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span><span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">max_recovery</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">changed_settings</span><span class="p">)</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"runtime_identity_mismatch"</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"配置变化:"</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"应拒绝不同运行边界"</span><span class="p">)</span>
+
+        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"ANSWER = 99</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"workspace_mismatch"</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"文件变化:"</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"应拒绝旧工作区快照"</span><span class="p">)</span>
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>恢复步数: 2
+待办: 解释 ANSWER 的用途
+重复调用: duplicate_call_id
+配置变化: runtime_identity_mismatch
+文件变化: workspace_mismatch
+</pre></div>
+</div>
+<p>为什么重复调用检查要放在恢复之后？因为只在内存里维护“见过哪些 ID”不够，
+重启一次就会丢掉。这个实验同时确认短期记忆、待办、原生历史和调用身份一起恢复。
+但它不能证明“所有副作用都恰好执行一次”，后者还涉及外部系统事务与崩溃时间点。</p>
+<h2 id="练习与参考答案">练习与参考答案</h2>
+<p><strong>练习 1：把文件改坏，再改回原文本，恢复是否一定还会拒绝？</strong></p>
+<p>若文件集合、内容和权限位均恢复一致，指纹可以再次匹配。
+它检查当前状态是否一致，不追踪两次检查之间发生过的所有历史事件。</p>
+<p><strong>练习 2：<code>phase=&quot;stopped&quot;</code> 的检查点恢复后会自动继续吗？</strong></p>
+<p>不会。<code>resume()</code> 按原值恢复阶段，<code>stopped</code>、<code>failed</code>、<code>completed</code> 都是终态。
+本实验保存的是仍处于 <code>running</code>、但没有操作进行中的任务。
+不要把“可恢复状态”误解成“把任何结束的运行强行变回运行中”。</p>
+<p><strong>练习 3：为什么不能恢复 asyncio 中还在跑的 worker？</strong></p>
+<p>检查点保存可序列化的任务状态，不保存 Python 协程栈、子进程或待决审批回调。
+<code>resume()</code> 重建 <code>WorkerManager</code>，不会让已失去进程上下文的工作自动复活。
+后续是否启动新工作应由恢复后的策略和当前证据决定。</p>
+<h2 id="本章的边界">本章的边界</h2>
+<p>目前恢复对工作区漂移采取明确拒绝，没有自动合并外部修改，也不自动回滚文件。
+硬退出恰好发生在外部副作用之后、检查点之前，仍需根据证据人工或另起任务核查。
+归档引用在下一次准备模型请求时继续检查可用性；检查点文件存在不代表所有关联工件永远可读。</p>
+<p>对应合同检查见 <a href="../source/tests/test_context_state.py.html">test_context_state.py</a>、
+<a href="../source/tests/test_provider_events.py.html">test_provider_events.py</a> 和
+<a href="../source/tests/test_runtime_repairs.py.html">test_runtime_repairs.py</a>。
+下一章把这里保存下来的 <code>working_memory</code> 放回完整记忆体系中讲清楚。</p>
+<p><a href="08-hooks-and-completion.html">上一章：Hooks 与任务完成</a> · <a href="../index.html">学习目录</a> · <a href="10-layered-memory.html">下一章：分层记忆</a></p>
+<nav class="chapter-nav"><a href="08-hooks-and-completion.html">← 08 · Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a><a href="10-layered-memory.html">10｜分层记忆：刚读过的内容，下一次还记得吗 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么只存-messages-不够">为什么只存 messages 不够</a><a href="#一次恢复的检查顺序">一次恢复的检查顺序</a><a href="#检查点里的每组字段负责什么">检查点里的每组字段负责什么</a><a href="#工作区指纹检查到了什么">工作区指纹检查到了什么</a><a href="#什么时候写完整交互的边界">什么时候写：完整交互的边界</a><a href="#一个容易漏掉的细节模型原生状态不能随意改字符">一个容易漏掉的细节：模型原生状态不能随意改字符</a><a href="#动手恢复进度再故意制造两种漂移">动手：恢复进度，再故意制造两种漂移</a><a href="#练习与参考答案">练习与参考答案</a><a href="#本章的边界">本章的边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 import shutil
 import signal
@@ -33,10 +34,18 @@ class SandboxRunner:
         }
 
     async def run(
-        self, workspace: Workspace, command: str, timeout: float = 30, *, readonly: bool = False
+        self,
+        workspace: Workspace,
+        command: str,
+        timeout: float = 30,
+        *,
+        readonly: bool = False,
+        expected_files: dict[str, str | None] | None = None,
     ) -> Outcome:
         readonly = readonly or self.settings.read_only
         constrained = readonly or self.settings.write_scope is not None
+        if conflict := self._check_expected(workspace, expected_files):
+            return conflict
         if self.settings.sandbox == "off":
             if constrained:
                 return Outcome(status="blocked", reason="isolation_required_for_scope")
@@ -53,6 +62,8 @@ class SandboxRunner:
                 target = root / path.relative_to(workspace.root)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
+            if conflict := self._check_expected(Workspace(root), expected_files):
+                return conflict
             (root / ".tmp").mkdir(exist_ok=True)
             launcher = Path(__file__).with_name("linux.py")
             result = await self._process(
@@ -69,6 +80,8 @@ class SandboxRunner:
             )
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
                 if self.settings.sandbox == "best_effort" and not constrained:
+                    if conflict := self._check_expected(workspace, expected_files):
+                        return conflict
                     before = workspace.snapshot()
                     fallback = await self._process(
                         ["/bin/sh", "-c", command], workspace.root, timeout
@@ -118,6 +131,28 @@ class SandboxRunner:
                 return self._publish(workspace, root, before, after, result)
             finally:
                 shutil.rmtree(temporary, ignore_errors=True)
+
+    @staticmethod
+    def _check_expected(
+        workspace: Workspace, expected_files: dict[str, str | None] | None
+    ) -> Outcome | None:
+        for name, expected in (expected_files or {}).items():
+            try:
+                path = workspace.path(name)
+                current = None
+                if path.exists():
+                    with path.open("rb") as stream:
+                        current = hashlib.file_digest(stream, "sha256").hexdigest()
+                if current == expected:
+                    continue
+            except (OSError, ValueError):
+                pass  # Unreadable or replaced with a directory is also stale evidence.
+            return Outcome(
+                status="blocked",
+                reason="fresh_read_required",
+                content=f"Read {name} again: it changed while the edit was pending.",
+            )
+        return None
 
     def _publish(
         self,

@@ -1,0 +1,206 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>15｜选读：把同一个 Harness 接到外部策略 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="15-rl-interface" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="current" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 15</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="15选读把同一个-harness-接到外部策略">15｜选读：把同一个 Harness 接到外部策略</h1>
+<p><a href="14-evaluation.html">上一章：评测</a> · <a href="../index.html">目录</a></p>
+<blockquote>
+<p>模型自己决定下一步，或外部程序传入下一步，都应该经过同一套工具与安全规则。</p>
+</blockquote>
+<p>本章只介绍已经实现的环境接口 <code>AsterEnv</code>。项目目前没有实现 SFT、GRPO 或其他训练算法；读懂这章，不代表已经完成 Agent 后训练。</p>
+<h2 id="问题评测动作为什么要经过真实运行时">问题：评测动作为什么要经过真实运行时</h2>
+<p>自主运行时，Runtime 调用模型，解析工具调用，再执行动作。如果后续为了训练另写一个简化执行器，很容易遗漏权限、工具加载、上下文压缩或完成校验。训练中的策略因此可能学会部署后无法执行的动作。</p>
+<p>Aster 的做法是保留同一个 Runtime，只把“谁产生下一步动作”交给外部调用者。<code>AsterEnv.step()</code> 接收动作，交回观察、奖励和终止状态；此接口现在就能用于离线动作回放。</p>
+<figure class="diagram" data-edge-count="6"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">自主运行：模型返回下一步</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">Runtime</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">外部策略：env.step action</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">Runtime</span></li><li class="diagram-edge"><span class="diagram-node" data-node="R">Runtime</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">权限 / 工具 / 工作记忆 / 检查点</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">权限 / 工具 / 工作记忆 / 检查点</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">prepare_request 组装同一套模型输入</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">权限 / 工具 / 工作记忆 / 检查点</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">运行结束或预算耗尽</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">运行结束或预算耗尽</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">完成要求检查 + 独立评分器</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 自主运行：模型返回下一步</span><span class="diagram-key"><code>R</code> Runtime</span><span class="diagram-key"><code>B</code> 外部策略：env.step action</span><span class="diagram-key"><code>C</code> 权限 / 工具 / 工作记忆 / 检查点</span><span class="diagram-key"><code>D</code> prepare_request 组装同一套模型输入</span><span class="diagram-key"><code>E</code> 运行结束或预算耗尽</span><span class="diagram-key"><code>F</code> 完成要求检查 + 独立评分器</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[自主运行：模型返回下一步] --&gt; R[Runtime]
+    B[外部策略：env.step action] --&gt; R
+    R --&gt; C[权限 / 工具 / 工作记忆 / 检查点]
+    C --&gt; D[prepare_request 组装同一套模型输入]
+    C --&gt; E[运行结束或预算耗尽]
+    E --&gt; F[完成要求检查 + 独立评分器]
+</code></pre></details></figure>
+<p>代码入口是 <a href="../source/src/aster/rl.py.html">rl.py</a>，公开动作和任务类型在 <a href="../source/src/aster/schema.py.html">schema.py</a>。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。</p>
+<h2 id="reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</h2>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">observation</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code>task</code> 可以是字符串，也可以是 <code>TaskSpec</code>。字符串会被包装成任务规格。<code>reset()</code> 关闭上一轮，按 <code>Workspace.files()</code> 的工作区规则把种子仓库复制到新临时目录，并调用 <code>Runtime.start(task)</code>。</p>
+<p>这不是复制整个目录的所有内部文件；<code>.aster</code> 等内部路径受工作区枚举规则控制。每轮修改发生在临时副本中，避免把上一轮产物当成下一轮的起点。</p>
+<p><code>seed</code> 当前只是返回在 <code>info</code> 中的记录值，不会自动设置模型或所有依赖库的随机种子。实验复现仍需调用者控制任务版本、策略采样和模型参数。</p>
+<h2 id="step一个动作一次状态转换">step：一个动作，一次状态转换</h2>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">terminated</span><span class="p">,</span> <span class="n">truncated</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+</pre></div>
+</div>
+<table>
+<thead>
+<tr>
+<th>返回值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>observation</code></td>
+<td>给外部策略的当前观察，包括模型输入、工具定义和任务状态</td>
+</tr>
+<tr>
+<td><code>reward</code></td>
+<td>本次转换的奖励或代价，浮点数</td>
+</tr>
+<tr>
+<td><code>terminated</code></td>
+<td><code>phase</code> 为 <code>completed</code> / <code>failed</code>，或因完成要求不满足、停滞恢复耗尽而结束</td>
+</tr>
+<tr>
+<td><code>truncated</code></td>
+<td>已进入终态但不属于上述情况，如步数/轮数耗尽、用户停止、Hook 停止或上下文超预算</td>
+</tr>
+<tr>
+<td><code>info</code></td>
+<td>结果解释、验证详情、停止原因与 trace 路径</td>
+</tr>
+</tbody>
+</table>
+<p>动作有两种：<code>ToolCall</code> 请求执行工具，<code>Final</code> 请求交付最终回答；也可传入带 <code>kind</code> 字段的字典，由 Pydantic 检查。每次外部决策都会消耗一个 <code>turn</code>，包括被拒绝的 <code>Final</code>；工具执行还会消耗 <code>step</code>。</p>
+<p>因此 <code>max_turns</code> 限制外部决策次数，<code>max_steps</code> 限制工具动作次数。策略不能通过不断提交无效的 Final 无限续跑。</p>
+<h2 id="外部策略实际看到什么">外部策略实际看到什么</h2>
+<p><code>AsterEnv._observation()</code> 会调用 <code>Runtime.prepare_request()</code>，与自主运行共享上下文策略。最应该关注的字段是：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>model_input</code></td>
+<td>已经经过当前上下文策略构建的模型输入</td>
+</tr>
+<tr>
+<td><code>tools</code></td>
+<td>当前可见且可用的工具定义</td>
+</tr>
+<tr>
+<td><code>context_tokens</code></td>
+<td>本地估算的模型输入 token 数</td>
+</tr>
+<tr>
+<td><code>context_policy</code></td>
+<td>上下文策略版本，例如 <code>deterministic-v4</code></td>
+</tr>
+<tr>
+<td><code>phase</code>、<code>turn</code>、<code>step</code></td>
+<td>当前运行阶段和已消耗预算</td>
+</tr>
+<tr>
+<td><code>working_memory</code>、<code>plan</code>、<code>todos</code></td>
+<td>短期信息、计划和任务清单</td>
+</tr>
+<tr>
+<td><code>feedback</code>、<code>verification</code></td>
+<td>Runtime 的纠偏提示与内部验证状态</td>
+</tr>
+</tbody>
+</table>
+<p><code>messages</code> 也会暴露用于观测，但策略不能把它直接当成 <code>model_input</code> 的等价替代品：前者不是完整的原生协议历史，后者才经过实际预算、工具协议与证据组织流程。</p>
+<p>观察中的可变容器使用副本，修改 <code>observation[&quot;todos&quot;]</code> 不会直接改写 Runtime 状态。要执行动作，应走 <code>step()</code>，让变化留下证据。</p>
+<h2 id="两种验证各自回答不同问题">两种验证，各自回答不同问题</h2>
+<p>内部完成检查回答“任务要求是否满足”：要求读过代码、发生编辑、运行验证、交付指定文件时，不能只回复一句“完成了”。外部 <code>verifier(root, state)</code> 回答“这个候选结果是否真的正确”，返回 <code>VerifierResult(passed, reason, details)</code>。</p>
+<p>外部评分器应由可信的评测端持有，不能简单把 Agent 能修改的仓库测试当作唯一奖励来源。Aster 接受这个回调，但训练/评测划分、隐藏测试保护和评分器自身隔离，仍由调用方负责。</p>
+<p>终局评分的实际逻辑节选如下：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">eligible</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s2">"completed"</span> <span class="ow">or</span> <span class="n">state</span><span class="o">.</span><span class="n">stop_reason</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"step_limit"</span><span class="p">,</span> <span class="s2">"turn_limit"</span><span class="p">}</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">eligible</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">completion</span><span class="o">.</span><span class="n">passed</span><span class="p">:</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">completion</span>
+<span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">passed</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">result</span><span class="p">,</span> <span class="n">completion</span>
+<span class="k">return</span> <span class="p">(</span><span class="mf">0.0</span> <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s2">"completed"</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">completion</span>
+</pre></div>
+</div>
+<p><code>eligible</code> 表示当前停止方式是否允许把产物作为候选提交评分。达到步数/轮数上限时也检查最后的产物，避免策略用“耗尽预算”逃避失败处罚。它也意味着 <code>truncated=True</code> 不一定奖励为负：预算到点前已经写对答案，可以得到正奖励。</p>
+<p>未结束的成功工具动作代价是 <code>-0.05 / max_turns</code>；失败工具动作或被要求修订的 Final 是 <code>-0.5 / max_turns</code>。终局使用上面的 <code>+1/0/-1</code> 替换本次动作代价。当前解释基于不折扣的整轮奖励总和，不声称这套数值已经是训练最优解。</p>
+<h2 id="离线实验正确完成无评分器预算截断">离线实验：正确完成、无评分器、预算截断</h2>
+<p>在项目根目录、<code>aster</code> 环境中运行。动作由脚本明确提供，不调用模型；写文件使用项目本身的工具执行链路。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.rl</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsterEnv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">Final</span><span class="p">,</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span><span class="p">,</span> <span class="n">VerifierResult</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">grade</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">answer</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"answer.txt"</span>
+    <span class="n">passed</span> <span class="o">=</span> <span class="n">answer</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">answer</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"42</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="n">VerifierResult</span><span class="p">(</span><span class="n">passed</span><span class="o">=</span><span class="n">passed</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"exact_answer"</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-env-lesson-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">folder</span><span class="p">:</span>
+        <span class="n">seed_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="n">Settings</span><span class="p">(</span><span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">auto_dream</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">AsterEnv</span><span class="p">(</span><span class="n">seed_root</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">verifier</span><span class="o">=</span><span class="n">grade</span><span class="p">)</span>
+        <span class="n">write_answer</span> <span class="o">=</span> <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"write_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"answer.txt"</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="s2">"42</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+        <span class="p">})</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span>
+                <span class="n">prompt</span><span class="o">=</span><span class="s2">"Produce answer.txt"</span><span class="p">,</span> <span class="n">require_edit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_turns</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="p">))</span>
+            <span class="k">assert</span> <span class="n">Path</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">"workspace"</span><span class="p">])</span> <span class="o">!=</span> <span class="n">seed_root</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">cost</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="k">await</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">write_answer</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="n">ended</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cut</span> <span class="ow">and</span> <span class="n">cost</span> <span class="o">==</span> <span class="o">-</span><span class="mf">0.0125</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">Final</span><span class="p">(</span><span class="n">answer</span><span class="o">=</span><span class="s2">"Written."</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s2">"reward_verification"</span><span class="p">][</span><span class="s2">"passed"</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">seed_root</span> <span class="o">/</span> <span class="s2">"answer.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"正确交付：reward=1，terminated=True，种子仓库未修改"</span><span class="p">)</span>
+
+            <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span>
+                <span class="n">prompt</span><span class="o">=</span><span class="s2">"Produce answer.txt"</span><span class="p">,</span> <span class="n">require_edit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">max_turns</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">))</span>
+            <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">runtime</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"answer.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">env</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">write_answer</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s2">"stop_reason"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"turn_limit"</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"预算截断：reward=1，truncated=True，最后产物仍被评分"</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">env</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">ungraded</span> <span class="o">=</span> <span class="n">AsterEnv</span><span class="p">(</span><span class="n">seed_root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ungraded</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"Answer the question"</span><span class="p">))</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ungraded</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">Final</span><span class="p">(</span><span class="n">answer</span><span class="o">=</span><span class="s2">"42"</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">reward</span><span class="p">,</span> <span class="n">ended</span><span class="p">,</span> <span class="n">cut</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">info</span><span class="p">[</span><span class="s2">"reward_verification"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">"没有独立评分器：正常结束，但不给成功奖励"</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">ungraded</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>正确交付：reward=1，terminated=True，种子仓库未修改
+预算截断：reward=1，truncated=True，最后产物仍被评分
+没有独立评分器：正常结束，但不给成功奖励
+</pre></div>
+</div>
+<p><code>close()</code> 会清理临时目录。若你启用了后台 Worker，应先 <code>await env.runtime.workers.close()</code> 等待它们收敛，再关闭或重置环境；正在执行的 step 也不能并发 reset。</p>
+<h2 id="练习与参考答案">练习与参考答案</h2>
+<ol>
+<li>把写入的 <code>42</code> 改成 <code>41</code>，Runtime 完成检查可能通过吗？奖励如何变化？</li>
+<li><code>verifier</code> 错误地返回布尔值 <code>True</code>，会直接变成成功奖励吗？</li>
+<li>获得终局奖励后再执行一次 <code>step()</code>，能否重复领到奖励？</li>
+</ol>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>可能通过，因为“产生了要求的编辑”与“编辑内容正确”不同。但独立评分器会失败，终局奖励为 <code>-1</code>。实验中的正奖励断言需要相应修改。</li>
+<li>不会。回调必须返回 <code>VerifierResult</code>；错误类型会被报告为 <code>verifier_error:TypeError</code>，不会得到成功奖励。</li>
+<li>不能。已经终止的轮次会拒绝 step，报 <code>episode_finished</code>，必须先 reset。</li>
+</ol>
+</details>
+<p>相关契约测试见 <a href="../source/tests/test_rl_contract.py.html">test_rl_contract.py</a>。它们检查接口语义、奖励边界与并发限制，不证明策略经过训练后会变强。</p>
+<p>到这里，你应能把 Aster 画成一个共享运行时：不同入口提供动作，相同工具、安全、上下文、记忆与恢复机制负责执行；评测单独判断执行结果。后续 SFT/GRPO 的数据组织、训练目标和算法实现，应在真实开展后另写课程。</p>
+<p><a href="14-evaluation.html">上一章：评测</a> · <a href="../index.html">目录</a></p>
+<nav class="chapter-nav"><a href="14-evaluation.html">← 14｜从“能跑”到“证明有用”</a><a href="../index.html">回到课程首页 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题评测动作为什么要经过真实运行时">问题：评测动作为什么要经过真实运行时</a><a href="#reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</a><a href="#step一个动作一次状态转换">step：一个动作，一次状态转换</a><a href="#外部策略实际看到什么">外部策略实际看到什么</a><a href="#两种验证各自回答不同问题">两种验证，各自回答不同问题</a><a href="#离线实验正确完成无评分器预算截断">离线实验：正确完成、无评分器、预算截断</a><a href="#练习与参考答案">练习与参考答案</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

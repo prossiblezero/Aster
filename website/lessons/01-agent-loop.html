@@ -1,0 +1,156 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>01｜一个循环，三种操作 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="01-agent-loop" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="current" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 01</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="01一个循环三种操作">01｜一个循环，三种操作</h1>
+<p>上一章：<a href="00-quickstart.html">跑通任务</a> · <a href="../index.html">目录</a> · 下一章：<a href="02-model-protocols.html">模型协议</a></p>
+<blockquote>
+<p>模型决定“做什么”，Runtime 负责“允许怎样做、做完如何继续”。</p>
+</blockquote>
+<h2 id="从一个具体问题开始">从一个具体问题开始</h2>
+<p>用户让 Agent 查看两个文件并说明关系。模型可能一次回复就提出两个 <code>read_file</code>，也可能先读一个、分析后再读另一个。Harness 不能预先规定固定的“读两次再回答”流水线；它需要接收模型动作，并把真实执行结果送回下一轮。</p>
+<p>Aster 用 <code>run → turn → step</code> 表达这三个尺度。把 <code>run</code> 想成整张工单，<code>turn</code> 是一次向模型征求下一步，<code>step</code> 是执行其中一个工具调用。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>run(task)
+  ├─ start(task)：初始化 RunState
+  └─ while 未结束且未超限
+       └─ turn()
+            ├─ prepare_request()：整理模型输入
+            ├─ model.complete()：请求一次回复
+            ├─ 有工具调用：逐个 step(call)，补齐结果
+            └─ 只有文本：finalize(answer)，检查能否结束
+</pre></div>
+</div>
+<p>这张图省略了异常、取消与落盘分支。它用于建立阅读路径，不是另一份实现。</p>
+<h2 id="第一站看循环的退出条件">第一站：看循环的退出条件</h2>
+<p><a href="../source/src/aster/runtime.py.html">runtime.py</a> 的 <code>_run</code> 中有下面这段实际代码：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">while</span> <span class="p">(</span>
+    <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">terminal</span>
+    <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">step</span> <span class="o">&lt;</span> <span class="n">limit</span>
+    <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">turn</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">max_turns</span>
+<span class="p">):</span>
+    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><code>terminal</code> 是 <code>RunState</code> 的属性：<code>completed</code>、<code>stopped</code>、<code>failed</code> 都算终态。模型给出最终文本不一定立刻进入终态：如果任务要求修改后测试，而测试尚未完成，<code>finalize</code> 会给反馈，允许有限次补做。</p>
+<p>为什么同时限制 <code>turn</code> 和 <code>step</code>？一轮可能提出多次工具调用；反过来，模型也可能反复给出不合格的最终答案而没有工具调用。只限制其中一个，另一个方向就可能没有总量约束。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TaskSpec.prompt</code></td>
+<td>当前任务的要求</td>
+<td>“查看两个配置文件”</td>
+</tr>
+<tr>
+<td><code>max_steps</code></td>
+<td>工具步骤上限</td>
+<td>40 次</td>
+</tr>
+<tr>
+<td><code>max_turns</code></td>
+<td>模型决策轮次上限</td>
+<td>40 轮</td>
+</tr>
+<tr>
+<td><code>RunState.phase</code></td>
+<td>当前运行状态</td>
+<td><code>running</code> / <code>completed</code></td>
+</tr>
+<tr>
+<td><code>stop_reason</code></td>
+<td>为什么结束</td>
+<td><code>verified</code> / <code>turn_limit</code></td>
+</tr>
+<tr>
+<td><code>observed</code></td>
+<td>是否已有成功的工作区观察</td>
+<td>成功读取后为真</td>
+</tr>
+<tr>
+<td><code>feedback</code></td>
+<td>运行时给出的纠偏说明</td>
+<td>“还需要执行测试”</td>
+</tr>
+</tbody>
+</table>
+<p><code>step</code> 更精确地说是进入工具步骤的计数，不是成功次数。被执行阶段拒绝的调用也可能消耗步骤；重复调用编号等前置拒绝则可能在进入 <code>_step</code> 前返回。读成本报告时不要把 <code>step</code> 自动解释成“成功使用了这么多个工具”。</p>
+<h2 id="第二站模型返回什么">第二站：模型返回什么</h2>
+<p><a href="../source/src/aster/schema.py.html">schema.py</a> 定义了统一的 <code>ModelReply</code>。本章先看三个字段：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="n">calls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ToolCall</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+<span class="n">usage</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code>text</code> 是回复正文，<code>calls</code> 是本轮提出的工具动作，<code>usage</code> 是服务返回的 token 使用量。列表里的每个 <code>ToolCall</code> 有名称、参数和 <code>call_id</code>；编号把请求与对应结果连起来。</p>
+<p><code>_model_turn</code> 的处理顺序很关键：先保存模型原始回复，再逐个执行调用，最后为每个调用追加结果。即使中途取消，也会为未完成调用补上带 <code>turn_interrupted</code> 原因的取消结果。这个结果表示“未能确认完成”，不表示副作用被自动撤销。</p>
+<p>当前实现按顺序执行一轮里的工具调用。Worker 是另一条显式的并发机制，见 <a href="13-interaction-and-workers.html">第 13 章</a>；不要把模型一次返回多个调用误认为自动并行。</p>
+<h2 id="实验两次工具调用只占一轮模型决策">实验：两次工具调用只占一轮模型决策</h2>
+<p>按 <a href="00-quickstart.html">第 00 章</a> 的方法保存并运行。模型替身第一轮读两个文件，第二轮回答。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelReply</span><span class="p">,</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TwoReads</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">,</span> <span class="n">tools</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">requests</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">calls</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"a.txt"</span><span class="p">,</span> <span class="s2">"b.txt"</span><span class="p">)</span>
+            <span class="p">])</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"function_call_output"</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">return</span> <span class="n">ModelReply</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="s2">"两个文件都已读取。"</span><span class="p">)</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-loop-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"a.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"alpha</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"b.txt"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"beta</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">TwoReads</span><span class="p">()</span>
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">Settings</span><span class="p">(</span><span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">auto_dream</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"查看两个文件"</span><span class="p">,</span> <span class="n">require_observation</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"start:"</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">turn</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"turn 1:"</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">turn</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"turn 2:"</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">requests</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="s2">"completed"</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>start: running 0 0
+turn 1: running 1 2
+turn 2: completed 2 2
+</pre></div>
+</div>
+<p>我们刻意手动调用两次 <code>turn()</code>，让你看到中间状态。日常运行交给 <code>run()</code> 即可，不需要外部代码再写一个同样的循环。</p>
+<h2 id="第三站工具失败会不会让整个-agent-崩溃">第三站：工具失败会不会让整个 Agent 崩溃</h2>
+<p>工具返回统一的 <code>Outcome</code>，其中 <code>status</code> 区分 <code>success</code>、<code>error</code>、<code>blocked</code>、<code>timeout</code>、<code>cancelled</code>。例如，读取不存在的文件是工具结果，模型能据此换路径；模型服务连接失败则走 <code>ProviderError</code>，记录原因并终止本次运行。</p>
+<p>因此“工具失败”和“运行失败”是两个层级。运行时允许模型从部分失败中恢复，同时用步数、停滞检测和完成条件控制无限重试。具体规则在 <a href="08-hooks-and-completion.html">第 08 章</a>。</p>
+<p><code>_operation()</code> 还限制同一个 Runtime 同时只能有一个操作拥有执行权。它允许同一个异步任务内 <code>run → turn → step</code> 嵌套，但拒绝另一个异步任务同时修改同一状态，避免界面操作和模型循环互相覆盖。</p>
+<h2 id="练习与参考思路">练习与参考思路</h2>
+<ol>
+<li>在实验任务上设置 <code>max_turns=1</code>，再用 <code>await runtime.run()</code> 驱动。第一轮读取可以完成，但第二轮回答没有机会执行；结束原因应是 <code>turn_limit</code>。</li>
+<li>把第一轮回复改成纯文本，并保留 <code>require_observation=True</code>。为什么不能立即成功？因为“说读过”不等于记录里真的读过，完成检查会要求补做观察。</li>
+<li>直接调用 <code>await runtime.step(ToolCall(...))</code> 会不会自动请求模型？不会。它执行一个外部提供的动作，是后续 RL 环境共用运行时的基础；外部策略需要自行管理决策轮次。</li>
+</ol>
+<p>读完应能回答：<strong>一次 run 有多轮 turn，一轮 turn 可以有多个 step；步骤成功、运行结束、任务正确是三个不同的判断。</strong></p>
+<p>上一章：<a href="00-quickstart.html">00｜跑通任务</a> · <a href="../index.html">目录</a> · 下一章：<a href="02-model-protocols.html">02｜模型协议</a></p>
+<nav class="chapter-nav"><a href="00-quickstart.html">← 00｜先让 Aster 完成一次任务</a><a href="02-model-protocols.html">02｜把不同模型接到同一个循环 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从一个具体问题开始">从一个具体问题开始</a><a href="#第一站看循环的退出条件">第一站：看循环的退出条件</a><a href="#第二站模型返回什么">第二站：模型返回什么</a><a href="#实验两次工具调用只占一轮模型决策">实验：两次工具调用只占一轮模型决策</a><a href="#第三站工具失败会不会让整个-agent-崩溃">第三站：工具失败会不会让整个 Agent 崩溃</a><a href="#练习与参考思路">练习与参考思路</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

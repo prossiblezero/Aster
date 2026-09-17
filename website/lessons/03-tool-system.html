@@ -1,0 +1,211 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 工具系统：先知道有什么，再拿到调用说明 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="03-tool-system" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="current" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="00-quickstart.html">继续上次阅读 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 03</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="03-工具系统先知道有什么再拿到调用说明">03 · 工具系统：先知道有什么，再拿到调用说明</h1>
+<blockquote>
+<p>一句话：模型负责提出动作，Harness 负责把动作变成有边界、可检查的执行结果。</p>
+</blockquote>
+<p>上一章：<a href="02-model-protocols.html">模型协议</a> · <a href="../index.html">目录</a> · 下一章：<a href="04-permissions-sandbox.html">权限与沙箱</a></p>
+<h2 id="从一个具体问题开始">从一个具体问题开始</h2>
+<p>你让 Agent 修改 <code>calculator.py</code>。它需要读文件、修改文件、运行测试；通常不需要同时看见记忆维护、规划、子任务通信、图片读取的全部参数说明。
+如果每轮都发送所有工具的 JSON Schema，模型要为当前用不到的能力付出上下文成本。
+反过来，只在提示词里写“你可以管理待办”，却没有参数契约和执行入口，模型也无法真正使用它。</p>
+<p>Aster 将这个问题分成三件事：<strong>系统实现了什么、当前配置允许什么、这一轮向模型展示什么</strong>。
+三个集合有联系，但不能合成一个列表。</p>
+<figure class="diagram" data-edge-count="11"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">SCHEMAS：已实现的工具</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">tool_load 的可选名称目录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">本轮发给模型的完整参数定义</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">tool_load 的可选名称目录</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">模型调用 tool_load</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">模型调用 tool_load</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="G">state.loaded_tools 更新</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">state.loaded_tools 更新</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">本轮发给模型的完整参数定义</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">模型提出 ToolCall</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">模型提出 ToolCall</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">Runtime 校验与权限检查</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">Runtime 校验与权限检查</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="J">ToolRegistry 分发</span></li><li class="diagram-edge"><span class="diagram-node" data-node="J">ToolRegistry 分发</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="K">Outcome + 执行记录</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> SCHEMAS：已实现的工具</span><span class="diagram-key"><code>B</code> 按配置与运行状态过滤可用能力</span><span class="diagram-key"><code>C</code> core 核心集 + 本次已加载工具</span><span class="diagram-key"><code>D</code> tool_load 的可选名称目录</span><span class="diagram-key"><code>E</code> 本轮发给模型的完整参数定义</span><span class="diagram-key"><code>F</code> 模型调用 tool_load</span><span class="diagram-key"><code>G</code> state.loaded_tools 更新</span><span class="diagram-key"><code>H</code> 模型提出 ToolCall</span><span class="diagram-key"><code>I</code> Runtime 校验与权限检查</span><span class="diagram-key"><code>J</code> ToolRegistry 分发</span><span class="diagram-key"><code>K</code> Outcome + 执行记录</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[SCHEMAS：已实现的工具] --&gt; B[按配置与运行状态过滤可用能力]
+    B --&gt; C[core 核心集 + 本次已加载工具]
+    B --&gt; D[tool_load 的可选名称目录]
+    C --&gt; E[本轮发给模型的完整参数定义]
+    D --&gt; F[模型调用 tool_load]
+    F --&gt; G[state.loaded_tools 更新]
+    G --&gt; C
+    E --&gt; H[模型提出 ToolCall]
+    H --&gt; I[Runtime 校验与权限检查]
+    I --&gt; J[ToolRegistry 分发]
+    J --&gt; K[Outcome + 执行记录]
+</code></pre></details></figure>
+<h2 id="先认识一份工具契约">先认识一份工具契约</h2>
+<p>打开 <a href="../source/src/aster/tools.py.html">tools.py</a>，先看 <code>ReadFile</code>，再看 <code>SCHEMAS</code>、<code>definitions()</code>。
+下面是 <code>ReadFile</code> 的字段部分，范围校验留在源码中：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ReadFile</span><span class="p">(</span><span class="n">Record</span><span class="p">):</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code>path</code> 是工作区内的文件路径；<code>start</code>、<code>end</code> 是从 1 开始、两端都包含的行号。
+<code>ge=1</code> 表示必须大于等于 1；未传的参数由默认值补齐。
+额外的校验器拒绝倒置的范围，以及 <code>end - start &gt; 2000</code> 的读取范围。
+这不是一句给模型的建议：即使模型生成错误参数，Pydantic 也会在执行前拒绝。</p>
+<p><code>SCHEMAS</code> 中每个条目包含参数类型、用途描述和副作用类别。例如：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="s2">"read_file"</span><span class="p">:</span> <span class="p">(</span><span class="n">ReadFile</span><span class="p">,</span> <span class="s2">"Read a UTF-8 file with a bounded line range."</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">)</span>
+</pre></div>
+</div>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>它回答的问题</th>
+<th>在哪里使用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReadFile</code></td>
+<td>调用者必须传哪些参数？</td>
+<td>生成 Schema，同时验证实际参数</td>
+</tr>
+<tr>
+<td>description</td>
+<td>什么时候应该选这个工具？</td>
+<td>发给模型的用途说明</td>
+</tr>
+<tr>
+<td><code>effect</code></td>
+<td>是读取、写入、进程执行还是内部状态操作？</td>
+<td>权限策略的输入</td>
+</tr>
+<tr>
+<td><code>ToolCall.call_id</code></td>
+<td>这是哪一次调用？</td>
+<td>调用与结果配对、重复调用编号检查</td>
+</tr>
+<tr>
+<td><code>Outcome.status</code></td>
+<td>成功、错误、阻止、超时还是取消？</td>
+<td>Runtime 后续决策</td>
+</tr>
+<tr>
+<td><code>Outcome.reason</code></td>
+<td>为什么没有按预期完成？</td>
+<td>可比较的原因名称，如 <code>invalid_arguments</code></td>
+</tr>
+<tr>
+<td><code>Outcome.content</code></td>
+<td>模型实际看见什么？</td>
+<td>写入工具结果与后续上下文</td>
+</tr>
+<tr>
+<td><code>Outcome.data</code></td>
+<td>哪些结构化信息留给 Harness 使用？</td>
+<td>文件摘要、分页游标、验证结果等</td>
+</tr>
+</tbody>
+</table>
+<p><code>Record</code> 在 <a href="../source/src/aster/schema.py.html">schema.py</a> 中禁止未知字段。
+工具实现因而不必到处写 <code>args.get(&quot;path&quot;)</code>，也不会悄悄吞掉模型拼错的参数名。</p>
+<h2 id="两种分类不要交叉理解">两种分类，不要交叉理解</h2>
+<p><code>CORE_TOOLS</code> 是<strong>展示策略</strong>：默认包含文件列表、读取、搜索、写入、补丁、命令、测试、差异和 <code>tool_load</code>，最多 9 项。
+“最多”是因为没有批准入口、处于只读模式等情况还会隐藏其中部分工具。
+<code>tool_profile=&quot;all&quot;</code> 会展示全部<strong>当前可用</strong>工具，并不会把关闭的能力重新打开。</p>
+<p><code>WorkspaceTools</code> 与 <code>WorkflowTools</code> 是<strong>执行职责</strong>：前者操作仓库文件或进程，后者操作当前任务的状态和协作能力。
+例如，<code>todo_add</code> 要改的是 <code>RunState.todos</code>；<code>git_diff</code> 需要本次任务的初始快照，也走工作流分发。
+所以“核心工具”不等于“工作区工具”，两套划分解决不同问题。</p>
+<p><code>ToolRegistry.execute()</code> 的完整分发逻辑很短：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">call</span><span class="p">:</span> <span class="n">ToolCall</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Outcome</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">WORKFLOW_TOOLS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>真正的外部入口是 <a href="../source/src/aster/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
+业务集成应调用 <code>Runtime.step()</code>；直接实例化某个工具处理器会绕开这一层治理。</p>
+<h2 id="按需加载到底加载了什么">按需加载到底加载了什么</h2>
+<p>模型起初能看到 <code>tool_load</code> 的参数，其中 <code>names</code> 的枚举列出了当前可加载的名称。
+调用 <code>tool_load(names=[&quot;todo_add&quot;])</code> 后，Aster 把名称写入 <code>state.loaded_tools</code>；<strong>下一次模型请求</strong>的 <code>tools</code> 列表才包含 <code>todo_add</code> 的完整说明。
+没有下载插件，没有动态导入 Python，也没有额外创建一个 Agent。</p>
+<p>这与 learn-workbuddy 的“先发现，再加载，再执行”共享思路，但 Aster 选择下一轮直接调用具体工具。
+它没有另设一个接收任意参数的通用延迟执行工具。</p>
+<p>注意一个实现边界：<code>loaded_tools</code> 管理模型可见性，<strong>不充当授权凭证</strong>。
+Python 调用者通过 <code>Runtime.step()</code> 提交一个已注册、当前可用但未加载的工具时，Runtime 仍会正常校验执行。
+配置关闭的能力则无论是否加载、是否使用 <code>all</code>、是否直接调用，都要被拒绝。</p>
+<h2 id="离线实验观察工具列表如何变化">离线实验：观察工具列表如何变化</h2>
+<p>从项目根目录运行，先执行 <code>conda activate aster</code>。
+把下面完整 Python 代码保存到 <code>/tmp/aster_lesson03.py</code>，再运行 <code>python /tmp/aster_lesson03.py</code>。
+它直接驱动真实 Runtime，不调用模型；所有运行文件保存在自动清理的临时目录。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">item</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">runtime</span><span class="o">.</span><span class="n">tool_definitions</span><span class="p">()}</span>
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+        <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">),</span>
+            <span class="n">Settings</span><span class="p">(</span><span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"了解工具加载"</span><span class="p">))</span>
+        <span class="n">before</span> <span class="o">=</span> <span class="n">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"初始完整工具数:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">before</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="s2">"todo_add"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">before</span>
+
+        <span class="n">loaded</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+            <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"todo_add"</span><span class="p">]})</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"加载结果:"</span><span class="p">,</span> <span class="n">loaded</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"新增工具:"</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span> <span class="o">-</span> <span class="n">before</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span> <span class="o">-</span> <span class="n">before</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"todo_add"</span><span class="p">}</span>
+
+        <span class="n">item</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+            <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"todo_add"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"content"</span><span class="p">:</span> <span class="s2">"阅读工具实现"</span><span class="p">})</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"待办状态:"</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"status"</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">item</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"status"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"pending"</span>
+
+        <span class="n">runtime</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">tool_profile</span> <span class="o">=</span> <span class="s2">"all"</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"all 暴露 memory_store:"</span><span class="p">,</span> <span class="s2">"memory_store"</span> <span class="ow">in</span> <span class="n">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">))</span>
+        <span class="n">blocked</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+            <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"memory_retrieve"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"query"</span><span class="p">:</span> <span class="s2">"工具"</span><span class="p">})</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"直接调用关闭的能力:"</span><span class="p">,</span> <span class="n">blocked</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">blocked</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">blocked</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"memory_disabled"</span>
+
+        <span class="n">invalid</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+            <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"a.py"</span><span class="p">,</span> <span class="s2">"start"</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"错误行号:"</span><span class="p">,</span> <span class="n">invalid</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">invalid</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"invalid_arguments"</span>
+
+
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>初始完整工具数: 9
+加载结果: success
+新增工具: ['todo_add']
+待办状态: pending
+all 暴露 memory_store: False
+直接调用关闭的能力: blocked memory_disabled
+错误行号: invalid_arguments
+</pre></div>
+</div>
+<p>这里的 9 只是本实验配置下的数量，不是每个运行都固定 9 个工具。
+实验中给了 <code>approval=&quot;auto&quot;</code>，因此允许展示写文件、运行命令等核心能力；实验本身只操作临时状态。</p>
+<h2 id="练习与核对">练习与核对</h2>
+<ol>
+<li>把 <code>memory_enabled=False</code> 改成 <code>True</code>，<code>all</code> 下会发生什么？</li>
+<li>如果一次 <code>tool_load</code> 同时申请 <code>todo_add</code> 和已关闭的 <code>memory_store</code>，是否应该只加载前者？</li>
+<li><code>read_file</code> 和 <code>todo_list</code> 都是“读取”，为什么不放进同一个执行器？</li>
+</ol>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li><code>all</code> 会展示当前可用的记忆工具；实验中关于“关闭能力”的断言需要相应修改。</li>
+<li>当前实现拒绝整次加载请求，返回 <code>tool_unavailable</code>，不留下半成功的 <code>loaded_tools</code> 更新。</li>
+<li>副作用类型都是 <code>read</code>，但依赖不同。前者依赖仓库，后者依赖计划与待办状态；权限类别不等于模块职责。</li>
+</ol>
+</details>
+<h2 id="到这一章为止我们证明了什么">到这一章为止，我们证明了什么</h2>
+<p>我们证明了定义、展示和执行各有可检查的路径，以及配置关闭的能力不会被 <code>all</code> 重新暴露。
+工具按需加载是否节省真实模型费用，还取决于目录大小、调用次数和 provider 的计费方式；本实验没有测量这项收益。
+更完整的回归入口是 <a href="../source/tests/test_tool_contracts.py.html">test_tool_contracts.py</a>，其中也覆盖恢复后的工具列表和计划模式。</p>
+<p>下一章把“可以提出调用”进一步变成“允许执行，而且只能影响允许的范围”。</p>
+<nav class="chapter-nav"><a href="02-model-protocols.html">← 02｜把不同模型接到同一个循环</a><a href="04-permissions-sandbox.html">04 · 权限与沙箱：批准动作以后，还要限制它的影响 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从一个具体问题开始">从一个具体问题开始</a><a href="#先认识一份工具契约">先认识一份工具契约</a><a href="#两种分类不要交叉理解">两种分类，不要交叉理解</a><a href="#按需加载到底加载了什么">按需加载到底加载了什么</a><a href="#离线实验观察工具列表如何变化">离线实验：观察工具列表如何变化</a><a href="#练习与核对">练习与核对</a><a href="#到这一章为止我们证明了什么">到这一章为止，我们证明了什么</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
