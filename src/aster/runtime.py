@@ -616,15 +616,6 @@ class Runtime:
             state.feedback = "invalid_tool_id: model returned an empty or reused call id"
             self.finish("context_history_invalid", failed=True)
             return state
-        try:
-            for call in reply.calls:
-                if call.name not in SCHEMAS:
-                    raise ValueError("unknown_tool")
-                SCHEMAS[call.name][0].model_validate(call.arguments)
-        except ValueError:
-            state.feedback = f"invalid_tool_arguments: {call.name}; no tools from this response executed"
-            self.finish("context_history_invalid", failed=True)
-            return state
         if reply.calls:
             self._mark_inflight(reply.calls)
         self._structured_history.extend(reply.raw)
@@ -845,6 +836,36 @@ class Runtime:
             if on_result is not None:
                 on_result(call, outcome)
             return outcome
+
+        # Provider parsing has already established complete JSON and call IDs.
+        # A tool's business-schema mistake is correctable feedback, not damaged
+        # history. Reject the whole batch before any effect, and pair every call.
+        invalid = {}
+        for call in calls:
+            if call.name not in SCHEMAS:
+                invalid[call.call_id] = Outcome(status="blocked", reason="unknown_tool")
+                continue
+            try:
+                SCHEMAS[call.name][0].model_validate(call.arguments)
+            except ValueError as exc:
+                invalid[call.call_id] = Outcome(
+                    status="blocked", reason="invalid_arguments", content=str(exc)
+                )
+        if invalid:
+            state = self.state
+            outcomes = []
+            for call in calls:
+                if state.terminal or state.step >= state.task.max_steps:
+                    self.finish("step_limit")
+                    outcome = Outcome(status="blocked", reason="step_limit")
+                else:
+                    state.step += 1
+                    outcome = self._collect_step(call, invalid.get(call.call_id) or Outcome(
+                        status="blocked", reason="batch_validation_failed",
+                        content="No tools in this batch ran. Correct the invalid tool arguments, then resubmit the intended calls.",
+                    ), state.step)
+                outcomes.append(record(call, outcome))
+            return outcomes
 
         if (
             self.settings.read_parallelism == 1

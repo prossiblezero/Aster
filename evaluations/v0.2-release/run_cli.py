@@ -41,6 +41,12 @@ def main():
     if args.resume:
         command += ["--resume", args.resume]
     command.append(args.prompt.read_text())
+    aster_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip()
+    source_tree = subprocess.check_output(["git", "rev-parse", "HEAD:src"], cwd=REPO, text=True).strip()
+    (result / "launch.json").write_text(json.dumps({
+        "aster_sha": aster_sha, "source_tree": source_tree,
+        "prompt_sha256": hashlib.sha256(args.prompt.read_bytes()).hexdigest(),
+    }, indent=2) + "\n")
     started = time.monotonic()
     answered, seen, questions, timed_out = [], set(), 0, False
     with (result / "stdout.txt").open("w") as out, (result / "stderr.txt").open("w") as err:
@@ -116,7 +122,7 @@ def main():
             [event for event in events if event["event"] in keep], ensure_ascii=False, indent=2
         ) + "\n")
     summary = {
-        "aster_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip(),
+        "aster_sha": aster_sha, "source_tree": source_tree,
         "python": sys.executable, "exit_code": process.returncode,
         "elapsed_seconds": round(time.monotonic() - started, 3), "timed_out": timed_out,
         "budget": {"steps": args.steps, "turns": args.turns, "seconds": args.seconds},

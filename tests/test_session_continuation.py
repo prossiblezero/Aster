@@ -90,11 +90,19 @@ async def test_invalid_later_tool_prevents_partial_batch_writes(tmp_path):
             ])
 
     runtime = Runtime(tmp_path, Settings(approval="auto"), model=InvalidBatch())
-    state = await runtime.run(TaskSpec(prompt="Write two files"))
-    assert state.stop_reason == "context_history_invalid"
-    assert "invalid_tool_arguments" in state.feedback
+    state = runtime.start(TaskSpec(prompt="Write two files"))
+    await runtime.turn()
+    assert state.phase == "running" and state.step == 2
     assert not (tmp_path / "good.txt").exists()
-    assert not runtime._structured_history and not state.used_call_ids
+    assert not state.used_call_ids
+    outputs = [json.loads(item["output"]) for item in runtime._structured_history
+               if item.get("type") == "function_call_output"]
+    assert [item["reason"] for item in outputs] == ["batch_validation_failed", "invalid_arguments"]
+    assert "content" in outputs[1]["content"]
+    # A corrected later call may execute; the invalid response did not end the run.
+    assert (await runtime.step(ToolCall(
+        name="write_file", arguments={"path": "good.txt", "content": "corrected"}
+    ))).status == "success"
 
 
 @pytest.mark.parametrize("ignore_cancellation", [False, True])
