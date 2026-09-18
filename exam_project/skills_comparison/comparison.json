@@ -1,0 +1,170 @@
+{
+  "source_commit": "fbdc68098ed7fe40dfa694d092d443ac40b16eb1",
+  "source_sha256": "698d2b799eb43ba7cfb58a3eba28fbd366b69e12de83e530b05a6024e50ecc72",
+  "python_file_count": 692,
+  "real_attempts_per_condition": 1,
+  "operator_feedback": 0,
+  "operator_repairs": 0,
+  "preflight_rejection": {
+    "condition": "on",
+    "stage": "before launch evidence or model construction",
+    "model_requests": 0,
+    "reason": "random TaskSpec.task_id compared as task contract",
+    "driver_v1_sha256": "a5757098c2ddf77f17bebec7bcbc94ac63c8ea7855ad67c20158497bc83e84a5",
+    "operator_candidate_edits": 0,
+    "action": "retain original driver and rejection record; repair only identity comparison; recreate untouched package-only preparation directory"
+  },
+  "driver_v2_sha256": "fb5ed47eb2418fb3e6e03c82551d2bc1e8bb02a3c71a63441d0716a16ec0edd5",
+  "off": {
+    "run_id": "42428645a3184b268934f54c4da445ce",
+    "phase": "completed",
+    "stop_reason": "verified",
+    "seconds": 135.84851748798974,
+    "steps": 11,
+    "turns": 7,
+    "usage": {
+      "usage_requests": 7,
+      "input_tokens": 91059,
+      "input_tokens_requests": 7,
+      "output_tokens": 6450,
+      "output_tokens_requests": 7,
+      "cache_read_input_tokens": 0,
+      "cache_read_input_tokens_requests": 7,
+      "reasoning_tokens": 2590,
+      "reasoning_tokens_requests": 7,
+      "total_tokens": 97509,
+      "total_tokens_requests": 7
+    },
+    "skills": {
+      "catalog_in_first_request": false,
+      "body_in_first_request": false,
+      "resource_in_first_request": false,
+      "body_attempts": 0,
+      "body_successes": 0,
+      "resource_attempts": 0,
+      "resource_successes": 0,
+      "direct_body_attempts": 0,
+      "direct_body_successes": 0,
+      "direct_resource_attempts": 0,
+      "direct_resource_successes": 0,
+      "failed_tools": [
+        {
+          "tool": "run_shell",
+          "status": "error",
+          "reason": ""
+        }
+      ]
+    },
+    "source_unchanged": true,
+    "experiment_unchanged": true,
+    "skill_package_unchanged": true,
+    "independent_grade": {
+      "passed": true,
+      "tests": {
+        "expected": 7,
+        "executed": 7,
+        "passed": 7
+      },
+      "isolation": "landlock+seccomp"
+    },
+    "initial_grade": {
+      "expected": 7,
+      "executed": 7,
+      "passed": 3
+    },
+    "self_tests": [
+      {
+        "command": "python -m unittest -v",
+        "status": "success",
+        "passed_tests": 8,
+        "evidence_id": "cbed7d6fab4532236c3f5ffe69deb62ff163619685e9835c1b4e1fc626baf4de"
+      }
+    ],
+    "http_attempts": 7,
+    "retries": 0,
+    "model_seconds": 134.80594182619825,
+    "self_patch_calls": 1,
+    "driver_sha256": "a5757098c2ddf77f17bebec7bcbc94ac63c8ea7855ad67c20158497bc83e84a5"
+  },
+  "on": {
+    "run_id": "0d4cc241c7f04f368c2db0889d458f86",
+    "phase": "completed",
+    "stop_reason": "verified",
+    "seconds": 195.25540657783858,
+    "steps": 19,
+    "turns": 13,
+    "usage": {
+      "usage_requests": 13,
+      "input_tokens": 148550,
+      "input_tokens_requests": 13,
+      "output_tokens": 5999,
+      "output_tokens_requests": 13,
+      "cache_read_input_tokens": 21888,
+      "cache_read_input_tokens_requests": 13,
+      "reasoning_tokens": 1691,
+      "reasoning_tokens_requests": 13,
+      "total_tokens": 154549,
+      "total_tokens_requests": 13
+    },
+    "skills": {
+      "catalog_in_first_request": true,
+      "body_in_first_request": false,
+      "resource_in_first_request": false,
+      "body_attempts": 1,
+      "body_successes": 1,
+      "resource_attempts": 2,
+      "resource_successes": 2,
+      "direct_body_attempts": 1,
+      "direct_body_successes": 0,
+      "direct_resource_attempts": 1,
+      "direct_resource_successes": 0,
+      "failed_tools": [
+        {
+          "tool": "read_file",
+          "status": "error",
+          "reason": "BoundaryError"
+        },
+        {
+          "tool": "read_file",
+          "status": "error",
+          "reason": "BoundaryError"
+        }
+      ]
+    },
+    "source_unchanged": true,
+    "experiment_unchanged": true,
+    "skill_package_unchanged": true,
+    "independent_grade": {
+      "passed": true,
+      "tests": {
+        "expected": 7,
+        "executed": 7,
+        "passed": 7
+      },
+      "isolation": "landlock+seccomp"
+    },
+    "initial_grade": {
+      "expected": 7,
+      "executed": 7,
+      "passed": 3
+    },
+    "self_tests": [
+      {
+        "command": "python -m unittest -v",
+        "status": "success",
+        "passed_tests": 9,
+        "evidence_id": "54fc9fc7cc808d828d97377fd6eca9facd4488ec3ec23bdc0895c9e9f76512e2"
+      }
+    ],
+    "http_attempts": 14,
+    "retries": 1,
+    "model_seconds": 193.57370858290233,
+    "self_patch_calls": 2,
+    "driver_sha256": "fb5ed47eb2418fb3e6e03c82551d2bc1e8bb02a3c71a63441d0716a16ec0edd5",
+    "driver_amendment": {
+      "reason": "Ignore random TaskSpec.task_id when comparing task contracts; no model calls occurred in the rejected on preflight.",
+      "original_sha256": "a5757098c2ddf77f17bebec7bcbc94ac63c8ea7855ad67c20158497bc83e84a5",
+      "revised_sha256": "fb5ed47eb2418fb3e6e03c82551d2bc1e8bb02a3c71a63441d0716a16ec0edd5"
+    }
+  }
+}
