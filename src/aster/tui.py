@@ -230,7 +230,9 @@ if App is not None:
                 state = await self.runtime.run(TaskSpec(prompt=prompt))
                 if not state.final or state.final != self._last_model_text:
                     self.query_one("#log", RichLog).write(
-                        state.final or f"Stopped: {state.stop_reason}\n{state.feedback}"
+                        self.runtime.evidence.redactor.text(
+                            state.final or f"Stopped: {state.stop_reason}\n{state.feedback}"
+                        )
                     )
             except asyncio.CancelledError:
                 if self.runtime.state and not self.runtime.state.terminal:

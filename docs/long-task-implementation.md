@@ -28,3 +28,5 @@
 正式 Responses SSE 共用原回复解析器，TUI 增量显示并允许取消。断流、不完整终态、终态中取消/未知状态工具、坏参数均不执行；终态用量一次归集。按尝试记录首事件、首有效文字、完成时间；跨片段缓冲已知新旧凭证，增量事件/文字和输入流有容量上限。流式仅 Responses，Chat/Anthropic 继续非流式。官方协议本轮核对：[Streaming responses](https://developers.openai.com/api/docs/guides/streaming-responses)、[参数增量事件](https://developers.openai.com/api/reference/resources/responses/streaming-events#response.function_call_arguments.delta)。该实现未借用 pi 代码。
 
 本轮全工作区 702 项测试通过（29.95 秒），包含尚待接入的 29 项独立历史转换测试；Ruff 通过。控制流 TUI 测试证明文字在响应结束前可见、重试隔离、取消未执行工具、最终回复不重复。独立复核发现的终态取消工具、旧凭证跨段泄漏和事件数量无界均已补回归并修复。真实流式对照正在单独准备，不把离线通过称作真实延迟收益。
+
+提交 `c02a587` 的干净源码副本独立运行 673 项通过（31.90 秒）。随后兄弟路径复核补齐非流 HTTP 错误及最终 UI/CLI 输出的累计凭证脱敏，新增回归先失败后通过，相关 51 项通过；此修复不改变模型参数、权限或候选实现。

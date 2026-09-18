@@ -118,7 +118,9 @@ def main(argv=None):
     except KeyboardInterrupt:
         print("Aster cancelled.")
         return 130
-    print(state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}")
+    print(runtime.evidence.redactor.text(
+        state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}"
+    ))
     print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")
     return 0 if state.phase == "completed" else 1
 

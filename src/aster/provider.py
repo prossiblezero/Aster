@@ -344,7 +344,7 @@ class ModelClient:
         else:
             headers.pop("x-api-key", None)
         url = self.settings.base_url.rstrip("/") + suffix
-        redactor = Redactor([secret])
+        redactor = Redactor([*self.redaction_secrets, secret])
         # Only generation requests are retried: tool side effects execute after a complete reply.
         async with httpx.AsyncClient(timeout=self.settings.request_timeout) as client:
             for attempt in range(1, 4):

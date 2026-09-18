@@ -244,7 +244,7 @@ class Runtime:
         try:
             prompt, tool_defs, report = self.prepare_request()
         except (ContextBudgetError, ContextHistoryError) as exc:
-            state.feedback = str(exc)
+            state.feedback = self.evidence.redactor.text(str(exc))
             self.finish(
                 "context_history_invalid"
                 if isinstance(exc, ContextHistoryError)
@@ -344,7 +344,7 @@ class Runtime:
             else:
                 reply = await self.model.complete(request_messages, tool_defs)
         except ProviderError as exc:
-            state.feedback = str(exc)
+            state.feedback = self.evidence.redactor.text(str(exc))
             for name, value in exc.details.get("usage", {}).items():
                 state.usage[name] = state.usage.get(name, 0) + value
             self.evidence.emit(
@@ -1001,7 +1001,7 @@ class Runtime:
             state.feedback = result.reason
             self.finish("completion_requirements_failed")
             return state
-        state.final = answer
+        state.final = self.evidence.redactor.text(answer)
         state.phase = "completed"
         state.stop_reason = "verified" if result.passed else "completed_with_warning"
         self.evidence.emit(state.run_id, "run_completed", result=result.model_dump(), answer=answer)
