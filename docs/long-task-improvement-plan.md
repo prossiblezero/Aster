@@ -8,7 +8,7 @@
 
 **2026-09-18 后续实施（从 `6ee3ed6` 起）：** 已按第 8 节交付四个实战修复、批量补丁/命令输出回读、具名模型、Responses 流式与 TUI 增量、统一历史/续聊/恢复、同会话空闲切换及有序只读并行；随后完成稳定前缀、受控依赖复用、授权 DNS、Node 正式测试、中文 Memory 检索及目录式 Skills。后训练仅完成方案和可执行数据契约，Worker 仅作独立评估。提交、当轮验证、各机制的独立实测和剩余范围见 [分批实施记录](long-task-implementation.md)。缓存探针未测得缓存读取，新的 Memory 自然保存仍为零，不能将能力交付等同于收益。下文的“当前状态”和“尚不支持”保留原审计时点；本段及实施记录优先。
 
-**2026-09-18 实施更新：** 前期修复和网站成果已保存为 `f7e5d1d`；网站及其脚本、测试、报告、历史证据已迁入 `learn_web/`（`932b8dc`）。第一批预算、真实缓存/推理用量、CLI 预算入口、列表/搜索分页修复已提交为 `30acbae`；新项目与后续实战统一放在 `exam_project/`，真实 Memory 对照协议已冻结为 `058fc4e`。本批保持 Memory 算法与 prompt 布局不变。结果见 [实战报告](../exam_project/mdcheck_memory/report.md)，训练方向见 [后训练准备度](post-training-readiness.md)。这里没有声称已完成整份清单。
+**2026-09-18 实施更新：** 前期修复和网站成果已保存为 `f7e5d1d`；网站及其脚本、测试、报告、历史证据已迁入 `learn_web/`（`932b8dc`）。第一批预算、真实缓存/推理用量、CLI 预算入口、列表/搜索分页修复已提交为 `30acbae`；新项目与后续实战统一放在 `exam_project/`，真实 Memory 对照协议已冻结为 `058fc4e`。本批保持 Memory 算法与 prompt 布局不变。结果见 [实战报告](../evaluations/archive/mdcheck_memory/report.md)，训练方向见 [后训练准备度](post-training-readiness.md)。这里没有声称已完成整份清单。
 
 本轮两组各三阶段均完成，独立阶段检查共 72/72 通过，无操作员返修。自然开发中的持久记忆写入为 0；另一次显式记忆请求成功，说明需分别处理触发方式、检索与经验来源。缓存读取占已报告输入 token 的 17.10%。新增待办包括 pip 所需系统文件读取、合法 heredoc 的策略误拒和旧 benchmark 用量统计适配，详见实战报告；这些未在冻结实验中修改。
 
@@ -247,7 +247,7 @@ pi 默认允许批次并行，先依次做调用预检，再并发执行允许�
 5. **补项目环境，再分别验证 Memory 与 Skills。** 完成依赖复用、授权联网与 Node/Web 正式验收。Memory 先改善发现、保存时机、中文检索；环境经验等新来源必须明确出处、作用域和失效条件，Dream 仍按维护机制描述。Skills 补目录元数据、`SKILL.md` 和按需正文/资源，配置一个真实技能包单独评估。
 6. **最后评估 Worker 扩展与训练执行。** 先补任务树共同预算、子任务用量和完成/取消策略，再评估多 agent 收益。数据集、SFT、GRPO 方案可并行设计；大规模采集前稳定消息、工具和恢复协议，划分新的 train/dev/test 任务，奖励不只依赖模型自测或自报完成。
 
-所有 Python、测试、探针和真实 Aster 运行使用 `/home/dzh/.conda/envs/aster/bin/python`，不在 base 执行或安装项目依赖。新实战统一放在 `exam_project/`，网站成果保留 `learn_web/`；每批按范围运行必要检查并本地 Git 保存，不将文档计划提交当作功能实现。
+所有 Python、测试、探针和真实 Aster 运行使用 `/home/dzh/.conda/envs/aster/bin/python`，不在 base 执行或安装项目依赖。新实战的可运行产品统一放在 `exam_project/`，实验协议、驱动、评分器和报告放在 `evaluations/`，网站成果保留 `learn_web/`；每批按范围运行必要检查并本地 Git 保存，不将文档计划提交当作功能实现。
 
 下一轮至少应覆盖以下任务类型，并使用未把答案写进提示或技能的独立需求：
 
@@ -277,7 +277,7 @@ pi 默认允许批次并行，先依次做调用预检，再并发执行允许�
 | 搜索/列表缺陷与工具计时 | [tool-limits.json](../learn_web/artifacts/website-build/20260917/additional-audit/tool-limits.json)、[tool-timing.json](../learn_web/artifacts/website-build/20260917/additional-audit/tool-timing.json) |
 | 单次输出预算与终止原因 | [output-budget.json](../learn_web/artifacts/website-build/20260917/additional-audit/output-budget.json) |
 | pi 源码查阅记录 | [source.json](../learn_web/artifacts/website-build/20260917/cache-audit/pi-current/source.json) |
-| 第二次实战与 Memory 诊断 | [mdcheck 实战报告](../exam_project/mdcheck_memory/report.md)、[results.json](../exam_project/mdcheck_memory/results.json) |
+| 第二次实战与 Memory 诊断 | [mdcheck 实战报告](../evaluations/archive/mdcheck_memory/report.md)、[results.json](../evaluations/archive/mdcheck_memory/results.json) |
 | provider、流式、并行补充核对 | 第 7.1–7.3 节固定到 pi `46c9de4` 的源码链接及 Aster 当前源码入口；属于源码确认和待办设计，不是新增真实运行成绩 |
 | 后训练边界与前置条件 | [post-training-readiness.md](post-training-readiness.md) |
 | 既有设计、修复和小任务记忆评测的边界 | [repair-plan.md](repair-plan.md)、[repair-results.md](repair-results.md)、[resume-draft.md](resume-draft.md) |

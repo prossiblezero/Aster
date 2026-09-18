@@ -149,7 +149,7 @@ CLI `aster --resume RUN_ID [反馈]` 或 TUI `/resume RUN_ID` 恢复后启动上
 
 空闲时 `/model <alias>` 现在作用于同一会话：先校验完整历史、工具配对和新预算，再保存原生历史证据及切换事件。跨 Responses、Chat、Anthropic 转换保留文本与工具结果，去除不兼容的不透明推理/签名并记录数量；普通图片、引用等尚不支持的语义内容会明确拒绝，不能当成无损转换。新旧凭证共同脱敏，无法安全保存的不透明内容导致切换失败。配置、历史或预算预检失败保留原会话。较小窗口可能压缩历史，旧观察仍需从已授权归档回读。
 
-Responses assistant 的 `phase=commentary/final_answer` 在同协议切换及回放时原值保留，避免把进度当成最终答复；目前 Chat/Anthropic 没有等价映射，带有效 phase 的历史切向这两种协议会明确拒绝。真实恢复实验已经完成阶段 1，但其冻结旧版本在 profile 切换时遇到 phase 兼容问题，修复后只有离线回放验证；详见[会话恢复实战](../exam_project/session_recovery/report.md)，不能宣称已有真实跨模型成功证据。
+Responses assistant 的 `phase=commentary/final_answer` 在同协议切换及回放时原值保留，避免把进度当成最终答复；目前 Chat/Anthropic 没有等价映射，带有效 phase 的历史切向这两种协议会明确拒绝。真实恢复实验已经完成阶段 1，但其冻结旧版本在 profile 切换时遇到 phase 兼容问题，修复后只有离线回放验证；详见[会话恢复实战](../evaluations/archive/session_recovery/report.md)，不能宣称已有真实跨模型成功证据。
 
 实际发送内容与请求预算共用脱敏后的消息；切换或恢复（包括只轮换凭证、模型身份不变）会重新过滤可见历史和 Skill 快照。不透明内容仍原值校验。若凭证与已选技能别名、模型/工具定义或必须保留的协议控制字段冲突，则拒绝操作，不能通过重命名、删除技能或改写 phase 来绕过。
 

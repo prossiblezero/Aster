@@ -6,9 +6,9 @@
 
 最近实现：[长任务分批记录](docs/long-task-implementation.md)，包括批量补丁、命令输出回读、模型配置与会话续聊、Responses 流式、只读工具并行、受控依赖复用及 [Skills 包](docs/skills.md)。
 
-教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；后续实验项目统一放在 `exam_project/`。课程正文仍以 `docs/learning/` 为来源。
+教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；可运行的小项目统一放在 [exam_project/](exam_project/README.md)，评测协议、驱动、报告与历史证据放在 [evaluations/](evaluations/README.md)。课程正文仍以 `docs/learning/` 为来源。
 
-独立实测：[流式](exam_project/stream_comparison/report.md) · [只读并行](exam_project/parallel_comparison/report.md) · [缓存](exam_project/cache_comparison/report.md) · [Memory](exam_project/memory_followup/report.md) · [Skills](exam_project/skills_comparison/report.md) · [会话恢复](exam_project/session_recovery/report.md)。后训练仅完成[方案与数据契约](docs/post-training-design.md)，尚无训练器或训练效果。
+独立实测：[流式](evaluations/archive/stream_comparison/report.md) · [只读并行](evaluations/archive/parallel_comparison/report.md) · [缓存](evaluations/archive/cache_comparison/report.md) · [Memory](evaluations/archive/memory_followup/report.md) · [Skills](evaluations/archive/skills_comparison/report.md) · [会话恢复](evaluations/archive/session_recovery/report.md)。后训练仅完成[方案与数据契约](docs/post-training-design.md)，尚无训练器或训练效果。
 
 ```bash
 conda activate aster

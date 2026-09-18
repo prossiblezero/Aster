@@ -29,7 +29,7 @@
 
 本轮网页案例以及被用于调试 Harness 的 Memory 实验可以作为开发诊断或机制评测证据。若已根据结果修改实现、提示或预算，就不应称为从未使用过的独立测试集；也不能一边训练这些轨迹，一边用同题成绩宣称泛化。新的测试清单应在后续选择模型、提示和训练参数之前冻结。
 
-早期真实 Memory 实验结果参见 [mdcheck 报告](../exam_project/mdcheck_memory/report.md)；本轮新实验见 [notetally 报告](../exam_project/memory_followup/report.md)。两者均已用于工程诊断，不能充作未见训练测试集。
+早期真实 Memory 实验结果参见 [mdcheck 报告](../evaluations/archive/mdcheck_memory/report.md)；本轮新实验见 [notetally 报告](../evaluations/archive/memory_followup/report.md)。两者均已用于工程诊断，不能充作未见训练测试集。
 
 ### 2. 将审计工件转换成可校验的 SFT 样本
 

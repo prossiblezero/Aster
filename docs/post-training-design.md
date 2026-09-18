@@ -27,7 +27,7 @@ flowchart LR
 
 划分由数据维护者在采集前完成，按规范化仓库和问题家族的连通分量整体分配到 train/dev/test。仓库别名、镜像、fork 中的同题及改名、改值、改措辞版本须先合并身份。`validate_splits()` 拒绝同仓库或同问题家族跨 split、重复任务 ID；字符串比较不能识别刻意改写的仓库名或题目近重复，仍需来源审计与近重复检查。
 
-现有 `datasets/` 评测、其参考动作和轨迹，以及 `learn_web/`、`exam_project/` 中已用于调试或机制比较的实战，只能登记为 `audit`。它们不进入 train，也不冒充新冻结的 dev/test。新增 schema 明确拒绝把 `existing_evaluation` 或 `existing_practice` 标成 train/dev/test。历史报告可帮助诊断 Harness，但不能用同题训练后成绩声称泛化。
+现有 `datasets/` 评测、其参考动作和轨迹，以及 `learn_web/`、`evaluations/archive/` 中已用于调试或机制比较的实战及其 `exam_project/` 产品副本，只能登记为 `audit`。它们不进入 train，也不冒充新冻结的 dev/test。新增 schema 明确拒绝把 `existing_evaluation` 或 `existing_practice` 标成 train/dev/test。历史报告可帮助诊断 Harness，但不能用同题训练后成绩声称泛化。
 
 采集前的具体门槛：
 
