@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 
 class Record(BaseModel):
@@ -65,6 +66,17 @@ class VerifierResult(Record):
     details: dict[str, Any] = Field(default_factory=dict)
 
 
+class SkillSnapshot(Record):
+    body: str
+    sha256: str
+
+    @model_validator(mode="after")
+    def validate_hash(self):
+        if self.sha256 != hashlib.sha256(self.body.encode()).hexdigest():
+            raise ValueError("skill_snapshot_hash_mismatch")
+        return self
+
+
 class RunState(Record):
     run_id: str = Field(default_factory=lambda: uuid4().hex)
     session_id: str = Field(default_factory=lambda: uuid4().hex)
@@ -85,6 +97,7 @@ class RunState(Record):
     todos: list[dict[str, str]] = Field(default_factory=list)
     messages: list[dict[str, Any]] = Field(default_factory=list)
     active_skills: list[str] = Field(default_factory=list)
+    skill_snapshots: dict[str, SkillSnapshot] = Field(default_factory=dict)
     working_memory: dict[str, dict[str, str]] = Field(default_factory=dict)
     recalled_ids: list[str] = Field(default_factory=list)
     read_evidence: dict[str, str] = Field(default_factory=dict)

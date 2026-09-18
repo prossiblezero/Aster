@@ -155,6 +155,10 @@ class SkillLoad(TextPage):
     resource: str = Field(
         default="", description="Optional text resource path relative to this skill package."
     )
+    refresh: bool = Field(
+        default=False,
+        description="Explicitly replace the selected body with current file content; not valid with resource. Restart paging at offset 0 when the version changes.",
+    )
 
 
 class ToolLoad(Record):
@@ -267,7 +271,7 @@ SCHEMAS = {
     "git_diff": (Empty, "Show changes from this task's initial workspace snapshot.", "read"),
     "skill_load": (
         SkillLoad,
-        "Select a skill and read its body, or read a named package resource without executing it. Character pages use next_offset until null; resources do not activate the skill.",
+        "Select and page a fixed skill body snapshot; refresh explicitly reloads it. Or read a current package resource without executing or activating it. Character pages use next_offset until null.",
         "state",
     ),
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),

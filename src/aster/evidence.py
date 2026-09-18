@@ -70,6 +70,26 @@ def _native_opaque_fields(history):
                     yield block, key
 
 
+def _native_control_fields(history):
+    for item in history:
+        if not isinstance(item, dict):
+            continue
+        records = [item]
+        if isinstance(item.get("content"), list):
+            records.extend(block for block in item["content"] if isinstance(block, dict))
+        for call in item.get("tool_calls") or []:
+            if isinstance(call, dict):
+                records.append(call)
+                if isinstance(call.get("function"), dict):
+                    records.append(call["function"])
+        for record in records:
+            for key in (
+                "role", "type", "phase", "status", "id", "call_id", "tool_call_id", "tool_use_id", "name"
+            ):
+                if key in record:
+                    yield record[key]
+
+
 class EvidenceStore:
     def __init__(self, workspace: Path, redactor: Redactor):
         self.root = workspace / ".aster"
@@ -121,15 +141,23 @@ class EvidenceStore:
             # Checkpoint mappings use file paths as keys; keep their value types intact.
             redacted = self.redactor.value(data, mask_fields=False)
             if preserve_native_history:
-                history = data.get("structured_history", [])
-                self.validate_native_history(history)
-                for (original, key), (saved, _) in zip(
-                    _native_opaque_fields(history),
-                    _native_opaque_fields(redacted.get("structured_history", [])),
-                    strict=True,
-                ):
-                    saved[key] = original[key]
+                redacted["structured_history"] = self.redact_history(data.get("structured_history", []))
             atomic_json(self.path(*parts), redacted)
+
+    def redact_history(self, history):
+        """Redact visible content while keeping validated native opaque fields exact."""
+        self.validate_native_history(history)
+        if any(
+            self.redactor.value(value, mask_fields=False) != value
+            for value in _native_control_fields(history)
+        ):
+            raise ValueError("history_control_contains_credential")
+        redacted = self.redactor.value(history, mask_fields=False)
+        for (original, key), (saved, _) in zip(
+            _native_opaque_fields(history), _native_opaque_fields(redacted), strict=True
+        ):
+            saved[key] = original[key]
+        return redacted
 
     def archive_observation(self, run_id: str, call_id: str, tool: str, content: str) -> dict:
         """Persist captured text before replacing it with a preview; never silently clip it."""

@@ -24,7 +24,15 @@ from .provider import ModelClient, ProviderError, history_groups, request_payloa
 from .recovery import StallDetector, completion_feedback
 from .safety.policy import Decision, permission
 from .safety.runner import SandboxRunner
-from .schema import Outcome, RunState, TaskSpec, ToolCall, Verification, VerifierResult
+from .schema import (
+    Outcome,
+    RunState,
+    SkillSnapshot,
+    TaskSpec,
+    ToolCall,
+    Verification,
+    VerifierResult,
+)
 from .skills import Skills
 from .tools import (
     CORE_TOOLS,
@@ -141,7 +149,9 @@ class Runtime:
                     model=self.settings.model,
                 )
                 state = state.model_copy(deep=True)
-                history = converted.messages
+                self._redact_skill_snapshots(state)
+                state.messages = redactor.value(state.messages, mask_fields=False)
+                history = self.evidence.redact_history(converted.messages)
                 report = self._preview_context(state, history, settings, self._archive_sources)
                 origin = self._archive_native_history(
                     state.run_id, self._structured_history, converted, self._history_origins
@@ -184,7 +194,7 @@ class Runtime:
         previous = self.state
         try:
             self.state = state
-            tools = self.tool_definitions()
+            tools = self._request_tool_definitions(settings)
         finally:
             self.state = previous
         _, report = ContextBuilder(
@@ -202,6 +212,7 @@ class Runtime:
             validate_archive=lambda ref: self.evidence.read_observation(
                 sources.get(ref["id"], state.run_id), ref["id"], limit=1
             ),
+            redact_history=self.evidence.redact_history,
         )
         return report
 
@@ -365,6 +376,7 @@ class Runtime:
     def checkpoint(self):
         if not self.state or self._in_turn:
             return
+        self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
         workspace = self.workspace.snapshot()
         self.evidence.save(
@@ -415,11 +427,13 @@ class Runtime:
         if data["workspace_hash"] != self.workspace.fingerprint() and not adopt_workspace:
             raise ValueError("workspace_mismatch")
         state = RunState.model_validate(data["state"])
+        self._redact_skill_snapshots(state)
+        state.messages = self.evidence.redactor.value(state.messages, mask_fields=False)
         if not state.terminal and "initial_text" not in data:
             raise ValueError("legacy_checkpoint_missing_diff_baseline")
         history_groups(data.get("structured_history", []))
         self.evidence.validate_native_history(data.get("structured_history", []))
-        history = data.get("structured_history", [])
+        history = self.evidence.redact_history(data.get("structured_history", []))
         sources = data.get("archive_sources", {})
         if not isinstance(sources, dict):
             raise ValueError("invalid_archive_sources")
@@ -440,7 +454,7 @@ class Runtime:
                 protocol=saved_identity["protocol"],
                 model=saved_identity["model"],
             )
-            history = converted.messages
+            history = self.evidence.redact_history(converted.messages)
             self._preview_context(state, history, self.settings, sources)
             origins.append(
                 self._archive_native_history(
@@ -553,15 +567,20 @@ class Runtime:
         working_memory = self.memory.working_section(state.working_memory)
         catalog = self.skills.catalog()
         skills = self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
-        skill_bodies = {}
-        for name in dict.fromkeys(state.active_skills):
-            try:
-                skill_bodies[name] = self.evidence.redactor.text(self.skills.load(name))
-            except (OSError, ValueError):
-                skill_bodies[name] = (
-                    "[Skill unavailable; check the skill catalog before reloading.]"
-                )
-        tool_defs = self.tool_definitions()
+        if catalog:
+            skills = (
+                "Load skill_load with tool_load; select a body by name or read a package "
+                "resource with resource. Use skill_load for .aster packages; ordinary file "
+                "tools cannot read them.\n" + skills
+            )
+        self._redact_skill_snapshots(state)
+        skill_bodies = {
+            name: state.skill_snapshots[name].body
+            if name in state.skill_snapshots
+            else "[Skill snapshot unavailable; explicitly select it with skill_load.]"
+            for name in dict.fromkeys(state.active_skills)
+        }
+        tool_defs = self._request_tool_definitions(self.settings)
 
         def validate_archive(ref):
             # The archive id already hashes provenance and body; read verifies both.
@@ -584,6 +603,7 @@ class Runtime:
                 state.run_id, call_id, tool, content
             ),
             validate_archive=validate_archive,
+            redact_history=self.evidence.redact_history,
         )
         payload = request_payload(
             prompt,
@@ -610,6 +630,20 @@ class Runtime:
             request_sha256=request_hash,
         )
         return prompt, tool_defs, report
+
+    def _redact_skill_snapshots(self, state):
+        # New model credentials may match text selected before the switch.
+        if any(
+            self.evidence.redactor.text(name) != name
+            for name in {*state.active_skills, *state.skill_snapshots}
+        ):
+            raise ValueError("skill_name_contains_credential")
+        for name, snapshot in state.skill_snapshots.items():
+            body = self.evidence.redactor.text(snapshot.body)
+            if body != snapshot.body:
+                state.skill_snapshots[name] = SkillSnapshot(
+                    body=body, sha256=hashlib.sha256(body.encode()).hexdigest()
+                )
 
     def _request_hash(self, payload):
         return hashlib.sha256(
@@ -781,6 +815,15 @@ class Runtime:
                     {"page": "observation" if call.name == "observation_read" else "text"}
                     if call.name in {"observation_read", "todo_list", "skill_load"}
                     and outcome.status == "success"
+                    else {}
+                ),
+                **(
+                    {
+                        key: outcome.data[key]
+                        for key in ("version", "previous_version", "updated")
+                        if key in outcome.data
+                    }
+                    if call.name == "skill_load" and outcome.status == "success"
                     else {}
                 ),
             },
@@ -1405,8 +1448,19 @@ class Runtime:
             )
         if name == "skill_load":
             # Page offsets refer to the same redacted text later compacted for the model.
+            if self.evidence.redactor.text(args["name"]) != args["name"]:
+                return Outcome(status="blocked", reason="skill_name_contains_credential")
             resource = args.get("resource", "")
-            text = self.evidence.redactor.text(self.skills.load(args["name"], resource))
+            refresh = args.get("refresh", False)
+            if resource and refresh:
+                return Outcome(status="blocked", reason="skill_resource_refresh")
+            self._redact_skill_snapshots(state)
+            previous = state.skill_snapshots.get(args["name"])
+            text = (
+                previous.body
+                if previous is not None and not resource and not refresh
+                else self.evidence.redactor.text(self.skills.load(args["name"], resource))
+            )
             result = text_page(
                 text,
                 args["offset"],
@@ -1414,8 +1468,16 @@ class Runtime:
             )
             if result.status != "success":
                 return result
-            if not resource and args["name"] not in state.active_skills:
-                state.active_skills.append(args["name"])
+            if not resource:
+                snapshot = SkillSnapshot(body=text, sha256=hashlib.sha256(text.encode()).hexdigest())
+                state.skill_snapshots[args["name"]] = snapshot
+                if args["name"] not in state.active_skills:
+                    state.active_skills.append(args["name"])
+                result.data.update(
+                    version=snapshot.sha256,
+                    previous_version=previous.sha256 if previous else None,
+                    updated=previous is not None and previous.sha256 != snapshot.sha256,
+                )
             result.data["untrusted"] = True
             return result
         if name == "ask_user":
@@ -1661,6 +1723,14 @@ class Runtime:
     def tool_definitions(self):
         available = [name for name in SCHEMAS if not self._unavailable_reason(name)]
         return definitions(self._tool_names(), available=available)
+
+    def _request_tool_definitions(self, settings):
+        tools = self.tool_definitions()
+        if self.evidence.redactor.value(tools, mask_fields=False) != tools:
+            raise ContextHistoryError("tool_definitions_contain_credential")
+        if self.evidence.redactor.text(settings.model) != settings.model:
+            raise ContextHistoryError("model_name_contains_credential")
+        return tools
 
     def _auto_dream(self):
         if self._dream_ran or not self.settings.auto_dream:
