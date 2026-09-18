@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>课业清单</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<main class="app">
+  <header><div><p class="eyebrow">CAMPUS PLANNER</p><h1>课业清单</h1><p class="subtitle">把每门课的作业，放在一个清楚的地方。</p></div><button id="sample-btn" class="secondary" type="button">加载示例</button></header>
+  <div id="message" class="message" role="status" aria-live="polite"></div>
+  <p id="storage-status" class="storage-status" role="alert"></p>
+  <section class="panel form-panel" aria-labelledby="form-title"><h2 id="form-title">添加作业</h2>
+    <form id="task-form" novalidate><input type="hidden" id="editing-id">
+      <div class="form-grid"><label>作业名称<input id="title" name="title" required maxlength="200" autocomplete="off"></label><label>课程<input id="course" name="course" required maxlength="100" autocomplete="off"></label><label>截止时间<input id="due" name="due" type="datetime-local" required></label><label class="wide">备注<textarea id="notes" name="notes" rows="3" maxlength="1000"></textarea></label></div>
+      <div class="form-actions"><button id="submit-btn" class="primary" type="submit">添加作业</button><button id="cancel-edit" class="secondary hidden" type="button">取消编辑</button></div><p id="form-error" class="error" role="alert"></p>
+    </form>
+  </section>
+  <section class="summary" aria-label="任务摘要"><div><strong id="total-count">0</strong><span>未完成</span></div><div><strong id="done-count">0</strong><span>已完成</span></div><div><strong id="overdue-count">0</strong><span>逾期</span></div></section>
+  <section class="panel controls" aria-label="查找和筛选"><label>搜索作业<input id="search" type="search" placeholder="搜索名称、课程或备注"></label><label>筛选课程<select id="course-filter"><option value="">全部课程</option></select></label><label>筛选状态<select id="status-filter"><option value="all">全部</option><option value="todo">未完成</option><option value="done">已完成</option></select></label></section>
+  <section id="task-list" data-testid="task-list" aria-live="polite"></section>
+</main><script type="module" src="app.js"></script></body></html>
