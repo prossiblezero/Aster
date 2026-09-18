@@ -1,0 +1,231 @@
+{
+  "status": "passed",
+  "common_seed": "workspaces/delivery-base-finish",
+  "ordinary_workflow_matches_skill_resource": true,
+  "checks": [
+    {
+      "feature": "backup",
+      "same_configuration": true,
+      "same_initial_product": true,
+      "same_source_files": true,
+      "same_task_contract_except_random_id": true,
+      "same_protocol_files": true,
+      "same_wall_budget": true,
+      "only_skill_package_available_in_skill_arm": true,
+      "memory_disabled_both": true
+    },
+    {
+      "feature": "calendar",
+      "same_configuration": true,
+      "same_initial_product": true,
+      "same_source_files": true,
+      "same_task_contract_except_random_id": true,
+      "same_protocol_files": true,
+      "same_wall_budget": true,
+      "only_skill_package_available_in_skill_arm": true,
+      "memory_disabled_both": true
+    }
+  ],
+  "arms": [
+    {
+      "name": "backup-docs",
+      "runtime_result": "results/backup-docs.json",
+      "browser_result": "results/backup-docs-browser.json",
+      "launch": "evidence/backup-docs/launch.json",
+      "trace": "workspaces/backup-docs/.aster/runs/95aefd833bd841af93ebe6d224bad506/trace.jsonl",
+      "initial_product_matches_common_seed": true,
+      "initial_product_files": 12,
+      "initial_product_sha256": "87d50a17543438e4c62176c85d5bbd9588781aa0c07ca22d13d2feb3f76571e7",
+      "rules_match_common_seed": true,
+      "source_unchanged": true,
+      "source_commit": "dfe64ef50601b74acc75a7ebc8a309939c3eb38b",
+      "grader_hash_matches": true,
+      "grader_sha256": "909e13b47721ba412c9c780a565960322ad5c212a09411bd88efc21049ea5a5a",
+      "runtime_phase": "completed",
+      "runtime_stop_reason": "verified",
+      "operator_candidate_edits": 0,
+      "operator_feedback": 0,
+      "skill_catalog_in_first_request": false,
+      "skill_tool_discoveries": 0,
+      "skill_body_successes": 0,
+      "skill_resource_successes": 0,
+      "workflow_read_successes": 1,
+      "test_evidence": [
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 11,
+          "evidence_id": "8f91fc57c49a7753c3e266c2cc6dd67023bcdf956cb56b777bafb62b6cc0edc7"
+        },
+        {
+          "command": "node --test --test-reporter=spec logic.test.mjs",
+          "status": "blocked",
+          "passed_tests": null,
+          "evidence_id": "5294c2d27fadec1677c90e636d8e866038e09fcd16bb049e516d3229880d560b"
+        },
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 11,
+          "evidence_id": "419ccd6fe9c84b7cce1890af0bc66360e15d1b1d9541f52393063ec674a5cb4d"
+        }
+      ],
+      "browser_passed": true,
+      "browser_totals": {
+        "passed": 23,
+        "executed": 23
+      },
+      "browser_errors": [],
+      "browser_screenshots": [
+        "screenshots/backup-docs-browser/base-empty-desktop.png",
+        "screenshots/backup-docs-browser/base-sort-stable-ties-and-overdue.png",
+        "screenshots/backup-docs-browser/base-mobile.png"
+      ]
+    },
+    {
+      "name": "backup-skill",
+      "runtime_result": "results/backup-skill.json",
+      "browser_result": "results/backup-skill-browser.json",
+      "launch": "evidence/backup-skill/launch.json",
+      "trace": "workspaces/backup-skill/.aster/runs/2bdbf0da9ee146579757b0ca4a416d06/trace.jsonl",
+      "initial_product_matches_common_seed": true,
+      "initial_product_files": 12,
+      "initial_product_sha256": "87d50a17543438e4c62176c85d5bbd9588781aa0c07ca22d13d2feb3f76571e7",
+      "rules_match_common_seed": true,
+      "source_unchanged": true,
+      "source_commit": "dfe64ef50601b74acc75a7ebc8a309939c3eb38b",
+      "grader_hash_matches": true,
+      "grader_sha256": "909e13b47721ba412c9c780a565960322ad5c212a09411bd88efc21049ea5a5a",
+      "runtime_phase": "completed",
+      "runtime_stop_reason": "verified",
+      "operator_candidate_edits": 0,
+      "operator_feedback": 0,
+      "skill_catalog_in_first_request": true,
+      "skill_tool_discoveries": 1,
+      "skill_body_successes": 0,
+      "skill_resource_successes": 0,
+      "workflow_read_successes": 1,
+      "test_evidence": [
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 12,
+          "evidence_id": "3cec064e01e12b75d46f3abec9c60efb6c3943833a61407808eaa52196e97aed"
+        }
+      ],
+      "browser_passed": true,
+      "browser_totals": {
+        "passed": 23,
+        "executed": 23
+      },
+      "browser_errors": [],
+      "browser_screenshots": [
+        "screenshots/backup-skill-browser/base-empty-desktop.png",
+        "screenshots/backup-skill-browser/base-sort-stable-ties-and-overdue.png",
+        "screenshots/backup-skill-browser/base-mobile.png"
+      ]
+    },
+    {
+      "name": "calendar-skill",
+      "runtime_result": "results/calendar-skill.json",
+      "browser_result": "results/calendar-skill-browser.json",
+      "launch": "evidence/calendar-skill/launch.json",
+      "trace": "workspaces/calendar-skill/.aster/runs/7a8d91fcb086424eaf63b25391f6f2a0/trace.jsonl",
+      "initial_product_matches_common_seed": true,
+      "initial_product_files": 12,
+      "initial_product_sha256": "87d50a17543438e4c62176c85d5bbd9588781aa0c07ca22d13d2feb3f76571e7",
+      "rules_match_common_seed": true,
+      "source_unchanged": true,
+      "source_commit": "dfe64ef50601b74acc75a7ebc8a309939c3eb38b",
+      "grader_hash_matches": true,
+      "grader_sha256": "909e13b47721ba412c9c780a565960322ad5c212a09411bd88efc21049ea5a5a",
+      "runtime_phase": "completed",
+      "runtime_stop_reason": "verified",
+      "operator_candidate_edits": 0,
+      "operator_feedback": 0,
+      "skill_catalog_in_first_request": true,
+      "skill_tool_discoveries": 1,
+      "skill_body_successes": 1,
+      "skill_resource_successes": 1,
+      "workflow_read_successes": 1,
+      "test_evidence": [
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 11,
+          "evidence_id": "3394c874fc531619b8ea848fc83cf4890ce3b4363b3d0894a59ff158d8cc01b3"
+        },
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 11,
+          "evidence_id": "3f954c3e68579c266d6c91ed0a5f1ab5bbf9c457a6a4817ba613a716bbbad4b0"
+        }
+      ],
+      "browser_passed": true,
+      "browser_totals": {
+        "passed": 15,
+        "executed": 15
+      },
+      "browser_errors": [],
+      "browser_screenshots": [
+        "screenshots/calendar-skill-browser/base-empty-desktop.png",
+        "screenshots/calendar-skill-browser/base-sort-stable-ties-and-overdue.png",
+        "screenshots/calendar-skill-browser/base-mobile.png"
+      ]
+    },
+    {
+      "name": "calendar-docs",
+      "runtime_result": "results/calendar-docs.json",
+      "browser_result": "results/calendar-docs-browser.json",
+      "launch": "evidence/calendar-docs/launch.json",
+      "trace": "workspaces/calendar-docs/.aster/runs/58215be45a604679b6e5ac5ae4edf317/trace.jsonl",
+      "initial_product_matches_common_seed": true,
+      "initial_product_files": 12,
+      "initial_product_sha256": "87d50a17543438e4c62176c85d5bbd9588781aa0c07ca22d13d2feb3f76571e7",
+      "rules_match_common_seed": true,
+      "source_unchanged": true,
+      "source_commit": "dfe64ef50601b74acc75a7ebc8a309939c3eb38b",
+      "grader_hash_matches": true,
+      "grader_sha256": "909e13b47721ba412c9c780a565960322ad5c212a09411bd88efc21049ea5a5a",
+      "runtime_phase": "completed",
+      "runtime_stop_reason": "verified",
+      "operator_candidate_edits": 0,
+      "operator_feedback": 0,
+      "skill_catalog_in_first_request": false,
+      "skill_tool_discoveries": 0,
+      "skill_body_successes": 0,
+      "skill_resource_successes": 0,
+      "workflow_read_successes": 1,
+      "test_evidence": [
+        {
+          "command": "node --test",
+          "status": "success",
+          "passed_tests": 12,
+          "evidence_id": "95101f1215be9942b7a80b36d7ad0fd0c02e1fb523a16ef3489936257780b1b5"
+        }
+      ],
+      "browser_passed": true,
+      "browser_totals": {
+        "passed": 15,
+        "executed": 15
+      },
+      "browser_errors": [],
+      "browser_screenshots": [
+        "screenshots/calendar-docs-browser/base-empty-desktop.png",
+        "screenshots/calendar-docs-browser/base-sort-stable-ties-and-overdue.png",
+        "screenshots/calendar-docs-browser/base-mobile.png"
+      ]
+    }
+  ],
+  "independent_browser_tests": {
+    "passed": 76,
+    "executed": 76
+  },
+  "limitations": [
+    "Two tasks and one run per condition are a pilot, not a general causal estimate.",
+    "backup-skill discovered skill_load but never read a skill body; its time/token differences do not demonstrate skill-body benefit.",
+    "All arms could read the same public workflow; this compares discoverability and orchestration, not exclusive access to domain knowledge.",
+    "Browser grading uses the documented corrected revision; original baseline grader failures remain preserved."
+  ]
+}
