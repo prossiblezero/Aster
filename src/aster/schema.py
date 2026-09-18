@@ -115,4 +115,5 @@ class ModelReply(Record):
     calls: list[ToolCall] = Field(default_factory=list)
     usage: dict[str, int] = Field(default_factory=dict)
     provider_model: str = ""
+    diagnostics: dict[str, Any] = Field(default_factory=dict)
     raw: list[dict[str, Any]] = Field(default_factory=list)

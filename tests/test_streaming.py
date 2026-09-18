@@ -86,7 +86,9 @@ async def test_text_arrives_before_terminal_with_split_utf8_and_json(monkeypatch
     assert not task.done() and not any(e["type"] == "completed" for e in events)
     release.set()
     reply = await task
-    assert reply == ModelClient._responses_reply(terminal, ModelClient._usage(terminal["usage"]))
+    expected = ModelClient._responses_reply(terminal, ModelClient._usage(terminal["usage"]))
+    assert reply.model_dump(exclude={"diagnostics"}) == expected.model_dump(exclude={"diagnostics"})
+    assert reply.diagnostics["classification"] == "success"
     assert "".join(e["text"] for e in events if e["type"] == "text_delta") == "你好"
     assert events[-1]["type"] == "completed" and events[-1]["usage"]["total_tokens"] == 12
     assert events[-1]["first_text_seconds"] <= events[-1]["elapsed_seconds"]

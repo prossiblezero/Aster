@@ -164,23 +164,42 @@ async def complete_responses(model, payload, extra, on_event):
     headers = {"Content-Type": "application/json", "Accept": "text/event-stream", **extra}
     if settings.auth != "none":
         headers["Authorization"] = f"Bearer {secret}"
-    model.last_usage = {}
+    model.last_usage, model.last_diagnostics = {}, {}
+    payload = {**payload, "stream": True}
+    empty_retries = 0
     progress = None
+    diagnosed = False
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
             for attempt in range(1, 4):
                 progress = _Progress(on_event, [*model.redaction_secrets, secret], attempt)
                 progress.emit("begin")
                 retry_after = 0
+                terminal, response, usage = None, None, {}
+                diagnosed = False
                 try:
                     async with asyncio.timeout(settings.request_timeout):
                         async with client.stream(
                             "POST",
                             settings.base_url.rstrip("/") + "/responses",
                             headers=headers,
-                            json={**payload, "stream": True},
+                            json=payload,
                         ) as response:
                             if not response.is_success:
+                                body = bytearray()
+                                async for chunk in response.aiter_bytes():
+                                    body.extend(chunk)
+                                    if len(body) > MAX_EVENT_BYTES:
+                                        raise ProviderError(
+                                            "HTTP error exceeds capacity",
+                                            category="invalid_response",
+                                        )
+                                try:
+                                    terminal = json.loads(body)
+                                except ValueError:
+                                    terminal = None
+                                if isinstance(terminal, dict) and "usage" in terminal:
+                                    usage = model._record_usage(terminal)
                                 try:
                                     retry_after = float(response.headers.get("retry-after", "0"))
                                 except ValueError:
@@ -244,13 +263,14 @@ async def complete_responses(model, payload, extra, on_event):
                                 }:
                                     continue
                                 terminal = item.get("response")
+                                if isinstance(terminal, dict):
+                                    usage = model._record_usage(terminal)
                                 if not isinstance(terminal, dict) or terminal.get(
                                     "status"
                                 ) != kind.removeprefix("response."):
                                     raise ProviderError(
                                         "Invalid terminal response", category="invalid_response"
                                     )
-                                model.last_usage = model._usage(terminal.get("usage"))
                                 if kind == "response.completed" and (
                                     not isinstance(terminal.get("output"), list)
                                     or terminal.get("error")
@@ -258,21 +278,18 @@ async def complete_responses(model, payload, extra, on_event):
                                     raise ProviderError(
                                         "Invalid completed response", category="invalid_response"
                                     )
-                                if kind == "response.completed":
-                                    for output in terminal["output"]:
-                                        if (
-                                            not isinstance(output, dict)
-                                            or output.get("status") not in {None, "completed"}
-                                            or (
-                                                output.get("type") == "function_call"
-                                                and not isinstance(output.get("arguments"), str)
-                                            )
-                                        ):
-                                            raise ProviderError(
-                                                "Incomplete terminal output item",
-                                                category="invalid_response",
-                                            )
-                                reply = model._responses_reply(terminal, model.last_usage)
+                                reply = model._parse(terminal, model.last_usage)
+                                reply.diagnostics = model._diagnostic(
+                                    payload,
+                                    terminal,
+                                    response,
+                                    attempt,
+                                    progress.started,
+                                    "success",
+                                    usage,
+                                    on_event,
+                                )
+                                diagnosed = True
                                 progress.flush()
                                 progress.emit("completed", usage=reply.usage, **progress.timing())
                                 # The first complete terminal closes the stream. A duplicate
@@ -306,12 +323,47 @@ async def complete_responses(model, payload, extra, on_event):
                             "usage": exc.details["usage"] or model.last_usage,
                         }
                     )
-                retry = error.details["category"] in {"transport", "transient_http"} and attempt < 3
+                diagnostic = model._diagnostic(
+                    payload,
+                    terminal,
+                    response,
+                    attempt,
+                    progress.started,
+                    error.details["category"],
+                    usage,
+                    on_event,
+                )
+                diagnosed = True
+                error = ProviderError(
+                    **{
+                        **error.details,
+                        "usage": model.last_usage,
+                        "attempts": attempt,
+                        "diagnostics": diagnostic,
+                    }
+                )
+                category = error.details["category"]
+                retry = category in {"transport", "transient_http"}
+                if category == "empty_response" and empty_retries == 0:
+                    empty_retries += 1
+                    retry = True
+                retry = retry and attempt < 3
                 progress.emit("error", **error.details, retrying=retry, **progress.timing())
                 if not retry:
                     raise error
                 await asyncio.sleep(min(2, max(0.25 * 2 ** (attempt - 1), retry_after)))
     except asyncio.CancelledError:
         if progress is not None:
+            if not diagnosed:
+                model._diagnostic(
+                    payload,
+                    terminal,
+                    response,
+                    progress.attempt,
+                    progress.started,
+                    "cancelled",
+                    usage,
+                    on_event,
+                )
             progress.emit("error", category="cancelled", retrying=False, **progress.timing())
         raise

@@ -349,3 +349,379 @@ def test_signed_thinking_cannot_be_silently_changed_by_redaction(tmp_path, think
     with pytest.raises(ValueError, match="signed_thinking_requires_redaction"):
         restored.resume(runtime.state.run_id)
     assert restored.state is None
+
+
+def install_provider(monkeypatch, handler):
+    original = httpx.AsyncClient
+    monkeypatch.setattr(
+        "aster.provider.httpx.AsyncClient",
+        lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
+    )
+
+
+@pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize(
+    "output,category,attempts",
+    [
+        ([], "empty_response", 2),
+        ([{"type": "reasoning", "encrypted_content": "opaque"}], "unsupported_output", 1),
+        ([{"type": "future_tool_call"}], "unsupported_output", 1),
+        ([{"type": "message", "content": [{"type": "refusal", "refusal": "no"}]}], "refusal", 1),
+        (
+            [{"type": "message", "content": [{"type": "output_text", "text": "  "}]}],
+            "empty_response",
+            2,
+        ),
+        (
+            [{"type": "function_call", "call_id": "c", "name": "write_file", "arguments": "[]"}],
+            "invalid_response",
+            1,
+        ),
+        (
+            [{"type": "function_call", "call_id": "c", "name": "write_file", "arguments": "{"}],
+            "invalid_response",
+            1,
+        ),
+    ],
+)
+async def test_terminal_classification_and_bounded_empty_retry(
+    monkeypatch, stream, output, category, attempts
+):
+    requests, events = [], []
+    terminal = {
+        "status": "completed",
+        "output": output,
+        "usage": {"input_tokens": 10, "output_tokens": 2},
+    }
+
+    def handler(request):
+        requests.append(request)
+        if stream:
+            return httpx.Response(
+                200,
+                content="data: "
+                + json.dumps({"type": "response.completed", "response": terminal})
+                + "\n\n",
+            )
+        return httpx.Response(200, json=terminal)
+
+    install_provider(monkeypatch, handler)
+    client = ModelClient(Settings(auth="none", stream=stream))
+    with pytest.raises(ProviderError) as caught:
+        await client.complete([], [], on_event=events.append)
+    assert caught.value.details["category"] == category
+    assert len(requests) == caught.value.details["attempts"] == attempts
+    assert caught.value.details["usage"]["total_tokens"] == 12 * attempts
+    diagnostics = [row for row in events if row["type"] == "diagnostic"]
+    assert len(diagnostics) == attempts
+    assert all(row["classification"] == category for row in diagnostics)
+
+
+@pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize(
+    "sequence",
+    [[503, "empty", "ok"], ["empty", 503, "ok"], [503, 503, "empty"], ["empty", "empty", "ok"]],
+)
+async def test_empty_retry_shares_three_attempt_budget_and_preserves_all_usage(
+    monkeypatch, stream, sequence
+):
+    requests, events = [], []
+
+    def handler(request):
+        action = sequence[len(requests)]
+        requests.append(request)
+        if action == 503:
+            return httpx.Response(
+                503, json={"error": {"message": "busy"}, "usage": {"output_tokens": 1}}
+            )
+        terminal = {
+            "status": "completed",
+            "output": []
+            if action == "empty"
+            else [{"type": "message", "content": [{"type": "output_text", "text": "done"}]}],
+            "usage": {"input_tokens": 10, "output_tokens": 2},
+        }
+        if stream:
+            return httpx.Response(
+                200,
+                content="data: "
+                + json.dumps({"type": "response.completed", "response": terminal})
+                + "\n\n",
+            )
+        return httpx.Response(200, json=terminal)
+
+    async def no_sleep(_):
+        return
+
+    install_provider(monkeypatch, handler)
+    monkeypatch.setattr("aster.provider.asyncio.sleep", no_sleep)
+    client = ModelClient(Settings(auth="none", stream=stream))
+    if sequence[1] == "empty" and sequence[0] == "empty" or sequence[-1] == "empty":
+        with pytest.raises(ProviderError) as caught:
+            await client.complete([], [], on_event=events.append)
+        usage = caught.value.details["usage"]
+    else:
+        reply = await client.complete([], [], on_event=events.append)
+        assert reply.text == "done"
+        usage = reply.usage
+    attempted = sequence[: len(requests)]
+    assert len(requests) == (2 if sequence[:2] == ["empty", "empty"] else 3)
+    assert usage["usage_requests"] == len(requests)
+    assert usage["output_tokens"] == sum(1 if action == 503 else 2 for action in attempted)
+    assert usage.get("input_tokens_requests") == sum(action != 503 for action in attempted)
+    assert [row["attempt"] for row in events if row["type"] == "diagnostic"] == list(
+        range(1, len(requests) + 1)
+    )
+
+
+@pytest.mark.parametrize("stream", [False, True])
+async def test_provider_diagnostics_match_wire_hash_and_exclude_sensitive_payloads(
+    monkeypatch, stream
+):
+    import hashlib
+
+    secret, thinking = "test-provider-secret", "private chain of thought"
+    requests, events = [], []
+    terminal = {
+        "id": "resp-safe",
+        "model": "different-model",
+        "status": "completed",
+        "output": [
+            {"type": "reasoning", "summary": [{"text": thinking}], "encrypted_content": thinking},
+            {"type": "message", "content": [{"type": "output_text", "text": "done"}]},
+        ],
+        "usage": {
+            "input_tokens": 10,
+            "output_tokens": 2,
+            "total_tokens": 99,
+            "input_tokens_details": {"cached_tokens": 11, "secret": secret},
+            "output_tokens_details": {"reasoning_tokens": 3},
+            "secret": secret,
+            "attribution": {
+                "items": {secret: {"input_tokens": 1, "text": thinking}},
+                "request_fields": {"instructions": {"input_tokens": 1}, secret: secret},
+            },
+        },
+    }
+
+    def handler(request):
+        requests.append(request)
+        headers = {
+            "x-request-id": "req-safe",
+            "authorization": secret,
+            "location": "https://private.example/path",
+        }
+        if stream:
+            return httpx.Response(
+                200,
+                headers=headers,
+                content="data: "
+                + json.dumps({"type": "response.completed", "response": terminal})
+                + "\n\n",
+            )
+        return httpx.Response(200, headers=headers, json=terminal)
+
+    install_provider(monkeypatch, handler)
+    client = ModelClient(Settings(api_key=secret, stream=stream))
+    reply = await client.complete(
+        [{"role": "user", "content": "你好 " + secret}], [], on_event=events.append
+    )
+    diagnostic = reply.diagnostics
+    encoded = json.dumps(diagnostic)
+    assert secret not in encoded and thinking not in encoded and "private.example" not in encoded
+    assert diagnostic["payload_sha256"] == hashlib.sha256(requests[0].content).hexdigest()
+    assert diagnostic["request_ids"] == {"x-request-id": "req-safe"}
+    assert (
+        diagnostic["response_id"] == "resp-safe"
+        and diagnostic["response_model"] == "different-model"
+    )
+    assert set(diagnostic["flags"]) == {
+        "response_model_mismatch",
+        "total_tokens_disagree",
+        "cache_read_input_tokens_exceeds_input_tokens",
+        "reasoning_tokens_exceeds_output_tokens",
+    }
+    assert (
+        reply.usage["total_tokens"] == 99
+    )  # Contradictions are observed, never silently repaired.
+    assert diagnostic["raw_usage"]["attribution"]["items"] == [{"input_tokens": 1}]
+    assert any(row["type"] == "diagnostic" for row in events)
+
+
+@pytest.mark.parametrize(
+    "protocol,response,category",
+    [
+        ("chat", {"choices": [{"message": {"refusal": "no", "content": None}}]}, "refusal"),
+        (
+            "chat",
+            {"choices": [{"message": {"reasoning_content": "private"}}]},
+            "unsupported_output",
+        ),
+        ("chat", {"choices": [{"message": {"content": " "}}]}, "empty_response"),
+        ("anthropic", {"stop_reason": "refusal", "content": []}, "refusal"),
+        (
+            "anthropic",
+            {"content": [{"type": "thinking", "thinking": "private"}]},
+            "unsupported_output",
+        ),
+        ("anthropic", {"content": []}, "empty_response"),
+    ],
+)
+async def test_other_protocols_classify_refusal_opaque_and_empty(
+    monkeypatch, protocol, response, category
+):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=response)
+
+    install_provider(monkeypatch, handler)
+    with pytest.raises(ProviderError) as caught:
+        await ModelClient(Settings(auth="none", protocol=protocol)).complete([], [])
+    assert caught.value.details["category"] == category
+    assert len(requests) == (2 if category == "empty_response" else 1)
+
+
+@pytest.mark.parametrize("stream", [False, True])
+async def test_missing_usage_and_cancelled_attempt_are_explicit_unknowns(monkeypatch, stream):
+    events, entered = [], asyncio.Event()
+
+    async def handler(_):
+        entered.set()
+        await asyncio.Event().wait()
+
+    install_provider(monkeypatch, handler)
+    client = ModelClient(Settings(auth="none", stream=stream))
+    task = asyncio.create_task(client.complete([], [], on_event=events.append))
+    await asyncio.wait_for(entered.wait(), 1)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    diagnostic = next(row for row in events if row["type"] == "diagnostic")
+    assert diagnostic["classification"] == "cancelled"
+    assert diagnostic["usage"] == {} and diagnostic["usage_observed"] is False
+    assert client.last_usage == {}
+
+
+@pytest.mark.parametrize("stream", [False, True])
+async def test_invalid_second_call_never_publishes_or_executes_first_call(
+    tmp_path, monkeypatch, stream
+):
+    terminal = {
+        "status": "completed",
+        "output": [
+            {
+                "type": "function_call",
+                "name": "write_file",
+                "call_id": "first",
+                "arguments": '{"path":"bad.txt","content":"bad"}',
+            },
+            {
+                "type": "function_call",
+                "name": "write_file",
+                "call_id": "second",
+                "arguments": '{"path":',
+            },
+        ],
+        "usage": {"input_tokens": 10, "output_tokens": 2},
+    }
+
+    def handler(_):
+        if stream:
+            return httpx.Response(
+                200,
+                content="data: "
+                + json.dumps({"type": "response.completed", "response": terminal})
+                + "\n\n",
+            )
+        return httpx.Response(200, json=terminal)
+
+    install_provider(monkeypatch, handler)
+    runtime = Runtime(
+        tmp_path, Settings(auth="none", stream=stream, approval="auto", memory_enabled=False)
+    )
+    state = await runtime.run(TaskSpec(prompt="Write a file"))
+    assert state.phase == "failed" and state.stop_reason == "provider_error"
+    assert state.step == 0 and not (tmp_path / "bad.txt").exists()
+    assert not any(item.get("type") == "function_call" for item in runtime._structured_history)
+    assert state.usage["total_tokens"] == 12
+
+
+def test_attribution_is_bounded_and_contradictions_are_visible():
+    from aster.provider import _numeric_usage, _usage_warnings
+
+    raw = {
+        "input_tokens": 10,
+        "output_tokens": 2,
+        "attribution": {
+            "items": {"sensitive-id": {"input_tokens": 1}},
+            "request_fields": {"instructions": {"input_tokens": 1}, "tools": {"input_tokens": 2}},
+        },
+    }
+    assert "input_attribution_disagrees" in _usage_warnings(
+        _numeric_usage(raw), ModelClient._usage(raw)
+    )
+    raw["attribution"]["items"] = {
+        f"private-{i}": {"input_tokens": i, "secret": "private"} for i in range(1000)
+    }
+    safe = _numeric_usage(raw)
+    assert safe["attribution"]["items_count"] == 1000
+    assert len(safe["attribution"]["items"]) == 128
+    assert "private" not in json.dumps(safe)
+    assert "input_attribution_disagrees" not in _usage_warnings(safe, ModelClient._usage(raw))
+
+
+async def test_nonstream_diagnostic_observer_cannot_mutate_reply_or_leak_failure(
+    monkeypatch, caplog
+):
+    install_provider(monkeypatch, lambda _: httpx.Response(200, json={"output_text": "done"}))
+
+    def broken(event):
+        event["usage"]["usage_requests"] = 999
+        raise RuntimeError("sensitive-observer-detail")
+
+    reply = await ModelClient(Settings(auth="none")).complete([], [], on_event=broken)
+    assert reply.text == "done" and reply.usage == {"usage_requests": 1}
+    assert reply.diagnostics["usage"] == {"usage_requests": 1}
+    assert reply.diagnostics["usage_observed"] is False
+    assert "sensitive-observer-detail" not in caplog.text
+
+
+@pytest.mark.parametrize("stream", [False, True])
+async def test_cancellation_after_billed_empty_attempt_retains_usage_once(monkeypatch, stream):
+    requests, events = [], []
+    entered = asyncio.Event()
+
+    async def handler(request):
+        requests.append(request)
+        if len(requests) > 1:
+            entered.set()
+            await asyncio.Event().wait()
+        terminal = {
+            "status": "completed",
+            "output": [],
+            "usage": {"input_tokens": 10, "output_tokens": 2},
+        }
+        if stream:
+            return httpx.Response(
+                200,
+                content="data: "
+                + json.dumps({"type": "response.completed", "response": terminal})
+                + "\n\n",
+            )
+        return httpx.Response(200, json=terminal)
+
+    install_provider(monkeypatch, handler)
+    client = ModelClient(Settings(auth="none", stream=stream))
+    task = asyncio.create_task(client.complete([], [], on_event=events.append))
+    await asyncio.wait_for(entered.wait(), 2)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert len(requests) == 2
+    assert client.last_usage["total_tokens"] == 12 and client.last_usage["usage_requests"] == 1
+    diagnostics = [row for row in events if row["type"] == "diagnostic"]
+    assert [row["classification"] for row in diagnostics] == ["empty_response", "cancelled"]
+    assert diagnostics[0]["usage"]["total_tokens"] == 12
+    assert diagnostics[1]["usage"] == {} and diagnostics[1]["usage_observed"] is False
