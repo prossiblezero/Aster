@@ -49,9 +49,37 @@ class TimedModel(ModelClient):
     def __init__(self, settings):
         super().__init__(settings)
         self.requests = []
+        self.response_structure = None
+
+    async def _post(self, suffix, payload, extra):
+        data = await super()._post(suffix, payload, extra)
+        # Observe schema only; never dump model reasoning, credentials or response bodies.
+        self.response_structure = {
+            "keys": sorted(data),
+            "response_id": data.get("id"),
+            "status": data.get("status"),
+            "output_type": type(data.get("output")).__name__,
+            "items": [
+                {
+                    "type": item.get("type"),
+                    "keys": sorted(item),
+                    "content_types": [
+                        block.get("type")
+                        for block in item.get("content", [])
+                        if isinstance(block, dict)
+                    ],
+                }
+                for item in data.get("output", [])
+                if isinstance(item, dict)
+            ]
+            if isinstance(data.get("output"), list)
+            else [],
+        }
+        return data
 
     async def complete(self, messages, tools, *, on_event=None):
         start = time.monotonic()
+        self.response_structure = None
         record = {"status": "started", "http_attempts": None}
         try:
             reply = await super().complete(messages, tools, on_event=on_event)
@@ -67,6 +95,7 @@ class TimedModel(ModelClient):
             raise
         finally:
             record["seconds"] = time.monotonic() - start
+            record["response_structure"] = self.response_structure
             self.requests.append(record)
 
 
@@ -98,6 +127,11 @@ async def run(args):
     if args.memory_seed:
         # Copies verified memory together with its original trace provenance, not model code.
         shutil.copytree(args.memory_seed / ".aster", root / ".aster", dirs_exist_ok=True)
+    product_before = {
+        path: digest
+        for path, digest in digest_files(root).items()
+        if not path.startswith(".aster/")
+    }
     destination.mkdir(parents=True)
     prompt_path = args.prompt.resolve()
     prompt = prompt_path.read_text()
@@ -145,6 +179,7 @@ async def run(args):
             for p in protocol_files
         },
         "docs": docs_before,
+        "initial_product": product_before,
         "skill": args.skill,
         "memory": args.memory,
         "memory_setup": "operator_seeded" if args.memory_seed else "natural_or_disabled",
