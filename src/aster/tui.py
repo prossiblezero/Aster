@@ -72,7 +72,12 @@ if App is not None:
             self._accept()
 
     class AsterTui(App):
-        CSS = "Screen { layout: vertical; } #log { height: 1fr; } #progress { height: auto; }"
+        CSS = """
+        Screen { layout: vertical; }
+        #log { height: 1fr; }
+        #progress { height: auto; }
+        #model-output { height: auto; max-height: 12; overflow-y: auto; }
+        """
         BINDINGS = [("ctrl+c", "cancel_task", "Cancel task"), ("ctrl+q", "quit", "Quit")]
 
         def __init__(self, root: Path, settings: Settings):
@@ -83,26 +88,37 @@ if App is not None:
             )
             self.task_worker = None
             self._interaction_lock = asyncio.Lock()
+            self._stream_text = ""
+            self._stream_active = False
+            self._stream_status = ""
+            self._last_model_text = ""
 
         def compose(self) -> ComposeResult:
             yield Header()
             yield RichLog(id="log", wrap=True, markup=False)
+            yield Static("", id="model-output", markup=False)
             yield Static("Aster ready", id="progress", markup=False)
-            yield Input(placeholder="Describe the coding task", id="prompt")
+            yield Input(
+                placeholder="Describe the coding task; /model lists model profiles", id="prompt"
+            )
             yield Footer()
 
         def on_mount(self) -> None:
             self.runtime.evidence.listeners.append(self._event)
+            self.query_one("#model-output").display = False
             self.query_one("#prompt", Input).focus()
 
         def _event(self, row: dict) -> None:
             event = row["event"]
-            if event == "tool_result":
+            if event == "model_stream":
+                self._stream_event(row)
+            elif event == "tool_result":
                 outcome = row["outcome"]
                 self.query_one("#log", RichLog).write(
                     f"{row['call']['name']}: {outcome['status']} {outcome.get('reason', '')}"
                 )
             elif event == "model_reply" and row.get("text"):
+                self._last_model_text = row["text"]
                 self.query_one("#log", RichLog).write(row["text"])
             elif event == "worker_started":
                 self.query_one("#log", RichLog).write(f"Worker started: {row['worker_id']}")
@@ -112,7 +128,38 @@ if App is not None:
                     f"{state.phase} | turn {state.turn}/{state.task.max_turns} | "
                     f"tools {state.step}/{state.task.max_steps} | "
                     f"verification: {state.verification.state}"
+                    + (f" | {self._stream_status}" if self._stream_status else "")
                 )
+
+        def _stream_event(self, row: dict) -> None:
+            preview = self.query_one("#model-output", Static)
+            kind = row["type"]
+            attempt = row.get("attempt", 1)
+            self._stream_status = f"model attempt {attempt}: {row.get('elapsed_seconds', 0):.1f}s"
+            if kind == "begin":
+                if self._stream_active:
+                    self.query_one("#log", RichLog).write(
+                        "Previous model attempt incomplete; starting a new response."
+                    )
+                self._stream_text = ""
+                self._stream_active = True
+                preview.display = True
+                preview.update(f"Waiting for model response (attempt {attempt})…")
+            elif kind == "text_delta":
+                self._stream_text = (self._stream_text + row.get("text", ""))[-65536:]
+                preview.update(self.runtime.evidence.redactor.text(self._stream_text))
+            elif kind == "tool_delta":
+                self._stream_status += " | receiving tool arguments"
+            elif kind == "completed":
+                self._stream_active = False
+                preview.display = False
+                self._stream_status = ""
+            elif kind == "error":
+                preview.update(
+                    "Incomplete model response; no tools executed from this attempt.\n"
+                    + self.runtime.evidence.redactor.text(self._stream_text)
+                )
+                self._stream_status += " | incomplete"
 
         async def _prompt(self, screen: HumanPrompt) -> str | None:
             # Parent and workers share one human; do not stack competing decisions.
@@ -136,16 +183,55 @@ if App is not None:
             if not prompt or (self.task_worker and not self.task_worker.is_finished):
                 return
             event.input.value = ""
+            if prompt.split(maxsplit=1)[0] == "/model":
+                self._model_command(prompt)
+                return
             event.input.disabled = True
             self.query_one("#log", RichLog).write(f"Task: {prompt}")
             self.task_worker = self.run_worker(self._run_task(prompt), exit_on_error=False)
 
+        def _model_command(self, prompt: str) -> None:
+            log = self.query_one("#log", RichLog)
+            parts = prompt.split(maxsplit=1)
+            if len(parts) == 1:
+                log.write(
+                    f"Current: {self.settings.profile or '(legacy)'} | "
+                    f"{self.settings.provider}/{self.settings.model} ({self.settings.protocol})"
+                )
+                if not self.settings.profiles:
+                    log.write("No model profiles configured. Add [profiles.<alias>] to --config.")
+                for alias, item in self.settings.profiles.items():
+                    log.write(
+                        f"/model {alias}: {item.provider}/{item.model} ({item.protocol}); "
+                        f"{item.context_tokens - item.output_tokens:,} input + "
+                        f"{item.output_tokens:,} output; auth={item.auth}; stream={item.stream}"
+                    )
+                return
+            try:
+                settings = self.runtime.switch_model(parts[1])
+            except (ValueError, RuntimeError) as exc:
+                log.write(
+                    f"Model selection failed: {self.runtime.evidence.redactor.text(str(exc))}"
+                )
+                return
+            self.settings = settings
+            self.sub_title = (
+                f"{settings.profile} | {settings.provider}/{settings.model} | "
+                f"{settings.effective_context_tokens - settings.effective_output_tokens:,} input tokens"
+            )
+            log.write(f"Selected {settings.profile} for subsequent tasks.")
+
         async def _run_task(self, prompt: str) -> None:
+            self._last_model_text = ""
+            self._stream_active = False
+            self._stream_status = ""
+            self.query_one("#model-output").display = False
             try:
                 state = await self.runtime.run(TaskSpec(prompt=prompt))
-                self.query_one("#log", RichLog).write(
-                    state.final or f"Stopped: {state.stop_reason}\n{state.feedback}"
-                )
+                if not state.final or state.final != self._last_model_text:
+                    self.query_one("#log", RichLog).write(
+                        state.final or f"Stopped: {state.stop_reason}\n{state.feedback}"
+                    )
             except asyncio.CancelledError:
                 if self.runtime.state and not self.runtime.state.terminal:
                     self.runtime.abort()
@@ -155,6 +241,11 @@ if App is not None:
                     self.runtime.finish("ui_error", failed=True)
                 self.query_one("#log", RichLog).write(f"Run failed: {type(exc).__name__}")
             finally:
+                if self._stream_active:
+                    self.query_one("#model-output", Static).update(
+                        "Incomplete model response.\n"
+                        + self.runtime.evidence.redactor.text(self._stream_text)
+                    )
                 self.query_one("#prompt", Input).disabled = False
                 self.query_one("#prompt", Input).focus()
 

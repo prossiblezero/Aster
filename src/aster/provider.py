@@ -288,9 +288,14 @@ class ModelClient:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.last_usage: dict[str, int] = {}
+        self.redaction_secrets = [settings.api_key.get_secret_value()]
 
-    async def complete(self, messages: list[dict[str, Any]], tools: list[dict]) -> ModelReply:
+    async def complete(
+        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
+    ) -> ModelReply:
         protocol = self.settings.protocol
+        if self.settings.stream and protocol != "responses":
+            raise ProviderError("Streaming currently requires Responses", category="configuration")
         payload = request_payload(
             messages,
             tools,
@@ -309,6 +314,10 @@ class ModelClient:
             if protocol == "anthropic"
             else {}
         )
+        if self.settings.stream:
+            from .streaming import complete_responses
+
+            return await complete_responses(self, payload, headers, on_event)
         data = await self._post(suffix, payload, headers)
         try:
             parser = {
@@ -326,10 +335,14 @@ class ModelClient:
 
     async def _post(self, suffix: str, payload: dict, extra: dict) -> dict:
         secret = self.settings.api_key.get_secret_value()
-        if not secret:
+        if not secret and self.settings.auth != "none":
             raise ProviderError("ASTER_API_KEY is empty", category="configuration")
         self.last_usage = {}
-        headers = {"Authorization": f"Bearer {secret}", "Content-Type": "application/json", **extra}
+        headers = {"Content-Type": "application/json", **extra}
+        if self.settings.auth != "none":
+            headers["Authorization"] = f"Bearer {secret}"
+        else:
+            headers.pop("x-api-key", None)
         url = self.settings.base_url.rstrip("/") + suffix
         redactor = Redactor([secret])
         # Only generation requests are retried: tool side effects execute after a complete reply.

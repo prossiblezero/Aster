@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 import tomllib
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import ConfigDict, Field, PrivateAttr, SecretStr, model_validator
 
 from .schema import Record
 
@@ -36,11 +37,75 @@ class ExecRule(Record):
         return self
 
 
+class ModelProfile(Record):
+    """Provider coordinates and budgets; credentials are environment references only."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+    provider: str = Field(min_length=1)
+    model: str = Field(min_length=1)
+    protocol: Literal["responses", "chat", "anthropic"]
+    base_url: str
+    auth: Literal["required", "none"] = "required"
+    api_key_env: str | None = Field(default=None, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    context_tokens: int = Field(ge=1024)
+    output_tokens: int = Field(ge=128)
+    stream: bool = False
+
+    @model_validator(mode="after")
+    def valid_profile(self):
+        url = urlsplit(self.base_url)
+        if (
+            url.scheme not in {"https", "http"}
+            or not url.hostname
+            or url.username is not None
+            or url.password is not None
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "base_url must be an HTTP(S) endpoint without credentials, query or fragment"
+            )
+        if self.auth == "required" and not self.api_key_env:
+            raise ValueError("auth=required needs api_key_env")
+        if self.auth == "none" and self.api_key_env:
+            raise ValueError("auth=none cannot specify api_key_env")
+        # Use the same budget and protocol checks as an effective configuration.
+        Settings(
+            model=self.model,
+            protocol=self.protocol,
+            context_tokens=self.context_tokens,
+            output_tokens=self.output_tokens,
+            stream=self.stream,
+        )
+        return self
+
+    def settings_values(self, credentials: dict[str, SecretStr]) -> dict:
+        secret = SecretStr("")
+        if self.auth == "required":
+            secret = credentials.get(
+                self.api_key_env, SecretStr(os.environ.get(self.api_key_env, ""))
+            )
+            if not secret.get_secret_value():
+                raise ValueError(
+                    f"missing profile credential environment variable: {self.api_key_env}"
+                )
+        return {**self.model_dump(exclude={"api_key_env"}), "api_key": secret}
+
+
 class Settings(Record):
+    model_config = ConfigDict(hide_input_in_errors=True)
+    provider: str = "openai"
+    profile: str | None = None
+    profiles: dict[
+        Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")], ModelProfile
+    ] = Field(default_factory=dict, exclude=True, repr=False)
+    _profile_credentials: dict[str, SecretStr] = PrivateAttr(default_factory=dict)
     protocol: Literal["responses", "chat", "anthropic"] = "responses"
     model: str = "gpt-5.6-luna"
     base_url: str = "https://api.openai.com/v1"
     api_key: SecretStr = Field(default_factory=lambda: SecretStr(""))
+    auth: Literal["required", "none"] = "required"
+    stream: bool = False
     request_timeout: float = Field(default=90, gt=0, le=300)
     context_tokens: int | None = Field(
         default=None,
@@ -65,6 +130,8 @@ class Settings(Record):
 
     @model_validator(mode="after")
     def valid_budget(self):
+        if self.stream and self.protocol != "responses":
+            raise ValueError("stream currently supports only the responses protocol")
         output = self.effective_output_tokens
         if self.effective_context_tokens <= output + 256:
             raise ValueError("context_tokens must reserve output_tokens plus input space")
@@ -77,6 +144,22 @@ class Settings(Record):
             ):
                 raise ValueError("context_tokens exceeds the model input/window limit")
         return self
+
+    def select_profile(self, alias: str) -> Settings:
+        """Resolve and validate a new selection without changing this configuration."""
+        if alias not in self.profiles:
+            raise ValueError(f"unknown model profile: {alias}")
+        profile = self.profiles[alias]
+        selected = Settings.model_validate(
+            {
+                **self.model_dump(),
+                **profile.settings_values(self._profile_credentials),
+                "profile": alias,
+                "profiles": self.profiles,
+            }
+        )
+        selected._profile_credentials = self._profile_credentials.copy()
+        return selected
 
     @property
     def effective_context_tokens(self) -> int:
@@ -135,12 +218,39 @@ def read_env(path: Path) -> dict[str, str]:
 
 
 def load_settings(
-    env_file: Path | None = None, config_file: Path | None = None, **overrides
+    env_file: Path | None = None,
+    config_file: Path | None = None,
+    *,
+    profile: str | None = None,
+    **overrides,
 ) -> Settings:
     values = tomllib.loads(config_file.read_text()) if config_file else {}
     env = {**(read_env(env_file) if env_file else {}), **os.environ}
-    for name in ("protocol", "model", "base_url", "api_key"):
-        if env.get(f"ASTER_{name.upper()}"):
-            values[name] = env[f"ASTER_{name.upper()}"]
+    configured_profile = values.pop("profile", None)
+    alias = profile if profile is not None else configured_profile
+    if alias is not None and not isinstance(alias, str):
+        raise ValueError("profile must be a model profile name")
+    if not isinstance(values.get("profiles", {}), dict):
+        raise ValueError("profiles must be a TOML table")
+    profiles = {
+        name: ModelProfile.model_validate(item) for name, item in values.get("profiles", {}).items()
+    }
+    credentials = {
+        item.api_key_env: SecretStr(env[item.api_key_env])
+        for item in profiles.values()
+        if item.api_key_env and item.api_key_env in env
+    }
+    if alias is None:
+        for name in ("protocol", "model", "base_url", "api_key"):
+            if env.get(f"ASTER_{name.upper()}"):
+                values[name] = env[f"ASTER_{name.upper()}"]
+    else:
+        if alias not in profiles:
+            raise ValueError(f"unknown model profile: {alias}")
+        values.update(profiles[alias].settings_values(credentials))
+        values["profile"] = alias
+    values["profiles"] = profiles
     values.update({k: v for k, v in overrides.items() if v is not None})
-    return Settings.model_validate(values)
+    result = Settings.model_validate(values)
+    result._profile_credentials = credentials
+    return result

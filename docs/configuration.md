@@ -4,6 +4,34 @@
 
 配置优先级是：显式 CLI 参数 > 进程环境变量 > `.env` > TOML > [Settings 默认值](../src/aster/config.py)。当前只读取四个 `ASTER_*` 环境变量：`ASTER_PROTOCOL`、`ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY`。其余设置通过 TOML 或 Python 的 `Settings(...)` 传入；没有 `ASTER_MAX_WORKERS` 之类的隐含开关。
 
+具名模型可放在同一 TOML 的 `[profiles.alias]` 中。`--profile alias` 或 TUI 空闲时 `/model alias` 同时选择服务、协议、凭证和预算；`/model` 列表不进入模型提示。显式 profile 不被旧 `ASTER_MODEL/BASE_URL/PROTOCOL/API_KEY` 元组覆盖，其 `api_key_env` 从 `.env`/进程环境解析（进程优先）；明确 CLI 模型/协议/预算覆盖最后生效。第一版选择作用于后续任务，已有运行中的任务拒绝切换，不声称已经支持跨协议续聊。
+
+```toml
+[profiles.remote]
+provider = "gateway"
+model = "your-model-id"
+protocol = "responses"
+base_url = "https://your-provider.example/v1"
+auth = "required"
+api_key_env = "MY_MODEL_KEY"
+context_tokens = 128000
+output_tokens = 32768
+stream = true
+
+[profiles.local]
+provider = "local"
+model = "local-model-id"
+protocol = "chat"
+base_url = "http://127.0.0.1:8000/v1"
+auth = "none"
+context_tokens = 24000
+output_tokens = 2048
+```
+
+profile 不接受权限字段或明文凭证，切换不改审批、沙箱、联网及写入范围。缺少认证、非法预算或未知名称时原配置保持不变；不写回配置文件。本地服务可显式 `auth="none"`，请求不带认证头。
+
+`stream=true` 或 `--stream` 启用正式 Responses 流式，`--no-stream` 关闭；默认仍非流式。Chat/Anthropic 当前不支持该流式开关，会明确拒绝。TUI 提前显示文字片段并标注请求尝试，重试不拼接旧文字，取消/断流保留未完成提示；所有工具仍等完整成功终态及参数校验后执行。每次尝试进度最多 512 条增量事件及 1 MiB 文本，单 SSE 事件 16 MiB、整流 64 MiB；超限不会变成成功工具调用。首事件、首有效文字和完成时间分别记录；缓存/推理参数没有随开关改变。
+
 ## 模型与输入预算
 
 | 字段 | 默认值 | 含义与边界 |

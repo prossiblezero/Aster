@@ -28,12 +28,14 @@ def main(argv=None):
     parser.add_argument("--cwd", default=".")
     parser.add_argument("--env-file", type=Path, default=None)
     parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument("--profile", help="Named model profile from --config")
     parser.add_argument("--model")
     parser.add_argument("--context-tokens", type=int, help="Total input plus output token budget")
     parser.add_argument("--output-tokens", type=int, help="Maximum tokens per model response")
     parser.add_argument("--max-steps", type=int, help="Tool action cap for a one-shot task")
     parser.add_argument("--max-turns", type=int, help="Model turn cap for a one-shot task")
     parser.add_argument("--protocol", choices=["responses", "chat", "anthropic"])
+    parser.add_argument("--stream", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--sandbox", choices=["required", "best_effort", "off"])
     parser.add_argument("--approval", choices=["ask", "auto", "never"])
     parser.add_argument("--read-only", action="store_true")
@@ -43,17 +45,22 @@ def main(argv=None):
     if (args.tui or args.rl_smoke) and (args.max_steps is not None or args.max_turns is not None):
         parser.error("--max-steps and --max-turns apply only to one-shot tasks")
     env_file = args.env_file or (Path.cwd() / ".env")
-    settings = load_settings(
-        env_file if env_file.exists() else None,
-        args.config,
-        model=args.model,
-        context_tokens=args.context_tokens,
-        output_tokens=args.output_tokens,
-        protocol=args.protocol,
-        sandbox=args.sandbox,
-        approval=args.approval,
-        read_only=args.read_only or None,
-    )
+    try:
+        settings = load_settings(
+            env_file if env_file.exists() else None,
+            args.config,
+            profile=args.profile,
+            model=args.model,
+            context_tokens=args.context_tokens,
+            output_tokens=args.output_tokens,
+            protocol=args.protocol,
+            stream=args.stream,
+            sandbox=args.sandbox,
+            approval=args.approval,
+            read_only=args.read_only or None,
+        )
+    except (OSError, ValueError) as exc:
+        parser.error(str(exc))
     context_source = {
         "explicit": "configured total budget",
         "model_profile": "model default with 5% estimation margin",
@@ -66,6 +73,11 @@ def main(argv=None):
         "fallback": "unknown model fallback; use --output-tokens to override",
     }[settings.output_budget_source]
     output = settings.effective_output_tokens
+    print(
+        f"Aster model: {settings.profile or '(legacy)'} | {settings.provider}/{settings.model} "
+        f"| {settings.protocol} | stream={settings.stream}.",
+        file=sys.stderr,
+    )
     print(
         f"Aster context: {settings.effective_context_tokens - output:,} input "
         f"+ {output:,} output tokens ({context_source}); output: {output_source}.",

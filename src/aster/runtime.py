@@ -100,6 +100,25 @@ class Runtime:
         if self._operation_task or any(not w.future.done() for w in self.workers.workers.values()):
             raise RuntimeError("runtime_busy: await current operations and workers")
 
+    def switch_model(self, alias: str) -> Settings:
+        """Select a validated profile for subsequent tasks without changing permissions."""
+        self._ensure_idle()
+        if self.state and not self.state.terminal:
+            raise RuntimeError("active_run: finish the current task before switching models")
+        settings = self.settings.select_profile(alias)
+        model = ModelClient(settings)
+        context = ContextBuilder(settings.effective_context_tokens, settings.effective_output_tokens)
+        redactor = Redactor([*self.evidence.redactor.secrets, settings.api_key.get_secret_value()])
+        model.redaction_secrets = redactor.secrets
+        previous = self.settings.identity()
+        self.settings, self.model, self.context = settings, model, context
+        self.sandbox.settings = settings
+        self.evidence.redactor = self.memory.redactor = redactor
+        if self.state:
+            self.evidence.emit(self.state.run_id, "model_selected", previous=previous,
+                               selected=settings.identity(), scope="subsequent_tasks")
+        return settings
+
     def start(self, task: TaskSpec) -> RunState:
         self._ensure_idle()
         if self.state and not self.state.terminal:
@@ -317,7 +336,13 @@ class Runtime:
         assert state is not None
         try:
             request_messages = prompt
-            reply = await self.model.complete(request_messages, tool_defs)
+            if self.settings.stream and isinstance(self.model, ModelClient):
+                reply = await self.model.complete(
+                    request_messages, tool_defs,
+                    on_event=lambda event: self.evidence.emit(state.run_id, "model_stream", **event),
+                )
+            else:
+                reply = await self.model.complete(request_messages, tool_defs)
         except ProviderError as exc:
             state.feedback = str(exc)
             for name, value in exc.details.get("usage", {}).items():
