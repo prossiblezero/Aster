@@ -1,4 +1,5 @@
-import { STORAGE_KEY, parseStore, encodeStore, makeTask, makeId, validateTask, visibleTasks, summarize, isOverdue } from './logic.mjs';
+import { STORAGE_KEY, MAX_BACKUP_BYTES, parseStore, encodeStore, parseBackup, mergeBackup, makeTask, makeId, validateTask, visibleTasks, summarize, isOverdue } from './logic.mjs';
+import { buildCalendar } from './calendar.mjs';
 
 const $ = id => document.getElementById(id);
 let tasks = [];
@@ -32,6 +33,30 @@ function commit(nextTasks, action) {
   }
   render();
   return true;
+}
+
+function importTasks(importedTasks) {
+  if (!importedTasks.length) {
+    notify('导入完成：备份中没有任务，清单未更改。');
+    return;
+  }
+  if (needsRecoveryConfirmation && !window.confirm('原本地数据无法读取。继续将用合并后的清单替换原数据，是否继续？')) {
+    notify('导入已取消，清单未更改。', true);
+    return;
+  }
+
+  const nextTasks = mergeBackup(tasks, importedTasks);
+  try {
+    localStorage.setItem(STORAGE_KEY, encodeStore(nextTasks));
+  } catch {
+    notify('导入失败：无法写入本地存储，原清单未更改。', true);
+    return;
+  }
+  tasks = nextTasks;
+  needsRecoveryConfirmation = false;
+  $('storage-status').textContent = '';
+  render();
+  notify(`导入完成：已合并 ${importedTasks.length} 条任务。`);
 }
 
 function element(tag, className, text) {
@@ -153,6 +178,39 @@ $('task-form').addEventListener('submit', event => {
 });
 $('cancel-edit').addEventListener('click', () => { resetForm(); $('title').focus(); });
 for (const id of ['search', 'course-filter', 'status-filter']) $(id).addEventListener(id === 'search' ? 'input' : 'change', render);
+function download(content, type, filename) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+$('export-calendar').addEventListener('click', () => {
+  download(buildCalendar(tasks), 'text/calendar;charset=utf-8', 'campus-planner.ics');
+  notify('日历已导出，仅包含未完成作业，清单未更改。');
+});
+$('export-backup').addEventListener('click', () => {
+  download(encodeStore(tasks), 'application/json;charset=utf-8', 'campus-planner-backup.json');
+  notify('备份已导出，清单未更改。');
+});
+$('backup-input').addEventListener('change', async event => {
+  const input = event.currentTarget;
+  const file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    if (file.size > MAX_BACKUP_BYTES) throw new Error('备份文件超过 1 MiB 上限。');
+    importTasks(parseBackup(await file.text()));
+  } catch (error) {
+    notify(`导入失败：${error instanceof Error ? error.message : '无法读取备份文件。'} 原清单未更改。`, true);
+  } finally {
+    input.value = '';
+  }
+});
 $('sample-btn').addEventListener('click', () => {
   if (tasks.length) {
     notify('清单已有作业，未加载示例，也未覆盖现有数据。', true);

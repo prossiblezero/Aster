@@ -4,7 +4,7 @@
 
 以下七个产品从历史候选原样复制，没有人工修补实现。各目录的 `ORIGIN.md` 记录来源，[迁移记录](../evaluations/archive-migration-20260918.json) 保存逐文件摘要。历史验收不代表新实验结果，也不代表完整的发布审计；使用限制以各项目 README 为准。
 
-新增 [课业清单](campus_planner/README.md)：大学生本地作业管理网页，支持添加、编辑、搜索筛选、截止日期与完成状态，刷新后保留数据，适配手机。运行 `conda activate aster`，进入 `exam_project/campus_planner` 后执行 `python -m http.server 8000 --bind 127.0.0.1`，浏览器打开 `http://127.0.0.1:8000/`。其基础版通过6项Node自测及12项独立浏览器验收；[来源与人工恢复记录](campus_planner/ORIGIN.md)保留完整边界。
+新增 [课业清单](campus_planner/README.md)：大学生本地作业管理网页，支持添加、编辑、搜索筛选、截止日期与完成状态、JSON备份和ICS日历导出，刷新后保留数据，适配手机。运行 `conda activate aster`，进入 `exam_project/campus_planner` 后执行 `python -m http.server 8000 --bind 127.0.0.1`，浏览器打开 `http://127.0.0.1:8000/`。最终版本通过17项Node自测及26项独立浏览器验收；[来源与人工恢复记录](campus_planner/ORIGIN.md)保留完整边界。
 
 先启用指定环境，再进入对应产品目录：
 

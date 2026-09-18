@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isValidDue, validateTask, parseStore, visibleTasks, summarize, encodeStore } from './logic.mjs';
+import { MAX_BACKUP_BYTES, isValidDue, validateTask, parseStore, parseBackup, mergeBackup, visibleTasks, summarize, encodeStore } from './logic.mjs';
 
 const task = (id, due, extra = {}) => ({ id, title: `作业${id}`, course: '课程A', due, notes: '', completed: false, ...extra });
 
@@ -38,4 +38,66 @@ test('摘要不把已完成逾期任务计入逾期', () => {
 
 test('存储编码符合公开 version=1 契约', () => {
   assert.deepEqual(JSON.parse(encodeStore([task('a', '2026-01-01T10:00')])), { version: 1, tasks: [task('a', '2026-01-01T10:00')] });
+});
+
+test('备份按 ID 替换和追加，并保留未涉及的现有任务', () => {
+  const current = [task('keep', '2026-01-01T10:00'), task('replace', '2026-01-02T10:00')];
+  const imported = parseBackup(JSON.stringify({
+    version: 1,
+    tasks: [
+      task('replace', '2026-02-02T10:00', { title: '导入后的任务' }),
+      task('new', '2026-03-03T10:00')
+    ]
+  }));
+  const merged = mergeBackup(current, imported);
+  assert.deepEqual(merged.map(item => item.id), ['keep', 'replace', 'new']);
+  assert.equal(merged[1].title, '导入后的任务');
+  assert.equal(merged[0].title, current[0].title);
+  assert.deepEqual(current.map(item => item.id), ['keep', 'replace']);
+});
+
+test('备份忽略额外字段并保留 HTML 片段为普通字符串', () => {
+  const imported = parseBackup(JSON.stringify({
+    version: 1,
+    ignored: '<img src=x onerror=alert(1)>',
+    tasks: [task('html', '2026-01-01T10:00', {
+      title: '<script>alert(1)</script>',
+      notes: '<b>普通文本</b>',
+      extra: '<img src=x onerror=alert(1)>'
+    })]
+  }));
+  assert.equal(imported[0].title, '<script>alert(1)</script>');
+  assert.equal(imported[0].notes, '<b>普通文本</b>');
+  assert.equal('extra' in imported[0], false);
+});
+
+test('非法备份整包拒绝且不会修改现有任务', () => {
+  const current = [task('original', '2026-01-01T10:00')];
+  const snapshot = structuredClone(current);
+  const invalidPackages = [
+    '{bad',
+    JSON.stringify({ version: 2, tasks: [] }),
+    JSON.stringify({ version: 1, tasks: [task('duplicate', '2026-01-01T10:00'), task('duplicate', '2026-01-02T10:00')] }),
+    JSON.stringify({ version: 1, tasks: [task('bad-date', '2026-02-30T10:00')] }),
+    JSON.stringify({ version: 1, tasks: [task('bad-field', '2026-01-01T10:00', { completed: 1 })] })
+  ];
+  for (const raw of invalidPackages) assert.throws(() => mergeBackup(current, parseBackup(raw)));
+  assert.deepEqual(current, snapshot);
+});
+
+test('备份上限按 UTF-8 字节计算，超过 1 MiB 时拒绝', () => {
+  const empty = JSON.stringify({ version: 1, tasks: [] });
+  const exactLimit = empty + ' '.repeat(MAX_BACKUP_BYTES - new TextEncoder().encode(empty).byteLength);
+  assert.equal(MAX_BACKUP_BYTES, 1024 * 1024);
+  assert.deepEqual(parseBackup(exactLimit), []);
+  assert.throws(() => parseBackup(`${exactLimit} `), /1 MiB/);
+  assert.throws(() => parseBackup('课'.repeat(Math.ceil((MAX_BACKUP_BYTES + 1) / 3))), /1 MiB/);
+});
+
+test('空备份合法且合并结果不改变任务内容', () => {
+  const current = [task('a', '2026-01-01T10:00')];
+  const imported = parseBackup('{"version":1,"tasks":[]}');
+  assert.deepEqual(imported, []);
+  assert.deepEqual(mergeBackup(current, imported), current);
+  assert.notEqual(mergeBackup(current, imported), current);
 });

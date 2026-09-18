@@ -1,5 +1,6 @@
 // 无 DOM 依赖的课业清单规则，浏览器和 Node 测试均可使用。
 export const STORAGE_KEY = 'campus-planner-v1';
+export const MAX_BACKUP_BYTES = 1024 * 1024;
 
 export function isValidDue(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return false;
@@ -71,3 +72,53 @@ export function summarize(tasks, now = new Date()) {
 }
 
 export function encodeStore(tasks) { return JSON.stringify({ version: 1, tasks }); }
+
+function backupError(message) {
+  throw new Error(message);
+}
+
+export function parseBackup(raw) {
+  if (typeof raw !== 'string') backupError('无法读取备份文件。');
+  if (new TextEncoder().encode(raw).byteLength > MAX_BACKUP_BYTES) backupError('备份文件超过 1 MiB 上限。');
+
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    backupError('备份不是合法的 JSON。');
+  }
+  if (!data || typeof data !== 'object' || data.version !== 1 || !Array.isArray(data.tasks)) {
+    backupError('备份版本或结构不受支持。');
+  }
+
+  const seen = new Set();
+  return data.tasks.map((task, index) => {
+    const error = validateTask(task);
+    if (error) backupError(`第 ${index + 1} 条任务无效：${error}。`);
+    if (seen.has(task.id)) backupError(`备份中存在重复 ID：${task.id}。`);
+    seen.add(task.id);
+    return {
+      id: task.id,
+      title: task.title,
+      course: task.course,
+      due: task.due,
+      notes: task.notes,
+      completed: task.completed
+    };
+  });
+}
+
+export function mergeBackup(currentTasks, importedTasks) {
+  const positions = new Map(currentTasks.map((task, index) => [task.id, index]));
+  const merged = currentTasks.map(task => ({ ...task }));
+  for (const task of importedTasks) {
+    const position = positions.get(task.id);
+    if (position === undefined) {
+      positions.set(task.id, merged.length);
+      merged.push({ ...task });
+    } else {
+      merged[position] = { ...task };
+    }
+  }
+  return merged;
+}
