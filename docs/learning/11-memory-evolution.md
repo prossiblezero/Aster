@@ -27,9 +27,9 @@ flowchart LR
 
 | `Settings` 字段 | 默认值 | 作用 |
 |---|---|---|
-| `memory_enabled` | `True` | 开启跨运行存储与召回，不控制短期工作记忆 |
-| `memory_evolution` | `True` | 开启使用反馈更新、反馈排序和 Dream 维护 |
-| `auto_dream` | `True` | 运行完成或停止时，自动尝试一次 Dream |
+| `memory_enabled` | `False` | 开启跨运行存储与召回，不控制短期工作记忆 |
+| `memory_evolution` | `False` | 开启使用反馈更新、反馈排序和 Dream 维护 |
+| `auto_dream` | `False` | 运行完成或停止时，自动尝试一次 Dream |
 
 关闭 `auto_dream` 不会关闭反馈计数，仍可显式调用 `Memory.dream()`。关闭 `memory_evolution` 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。
 
@@ -142,7 +142,7 @@ async def main():
         ]
         source = root / "commands.txt"
         source.write_text("\n".join(texts), encoding="utf-8")
-        runtime = Runtime(root, Settings(auto_dream=False))
+        runtime = Runtime(root, Settings(memory_enabled=True, memory_evolution=True, auto_dream=False))
         runtime.start(TaskSpec(prompt="Inspect project tests"))
         observed = await runtime.step(ToolCall(
             name="read_file", arguments={"path": "commands.txt"}

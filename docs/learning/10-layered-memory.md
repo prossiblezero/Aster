@@ -140,7 +140,7 @@ async def main():
         root = Path(folder)
         source = root / "config.txt"
         source.write_text("Service port is 8123.\n", encoding="utf-8")
-        settings = Settings(approval="auto", auto_dream=False)
+        settings = Settings(approval="auto", memory_enabled=True, auto_dream=False)
         first = Runtime(root, settings)
         first.start(TaskSpec(prompt="Inspect the service port"))
 

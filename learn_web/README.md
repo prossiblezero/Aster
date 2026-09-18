@@ -2,7 +2,7 @@
 
 这是 Aster 学习课程的纯静态站点。正文由仓库根目录的 `docs/learning/00-*.md` 到 `15-*.md` 构建，生成结果包含 16 个章节页、课程引用文件的站内副本、带行号的 Python 源码页和搜索索引。构建过程不联网，也不依赖 Graphviz。
 
-网站专用文件集中在本目录：`scripts/` 保存运行器与实验传输，`tests/` 保存网站和传输测试，`docs/` 保存[任务约定](docs/website-task.md)及[历史运行报告](docs/website-run-report.md)，`artifacts/website-build/` 保存本地忽略的原始证据。后续独立实验放在仓库的 `exam_project/`。
+网站专用文件集中在本目录：`scripts/` 保存运行器与实验传输，`tests/` 保存网站和传输测试，`docs/` 保存[任务约定](docs/website-task.md)及[历史运行报告](docs/website-run-report.md)，`artifacts/website-build/` 保存本地忽略的原始证据。后续独立实验放在仓库的 `evaluations/`，可运行产品放在 `exam_project/`。
 
 ## 本地构建与预览
 

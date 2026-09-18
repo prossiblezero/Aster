@@ -85,7 +85,7 @@ Shell/测试输出最多采集 4 MiB，正常、失败及超时结束均在脱�
 | `read_only` | `false` | 阻止写工具；Shell 在隔离副本内运行且不能把修改带回工作区 |
 | `write_scope` | `None` | 工作区内允许写入的相对路径前缀。`None` 不额外收窄；`[]` 不允许写任何文件；`["src", "tests"]` 仅允许这两个路径及其后代 |
 | `rules` | `[]` | 命令参数前缀规则；字段解释见下文 |
-| `max_workers` | `2` | 同时运行的子任务数；已完成子任务不继续占用名额。子任务内部固定为 `0`，不能递归扩张 |
+| `max_workers` | `0` | 同时运行的子任务数；已完成子任务不继续占用名额。子任务内部固定为 `0`，不能递归扩张 |
 | `read_parallelism` | `1` | 同轮全部为 `read_file/search/list_files` 时的并发上限，范围 1–8；混有其他工具的整批串行，与 Worker 开关独立 |
 | `reuse_environment` | `false` | 仅 required 沙箱可开启；同一 Runtime 跨命令保留临时 `.venv`/`node_modules`，不回写宿主依赖，新会话/进程需重建。详见[执行环境](execution-environment.md) |
 
@@ -122,9 +122,9 @@ Git 工作区通过本机 Git 排除未跟踪且被忽略的文件与目录，�
 | `max_recovery` | `1` | 检测到重复无进展后，最多给多少次改变方案的机会；用尽后停止 |
 | `max_final_revisions` | `2` | 模型准备结束但尚未满足任务条件时，最多要求它补做多少轮 |
 | `completion` | `strict` | `strict` 不满足完成条件就停止；`warn` 允许带警告完成；`soft` 当前与 `warn` 等价；`off` 不要求补做，但仍输出验证结果 |
-| `memory_enabled` | `true` | 开关跨运行记忆的保存和召回；**不关闭会话内 working memory** |
-| `memory_evolution` | `true` | 开关使用反馈、基于反馈的排序及 Dream；关闭后仍可保存合格摘录，来源失效和安全准入仍生效 |
-| `auto_dream` | `true` | 每次运行结束后自动执行一次记忆维护：标记过期、被否定或反复失败的条目；不是调用另一个模型写总结 |
+| `memory_enabled` | `false` | 开关跨运行记忆的保存和召回；**不关闭会话内 working memory** |
+| `memory_evolution` | `false` | 开关使用反馈、基于反馈的排序及 Dream；关闭后仍可保存合格摘录，来源失效和安全准入仍生效 |
+| `auto_dream` | `false` | 每次运行结束后自动执行一次记忆维护：标记过期、被否定或反复失败的条目；不是调用另一个模型写总结 |
 
 以下属于 [TaskSpec](../src/aster/schema.py)，不是全局 Settings：
 
@@ -149,7 +149,7 @@ CLI `aster --resume RUN_ID [反馈]` 或 TUI `/resume RUN_ID` 恢复后启动上
 
 空闲时 `/model <alias>` 现在作用于同一会话：先校验完整历史、工具配对和新预算，再保存原生历史证据及切换事件。跨 Responses、Chat、Anthropic 转换保留文本与工具结果，去除不兼容的不透明推理/签名并记录数量；普通图片、引用等尚不支持的语义内容会明确拒绝，不能当成无损转换。新旧凭证共同脱敏，无法安全保存的不透明内容导致切换失败。配置、历史或预算预检失败保留原会话。较小窗口可能压缩历史，旧观察仍需从已授权归档回读。
 
-Responses assistant 的 `phase=commentary/final_answer` 在同协议切换及回放时原值保留，避免把进度当成最终答复；目前 Chat/Anthropic 没有等价映射，带有效 phase 的历史切向这两种协议会明确拒绝。真实恢复实验已经完成阶段 1，但其冻结旧版本在 profile 切换时遇到 phase 兼容问题，修复后只有离线回放验证；详见[会话恢复实战](../exam_project/session_recovery/report.md)，不能宣称已有真实跨模型成功证据。
+Responses assistant 的 `phase=commentary/final_answer` 在同协议切换及回放时原值保留，避免把进度当成最终答复；目前 Chat/Anthropic 没有等价映射，带有效 phase 的历史切向这两种协议会明确拒绝。真实恢复实验已经完成阶段 1，但其冻结旧版本在 profile 切换时遇到 phase 兼容问题，修复后只有离线回放验证；详见[会话恢复实战](../evaluations/archive/session_recovery/report.md)，不能宣称已有真实跨模型成功证据。
 
 实际发送内容与请求预算共用脱敏后的消息；切换或恢复（包括只轮换凭证、模型身份不变）会重新过滤可见历史和 Skill 快照。不透明内容仍原值校验。若凭证与已选技能别名、模型/工具定义或必须保留的协议控制字段冲突，则拒绝操作，不能通过重命名、删除技能或改写 phase 来绕过。
 
@@ -188,3 +188,22 @@ python -m pytest -q tests/test_new_contracts.py tests/test_safety.py tests/test_
 启用持久 Memory 时，动态上下文给出发现长期项目约定后保存短原文摘录的提示，并提供 `tool_load → memory_store` 入口；没有自动生成或自动写入经验。保存仍须引用本次成功 `read_file` 的证据 ID，核对原文、文件摘要、敏感/暂态/越权内容。
 
 自动召回同时使用初始请求和最近用户反馈。中文查询使用相邻双字片段与英文词面进行检索，改善“默认目录是什么”等改写；这是词面召回，不是向量语义搜索。文件变化后条目仍立即失效，Dream 只维护现有条目。命令失败经验、用户偏好和环境约束尚未纳入新来源；不能绕过现有出处/失效要求直接保存模型总结。
+
+## v0.2 默认迁移与恢复
+
+新会话默认只运行单 Agent：`memory_enabled=false`、`memory_evolution=false`、`auto_dream=false`、`max_workers=0`。会话内读取证据、工作记忆、九个核心工具继续可用。需要旧功能时在 TOML 显式设置：
+
+```toml
+memory_enabled = true
+memory_evolution = true
+auto_dream = true
+max_workers = 2
+```
+
+恢复旧 checkpoint 必须提供与保存时相同的安全及功能配置；不匹配会列出字段并拒绝，不静默迁移。`--allow-model-change` 只允许模型相关变化，不能越过功能和权限边界。旧 checkpoint 不会因拒绝恢复而重写。v0.2 保存的 checkpoint 使用版本 2，旧版状态可读；新状态须用 v0.2 或更新版本恢复，不能用不识别在途执行标记的旧版恢复。
+
+执行批次开始前保存 `inflight.json`，完整配对的结果原子保存后移除。进程崩溃留下结果不明的调用时，恢复报 `interrupted_tool_batch`；先检查工作区、事件与外部副作用，再从确认过的状态启动新任务。`--adopt-workspace` 不绕过这一限制。完成 checkpoint 已包含整批结果而仅剩旧标记时可以恢复，已完成调用 ID 仍禁止重复。普通 Ctrl+C 会等待清理并保存状态；这不是任意外部命令的 exactly-once 保证。
+
+CLI `--stream` 将按尝试分隔的实时接收进度和正文预览写到 stderr，stdout 只输出最终完整答案。失败尝试的预览标为放弃，不作为已提交答复；为保护被流式分片拆开的凭证，正文按完整行脱敏后显示。CLI 和 TUI 都接受 `--max-steps`、`--max-turns`，停止时显示 run ID、原因、改动数量、验证状态和恢复入口。
+
+Provider 按空回复、不支持的输出、截断、拒绝及坏结构分类。单次逻辑请求最多三次传输尝试，空回复最多重试一次并计入这个总上限；不自动换模型、协议或服务地址。每次尝试的已知 usage 与缺失情况单列，响应模型标签只是服务端声明，不代表已核实实际底层模型。

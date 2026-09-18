@@ -78,7 +78,7 @@ aster --tui --cwd /tmp/aster-tui-practice --env-file .env --approval ask
 | `mode="explore"` | 只读调查；不能向工作区发布改动 |
 | `mode="worker"` | 可写子任务，但只在指定 `write_scope` 内写回 |
 | `write_scope` | 相对工作区路径列表；与父范围取交集，不扩大权限 |
-| `max_workers` | 同时活跃的子任务上限，默认 2；结束后名额可复用 |
+| `max_workers` | 同时活跃的子任务上限，默认 0（按需显式开启）；结束后名额可复用 |
 | `worker_id` | 父运行管理子任务的编号，不是子运行的 `run_id` |
 | `future` | Python 的异步任务句柄，供调度器等待和取消 |
 | `inbox` | 尚未投递给子运行的补充要求 |
