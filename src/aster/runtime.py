@@ -551,7 +551,8 @@ class Runtime:
         self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
-        skills = "\n".join(self.skills.list())
+        catalog = self.skills.catalog()
+        skills = json.dumps(catalog, ensure_ascii=False) if catalog else ""
         skill_bodies = {}
         for name in dict.fromkeys(state.active_skills):
             try:
@@ -1404,7 +1405,8 @@ class Runtime:
             )
         if name == "skill_load":
             # Page offsets refer to the same redacted text later compacted for the model.
-            text = self.evidence.redactor.text(self.skills.load(args["name"]))
+            resource = args.get("resource", "")
+            text = self.evidence.redactor.text(self.skills.load(args["name"], resource))
             result = text_page(
                 text,
                 args["offset"],
@@ -1412,7 +1414,7 @@ class Runtime:
             )
             if result.status != "success":
                 return result
-            if args["name"] not in state.active_skills:
+            if not resource and args["name"] not in state.active_skills:
                 state.active_skills.append(args["name"])
             result.data["untrusted"] = True
             return result

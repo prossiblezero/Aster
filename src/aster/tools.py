@@ -152,6 +152,9 @@ class ObservationRead(TextPage):
 
 class SkillLoad(TextPage):
     name: str
+    resource: str = Field(
+        default="", description="Optional text resource path relative to this skill package."
+    )
 
 
 class ToolLoad(Record):
@@ -264,7 +267,7 @@ SCHEMAS = {
     "git_diff": (Empty, "Show changes from this task's initial workspace snapshot.", "read"),
     "skill_load": (
         SkillLoad,
-        "Select a skill and read its body in character pages; follow next_offset until null.",
+        "Select a skill and read its body, or read a named package resource without executing it. Character pages use next_offset until null; resources do not activate the skill.",
         "state",
     ),
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
@@ -617,10 +620,15 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                 # -I intentionally ignores PYTHONPATH. Import the trusted test runner
                 # first, then expose only this sandbox's controlled dependency target.
                 marker = "sys.path.insert(0, os.getcwd())"
-                program = program.replace(marker, marker + "\n" + (
-                    "sys.path.insert(1, os.path.join(os.getcwd(), '.venv', 'lib', "
-                    "f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages'))"
-                ))
+                program = program.replace(
+                    marker,
+                    marker
+                    + "\n"
+                    + (
+                        "sys.path.insert(1, os.path.join(os.getcwd(), '.venv', 'lib', "
+                        "f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages'))"
+                    ),
+                )
                 command[3] = program
             settings = self.context.sandbox.settings.model_copy(
                 update={"read_only": False, "write_scope": [report]}
@@ -647,12 +655,9 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.partial_success = False
             result.data["tested_workspace_hash"] = tested_fingerprint
             result.data["tested_environment_generation"] = tested_environment
-        if (
-            result.status == "success"
-            and (
-                self.context.workspace.fingerprint() != tested_fingerprint
-                or self.context.sandbox.environment_generation != tested_environment
-            )
+        if result.status == "success" and (
+            self.context.workspace.fingerprint() != tested_fingerprint
+            or self.context.sandbox.environment_generation != tested_environment
         ):
             result.status, result.reason = "blocked", "workspace_changed_during_verification"
         if result.status in {"blocked", "timeout", "cancelled"}:

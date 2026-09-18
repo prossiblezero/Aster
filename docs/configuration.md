@@ -87,6 +87,7 @@ Shell/测试输出最多采集 4 MiB，正常、失败及超时结束均在脱�
 | `rules` | `[]` | 命令参数前缀规则；字段解释见下文 |
 | `max_workers` | `2` | 同时运行的子任务数；已完成子任务不继续占用名额。子任务内部固定为 `0`，不能递归扩张 |
 | `read_parallelism` | `1` | 同轮全部为 `read_file/search/list_files` 时的并发上限，范围 1–8；混有其他工具的整批串行，与 Worker 开关独立 |
+| `reuse_environment` | `false` | 仅 required 沙箱可开启；同一 Runtime 跨命令保留临时 `.venv`/`node_modules`，不回写宿主依赖，新会话/进程需重建。详见[执行环境](execution-environment.md) |
 
 `approval=auto` 无法覆盖工作区越界、只读、禁止规则或 Hooks 拒绝。TUI 的 **Allow once** 只批准当前动作，不修改配置。`plan_enter` 进入计划模式后，写工具被拒绝，Shell 只能在副本中观察；`plan_exit` 仍经过权限判断。
 
