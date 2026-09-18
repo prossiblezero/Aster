@@ -21,7 +21,7 @@ HERE = Path(__file__).resolve().parent
 STORAGE_KEY = "campus-planner-v1"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 ERROR_TEXT = re.compile(
-    r"失败|错误|无效|非法|损坏|无法|不能|不支持|超过|超出|重复|未保存|不可用|不合法"
+    r"失败|错误|无效|非法|损坏|无法|不能|不支持|不受支持|不兼容|不匹配|超过|超出|重复|未保存|不可用|不合法"
 )
 
 
@@ -164,6 +164,19 @@ def card(page, title):
     return cards(page).filter(has_text=title)
 
 
+def select_control(page, label):
+    # An implicit <label> may include its select's option text in its accessible
+    # name. Match the public label prefix, without relying on candidate DOM IDs.
+    control = page.get_by_label(re.compile(r"^\s*" + re.escape(label)))
+    assert control.count() == 1, f"expected one select labelled {label}"
+    assert control.evaluate("node => node.tagName") == "SELECT"
+    return control
+
+
+def accept_dialog(dialog):
+    dialog.accept()
+
+
 def add(page, title="线性代数练习", course="数学", due="2099-11-08T23:59", notes="矩阵与行列式"):
     for label, value in (("作业名称", title), ("课程", course), ("截止时间", due), ("备注", notes)):
         page.get_by_label(label, exact=True).fill(value)
@@ -245,7 +258,7 @@ class BrowserAudit:
         page = context.new_page()
         page.set_default_timeout(2500)
         page.on("pageerror", lambda error: errors.append(str(error)[:1000]))
-        page.on("dialog", lambda dialog: dialog.accept())
+        page.on("dialog", accept_dialog)
         result = {"name": name, "passed": False}
         try:
             page.goto(self.origin + "/", wait_until="networkidle", timeout=10000)
@@ -306,7 +319,7 @@ def check_base(audit):
         updated = storage(page)["tasks"][0]
         assert updated["course"] == "应用数学" and updated["due"] == "2099-12-01T09:30"
         assert updated["notes"] == "修改后的备注"
-        courses = page.get_by_label("筛选课程", exact=True)
+        courses = select_control(page, "筛选课程")
         assert courses.get_by_role("option", name="应用数学", exact=True).count() == 1
         assert courses.get_by_role("option", name="数学", exact=True).count() == 0
         row = card(page, "修改后的矩阵练习")
@@ -367,12 +380,12 @@ def check_base(audit):
             search.fill(text)
             expect(cards(page)).to_have_count(count)
         search.fill("")
-        page.get_by_label("筛选课程", exact=True).select_option(label="物理")
+        select_control(page, "筛选课程").select_option(label="物理")
         expect(cards(page)).to_have_count(2)
-        page.get_by_label("筛选状态", exact=True).select_option(label="未完成")
+        select_control(page, "筛选状态").select_option(label="未完成")
         search.fill("量子关键词")
         expect(cards(page)).to_have_count(1)
-        page.get_by_label("筛选状态", exact=True).select_option(label="已完成")
+        select_control(page, "筛选状态").select_option(label="已完成")
         expect(cards(page)).to_have_count(0)
 
     audit.run("base-combined-search-and-filters", filters, tasks=fixtures)
@@ -393,7 +406,7 @@ def check_base(audit):
         assert cards(page).count() > 0
         add(page, title="需要保留的个人作业")
         dialogs = []
-        page.remove_all_listeners("dialog")
+        page.remove_listener("dialog", accept_dialog)
         page.on("dialog", lambda dialog: (dialogs.append(dialog.type), dialog.dismiss()))
         page.get_by_role("button", name="加载示例", exact=True).click()
         # A confirmation dialog or non-destructive append/refusal is acceptable.

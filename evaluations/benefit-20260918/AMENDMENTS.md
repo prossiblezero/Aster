@@ -17,3 +17,15 @@ Memory评分事前审查发现：允许有效证据引用的题目，应同时�
 `base-recovery-1`也在0工具步时失败，新增日志确认响应`status=completed`且`output=[]`，同时报告120输出tokens。这次可以确认服务端返回空数组，仍不能确认服务端内部原因。
 
 最后一次基线恢复命名`base-recovery-2-stream`，使用Aster已有Responses流式接收，其他需求、预算与源码不变。此举是有限的交付恢复与传输诊断，不是重复同条件抽样；前两次失败计入总投入，不能把流式恢复成功写成首次成功。如果它成功，全部后续Skills与Memory条件统一使用stream=True；原协议中stream=False由本修订替代，其余实验顺序和上限不变。不得将这几次不同传输模式的轨迹当作流式加速对照。
+
+## 流式基线终止后的评分器修正与独立交付任务
+
+`base-recovery-2-stream`在28工具步、15模型轮后以provider_error终止，已生成HTML/CSS/JS、纯逻辑和自测文件，但没有README，也未执行正式自测。原三次基线尝试均保留失败，不因为后续补交付改写原结论。
+
+冻结浏览器评分首次输出[8/12](results/base-recovery-2-stream-browser.json)。实际逐项复核确认四个失败均来自评分器：隐式`label`包含`select`的选项文本，使精确label匹配导致CRUD和筛选两项误判；Playwright Python不存在`Page.remove_all_listeners`，导致示例保护检查未能执行；合法错误反馈“版本或结构不受支持”未被过窄的错误关键词接受。候选本身未为这些评分器问题修改。
+
+评分器仅修正这三类检查：公开筛选label按前缀匹配并要求唯一的select；通过已注册回调使用`remove_listener`更换确认处理；认可“不受支持/不兼容/不匹配”等明确错误提示。公开功能契约和测试数据不变，新增真实Chromium离线回归，判定器与基础设施合计10项通过。修正后对同一未修改候选重新验收[12/12通过](results/base-recovery-2-stream-browser-corrected.json)，原失败输出和两次截图均保留。这是浏览器功能通过，不补记README或Aster自测为完成。
+
+原评分器SHA256：`6147438e5c1418161df9974f8a1ee9c773b9f1ead269c67d8b4d0da0bd6232c1`；修正后：`909e13b47721ba412c9c780a565960322ad5c212a09411bd88efc21049ea5a5a`。离线测试文件修正后SHA256：`8041584fbe9aa32c98393b7010e11f2a8b7a0ef4133c5e755a31a485fba101ff`。后续所有条件统一使用修正版，启动记录保存实际评分器hash。
+
+为完成实际产品，另开`delivery-base-finish`交付任务，提示为`delivery_finish_request.md`，仅要求补README并由Aster实际运行Node自测，预算30工具步、20模型轮、900秒，人工反馈累计记3次。它不属于原基线三次尝试，不用于声称零干预从零成功；只有产品和浏览器验收通过后才作为四个维护任务的共同seed。后续Skills和Memory条件统一stream=True，各条件保留独立成本与成败。

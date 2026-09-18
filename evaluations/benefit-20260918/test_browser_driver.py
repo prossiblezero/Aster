@@ -123,3 +123,24 @@ def test_browser_harness_preserves_reload_state_and_continues_after_failure(tmp_
             audit.run("reload-state", reload, tasks=[])
     assert [case["passed"] for case in audit.cases] == [False, True]
     assert audit.cases[0]["screenshot"]
+
+
+def test_implicit_select_labels_dialog_replacement_and_error_synonym():
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as playwright:
+        with playwright.chromium.launch(headless=True) as browser:
+            page = browser.new_page()
+            page.set_content("""<label>筛选课程<select><option>全部课程</option><option>数学</option></select></label>
+                <button onclick="window.confirmed = confirm('替换？')">加载示例</button>
+                <p>本地数据版本或结构不受支持，已使用空清单。</p>""")
+            assert page.get_by_label("筛选课程", exact=True).count() == 0
+            checker.select_control(page, "筛选课程").select_option(label="数学")
+            page.on("dialog", checker.accept_dialog)
+            page.get_by_role("button", name="加载示例").click()
+            assert page.evaluate("window.confirmed") is True
+            page.remove_listener("dialog", checker.accept_dialog)
+            page.on("dialog", lambda dialog: dialog.dismiss())
+            page.get_by_role("button", name="加载示例").click()
+            assert page.evaluate("window.confirmed") is False
+            checker.visible_error(page)
