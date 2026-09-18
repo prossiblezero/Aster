@@ -552,11 +552,11 @@ class Runtime:
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
         catalog = self.skills.catalog()
-        skills = json.dumps(catalog, ensure_ascii=False) if catalog else ""
+        skills = self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
         skill_bodies = {}
         for name in dict.fromkeys(state.active_skills):
             try:
-                skill_bodies[name] = self.skills.load(name)
+                skill_bodies[name] = self.evidence.redactor.text(self.skills.load(name))
             except (OSError, ValueError):
                 skill_bodies[name] = (
                     "[Skill unavailable; check the skill catalog before reloading.]"

@@ -1,8 +1,10 @@
 import json
 
+import pytest
+
 from aster.config import Settings
 from aster.runtime import Runtime
-from aster.schema import TaskSpec, ToolCall
+from aster.schema import ModelReply, TaskSpec, ToolCall
 
 
 def package(tmp_path):
@@ -80,3 +82,33 @@ async def test_skill_resource_pages_redact_before_offsets_and_reject_state_escap
         )
     )
     assert invalid.status != "success"
+
+
+@pytest.mark.parametrize("location", ["description", "body"])
+async def test_actual_model_request_redacts_skill_metadata_and_active_body(tmp_path, location):
+    package(tmp_path)
+    secret = "synthetic-provider-credential-for-skill-test"
+    description = secret if location == "description" else "Review CLI error behavior"
+    body = secret if location == "body" else "Review carefully."
+    (tmp_path / ".skills/review/SKILL.md").write_text(
+        f"---\nname: review\ndescription: {description}\n---\n{body}\n"
+    )
+    runtime = Runtime(tmp_path, Settings(api_key=secret, memory_enabled=False, completion="off"))
+    runtime.start(TaskSpec(prompt="Inspect this CLI"))
+    if location == "body":
+        selected = await runtime.step(ToolCall(name="skill_load", arguments={"name": "review"}))
+        assert selected.status == "success" and secret not in selected.content
+
+    class InspectRequest:
+        requests = 0
+
+        async def complete(self, prompt, _tools):
+            self.requests += 1
+            actual = json.dumps(prompt)
+            assert secret not in actual
+            assert "[REDACTED]" in prompt[-1]["content"]
+            return ModelReply(text="Inspection complete.")
+
+    runtime.model = InspectRequest()
+    await runtime.turn()
+    assert runtime.model.requests == 1
