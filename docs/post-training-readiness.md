@@ -29,11 +29,11 @@
 
 本轮网页案例以及被用于调试 Harness 的 Memory 实验可以作为开发诊断或机制评测证据。若已根据结果修改实现、提示或预算，就不应称为从未使用过的独立测试集；也不能一边训练这些轨迹，一边用同题成绩宣称泛化。新的测试清单应在后续选择模型、提示和训练参数之前冻结。
 
-本轮真实 Memory 实验结果参见 [exam_project/mdcheck_memory/report.md](../exam_project/mdcheck_memory/report.md)。
+早期真实 Memory 实验结果参见 [mdcheck 报告](../exam_project/mdcheck_memory/report.md)；本轮新实验见 [notetally 报告](../exam_project/memory_followup/report.md)。两者均已用于工程诊断，不能充作未见训练测试集。
 
 ### 2. 将审计工件转换成可校验的 SFT 样本
 
-`scripts/benchmark_support.py::archive()` 目前复制运行工件和候选文件；它不是训练样本导出器。项目尚无 SFT 轨迹筛选、tokenization、loss mask 或训练数据流水线。
+`scripts/benchmark_support.py::archive()` 复制运行工件和候选文件；它不是训练样本导出器。新增 `training.py` 已有实际请求投影和 assistant-only mask 的校验契约，尚无真实 tokenizer/template 对齐、轨迹筛选及训练数据流水线。
 
 导出应以每次模型请求的实际可见输入与对应 assistant 输出为单位。上下文裁剪和归档回读会改变观察，不能仅用最终 checkpoint 重建所有历史时刻，也不能直接把 `state.messages` 当成完整模型输入。`Runtime.prepare_request()` 保存的请求工件和完整执行历史应分别保留，前者用于训练输入对齐，后者用于审计与协议检查。
 
@@ -47,7 +47,7 @@
 
 GRPO 方案需要定义同题多次采样的分组、组内奖励与优势计算，并由训练侧获取或可重算行为策略的逐 token logprobs。还应记录 actor/reference 权重版本、token IDs、采样参数、输出终止原因及训练 mask，保证计算概率时使用的观察与采样时一致。
 
-当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，例如 `deterministic-v4`；它不是行为模型的权重版本。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/provider.py)、[context.py：ContextReport](../src/aster/context.py)。
+当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v5`；它不是行为模型的权重版本。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/provider.py)、[context.py：ContextReport](../src/aster/context.py)。
 
 ### 4. 明确奖励可信范围与异常处理
 

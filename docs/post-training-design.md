@@ -110,4 +110,4 @@ flowchart LR
 /home/dzh/.conda/envs/aster/bin/python -m ruff check src/aster/training.py tests/test_training_contract.py
 ```
 
-回滚本批只需移除新增模块、契约测试和本文；没有修改 Runtime/provider、训练数据、模型权重或环境依赖。
+训练模块独立于权重更新路径；本批同时在 Runtime 的 `model_reply` 事件新增实际请求摘要绑定，以避免导出同轮预览错配。回滚时须一并处理该证据字段及其回归，不能只删除新增模块后声称数据接口完全回到原状。没有修改训练数据、模型权重或环境依赖。

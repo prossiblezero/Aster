@@ -4,11 +4,11 @@
 
 [分阶段学习](docs/learning/README.md) · [教学网站](learn_web/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
 
-最近重构：[上下文归档与配对校验](docs/learning/07-context-archives.md)，以及[原题回归结果与限制](docs/context-results.md)。
+最近实现：[长任务分批记录](docs/long-task-implementation.md)，包括批量补丁、命令输出回读、模型配置与会话续聊、Responses 流式、只读工具并行、受控依赖复用及 [Skills 包](docs/skills.md)。
 
 教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；后续实验项目统一放在 `exam_project/`。课程正文仍以 `docs/learning/` 为来源。
 
-最新实战：[mdcheck 与 Memory 对照报告](exam_project/mdcheck_memory/report.md) · [后训练准备度与设计前提](docs/post-training-readiness.md)。
+独立实测：[流式](exam_project/stream_comparison/report.md) · [只读并行](exam_project/parallel_comparison/report.md) · [缓存](exam_project/cache_comparison/report.md) · [Memory](exam_project/memory_followup/report.md) · [Skills](exam_project/skills_comparison/report.md) · [会话恢复](exam_project/session_recovery/report.md)。后训练仅完成[方案与数据契约](docs/post-training-design.md)，尚无训练器或训练效果。
 
 ```bash
 conda activate aster
