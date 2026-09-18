@@ -4,6 +4,34 @@
 
 配置优先级是：显式 CLI 参数 > 进程环境变量 > `.env` > TOML > [Settings 默认值](../src/aster/config.py)。当前只读取四个 `ASTER_*` 环境变量：`ASTER_PROTOCOL`、`ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY`。其余设置通过 TOML 或 Python 的 `Settings(...)` 传入；没有 `ASTER_MAX_WORKERS` 之类的隐含开关。
 
+具名模型可放在同一 TOML 的 `[profiles.alias]` 中。`--profile alias` 或 TUI 空闲时 `/model alias` 同时选择服务、协议、凭证和预算；`/model` 列表不进入模型提示。显式 profile 不被旧 `ASTER_MODEL/BASE_URL/PROTOCOL/API_KEY` 元组覆盖，其 `api_key_env` 从 `.env`/进程环境解析（进程优先）；明确 CLI 模型/协议/预算覆盖最后生效。当前支持空闲同会话切换，先校验和转换历史及预算；正在执行模型/工具/Worker 时拒绝切换。下文列出历史转换与真实服务验证的边界。
+
+```toml
+[profiles.remote]
+provider = "gateway"
+model = "your-model-id"
+protocol = "responses"
+base_url = "https://your-provider.example/v1"
+auth = "required"
+api_key_env = "MY_MODEL_KEY"
+context_tokens = 128000
+output_tokens = 32768
+stream = true
+
+[profiles.local]
+provider = "local"
+model = "local-model-id"
+protocol = "chat"
+base_url = "http://127.0.0.1:8000/v1"
+auth = "none"
+context_tokens = 24000
+output_tokens = 2048
+```
+
+profile 不接受权限字段或明文凭证，切换不改审批、沙箱、联网及写入范围。缺少认证、非法预算或未知名称时原配置保持不变；不写回配置文件。本地服务可显式 `auth="none"`，请求不带认证头。
+
+`stream=true` 或 `--stream` 启用正式 Responses 流式，`--no-stream` 关闭；默认仍非流式。Chat/Anthropic 当前不支持该流式开关，会明确拒绝。TUI 提前显示文字片段并标注请求尝试，重试不拼接旧文字，取消/断流保留未完成提示；所有工具仍等完整成功终态及参数校验后执行。每次尝试的进度展示最多 512 条增量事件及 1,048,576 字符，达到此上限只裁剪展示并标记 `progress_truncated`，完整终态仍可成功。单 SSE 事件 16 MiB、整流 64 MiB 是传输硬上限，超过后拒绝响应并不执行该轮工具。首事件、首有效文字和完成时间分别记录；缓存/推理参数没有随开关改变。
+
 ## 模型与输入预算
 
 | 字段 | 默认值 | 含义与边界 |
@@ -35,13 +63,17 @@ CLI 可直接覆盖预算及单次任务轮数，不必编辑 TOML。例如 `ast
 
 Responses/Chat 的缓存读取与推理量分别属于已报告输入、输出的子集，不再加到总量。Anthropic 的原始 `input_tokens` 只含未缓存输入，保存为 `uncached_input_tokens`；它与缓存读取、缓存创建三项都报告时，才生成可比较的完整 `input_tokens`。总量优先采用供应商报告，未报告时仅在完整输入与输出均已知时相加。未知缓存或推理量不能按零计算成本，也不能据此宣称缓存命中率或记忆节省。
 
-`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是脱敏后全文的字符数。先脱敏整份来源再分页，因此密钥替换不会改变页间定位，也不会因跨页拆开密钥而漏掉脱敏。`skill_load` 还需保留技能 `name`。
+`todo_list` 与 `skill_load` 使用字符分页：`offset` 从 `0` 开始，`limit` 默认 `512`、范围 `1–1000`；结果正文第一行给出 `next_offset` 和 `total`。全局压缩需要缩短该结果时会自动缩小页面，因此后续调用必须使用返回的 `next_offset`，不能直接加上请求的 `limit`。`next_offset=null` 表示到达当前文本末尾；`total` 是脱敏后全文的字符数。先脱敏整份来源再分页，因此密钥替换不会改变页间定位，也不会因跨页拆开密钥而漏掉脱敏。`skill_load` 还需保留技能 `name`；目录包资源使用 `resource` 相对路径显式读取，详情见 [Skills 包与读取边界](skills.md)。
 
-`observation_read` 回读当前运行的归档工具观察：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。存在工具观察后进入可加载目录，通过 `tool_load` 按需加载，不开放其他运行或任意状态文件。实现与限制见[上下文归档](learning/07-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
+`observation_read` 回读当前运行及续聊时登记的同会话祖先归档：带 `observation_id` 时使用上述字符分页，不带编号时按记录分页（单次最多 10 条）；`query` 是可选字面检索。始终进入可加载目录，通过 `tool_load` 按需加载；尚无归档时返回空列表。恢复时校验祖先会话、安全身份与归档完整性，不开放任意运行或状态文件。实现与限制见[上下文归档](learning/07-context-archives.md)。普通运行沿用默认预算自动检查，无须手工选择评测中的三档配置。
 
 `list_files` 与 `search` 按记录分页，`offset` 从 0 开始，`limit` 默认及最大为 500；搜索仍是忽略大小写的字面匹配。模型能看到 `count`（本页条数）、`truncated`、`next_offset`；文件列表另有精确 `total`。搜索只读取足以确定下一页的命中，不伪造全部命中总数。若上下文预算随后压缩某页正文，这些字段描述原始工具页，可通过归档读取其完整内容；不要把摘要中的行数当成实际返回条数。
 
-普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [归档与分页](learning/07-context-archives.md)。
+普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划及已选技能正文快照保存在运行状态中。技能正文默认沿用首次成功加载时的脱敏版本，只有 `refresh=true` 且页面成功时才更新；工具结果及动态上下文给出版本号，版本改变后应从 `offset=0` 重读。资源仍实时分页读取，不支持 refresh。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [归档与分页](learning/07-context-archives.md)。
+
+Shell/测试输出最多采集 4 MiB，正常、失败及超时结束均在脱敏后归档；模型正文只保留最多 8,192 字符预览，用结果里的 `observation.id` 经 `observation_read` 回读。`output_bytes/captured_bytes/output_truncated` 明确说明资源超限；超过采集上限的部分无法回读。取消中的输出暂不保留。归档失败会记录已执行命令及已修改文件，然后以 `output_archive_unavailable` 停止。
+
+`patch_file` 可传 `edits=[{old_text,new_text}, ...]`（1–100 项），每项都匹配同一原文的唯一、不重叠区域；任一无效则整批不写入。旧 `old_text/new_text` 仍支持，但不能同时传两种形式。补丁保留 BOM 和未改区域换行；每次成功后仍需重新读取才能继续编辑。
 
 ## 权限与执行范围
 
@@ -54,6 +86,8 @@ Responses/Chat 的缓存读取与推理量分别属于已报告输入、输出�
 | `write_scope` | `None` | 工作区内允许写入的相对路径前缀。`None` 不额外收窄；`[]` 不允许写任何文件；`["src", "tests"]` 仅允许这两个路径及其后代 |
 | `rules` | `[]` | 命令参数前缀规则；字段解释见下文 |
 | `max_workers` | `2` | 同时运行的子任务数；已完成子任务不继续占用名额。子任务内部固定为 `0`，不能递归扩张 |
+| `read_parallelism` | `1` | 同轮全部为 `read_file/search/list_files` 时的并发上限，范围 1–8；混有其他工具的整批串行，与 Worker 开关独立 |
+| `reuse_environment` | `false` | 仅 required 沙箱可开启；同一 Runtime 跨命令保留临时 `.venv`/`node_modules`，不回写宿主依赖，新会话/进程需重建。详见[执行环境](execution-environment.md) |
 
 `approval=auto` 无法覆盖工作区越界、只读、禁止规则或 Hooks 拒绝。TUI 的 **Allow once** 只批准当前动作，不修改配置。`plan_enter` 进入计划模式后，写工具被拒绝，Shell 只能在副本中观察；`plan_exit` 仍经过权限判断。
 
@@ -72,6 +106,8 @@ Responses/Chat 的缓存读取与推理量分别属于已报告输入、输出�
 沙箱复制任务文件，排除 `.git` 等控制元数据。因此即使原仓库有 Git，副本中也不能依赖 `git status`；`git_diff` 展示 Aster 保存的初始文本及权限模式与当前文件的差异。禁网保留匿名本地 IPC，支持 asyncio 与线程唤醒；仍拒绝外部网络和命名 Unix socket。文件回写逐文件原子，批次失败保留并报告已经写入的路径；不覆盖外部编辑做回滚。当前支持同一进程内的 Worker，并不承诺多个 Aster 进程同时写同仓库的事务隔离。
 
 Git 工作区通过本机 Git 排除未跟踪且被忽略的文件与目录，遵循嵌套 `.gitignore`、否定规则及 Git 标准排除配置；已跟踪文件不会仅因忽略规则被排除。工作区扫描、快照和沙箱输入复制使用相同范围，仍保留 10,000 文件上限；敏感文件、符号链接和控制元数据限制始终优先。忽略文件可以按明确路径读取，但不能写入或从沙箱回写；命令若生成此类输出，整批回写会以 `git_ignored_path` 拒绝，应把临时输出放入沙箱的 `.tmp/`。非 Git 目录（含不带 `.git` 的干净副本）或未安装 Git 时沿用内建排除规则，不解析 `.gitignore`。Git 检查在已识别的仓库中失败时明确拒绝，不静默扩大范围。
+
+显式选中已被父 Git 忽略的目录作为工作区时，以所选根作为忽略边界，不继承祖先 `.gitignore`；仍保留目录内、全局与 info 排除，以及父仓库已跟踪路径。这一启动方式不创建 `.git`、不修改父仓库 index，也不放宽敏感文件、符号链接或写入限制。
 
 每条 `ExecRule` 包含：`prefix` 是切分后的命令参数前缀，例如 `["git", "status"]`；`decision` 为 `allow / ask / deny`；`reason` 是给人和日志看的原因；`match / not_match` 是可选的配置自检示例，不是额外匹配算法。多个前缀命中时，优先级为 `deny > ask > allow`。
 
@@ -107,6 +143,18 @@ Runtime 只对未显式设置的条件做文字推断；显式 `False` 会保留
 
 同一 Runtime 同时只接受一个运行操作，单个 RL episode 也只允许一个在途 `step`；并发调用明确返回 busy。idle 状态重新 `start` 会以 `superseded` 结束旧任务，`resume` 不会覆盖活动任务。终态自动汇总当前任务 Worker 的修改，旧任务的 Worker ID 不能污染新任务；取消后迟到的审批或模型返回不能继续写文件。
 
+TUI 普通追问延续同一会话，`/new` 开新会话；`/continue` 从中断状态继续。每次续聊分配新的 `run_id` 和有界步数/轮数，保留 `session_id`、原请求、历史和已执行调用 ID。未完成任务的反馈继承旧交付要求，不能用“继续”绕过修改、测试或必需产物。已完成任务的新追问按新反馈推断要求；新反馈会使旧测试及读取证据失效。显式 `Runtime.continue_task(max_steps=..., max_turns=...)` 可设置本次预算。
+
+CLI `aster --resume RUN_ID [反馈]` 或 TUI `/resume RUN_ID` 恢复后启动上述续聊。默认拒绝模型身份或工作区漂移；明确加 `--allow-model-change` 才转换模型历史，加 `--adopt-workspace` 才接受外部修改并清除旧读取/测试证据。TUI `/continue --adopt-workspace` 同样支持工作区采纳。模型变化不允许安全身份变化。
+
+空闲时 `/model <alias>` 现在作用于同一会话：先校验完整历史、工具配对和新预算，再保存原生历史证据及切换事件。跨 Responses、Chat、Anthropic 转换保留文本与工具结果，去除不兼容的不透明推理/签名并记录数量；普通图片、引用等尚不支持的语义内容会明确拒绝，不能当成无损转换。新旧凭证共同脱敏，无法安全保存的不透明内容导致切换失败。配置、历史或预算预检失败保留原会话。较小窗口可能压缩历史，旧观察仍需从已授权归档回读。
+
+Responses assistant 的 `phase=commentary/final_answer` 在同协议切换及回放时原值保留，避免把进度当成最终答复；目前 Chat/Anthropic 没有等价映射，带有效 phase 的历史切向这两种协议会明确拒绝。真实恢复实验已经完成阶段 1，但其冻结旧版本在 profile 切换时遇到 phase 兼容问题，修复后只有离线回放验证；详见[会话恢复实战](../exam_project/session_recovery/report.md)，不能宣称已有真实跨模型成功证据。
+
+实际发送内容与请求预算共用脱敏后的消息；切换或恢复（包括只轮换凭证、模型身份不变）会重新过滤可见历史和 Skill 快照。不透明内容仍原值校验。若凭证与已选技能别名、模型/工具定义或必须保留的协议控制字段冲突，则拒绝操作，不能通过重命名、删除技能或改写 phase 来绕过。
+
+只读批次顺序完成参数、权限、Hook 检查及步数预留，再在有界线程中执行；结果按调用顺序更新历史、读取证据和工作记忆。失败保留其他结果，取消等待已开始的线程退出且不发布迟到结果。写入、Shell、测试、审批交互及状态修改未启用并行。
+
 一个只读浏览配置可以写成：
 
 ```toml
@@ -133,4 +181,10 @@ python -m pytest -q tests/test_new_contracts.py tests/test_safety.py tests/test_
 
 ## 内建测试的语言范围
 
-`run_tests` 当前接受 `pytest`、`python -m pytest` 和 `python -m unittest`，使用结构化结果形成验证证据。其他命令可经 `run_shell` 执行，但普通 Shell 成功不会自动变成测试通过证明。当前内建完成验证与题库面向 Python；其他语言应接入对应验证器，不能把任意命令退出零当作验证成功。
+`run_tests` 当前接受 `pytest`、`python -m pytest`、`python -m unittest` 和 `node --test`，使用结构化结果形成验证证据。Node 使用内置 JUnit reporter，拒绝无显式测试、全跳过及报告缺失；npm 脚本仍通过 `run_shell` 执行，不会仅靠退出零成为测试通过证明。授权 DNS 的系统读取及 Node 边界见[执行环境](execution-environment.md)。
+
+## 项目摘录 Memory
+
+启用持久 Memory 时，动态上下文给出发现长期项目约定后保存短原文摘录的提示，并提供 `tool_load → memory_store` 入口；没有自动生成或自动写入经验。保存仍须引用本次成功 `read_file` 的证据 ID，核对原文、文件摘要、敏感/暂态/越权内容。
+
+自动召回同时使用初始请求和最近用户反馈。中文查询使用相邻双字片段与英文词面进行检索，改善“默认目录是什么”等改写；这是词面召回，不是向量语义搜索。文件变化后条目仍立即失效，Dream 只维护现有条目。命令失败经验、用户偏好和环境约束尚未纳入新来源；不能绕过现有出处/失效要求直接保存模型总结。
