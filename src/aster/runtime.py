@@ -10,9 +10,7 @@ import shlex
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
-from copy import deepcopy
 from pathlib import Path
-from uuid import uuid4
 
 from .config import Settings
 from .context import ContextBudgetError, ContextBuilder, ContextHistoryError
@@ -32,6 +30,14 @@ from .schema import (
     ToolCall,
     Verification,
     VerifierResult,
+)
+from .session import (
+    archive_native_history,
+    load_checkpoint,
+    prepare_continuation,
+    preview_context,
+    redact_skill_snapshots,
+    safety_identity,
 )
 from .skills import Skills
 from .tools import (
@@ -177,59 +183,22 @@ class Runtime:
         return settings
 
     def _archive_native_history(self, run_id, history, converted, origins):
-        artifact = ("runs", run_id, f"native-history-{len(origins) + 1}.json")
-        self.evidence.save(
-            artifact,
-            {"source": converted.source, "structured_history": history},
-            preserve_native_history=True,
-        )
-        return {
-            "artifact": "/".join(artifact),
-            "source": converted.source,
-            "omitted_reasoning": converted.omitted_reasoning,
-        }
+        return archive_native_history(self.evidence, run_id, history, converted, origins)
 
     def _preview_context(self, state, history, settings, sources):
-        """Budget-check detached state; optional recall can be reconstructed on the next turn."""
+        # Tool availability depends on the proposed run; publish it only for this
+        # synchronous lookup, then restore the live state before budget preflight.
         previous = self.state
         try:
             self.state = state
             tools = self._request_tool_definitions(settings)
         finally:
             self.state = previous
-        _, report = ContextBuilder(
-            settings.effective_context_tokens, settings.effective_output_tokens
-        ).build(
-            state,
-            state.task.prompt,
-            structured_history=history,
-            tools=tools,
-            protocol=settings.protocol,
-            model=settings.model,
-            archive=lambda call_id, tool, content: self.evidence.archive_observation(
-                state.run_id, call_id, tool, content
-            ),
-            validate_archive=lambda ref: self.evidence.read_observation(
-                sources.get(ref["id"], state.run_id), ref["id"], limit=1
-            ),
-            redact_history=self.evidence.redact_history,
-        )
-        return report
+        return preview_context(self.evidence, state, history, settings, sources, tools)
 
     @staticmethod
     def _safety_identity(identity):
-        identity = {"read_parallelism": 1, "reuse_environment": False, **identity}
-        model_fields = {
-            "provider",
-            "profile",
-            "model",
-            "protocol",
-            "auth",
-            "stream",
-            "context_tokens",
-            "output_tokens",
-        }
-        return {key: value for key, value in identity.items() if key not in model_fields}
+        return safety_identity(identity)
 
     def new_session(self):
         self._ensure_idle()
@@ -260,50 +229,15 @@ class Runtime:
         drift = Workspace.changes(self._checkpoint_workspace, current)
         if drift and not adopt_workspace:
             raise ValueError("workspace_mismatch: " + ", ".join(drift[:20]))
-        state = previous.model_copy(deep=True)
-        state.run_id = uuid4().hex
-        state.phase, state.stop_reason, state.final, state.feedback = "running", "", "", ""
-        state.step = state.turn = state.final_revisions = 0
-        state.usage = {}
-        history = deepcopy(self._structured_history)
-        if feedback is not None:
-            inferred = self.verifier.infer(feedback)
-            unfinished = previous.phase != "completed"
-            if unfinished:
-                inferred = {
-                    key: value or getattr(previous.task, key) for key, value in inferred.items()
-                }
-            if inferred["require_edit"] and previous.task.require_verification:
-                inferred["require_verification"] = True
-            state.task = TaskSpec(
-                prompt=previous.task.prompt,
-                max_steps=previous.task.max_steps,
-                max_turns=previous.task.max_turns,
-                required_artifacts=previous.task.required_artifacts
-                if inferred["require_edit"] or unfinished
-                else [],
-                **inferred,
-            )
-            if not unfinished:
-                state.observed, state.changed_paths = False, []
-            history.append({"role": "user", "content": feedback})
-            state.messages.append({"role": "user", "content": feedback, "important": True})
-        limits = {
-            key: value
-            for key, value in {"max_steps": max_steps, "max_turns": max_turns}.items()
-            if value is not None
-        }
-        if limits:
-            state.task = TaskSpec.model_validate({**state.task.model_dump(), **limits})
-        if feedback is not None or drift:
-            state.verification = Verification()
-            state.read_evidence, state.working_memory, state.recalled_ids = {}, {}, []
-        if drift:
-            note = (
-                "User adopted external workspace edits; read current files before editing: "
-                + ", ".join(drift)
-            )
-            history.append({"role": "user", "content": note})
+        state, history = prepare_continuation(
+            previous,
+            self._structured_history,
+            self.verifier,
+            feedback=feedback,
+            drift=drift,
+            max_steps=max_steps,
+            max_turns=max_turns,
+        )
         sources = dict(self._archive_sources)
         directory = self.evidence.path("runs", previous.run_id, "observations")
         for path in directory.glob("*.json"):
@@ -405,48 +339,18 @@ class Runtime:
         self._ensure_idle()
         if self.state and not self.state.terminal:
             raise RuntimeError("active_run: finish the current run before resuming another")
-        data = json.loads(self.evidence.path("runs", run_id, "checkpoint.json").read_text())
-        saved_identity = data["runtime_identity"]
+        saved = load_checkpoint(
+            self.evidence,
+            self.workspace,
+            self.settings,
+            run_id,
+            allow_model_change=allow_model_change,
+            adopt_workspace=adopt_workspace,
+        )
+        data, state, history = saved.data, saved.state, saved.history
+        sources, origins = saved.sources, saved.origins
+        saved_identity, model_changed = saved.saved_identity, saved.model_changed
         current_identity = self.settings.identity()
-        # Old checkpoints predate named providers and streaming; their defaults are explicit.
-        saved_identity = {
-            "provider": "openai",
-            "profile": None,
-            "auth": "required",
-            "stream": False,
-            "read_parallelism": 1,
-            "reuse_environment": False,
-            **saved_identity,
-        }
-        model_changed = saved_identity != current_identity
-        if model_changed and (
-            not allow_model_change
-            or self._safety_identity(saved_identity) != self._safety_identity(current_identity)
-        ):
-            raise ValueError("runtime_identity_mismatch")
-        if data["workspace_hash"] != self.workspace.fingerprint() and not adopt_workspace:
-            raise ValueError("workspace_mismatch")
-        state = RunState.model_validate(data["state"])
-        self._redact_skill_snapshots(state)
-        state.messages = self.evidence.redactor.value(state.messages, mask_fields=False)
-        if not state.terminal and "initial_text" not in data:
-            raise ValueError("legacy_checkpoint_missing_diff_baseline")
-        history_groups(data.get("structured_history", []))
-        self.evidence.validate_native_history(data.get("structured_history", []))
-        history = self.evidence.redact_history(data.get("structured_history", []))
-        sources = data.get("archive_sources", {})
-        if not isinstance(sources, dict):
-            raise ValueError("invalid_archive_sources")
-        for observation_id, source_run in sources.items():
-            source = json.loads(
-                self.evidence.path("runs", source_run, "checkpoint.json").read_text()
-            )
-            if source["state"]["session_id"] != state.session_id or self._safety_identity(
-                source["runtime_identity"]
-            ) != self._safety_identity(current_identity):
-                raise ValueError("archive_source_identity_mismatch")
-            self.evidence.read_observation(source_run, observation_id, limit=1)
-        origins = list(data.get("history_origins", []))
         if model_changed:
             converted = canonicalize(
                 history,
@@ -566,7 +470,9 @@ class Runtime:
         memory_text = self._memory_text(state.task.prompt)
         working_memory = self.memory.working_section(state.working_memory)
         catalog = self.skills.catalog()
-        skills = self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
+        skills = (
+            self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
+        )
         if catalog:
             skills = (
                 "Load skill_load with tool_load; select a body by name or read a package "
@@ -632,18 +538,7 @@ class Runtime:
         return prompt, tool_defs, report
 
     def _redact_skill_snapshots(self, state):
-        # New model credentials may match text selected before the switch.
-        if any(
-            self.evidence.redactor.text(name) != name
-            for name in {*state.active_skills, *state.skill_snapshots}
-        ):
-            raise ValueError("skill_name_contains_credential")
-        for name, snapshot in state.skill_snapshots.items():
-            body = self.evidence.redactor.text(snapshot.body)
-            if body != snapshot.body:
-                state.skill_snapshots[name] = SkillSnapshot(
-                    body=body, sha256=hashlib.sha256(body.encode()).hexdigest()
-                )
+        redact_skill_snapshots(state, self.evidence.redactor)
 
     def _request_hash(self, payload):
         return hashlib.sha256(
@@ -1469,7 +1364,9 @@ class Runtime:
             if result.status != "success":
                 return result
             if not resource:
-                snapshot = SkillSnapshot(body=text, sha256=hashlib.sha256(text.encode()).hexdigest())
+                snapshot = SkillSnapshot(
+                    body=text, sha256=hashlib.sha256(text.encode()).hexdigest()
+                )
                 state.skill_snapshots[args["name"]] = snapshot
                 if args["name"] not in state.active_skills:
                     state.active_skills.append(args["name"])
