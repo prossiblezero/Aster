@@ -47,7 +47,9 @@ async def test_worker_edits_count_without_polling_but_never_leak_into_the_next_r
             return ModelReply(text="Done.")
 
     runtime = Runtime(
-        tmp_path, Settings(approval="auto", max_final_revisions=0), model=ChildModel()
+        tmp_path,
+        Settings(approval="auto", max_final_revisions=0, max_workers=2),
+        model=ChildModel(),
     )
     runtime.start(TaskSpec(prompt="demo", require_edit=True))
     started = await runtime.workers.start("demo", mode="worker", write_scope=["child.txt"])
@@ -185,7 +187,7 @@ async def test_finish_cancels_live_worker_and_disallows_spawning_after_terminal(
             entered.set()
             await asyncio.Event().wait()
 
-    runtime = Runtime(tmp_path, Settings(), model=Model())
+    runtime = Runtime(tmp_path, Settings(max_workers=2), model=Model())
     state = runtime.start(TaskSpec(prompt="demo"))
     response = await runtime.workers.start("demo")
     await entered.wait()

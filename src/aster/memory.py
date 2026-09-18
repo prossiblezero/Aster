@@ -8,7 +8,8 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .evidence import Redactor, atomic_json
+from .evidence import EvidenceStore, Redactor, atomic_json
+from .schema import Outcome
 from .workspace import BoundaryError, Workspace, digest
 
 # Admission is deliberately conservative: exact observed excerpts, not inferred claims.
@@ -260,12 +261,23 @@ class Memory:
 
     def dream(self):
         """Quarantine stale or repeatedly unsuccessful lessons without deleting evidence."""
-        if not self.enabled or not self.evolution:
-            return {"deactivated": 0}
+        reason = (
+            "memory_disabled"
+            if not self.enabled
+            else "evolution_disabled"
+            if not self.evolution
+            else "no_active_excerpts"
+            if not any(not item.get("inactive_reason") for item in self.state["lessons"])
+            else ""
+        )
+        if reason:
+            return {"status": "skipped", "reason": reason, "checked": 0, "deactivated": 0}
         changed = 0
+        checked = 0
         for item in self.state["lessons"]:
             reason = item.get("inactive_reason", "")
             if not reason:
+                checked += 1
                 reason = self._content_rejection(item["text"])
                 if not reason and not self._sources_current(item.get("sources", {})):
                     reason = "stale_source"
@@ -277,6 +289,59 @@ class Memory:
                 if reason:
                     item["inactive_reason"] = reason
                     changed += 1
-        self.state["audit"].append({"event": "dream", "deactivated": changed})
+        result = {"status": "completed", "reason": "", "checked": checked, "deactivated": changed}
+        self.state["audit"].append({"event": "dream", **result})
         self.save()
-        return {"deactivated": changed}
+        return result
+
+
+def store_excerpt(
+    memory: Memory,
+    evidence: EvidenceStore,
+    run_id: str,
+    *,
+    text: str,
+    evidence_id: str,
+    tags=(),
+    lesson_id: str | None = None,
+) -> Outcome:
+    """Authenticate a current-run read before admitting or replacing a project excerpt."""
+    event = next(
+        (
+            row
+            for row in evidence.events(run_id)
+            if row["event"] == "tool_result"
+            and (
+                row["hash"] == evidence_id
+                or row.get("outcome", {}).get("evidence_id") == evidence_id
+            )
+            and row["outcome"]["status"] == "success"
+        ),
+        None,
+    )
+    if event is None or event["call"]["name"] != "read_file":
+        return Outcome(status="blocked", reason="memory_provenance")
+    if lesson_id is not None and not any(
+        item["id"] == lesson_id for item in memory.state["lessons"]
+    ):
+        return Outcome(status="blocked", reason="memory_not_found")
+    observed = event["outcome"]
+    data = observed.get("data", {})
+    if not data.get("source_sha256") or not data.get("path"):
+        return Outcome(status="blocked", reason="memory_provenance")
+    lesson = memory.record(
+        text,
+        run_id=run_id,
+        evidence_id=evidence_id,
+        tags=tags,
+        observation=observed["content"],
+        sources={data["path"]: data["source_sha256"]},
+    )
+    if lesson and lesson_id is not None and lesson["id"] != lesson_id:
+        memory.discard(lesson_id, reason="superseded")
+    return Outcome(
+        status="success" if lesson else "blocked",
+        reason="" if lesson else memory.last_rejection,
+        content=json.dumps(lesson or {}, ensure_ascii=False),
+        data=lesson or {},
+    )

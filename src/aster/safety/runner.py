@@ -7,10 +7,12 @@ import hashlib
 import os
 import shutil
 import signal
+import subprocess
 import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 
 from ..config import Settings
@@ -21,6 +23,22 @@ OUTPUT_LIMIT = 4 * 1024 * 1024
 DEPENDENCY_DIRECTORIES = {".venv", "node_modules"}
 
 
+@lru_cache(maxsize=8)
+def _command_capabilities(path: str) -> str:
+    available = [name for name in ("python", "node", "npm", "rg", "curl") if shutil.which(name, path=path)]
+    node = "unavailable"
+    if "node" in available:
+        try:
+            result = subprocess.run(
+                [shutil.which("node", path=path), "--version"],
+                capture_output=True, text=True, timeout=2, env={"PATH": path},
+            )
+            node = result.stdout.strip()[:60] if result.returncode == 0 else "version unavailable"
+        except (OSError, subprocess.TimeoutExpired):
+            node = "version unavailable"
+    return f"Python {sys.version.split()[0]}; Node {node}; commands on PATH: {', '.join(available)}."
+
+
 class SandboxRunner:
     def __init__(self, settings: Settings, *, environment: SandboxRunner | None = None):
         self.settings = settings
@@ -29,6 +47,20 @@ class SandboxRunner:
         self._environment_workspace: Path | None = None
         self._generation = 0
         self._busy = False
+
+    def capabilities(self) -> str:
+        """Small host-authored contract, using the same PATH as command execution."""
+        path = self.environment(Path("."))["PATH"]
+        return (
+            "Execution environment: " + _command_capabilities(path)
+            + f" Sandbox={self.settings.sandbox}; network={'allowed' if self.settings.network else 'blocked'}"
+            + " (including local TCP servers when blocked). Required isolation fails closed. "
+            + ("Project pip dependencies and node_modules persist between commands in this process only. "
+               if self.settings.reuse_environment else "Dependencies installed by a command do not persist to the next command. ")
+            + "Use .tmp/ or TMPDIR for temporary files. Each command owns its processes; "
+            "background servers do not survive tool calls. Start server, checks and cleanup "
+            "in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior."
+        )
 
     @property
     def environment_generation(self) -> int:

@@ -1,13 +1,167 @@
+import asyncio
 import json
+import subprocess
+import sys
 from copy import deepcopy
 
 import pytest
 
 from aster.config import ModelProfile, Settings
 from aster.context import ContextBudgetError
-from aster.provider import ProviderError, request_payload
+from aster.provider import ModelClient, ProviderError, request_payload
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
+
+
+def test_process_death_after_write_refuses_uncertain_resume(tmp_path):
+    program = '''
+import asyncio, os, sys
+from pathlib import Path
+from aster.config import Settings
+from aster.runtime import Runtime
+from aster.schema import TaskSpec, ToolCall
+r = Runtime(Path(sys.argv[1]), Settings(approval="auto"))
+r.start(TaskSpec(prompt="Write once"))
+def die_after_execution(*args):
+    os._exit(73)
+r._finish_tool = die_after_execution
+asyncio.run(r.step(ToolCall(name="write_file", call_id="uncertain-write",
+    arguments={"path": "once.txt", "content": "written before process death"})))
+'''
+    result = subprocess.run([sys.executable, "-c", program, str(tmp_path)], timeout=20)
+    assert result.returncode == 73
+    assert (tmp_path / "once.txt").read_text() == "written before process death"
+    run = next((tmp_path / ".aster/runs").iterdir())
+    before = (run / "checkpoint.json").read_bytes()
+    assert (run / "inflight.json").exists()
+    restored = Runtime(tmp_path, Settings(approval="auto"))
+    for adopt in [False, True]:
+        with pytest.raises(ValueError, match="interrupted_tool_batch"):
+            restored.resume(run.name, adopt_workspace=adopt)
+    assert restored.state is None
+    assert (run / "checkpoint.json").read_bytes() == before
+
+
+def test_parent_resume_does_not_ignore_a_crashed_worker(tmp_path):
+    program = '''
+import asyncio, os, sys
+from pathlib import Path
+from aster.config import Settings
+from aster.runtime import Runtime
+from aster.schema import ModelReply, TaskSpec, ToolCall
+class Writer:
+    async def complete(self, *args):
+        return ModelReply(calls=[ToolCall(name="write_file", call_id="child-write",
+            arguments={"path":"child.txt", "content":"uncertain"})])
+original = Runtime._finish_tool
+def finish(self, call, *args):
+    if call.name == "write_file":
+        os._exit(73)
+    return original(self, call, *args)
+Runtime._finish_tool = finish
+async def run():
+    r = Runtime(Path(sys.argv[1]), Settings(approval="auto", max_workers=2), model=Writer())
+    r.start(TaskSpec(prompt="Delegate"))
+    result = await r.step(ToolCall(name="worker_start", arguments={
+        "task":"write child.txt", "mode":"worker", "write_scope":["child.txt"]}))
+    await r.workers.workers[result.data["worker_id"]].future
+asyncio.run(run())
+'''
+    result = subprocess.run([sys.executable, "-c", program, str(tmp_path)], timeout=20)
+    assert result.returncode == 73
+    assert (tmp_path / "child.txt").read_text() == "uncertain"
+    parent = next(
+        path.parent for path in (tmp_path / ".aster/runs").glob("*/checkpoint.json")
+        if not json.loads(path.read_text())["state"].get("parent_run_id")
+    )
+    assert not (parent / "inflight.json").exists()
+    with pytest.raises(ValueError, match="interrupted_tool_batch"):
+        Runtime(tmp_path, Settings(approval="auto", max_workers=2)).resume(
+            parent.name, adopt_workspace=True
+        )
+
+
+async def test_invalid_later_tool_prevents_partial_batch_writes(tmp_path):
+    class InvalidBatch:
+        async def complete(self, *_):
+            return ModelReply(calls=[
+                ToolCall(name="write_file", arguments={"path": "good.txt", "content": "early"}),
+                ToolCall(name="write_file", arguments={"path": "missing-content.txt"}),
+            ])
+
+    runtime = Runtime(tmp_path, Settings(approval="auto"), model=InvalidBatch())
+    state = await runtime.run(TaskSpec(prompt="Write two files"))
+    assert state.stop_reason == "context_history_invalid"
+    assert "invalid_tool_arguments" in state.feedback
+    assert not (tmp_path / "good.txt").exists()
+    assert not runtime._structured_history and not state.used_call_ids
+
+
+@pytest.mark.parametrize("ignore_cancellation", [False, True])
+async def test_abort_settles_usage_in_report_and_checkpoint_once(tmp_path, ignore_cancellation):
+    entered = asyncio.Event()
+    cost = {"total_tokens": 12, "usage_requests": 1}
+
+    class BilledClient(ModelClient):
+        async def complete(self, *_args, **_kwargs):
+            self.last_usage = cost.copy()
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                if not ignore_cancellation:
+                    raise
+            return ModelReply(usage=cost, calls=[ToolCall(
+                name="write_file", arguments={"path": "late.txt", "content": "must not run"}
+            )])
+
+    settings = Settings(approval="auto")
+    runtime = Runtime(tmp_path, settings, model=BilledClient(settings))
+    pending = asyncio.create_task(runtime.run(TaskSpec(prompt="Write once")))
+    await asyncio.wait_for(entered.wait(), 2)
+    runtime.abort()
+    try:
+        await pending
+    except asyncio.CancelledError:
+        pass
+    assert runtime.state.usage == cost and not (tmp_path / "late.txt").exists()
+    run = runtime.evidence.path("runs", runtime.state.run_id)
+    assert json.loads((run / "checkpoint.json").read_text())["state"]["usage"] == cost
+    assert json.loads((run / "report.json").read_text())["usage"] == cost
+
+
+async def test_committed_results_make_leftover_marker_safe(tmp_path):
+    settings = Settings(approval="auto")
+    runtime = Runtime(tmp_path, settings)
+    state = runtime.start(TaskSpec(prompt="Write once"))
+    call = ToolCall(name="write_file", call_id="completed-write", arguments={"path": "once.txt", "content": "once"})
+    assert (await runtime.step(call)).status == "success"
+    marker = runtime.evidence.path("runs", state.run_id, "inflight.json")
+    assert not marker.exists()
+    # Crash after atomic checkpoint replacement but before unlinking the marker.
+    runtime._mark_inflight([call])
+    restored = Runtime(tmp_path, settings)
+    restored.resume(state.run_id)
+    assert (await restored.step(call)).reason == "duplicate_call_id"
+    assert (tmp_path / "once.txt").read_text() == "once"
+
+
+def test_old_explicit_capabilities_restore_without_rewriting_checkpoint(tmp_path):
+    settings = Settings(memory_enabled=True, memory_evolution=True, auto_dream=True, max_workers=2)
+    runtime = Runtime(tmp_path, settings)
+    state = runtime.start(TaskSpec(prompt="Remember project conventions"))
+    checkpoint = runtime.evidence.path("runs", state.run_id, "checkpoint.json")
+    data = json.loads(checkpoint.read_text())
+    data.pop("checkpoint_version", None)  # v0.1 checkpoints remain readable.
+    checkpoint.write_text(json.dumps(data))
+    before = checkpoint.read_bytes()
+    with pytest.raises(ValueError, match="runtime_identity_mismatch:.*auto_dream.*max_workers.*memory_enabled.*memory_evolution"):
+        Runtime(tmp_path, Settings()).resume(state.run_id, allow_model_change=True)
+    assert checkpoint.read_bytes() == before
+    restored = Runtime(tmp_path, settings)
+    restored.resume(state.run_id)
+    assert restored.memory.enabled and restored.settings.max_workers == 2
+    assert checkpoint.read_bytes() == before
 
 
 def profile(protocol="chat", context=16000):

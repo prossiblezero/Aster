@@ -122,7 +122,7 @@ async def test_entering_plan_stops_existing_writable_workers(tmp_path):
                     ]
                 )
 
-    runtime = Runtime(tmp_path, Settings(approval="auto"), model=Model())
+    runtime = Runtime(tmp_path, Settings(approval="auto", max_workers=2), model=Model())
     runtime.start(TaskSpec(prompt="Demo"))
     response = await runtime.workers.start("Demo", mode="worker", write_scope=["late.txt"])
     await asyncio.wait_for(entered.wait(), 2)

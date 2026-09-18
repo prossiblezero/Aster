@@ -232,12 +232,12 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands; each writable shell command invalidates prior tests, so run formal tests last.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands; each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m unittest, or node --test with structured results. Node requires declared node:test cases; npm scripts and compound commands use run_shell.",
+        "Run pytest, python -m unittest, or node --test with structured results. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these are separate from formal test evidence.",
         "process",
     ),
     "observation_read": (
@@ -248,9 +248,9 @@ SCHEMAS = {
     "todo_add": (TodoAdd, "Add a bounded task item.", "state"),
     "todo_update": (TodoUpdate, "Update a task item by id.", "state"),
     "plan_write": (PlanWrite, "Write the current plan artifact.", "state"),
-    "memory_store": (MemoryStore, "Store an evidence-backed project lesson.", "state"),
-    "memory_retrieve": (MemoryQuery, "Retrieve relevant project lessons.", "read"),
-    "memory_update": (MemoryChange, "Supersede a lesson using a cited observation.", "state"),
+    "memory_store": (MemoryStore, "Save an exact project excerpt (at most 1000 characters) from this run's successful read_file using its evidence_id. Summaries and shell observations are not accepted; source must remain current.", "state"),
+    "memory_retrieve": (MemoryQuery, "Retrieve sourced project excerpts relevant to a query; stale sources are excluded.", "read"),
+    "memory_update": (MemoryChange, "Replace a saved excerpt with exact text from this run's successful read_file evidence; the source must remain current.", "state"),
     "memory_discard": (MemoryDiscard, "Deactivate a stale or harmful lesson.", "state"),
     "todo_list": (
         TextPage,

@@ -71,7 +71,10 @@ async def run_tests(
     node = argv[:2] == ["node", "--test"]
     options = argv[2:] if node else argv[3:] if argv[0] == "python" else argv[1:]
     if node and any(option.startswith("--test-reporter") for option in options):
-        return Outcome(status="blocked", reason="test_reporter_reserved")
+        return Outcome(
+            status="blocked", reason="test_reporter_reserved",
+            content="Remove --test-reporter and --test-reporter-destination; run_tests supplies its own structured reporter. Retry with node --test and your test paths.",
+        )
     tested_fingerprint = workspace.fingerprint()
     tested_environment = sandbox.environment_generation
     with tempfile.TemporaryDirectory(prefix="aster-tests-") as directory:

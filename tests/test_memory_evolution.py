@@ -67,3 +67,49 @@ def test_restoring_excerpt_does_not_erase_source_dependency(tmp_path):
     assert record(memory, text, evidence_id="e3", observation=text) is None
     assert memory.last_rejection == "stale_source"
     assert memory.retrieve("Service port") == []
+
+
+@pytest.mark.parametrize(
+    "enabled,evolution,reason",
+    [
+        (False, True, "memory_disabled"),
+        (True, False, "evolution_disabled"),
+        (True, True, "no_active_excerpts"),
+    ],
+)
+def test_dream_reports_skipped_maintenance_without_writing_state(
+    tmp_path, enabled, evolution, reason
+):
+    memory = Memory(tmp_path, enabled=enabled, evolution=evolution)
+    assert memory.dream() == {
+        "status": "skipped",
+        "reason": reason,
+        "checked": 0,
+        "deactivated": 0,
+    }
+    assert not memory.path.exists()
+
+
+def test_dream_reports_checked_and_deactivated_excerpts_without_summarizing(tmp_path):
+    memory = Memory(tmp_path)
+    text = "Service port is 8080."
+    source = tmp_path / "config.txt"
+    source.write_text(text)
+    item = record(memory, text, observation=text, sources={source.name: digest(text)})
+    assert memory.dream() == {
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 0,
+    }
+    source.write_text("Service port is 9090.")
+    assert memory.dream() == {
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 1,
+    }
+    saved = memory.state["lessons"]
+    assert len(saved) == 1 and saved[0]["id"] == item["id"] and saved[0]["text"] == text
+    assert saved[0]["inactive_reason"] == "stale_source"
+    assert memory.dream()["reason"] == "no_active_excerpts"

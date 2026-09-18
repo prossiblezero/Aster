@@ -136,7 +136,7 @@ def test_provider_reply_keeps_usage_for_cost_metrics():
 
 @pytest.mark.asyncio
 async def test_runtime_rejects_memory_evidence_not_in_trace(tmp_path):
-    runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=True), model=FakeModel([]))
     runtime.start(TaskSpec(prompt="remember"))
     outcome = await runtime.step(
         ToolCall(

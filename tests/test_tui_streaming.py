@@ -88,6 +88,10 @@ async def test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools(t
         assert preview.display and "Incomplete model response" in str(preview.content)
         assert "Visible before completion" in str(preview.content)
         assert app.runtime.state.stop_reason == "cancelled"
+        text = "\n".join(line.text for line in app.query_one("#log").lines)
+        assert f"run_id={app.runtime.state.run_id}" in text
+        assert "reason=cancelled" in text and "verification=missing" in text
+        assert "/continue" in text and "/resume" in text
         assert not any(
             row["event"] == "tool_result"
             for row in app.runtime.evidence.events(app.runtime.state.run_id)

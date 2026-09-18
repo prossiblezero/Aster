@@ -81,7 +81,7 @@ class ResponsesStreamingClient(ModelClient):
             diagnostics[field] = safe
         return diagnostics
 
-    async def _post(self, suffix: str, payload: dict, extra: dict) -> dict:
+    async def _post(self, suffix: str, payload: dict, extra: dict, *, on_event=None) -> dict:
         if self.settings.protocol != "responses" or suffix != "/responses":
             raise ProviderError("Experimental transport requires Responses", category="configuration")
         secret = self.settings.api_key.get_secret_value()

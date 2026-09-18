@@ -21,7 +21,16 @@ async def test_manual_recall_survives_observation_and_setup_errors_do_not_punish
     (tmp_path / "config.txt").write_text("Service port is 8123.")
     for name, content in case["files"].items():
         (tmp_path / name).write_text(content)
-    env = AsterEnv(tmp_path, Settings(approval="auto", completion="off", auto_dream=False))
+    env = AsterEnv(
+        tmp_path,
+        Settings(
+            approval="auto",
+            completion="off",
+            memory_enabled=True,
+            memory_evolution=True,
+            auto_dream=False,
+        ),
+    )
     env.reset(TaskSpec(prompt="Answer", max_steps=20))
     try:
         _, _, _, _, info = await env.step(

@@ -30,7 +30,7 @@ def test_chinese_paraphrase_retrieves_grounded_excerpt_and_expires(tmp_path):
 async def test_followup_query_uses_recent_user_request_and_keeps_provenance(tmp_path):
     text = "文档构建产物存放在 public 目录。"
     (tmp_path / "PROJECT.md").write_text(text)
-    runtime = Runtime(tmp_path, Settings(approval="auto", auto_dream=False))
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=True, auto_dream=False))
     runtime.start(TaskSpec(prompt="Inspect the project"))
     read = await runtime.step(ToolCall(name="read_file", arguments={"path": "PROJECT.md"}))
     saved = await runtime.step(
@@ -57,8 +57,10 @@ def test_storage_guidance_is_conditioned_on_memory_capability(tmp_path, enabled)
     runtime = Runtime(tmp_path, Settings(memory_enabled=enabled))
     runtime.start(TaskSpec(prompt="Implement the requested feature"))
     messages, _, _ = runtime.prepare_request()
-    text = messages[-1]["content"]
-    assert ("durable project conventions" in text) is enabled
-    assert ("memory_store" in text) is enabled
+    system, observations = messages[0]["content"], messages[-1]["content"]
+    assert ("durable project conventions" in system) is enabled
+    assert ("Memory capability:" in system) is enabled
+    assert "Memory capability:" not in observations
     if enabled:
-        assert "read_file" in text and "exact excerpt" in text
+        assert "read_file" in system and "exact excerpt" in system
+        assert "Saving is optional" in system

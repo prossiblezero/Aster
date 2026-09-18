@@ -116,7 +116,14 @@ async def test_tui_cancel_closes_pending_human_prompt(tmp_path):
 async def test_worker_permissions_never_exceed_parent(tmp_path, read_only, mode):
     parent = Runtime(
         tmp_path,
-        Settings(read_only=read_only, approval="never", write_scope=["src"], network=False),
+        Settings(
+            read_only=read_only,
+            approval="never",
+            write_scope=["src"],
+            network=False,
+            max_workers=2,
+            memory_enabled=True,
+        ),
         model=PausedModel(),
     )
     parent.start(TaskSpec(prompt="demo"))
@@ -172,7 +179,7 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
 
 @pytest.mark.asyncio
 async def test_overlapping_worker_write_scopes_are_rejected(tmp_path):
-    parent = Runtime(tmp_path, Settings(approval="auto"), model=PausedModel())
+    parent = Runtime(tmp_path, Settings(approval="auto", max_workers=2), model=PausedModel())
     parent.start(TaskSpec(prompt="demo"))
     assert (await parent.workers.start("demo", "worker", ["src"]))["status"] == "running"
     assert (await parent.workers.start("demo", "worker", ["src/core"]))[

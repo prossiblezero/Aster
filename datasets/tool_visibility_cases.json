@@ -17,21 +17,21 @@
     "run_tests": {"command": "python -m pytest -q"}
   },
   "cases": [
-    {"id": "enabled", "settings": {}, "unavailable": {}},
-    {"id": "workers_disabled", "settings": {"max_workers": 0}, "unavailable": {"workers_disabled": ["worker_start", "worker_status", "worker_message", "worker_stop"]}},
-    {"id": "memory_disabled", "settings": {"memory_enabled": false}, "unavailable": {"memory_disabled": ["memory_store", "memory_retrieve", "memory_update", "memory_discard"]}},
-    {"id": "evolution_disabled_keeps_memory_tools", "settings": {"memory_evolution": false}, "unavailable": {}},
-    {"id": "auto_dream_disabled_keeps_memory_tools", "settings": {"auto_dream": false}, "unavailable": {}},
-    {"id": "no_human_input", "settings": {}, "question_callback": false, "unavailable": {"user_input_unavailable": ["ask_user"]}},
-    {"id": "readonly", "settings": {"read_only": true}, "unavailable": {"read_only": ["write_file", "patch_file", "plan_exit"]}},
-    {"id": "empty_write_scope", "settings": {"write_scope": []}, "unavailable": {"write_scope": ["write_file", "patch_file"]}},
-    {"id": "plan_mode", "settings": {}, "mode": "plan", "unavailable": {"plan_mode": ["write_file", "patch_file"]}},
-    {"id": "sandbox_off", "settings": {"sandbox": "off"}, "unavailable": {"isolation_required_for_scope": ["run_tests"]}},
-    {"id": "sandbox_off_with_plan", "settings": {"sandbox": "off"}, "mode": "plan", "unavailable": {"isolation_required_for_scope": ["write_file", "patch_file", "run_shell", "run_tests"]}},
-    {"id": "sandbox_off_with_scope", "settings": {"sandbox": "off", "write_scope": ["src"]}, "unavailable": {"isolation_required_for_scope": ["write_file", "patch_file", "run_shell", "run_tests"]}},
-    {"id": "approval_callback_missing", "settings": {"approval": "ask"}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_shell", "run_tests"]}},
-    {"id": "approval_never", "settings": {"approval": "never"}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_shell", "run_tests"]}},
-    {"id": "allow_echo_cannot_authorize_tests", "settings": {"approval": "never", "rules": [{"prefix": ["echo"], "decision": "allow", "reason": "echo only"}]}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_tests"]}},
-    {"id": "disabled_features_together", "settings": {"max_workers": 0, "memory_enabled": false, "read_only": true}, "question_callback": false, "unavailable": {"workers_disabled": ["worker_start", "worker_status", "worker_message", "worker_stop"], "memory_disabled": ["memory_store", "memory_retrieve", "memory_update", "memory_discard"], "read_only": ["write_file", "patch_file", "plan_exit"], "user_input_unavailable": ["ask_user"]}}
+    {"id": "enabled", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2}, "unavailable": {}},
+    {"id": "workers_disabled", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 0}, "unavailable": {"workers_disabled": ["worker_start", "worker_status", "worker_message", "worker_stop"]}},
+    {"id": "memory_disabled", "settings": {"memory_enabled": false, "memory_evolution": true, "auto_dream": true, "max_workers": 2}, "unavailable": {"memory_disabled": ["memory_store", "memory_retrieve", "memory_update", "memory_discard"]}},
+    {"id": "evolution_disabled_keeps_memory_tools", "settings": {"memory_enabled": true, "memory_evolution": false, "auto_dream": true, "max_workers": 2}, "unavailable": {}},
+    {"id": "auto_dream_disabled_keeps_memory_tools", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": false, "max_workers": 2}, "unavailable": {}},
+    {"id": "no_human_input", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2}, "question_callback": false, "unavailable": {"user_input_unavailable": ["ask_user"]}},
+    {"id": "readonly", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "read_only": true}, "unavailable": {"read_only": ["write_file", "patch_file", "plan_exit"]}},
+    {"id": "empty_write_scope", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "write_scope": []}, "unavailable": {"write_scope": ["write_file", "patch_file"]}},
+    {"id": "plan_mode", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2}, "mode": "plan", "unavailable": {"plan_mode": ["write_file", "patch_file"]}},
+    {"id": "sandbox_off", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "sandbox": "off"}, "unavailable": {"isolation_required_for_scope": ["run_tests"]}},
+    {"id": "sandbox_off_with_plan", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "sandbox": "off"}, "mode": "plan", "unavailable": {"isolation_required_for_scope": ["write_file", "patch_file", "run_shell", "run_tests"]}},
+    {"id": "sandbox_off_with_scope", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "sandbox": "off", "write_scope": ["src"]}, "unavailable": {"isolation_required_for_scope": ["write_file", "patch_file", "run_shell", "run_tests"]}},
+    {"id": "approval_callback_missing", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "approval": "ask"}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_shell", "run_tests"]}},
+    {"id": "approval_never", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "approval": "never"}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_shell", "run_tests"]}},
+    {"id": "allow_echo_cannot_authorize_tests", "settings": {"memory_enabled": true, "memory_evolution": true, "auto_dream": true, "max_workers": 2, "approval": "never", "rules": [{"prefix": ["echo"], "decision": "allow", "reason": "echo only"}]}, "unavailable": {"approval_unavailable": ["write_file", "patch_file", "plan_exit", "run_tests"]}},
+    {"id": "disabled_features_together", "settings": {"memory_enabled": false, "memory_evolution": true, "auto_dream": true, "max_workers": 0, "read_only": true}, "question_callback": false, "unavailable": {"workers_disabled": ["worker_start", "worker_status", "worker_message", "worker_stop"], "memory_disabled": ["memory_store", "memory_retrieve", "memory_update", "memory_discard"], "read_only": ["write_file", "patch_file", "plan_exit"], "user_input_unavailable": ["ask_user"]}}
   ]
 }

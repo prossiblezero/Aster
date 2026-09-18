@@ -33,7 +33,8 @@ async def test_selected_pages_and_model_body_do_not_reread_changed_source(tmp_pa
     body = "首版说明。" * 30
     runtime, source = setup_runtime(tmp_path, body)
     prompt, _, _ = runtime.prepare_request()
-    assert "Load skill_load with tool_load" in prompt[-1]["content"]
+    assert "Load skill_load with tool_load" in prompt[0]["content"]
+    assert "Load skill_load with tool_load" not in prompt[-1]["content"]
     assert body not in prompt[-1]["content"]
     first = await load(runtime, limit=9)
     assert first.status == "success"

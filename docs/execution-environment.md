@@ -47,3 +47,11 @@
 本轮依赖专项与会话生命周期验收：`/home/dzh/.conda/envs/aster/bin/python -m pytest -q tests/test_dependency_environment.py tests/test_environment_lifecycle.py`，结果 21 passed；独立复核补充的 `tests/test_environment_review.py` 两项同名源码优先级反例通过。最终依赖、生命周期、Node 与工具契约相邻回归共 112 passed，源码发布与沙箱边界此前也已通过本轮回归，没有把历史网站成绩充作本轮结果。
 
 实现依据：[pip 的 `--target` / `PIP_TARGET`](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-t)、[Python 官方虚拟环境的不可搬移约束](https://docs.python.org/3.12/library/venv.html)。依赖保持在稳定路径，未把现有环境复制到每个新命令目录。
+
+## 模型可见环境与 Web 检查边界
+
+v0.2 在稳定策略中说明实际 Python 版本、Node 版本与常用命令可用性，以及沙箱、联网、依赖复用和命令生命周期；不逐轮扫描整个系统。Shell 临时文件使用 `.tmp/` 或 `TMPDIR`。每条命令结束时清理进程组，后台 HTTP 服务不会跨工具调用保留；exit 0 也不代表服务启动成功，必须检查 stderr 和实际行为。
+
+`run_tests` 的 Node reporter 参数由宿主保留，拒绝时会提示移除。构建、语法和浏览器检查使用 `run_shell`，与正式测试证据分别报告。浏览器 `.js` 若使用 ES module，应在 `package.json` 声明 `"type": "module"`，或采用 `.mjs`；不能拿 CommonJS 语法检查误判浏览器模块。
+
+Playwright 是可选的项目验证依赖，不是 Aster 核心依赖。需要授权安装浏览器并允许相应网络和进程操作，服务器、浏览器和清理必须在同一条有界命令中执行；不能关闭沙箱来假装支持。当前独立浏览器验收由操作员执行，不能据此声称 Aster 已在沙箱中自主完成浏览器验证。禁网时本地 TCP 服务也不可用。

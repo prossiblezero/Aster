@@ -132,6 +132,8 @@ def check_expected(observed: dict, expected: dict) -> dict:
     return {
         key: all(text in observed.get("diff", "") for text in wanted)
         if key == "diff_contains"
+        else observed.get(key, "").startswith(wanted + ":")
+        if key == "last_error" and wanted == "runtime_identity_mismatch"
         else observed.get(key) == wanted
         for key, wanted in expected.items()
     }

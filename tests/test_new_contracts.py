@@ -18,9 +18,15 @@ def test_max_turns_stops_model_loop(tmp_path):
 
 
 def test_auto_dream_emits_event(tmp_path):
-    runtime = Runtime(tmp_path, Settings(completion="off", auto_dream=True), model=EmptyModel())
+    runtime = Runtime(
+        tmp_path,
+        Settings(completion="off", memory_enabled=True, memory_evolution=True, auto_dream=True),
+        model=EmptyModel(),
+    )
     state = asyncio.run(runtime.run(TaskSpec(prompt="inspect", max_turns=1)))
-    assert any(e["event"] == "memory_dream" for e in runtime.evidence.events(state.run_id))
+    event = next(e for e in runtime.evidence.events(state.run_id) if e["event"] == "memory_dream")
+    assert event["status"] == "skipped" and event["reason"] == "no_active_excerpts"
+    assert event["checked"] == 0 and event["deactivated"] == 0
 
 
 async def test_large_tool_result_is_intact_until_the_request_exceeds_its_budget(tmp_path):

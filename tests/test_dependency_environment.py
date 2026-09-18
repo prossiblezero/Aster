@@ -17,6 +17,19 @@ from aster.schema import TaskSpec, ToolCall
 from aster.workspace import Workspace
 
 
+def test_model_sees_execution_constraints_and_current_capabilities(tmp_path):
+    runtime = Runtime(tmp_path, Settings(network=False, reuse_environment=True))
+    runtime.start(TaskSpec(prompt="Build and verify a small website"))
+    prompt, _, _ = runtime.prepare_request()
+    policy = prompt[0]["content"]
+    assert f"Python {sys.version.split()[0]}" in policy
+    assert "network=blocked" in policy and "Sandbox=required" in policy
+    assert "in this process only" in policy and "background servers do not survive" in policy
+    assert "TMPDIR" in policy
+    runtime.settings.network = True
+    assert "network=allowed" in runtime.prepare_request()[0][0]["content"]
+
+
 def python(program):
     return shlex.join([sys.executable, "-c", program])
 

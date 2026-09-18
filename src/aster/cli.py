@@ -6,8 +6,10 @@ import argparse
 import asyncio
 import json
 import os
+import shlex
 import stat
 import sys
+import time
 from pathlib import Path
 
 from .config import load_settings
@@ -32,8 +34,12 @@ def main(argv=None):
     parser.add_argument("--model")
     parser.add_argument("--context-tokens", type=int, help="Total input plus output token budget")
     parser.add_argument("--output-tokens", type=int, help="Maximum tokens per model response")
-    parser.add_argument("--max-steps", type=int, help="Tool action cap for a one-shot task")
-    parser.add_argument("--max-turns", type=int, help="Model turn cap for a one-shot task")
+    parser.add_argument(
+        "--max-steps", type=int, help="Tool action cap for each CLI/TUI task (1–500)"
+    )
+    parser.add_argument(
+        "--max-turns", type=int, help="Model turn cap for each CLI/TUI task (1–500)"
+    )
     parser.add_argument(
         "--resume", metavar="RUN_ID", help="Continue a saved run, optionally with new feedback"
     )
@@ -59,8 +65,17 @@ def main(argv=None):
         parser.error("--allow-model-change and --adopt-workspace require --resume")
     if args.resume and (args.tui or args.rl_smoke):
         parser.error("--resume is a one-shot option; use /resume inside TUI")
-    if (args.tui or args.rl_smoke) and (args.max_steps is not None or args.max_turns is not None):
-        parser.error("--max-steps and --max-turns apply only to one-shot tasks")
+    task_limits = {
+        name: value
+        for name, value in {"max_steps": args.max_steps, "max_turns": args.max_turns}.items()
+        if value is not None
+    }
+    if args.rl_smoke and task_limits:
+        parser.error("--max-steps and --max-turns are not used by --rl-smoke")
+    try:
+        TaskSpec(prompt=args.prompt or "Interactive session", **task_limits)
+    except ValueError as exc:
+        parser.error(str(exc))
     env_file = args.env_file or (Path.cwd() / ".env")
     try:
         settings = load_settings(
@@ -103,7 +118,7 @@ def main(argv=None):
     if args.tui:
         if AsterTui is None:
             parser.error("TUI requires textual")
-        app = AsterTui(Path(args.cwd), settings)
+        app = AsterTui(Path(args.cwd), settings, **task_limits)
         label = (
             "Unknown model fallback"
             if settings.context_budget_source == "fallback"
@@ -125,12 +140,8 @@ def main(argv=None):
         approval_callback=terminal.approve,
         question_callback=terminal.question,
     )
+    runtime.evidence.listeners.append(terminal.event)
     try:
-        task_limits = {
-            name: value
-            for name, value in {"max_steps": args.max_steps, "max_turns": args.max_turns}.items()
-            if value is not None
-        }
         if args.resume:
             runtime.resume(
                 args.resume,
@@ -145,17 +156,17 @@ def main(argv=None):
         print(runtime.evidence.redactor.text(f"Aster: {exc}"), file=sys.stderr)
         return 1
     except KeyboardInterrupt:
-        print("Aster cancelled.")
+        print("Aster cancelled.", file=sys.stderr, flush=True)
         return 130
     finally:
+        terminal.end_preview()
+        runtime.evidence.listeners.remove(terminal.event)
+        if runtime.state:
+            terminal.run_status(runtime.state, root=Path(args.cwd))
         if settings.reuse_environment:
             runtime.sandbox.close()
-    print(
-        runtime.evidence.redactor.text(
-            state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}"
-        )
-    )
-    print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")
+    if state.final:
+        print(runtime.evidence.redactor.text(state.final))
     return 0 if state.phase == "completed" else 1
 
 
@@ -181,6 +192,106 @@ class Terminal:
         self.lock = asyncio.Lock()
         self.redactor = Redactor([settings.api_key.get_secret_value()])
         self._input_buffer = b""
+        self._stream_pending = ""
+        self._stream_active = False
+        self._stream_characters = 0
+        self._progress_at = 0.0
+
+    def event(self, row):
+        """Preview uncommitted model output on stderr; stdout is the final answer."""
+        if row["event"] == "model_stream":
+            kind = row["type"]
+            attempt = row.get("attempt", 1)
+            if kind == "begin":
+                if self._stream_active:
+                    self.end_preview()
+                self._stream_pending = ""
+                self._stream_characters = 0
+                self._progress_at = 0.0
+                self._stream_active = True
+                print(
+                    f"\n[Aster model attempt {attempt}; provisional output]",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            elif kind == "text_delta":
+                self._stream_pending += row.get("text", "")
+                self._stream_characters += len(row.get("text", ""))
+                # A complete line lets redaction match credentials split across deltas.
+                prefix, separator, self._stream_pending = self._stream_pending.rpartition("\n")
+                if separator:
+                    print(self.redactor.text(prefix), file=sys.stderr, flush=True)
+                now = time.monotonic()
+                if now - self._progress_at >= 1:
+                    print(
+                        f"[receiving response: {self._stream_characters} characters]",
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    self._progress_at = now
+            elif kind == "tool_delta":
+                now = time.monotonic()
+                if now - self._progress_at >= 1:
+                    print("[receiving tool arguments]", file=sys.stderr, flush=True)
+                    self._progress_at = now
+            elif kind == "completed":
+                if self._stream_pending:
+                    print(self.redactor.text(self._stream_pending), file=sys.stderr, flush=True)
+                self._stream_pending = ""
+                self._stream_active = False
+                print(f"[model attempt {attempt} completed]", file=sys.stderr, flush=True)
+            elif kind == "error":
+                self.end_preview()
+        elif row["event"] == "tool_result":
+            outcome = row["outcome"]
+            print(
+                self.redactor.text(
+                    f"[tool {row['call']['name']}: {outcome['status']} {outcome.get('reason', '')}]"
+                ),
+                file=sys.stderr,
+                flush=True,
+            )
+
+    def end_preview(self):
+        if self._stream_active:
+            # Discard the unfinished line: never present a failed prefix as a final answer.
+            print(
+                "\n[Model attempt incomplete; preview abandoned. No tools executed from this response.]",
+                file=sys.stderr,
+                flush=True,
+            )
+            self._stream_pending = ""
+            self._stream_active = False
+
+    def run_status(self, state, *, root):
+        print(
+            f"run_id={state.run_id} phase={state.phase} reason={state.stop_reason or 'not_finished'} "
+            f"steps={state.step}/{state.task.max_steps} turns={state.turn}/{state.task.max_turns} "
+            f"modified_files={len(state.changed_paths)} verification={state.verification.state}",
+            file=sys.stderr,
+            flush=True,
+        )
+        if state.phase != "completed":
+            descriptions = {
+                "provider_error": "The model request failed; the saved run can be continued.",
+                "step_limit": "The tool action budget was exhausted.",
+                "turn_limit": "The model turn budget was exhausted.",
+                "cancelled": "The task was cancelled; completed changes remain in the workspace.",
+                "empty_model_reply": "The model returned no usable answer or tool call.",
+            }
+            print(
+                descriptions.get(state.stop_reason, "The task did not complete."), file=sys.stderr
+            )
+            if state.feedback:
+                print(self.redactor.text(state.feedback), file=sys.stderr)
+            command = shlex.join(["aster", "--cwd", str(root.resolve()), "--resume", state.run_id])
+            print(
+                f"Continue with the same model and safety configuration: {command}\n"
+                "Reuse your --config/--profile/--env-file options; set --max-steps/--max-turns "
+                "to bound the continuation.",
+                file=sys.stderr,
+                flush=True,
+            )
 
     async def approve(self, call, decision):
         arguments = json.dumps(self.redactor.value(call.arguments), ensure_ascii=False)
@@ -189,7 +300,7 @@ class Terminal:
 
     async def question(self, question):
         async with self.lock:
-            print(question, end=" ", flush=True)
+            print(self.redactor.text(question), end=" ", file=sys.stderr, flush=True)
             fd = sys.stdin.fileno()
             # Redirected regular files are immediately readable and cannot use epoll.
             regular_file = stat.S_ISREG(os.fstat(fd).st_mode)

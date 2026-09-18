@@ -203,7 +203,7 @@ async def test_rl_no_verifier_no_positive_reward_and_turn_truncation(tmp_path):
 async def test_memory_cannot_launder_its_own_sources(tmp_path):
     source = tmp_path / "config.txt"
     source.write_text("Cache TTL is 60 seconds.")
-    runtime = Runtime(tmp_path, Settings(approval="auto"))
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=True))
     runtime.start(TaskSpec(prompt="remember config"))
     observed = await runtime.step(ToolCall(name="read_file", arguments={"path": "config.txt"}))
     stored = await runtime.step(

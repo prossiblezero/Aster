@@ -80,9 +80,15 @@ if App is not None:
         """
         BINDINGS = [("ctrl+c", "cancel_task", "Cancel task"), ("ctrl+q", "quit", "Quit")]
 
-        def __init__(self, root: Path, settings: Settings):
+        def __init__(self, root: Path, settings: Settings, *, max_steps=None, max_turns=None):
             super().__init__()
             self.root_path, self.settings = root, settings
+            self.task_limits = {
+                key: value
+                for key, value in {"max_steps": max_steps, "max_turns": max_turns}.items()
+                if value is not None
+            }
+            self._initial_task = TaskSpec(prompt="Interactive session", **self.task_limits)
             self.runtime = Runtime(
                 root, settings, approval_callback=self._approve, question_callback=self._question
             )
@@ -106,6 +112,10 @@ if App is not None:
         def on_mount(self) -> None:
             self.runtime.evidence.listeners.append(self._event)
             self.query_one("#model-output").display = False
+            self.query_one("#progress", Static).update(
+                f"Aster ready | tools 0/{self._initial_task.max_steps} | "
+                f"turns 0/{self._initial_task.max_turns}"
+            )
             self.query_one("#prompt", Input).focus()
 
         def _event(self, row: dict) -> None:
@@ -267,9 +277,11 @@ if App is not None:
             started = False
             try:
                 if self.runtime.state:
-                    self.runtime.continue_task(prompt, adopt_workspace=adopt_workspace)
+                    self.runtime.continue_task(
+                        prompt, adopt_workspace=adopt_workspace, **self.task_limits
+                    )
                 elif prompt is not None:
-                    self.runtime.start(TaskSpec(prompt=prompt))
+                    self.runtime.start(TaskSpec(prompt=prompt, **self.task_limits))
                 else:
                     raise ValueError("No conversation to continue. Describe a task first.")
                 started = True
@@ -291,6 +303,19 @@ if App is not None:
                     self.runtime.evidence.redactor.text(f"Run failed: {type(exc).__name__}: {exc}")
                 )
             finally:
+                if started and self.runtime.state:
+                    state = self.runtime.state
+                    log = self.query_one("#log", RichLog)
+                    log.write(
+                        f"run_id={state.run_id} phase={state.phase} reason={state.stop_reason or 'not_finished'} "
+                        f"modified_files={len(state.changed_paths)} verification={state.verification.state}"
+                    )
+                    if state.phase != "completed":
+                        log.write(
+                            f"Continue here with /continue, or reopen this workspace with the same "
+                            f"configuration and use /resume {state.run_id}. "
+                            "Completed changes remain; continuation uses a new bounded run."
+                        )
                 if self._stream_active:
                     self.query_one("#model-output", Static).update(
                         "Incomplete model response.\n"

@@ -93,10 +93,12 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
         "Check public interfaces.",
     ):
         assert text in dynamic and text not in second[0]["content"]
-    shared = commonprefix([payload_text(first, tools, protocol), payload_text(second, tools, protocol)])
+    shared = commonprefix(
+        [payload_text(first, tools, protocol), payload_text(second, tools, protocol)]
+    )
     assert "TASK-END-MARKER" in shared and "OBSERVATION-ONE-END" in shared
     assert not first_report.compacted and not second_report.compacted
-    assert second_report.policy_version == "deterministic-v5"
+    assert second_report.policy_version == "deterministic-v6"
     assert second_report.sections["history"] == builder.count(original_history)
 
 
@@ -121,7 +123,9 @@ def test_appended_exchange_preserves_existing_history_in_wire_prefix(protocol, h
 
     assert second[2 : 2 + len(confirmed)] == confirmed == first[2:-1]
     assert second[2:-1] == history
-    shared = commonprefix([payload_text(first, tools, protocol), payload_text(second, tools, protocol)])
+    shared = commonprefix(
+        [payload_text(first, tools, protocol), payload_text(second, tools, protocol)]
+    )
     assert "TASK-END-MARKER" in shared
     if has_history:
         assert "FEEDBACK-END-MARKER" in shared
@@ -148,7 +152,9 @@ def test_trailing_context_still_respects_budget_and_preserves_latest_evidence(pr
         protocol=protocol,
         model="fixed-model",
     )
-    payload = request_payload(prompt, tools, protocol=protocol, model="fixed-model", output_tokens=256)
+    payload = request_payload(
+        prompt, tools, protocol=protocol, model="fixed-model", output_tokens=256
+    )
 
     assert report.compacted and report.removed_messages > 0
     assert report.estimated_tokens == builder.count(payload) <= report.budget

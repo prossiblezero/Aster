@@ -6,6 +6,28 @@ from pydantic import ValidationError
 from aster.config import MODEL_CONTEXT_LIMITS, Settings, load_settings
 
 
+def test_optional_features_default_off_and_explicit_configuration_survives(tmp_path):
+    fields = {
+        "memory_enabled": False,
+        "memory_evolution": False,
+        "auto_dream": False,
+        "max_workers": 0,
+    }
+    defaults = Settings()
+    assert {name: getattr(defaults, name) for name in fields} == fields
+    config = tmp_path / "optional.toml"
+    config.write_text(
+        "memory_enabled = true\nmemory_evolution = true\nauto_dream = true\nmax_workers = 2\n"
+    )
+    enabled = load_settings(config_file=config)
+    assert enabled.memory_enabled and enabled.memory_evolution and enabled.auto_dream
+    assert enabled.max_workers == 2
+    restored = Settings.model_validate_json(enabled.model_dump_json())
+    assert restored.identity() == enabled.identity() != defaults.identity()
+    disabled = load_settings(config_file=config, memory_enabled=False, max_workers=0)
+    assert not disabled.memory_enabled and disabled.max_workers == 0
+
+
 def test_verified_luna_default_reserves_output_and_token_estimation_margin():
     settings = Settings()
     assert settings.context_tokens is None

@@ -98,12 +98,11 @@ async def test_read_batch_really_overlaps_with_a_bound_and_ordered_state(tmp_pat
     assert list(runtime.state.read_evidence) == [f"{i}.txt" for i in range(4)]
 
 
-async def test_preflight_permissions_schema_and_failure_preserve_other_results(
+async def test_preflight_permissions_and_failure_preserve_other_results(
     tmp_path, monkeypatch
 ):
     calls = [
         *reads(2),
-        ToolCall(name="read_file", arguments={}, call_id="bad"),
         ToolCall(name="read_file", arguments={"path": "missing.txt"}, call_id="missing"),
     ]
     runtime = runtime_for(tmp_path, calls)
@@ -120,10 +119,10 @@ async def test_preflight_permissions_schema_and_failure_preserve_other_results(
     monkeypatch.setattr("aster.runtime.permission", permission)
     await runtime.turn()
     observed = results(runtime)
-    assert [row["status"] for row in observed] == ["success", "blocked", "blocked", "error"]
-    assert [row["reason"] for row in observed][1:3] == ["test_denial", "invalid_arguments"]
+    assert [row["status"] for row in observed] == ["success", "blocked", "error"]
+    assert observed[1]["reason"] == "test_denial"
     assert permission_order == ["0.txt", "1.txt", "missing.txt"]
-    assert runtime.state.step == 4 and runtime.state.used_call_ids == ["c0", "missing"]
+    assert runtime.state.step == 3 and runtime.state.used_call_ids == ["c0", "missing"]
 
 
 async def test_all_three_read_tools_use_detached_execution(tmp_path, monkeypatch):

@@ -196,7 +196,7 @@ async def test_worker_reedit_invalidates_parent_cache_without_fake_progress(
 
     runtime = Runtime(
         tmp_path,
-        Settings(approval="auto", completion="off", memory_enabled=memory_enabled),
+        Settings(approval="auto", completion="off", memory_enabled=memory_enabled, max_workers=2),
         model=ChildModel(),
     )
     runtime.start(TaskSpec(prompt="edit a.txt"))
@@ -320,7 +320,13 @@ async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
 
     runtime = Runtime(
         tmp_path,
-        Settings(tool_profile="core", completion="off", approval="auto"),
+        Settings(
+            tool_profile="core",
+            completion="off",
+            approval="auto",
+            memory_enabled=True,
+            max_workers=2,
+        ),
         model=DiscoverAndUse(),
     )
     state = await runtime.run(TaskSpec(prompt="Organize this work."))

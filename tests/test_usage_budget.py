@@ -196,15 +196,17 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
     class NoNetworkRuntime:
         def __init__(self, _root, settings, **_kwargs):
             seen["settings"] = settings
+            self.state = None
             self.evidence = SimpleNamespace(
-                redactor=Redactor([settings.api_key.get_secret_value()])
+                redactor=Redactor([settings.api_key.get_secret_value()]), listeners=[]
             )
 
         async def run(self, task):
             from aster.schema import RunState
 
             seen["task"] = task
-            return RunState(task=task, phase="completed", final="done fake-budget-key")
+            self.state = RunState(task=task, phase="completed", final="done fake-budget-key")
+            return self.state
 
     monkeypatch.setenv("ASTER_API_KEY", "fake-budget-key")
     monkeypatch.setattr(cli, "Runtime", NoNetworkRuntime)
@@ -236,4 +238,4 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
     assert "done [REDACTED]" in captured.out
     assert "fake-budget-key" not in captured.out + captured.err
     with pytest.raises(SystemExit, match="2"):
-        cli.main(["--tui", "--max-steps", "80"])
+        cli.main(["--rl-smoke", "--max-steps", "80"])
