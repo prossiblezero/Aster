@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from typing import Any
 
@@ -21,6 +22,35 @@ class CanonicalHistory:
 def _fields(value: dict, allowed: set[str]) -> None:
     if not isinstance(value, dict) or value.keys() - allowed:
         raise ContextHistoryError("unsupported_history_fields")
+
+
+def _without_response_trace_tags(item: dict) -> dict:
+    """Drop only the gateway's observed turn/time tags; retain all native evidence.
+
+    The maintenance release run returned these tags on Responses assistant
+    items. Unknown metadata still fails instead of silently losing semantics.
+    """
+    fields = {"metadata", "internal_chat_message_metadata_passthrough"} & item.keys()
+    if not fields:
+        return item
+    for field in fields:
+        value = item[field]
+        allowed = {"turn_id"}
+        if field == "internal_chat_message_metadata_passthrough":
+            allowed.add("create_time")
+        _fields(value, allowed)
+        turn_id = value.get("turn_id")
+        if not isinstance(turn_id, str) or not turn_id.strip() or len(turn_id) > 160:
+            raise ContextHistoryError("invalid_history_trace_turn_id")
+        if "create_time" in value:
+            timestamp = value["create_time"]
+            if (
+                type(timestamp) not in {int, float}
+                or not 0 <= timestamp <= 10**12
+                or not math.isfinite(timestamp)
+            ):
+                raise ContextHistoryError("invalid_history_trace_create_time")
+    return {key: value for key, value in item.items() if key not in fields}
 
 
 def _string(value: Any, name: str, *, nonempty: bool = False) -> str:
@@ -151,6 +181,12 @@ def canonicalize(
         kind, role = item.get("type"), item.get("role")
         if kind is not None and not isinstance(kind, str):
             raise ContextHistoryError("unsupported_history_item")
+        if (
+            protocol == "responses"
+            and kind in {"reasoning", "message", "function_call"}
+            and role in {None, "assistant"}
+        ):
+            item = _without_response_trace_tags(item)
         if item.get("status") is not None and item["status"] != "completed":
             raise ContextHistoryError("incomplete_history_item")
         if kind == "reasoning":
