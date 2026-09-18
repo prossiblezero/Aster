@@ -23,11 +23,16 @@ from benchmark_support import (
     external_check,
     grade_contract,
     load_bank,
+    mean_tokens,
     metrics,
     prepare,
     run_task,
     task_spec,
+    token_number,
     tool_events,
+    usage_label,
+    usage_metrics,
+    usage_summary,
 )
 
 from aster.config import load_settings
@@ -299,7 +304,7 @@ async def run_attempt(case, root, destination, settings, variant, protocol, *, m
         "stop_reason": runtime.state.stop_reason,
         "runtime_feedback": runtime.evidence.redactor.text(runtime.state.feedback),
         "setup": setup,
-        **metrics(runtime, seconds),
+        **metrics(runtime, seconds, model_requests=len(observer.requests)),
         "autonomous_steps": runtime.state.step - seed_steps,
         "autonomous_turns": runtime.state.turn - seed_turns,
         "model_requests": len(observer.requests),
@@ -345,7 +350,8 @@ def summarize(rows):
             "scenarios": len({row["task_id"] for row in values}),
             "attempts": len(values),
             "passed": sum(row["passed"] for row in values),
-            "mean_tokens_all": mean(row["total_tokens"] for row in values),
+            "mean_tokens_all": mean_tokens(values),
+            "usage_summary": usage_summary(values),
             "mean_steps_all": mean(row["autonomous_steps"] for row in values),
             "mean_seconds_all": mean(row["seconds"] for row in values),
             "history_compactions": sum(row.get("history_compactions", 0) for row in values),
@@ -383,7 +389,16 @@ def paired_summary(rows):
             "right_only": sum(b["passed"] and not a["passed"] for a, b in values),
             "neither": sum(not a["passed"] and not b["passed"] for a, b in values),
         }
-        for field in ("total_tokens", "autonomous_steps", "seconds", "evidence_read_calls"):
+        entry["common_success_total_tokens"] = (
+            [mean_tokens([a for a, _ in common]), mean_tokens([b for _, b in common])]
+            if common
+            else None
+        )
+        entry["common_success_usage"] = [
+            usage_summary([a for a, _ in common]),
+            usage_summary([b for _, b in common]),
+        ]
+        for field in ("autonomous_steps", "seconds", "evidence_read_calls"):
             entry["common_success_" + field] = (
                 [mean(a[field] for a, _ in common), mean(b[field] for _, b in common)]
                 if common
@@ -401,13 +416,13 @@ def markdown(report):
         "恢复的主要对照是 silent 与 feedback：同样允许继续，只改变纠偏提示。stop 不计作提示收益。",
         f"所有计划尝试（含网关失败）保留；每题每条件重复 {report['repeats']} 次，不视为新增题目。",
         "",
-        "| 专项 / 类别 / 条件 | 场景 | 尝试 | 完成 | 平均后续工具调用 | 平均总 token | 平均秒 |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| 专项 / 类别 / 条件 | 场景 | 尝试 | 完成 | 平均后续工具调用 | 平均已报告 token | 平均秒 | 已报告总 token / 请求覆盖 |",
+        "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for name, group in report["summary"].items():
         lines.append(
             f"| {name} | {group['scenarios']} | {group['attempts']} | {group['passed']} | "
-            f"{group['mean_steps_all']:.2f} | {group['mean_tokens_all']:.0f} | {group['mean_seconds_all']:.2f} |"
+            f"{group['mean_steps_all']:.2f} | {token_number(group['mean_tokens_all'])} | {group['mean_seconds_all']:.2f} | {usage_label(group['usage_summary'])} |"
         )
     lines += [
         "",
@@ -415,12 +430,12 @@ def markdown(report):
         "",
         "左右条件顺序见组名；成本仅在双方均成功的配对中比较，完整成功率见上表。",
         "",
-        "| 类别 / 左 / 右 | 配对 | 都完成 | 仅左完成 | 仅右完成 | 都失败 | 共同成功平均 token 左→右 |",
+        "| 类别 / 左 / 右 | 配对 | 都完成 | 仅左完成 | 仅右完成 | 都失败 | 共同成功平均已报告 token 左→右 |",
         "|---|---:|---:|---:|---:|---:|---|",
     ]
     for name, group in report["pairs"].items():
         costs = group["common_success_total_tokens"]
-        cost = f"{costs[0]:.0f} → {costs[1]:.0f}" if costs else "—"
+        cost = f"{token_number(costs[0])} → {token_number(costs[1])}" if costs else "—"
         lines.append(
             f"| {name} | {group['pairs']} | {group['both_pass']} | {group['left_only']} | "
             f"{group['right_only']} | {group['neither']} | {cost} |"
@@ -437,6 +452,7 @@ def markdown(report):
         "",
         "stop 的预期停止保留在失败列表中；它是控制组，不是运行时故障。",
         "输入缩减是本地估算；总 token 来自供应商 usage，不包含预置历史原本的生成成本。",
+        "用量缺失为 —，明确报告的 0 保留；逐指标请求覆盖见 JSON。部分用量和覆盖未知的历史记录不能当作完整费用，服务端隐藏重试成本未知。",
         "故障由实验注入，不据此推断自然运行中的停滞发生率。每次实际请求、执行记录、候选代码和隐藏评分均归档。",
         "",
     ]
@@ -591,7 +607,7 @@ async def evaluate(args):
                             f"{type(exc).__name__}: {exc}"
                         ),
                         "stop_reason": "evaluation_setup_error",
-                        "total_tokens": 0,
+                        **usage_metrics({}),
                         "autonomous_steps": 0,
                         "seconds": 0,
                         "evidence_read_calls": 0,

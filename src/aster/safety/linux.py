@@ -63,6 +63,7 @@ def restrict(root: Path, network: bool) -> None:
             "/dev/random",
         ):
             allow(Path(raw).resolve(), 1 | 4 | 8)
+        allow(Path("/etc/debian_version").resolve(), 4)  # pip's distro metadata, read only.
         allow(Path("/dev/null"), 2 | 4)
         allow(root, handled)
         checked(libc.prctl(38, 1, 0, 0, 0), "no_new_privs")

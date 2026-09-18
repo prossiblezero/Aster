@@ -20,6 +20,85 @@ from aster.testing import parse_junit
 from aster.workspace import Workspace
 
 DATASETS = Path(__file__).resolve().parents[1] / "datasets"
+USAGE_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "cache_read_input_tokens",
+    "cache_creation_input_tokens",
+    "uncached_input_tokens",
+    "reasoning_tokens",
+)
+
+
+def usage_metrics(usage, model_requests=None):
+    """Retain reported subtotals and coverage without treating missing usage as zero."""
+    counts = {name: usage.get(name) for name in USAGE_FIELDS}
+    # Old checkpoints did not record coverage. Preserve their input/output fallback,
+    # but never add independently partial input and output subtotals from new runs.
+    if (
+        counts["total_tokens"] is None
+        and "usage_requests" not in usage
+        and counts["input_tokens"] is not None
+        and counts["output_tokens"] is not None
+    ):
+        counts["total_tokens"] = counts["input_tokens"] + counts["output_tokens"]
+    coverage = {}
+    for name in USAGE_FIELDS:
+        reported = usage.get(
+            f"{name}_requests", 0 if "usage_requests" in usage or counts[name] is None else None
+        )
+        coverage[name] = {
+            "reported_requests": reported,
+            "model_requests": model_requests,
+            "complete": model_requests is not None
+            and model_requests > 0
+            and counts[name] is not None
+            and reported == model_requests,
+        }
+    return {
+        **counts,
+        "usage": dict(usage),
+        "model_requests": model_requests,
+        "usage_coverage": coverage,
+    }
+
+
+def usage_summary(rows):
+    """Keep historical reports readable; their absent coverage remains unknown."""
+    summary = {}
+    for name in USAGE_FIELDS:
+        values = [row[name] for row in rows if row.get(name) is not None]
+        coverage = [(row.get("usage_coverage") or {}).get(name, {}) for row in rows]
+        item = {
+            "reported_tokens": sum(values) if values else None,
+            "reported_runs": len(values),
+            "runs": len(rows),
+            "complete": bool(rows) and all(c.get("complete", False) for c in coverage),
+        }
+        for field in ("reported_requests", "model_requests"):
+            counts = [c.get(field) for c in coverage]
+            item[field] = (
+                sum(counts) if counts and all(value is not None for value in counts) else None
+            )
+        summary[name] = item
+    return summary
+
+
+def mean_tokens(rows):
+    values = [row.get("total_tokens") for row in rows]
+    return sum(values) / len(values) if values and all(v is not None for v in values) else None
+
+
+def token_number(value):
+    return "—" if value is None else f"{value:,.0f}"
+
+
+def usage_label(summary):
+    item = summary["total_tokens"]
+    reported, requests = item["reported_requests"], item["model_requests"]
+    coverage = f"{reported}/{requests}" if reported is not None and requests is not None else "未知"
+    return f"{token_number(item['reported_tokens'])}（覆盖 {coverage}）"
 
 
 def dataset_path(name):
@@ -205,11 +284,9 @@ def tool_events(runtime):
     return [e for e in runtime.evidence.events(runtime.state.run_id) if e["event"] == "tool_result"]
 
 
-def metrics(runtime, seconds):
+def metrics(runtime, seconds, *, model_requests=None):
     state = runtime.state
     events = tool_events(runtime)
-    usage = state.usage
-    input_tokens, output_tokens = usage.get("input_tokens", 0), usage.get("output_tokens", 0)
     signatures = [
         (e["call"]["name"], json.dumps(e["call"]["arguments"], sort_keys=True)) for e in events
     ]
@@ -229,9 +306,7 @@ def metrics(runtime, seconds):
         "read_calls": sum(e["call"]["name"] == "read_file" for e in events),
         "repeated_calls": len(signatures) - len(set(signatures)),
         "failed_calls": sum(e["outcome"]["status"] != "success" for e in events),
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "total_tokens": usage.get("total_tokens", 0) or input_tokens + output_tokens,
+        **usage_metrics(state.usage, state.turn if model_requests is None else model_requests),
         "seconds": round(seconds, 3),
     }
 

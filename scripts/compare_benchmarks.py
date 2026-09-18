@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from statistics import mean
 
+from benchmark_support import mean_tokens, usage_label, usage_summary
+
 SUITES = {
     "repository": "仓库修改",
     "function": "函数实现",
@@ -52,17 +54,19 @@ def index_rows(report: dict) -> dict:
 
 
 def metrics(rows: list[dict]) -> dict:
+    usage = usage_summary(rows)
     return {
         "attempts": len(rows),
         "passed": sum(r["passed"] for r in rows),
         "mean_tool_calls": mean(r["steps"] for r in rows) if rows else None,
-        "mean_tokens": mean(r["total_tokens"] for r in rows) if rows else None,
+        "mean_tokens": mean_tokens(rows),
         "mean_seconds": mean(r["seconds"] for r in rows) if rows else None,
         "total_tool_calls": sum(r["steps"] for r in rows),
-        "total_tokens": sum(r["total_tokens"] for r in rows),
+        "total_tokens": usage["total_tokens"]["reported_tokens"],
+        "usage_summary": usage,
         "read_calls": sum(r.get("read_calls", 0) for r in rows),
         "failed_without_reported_tokens": sum(
-            not r["passed"] and not r["total_tokens"] for r in rows
+            not r["passed"] and r.get("total_tokens") is None for r in rows
         ),
         "failure_counts": dict(Counter(r["stop_reason"] for r in rows if not r["passed"])),
     }
@@ -85,11 +89,25 @@ def paired(left: list[dict], right: list[dict]) -> dict:
                 "attempt": key[1],
                 "before": {
                     name: a[key].get(name)
-                    for name in ("passed", "steps", "total_tokens", "seconds", "stop_reason")
+                    for name in (
+                        "passed",
+                        "steps",
+                        "total_tokens",
+                        "seconds",
+                        "stop_reason",
+                        "usage_coverage",
+                    )
                 },
                 "after": {
                     name: b[key].get(name)
-                    for name in ("passed", "steps", "total_tokens", "seconds", "stop_reason")
+                    for name in (
+                        "passed",
+                        "steps",
+                        "total_tokens",
+                        "seconds",
+                        "stop_reason",
+                        "usage_coverage",
+                    )
                 },
             }
             for key in sorted(a)
@@ -102,6 +120,8 @@ def paired(left: list[dict], right: list[dict]) -> dict:
             "after": after,
             "token_reduction": (1 - after["total_tokens"] / before["total_tokens"])
             if before["total_tokens"]
+            and before["usage_summary"]["total_tokens"]["complete"]
+            and after["usage_summary"]["total_tokens"]["complete"]
             else None,
         },
     }
@@ -233,13 +253,13 @@ def markdown(report):
             )
     lines += [
         "",
-        "失败可能提前终止，因此全部尝试的平均成本要结合完成率阅读；零 token 表示未收到可计量 usage，不保证远端没有消耗。确定性回放不调用模型，token 为零。",
+        "失败可能提前终止，已报告 token 要结合完成率和逐指标覆盖阅读。新记录缺失用量为 —，明确报告的 0 保留；旧记录没有覆盖信息，历史零值不能证明无消耗。确定性回放不调用真实模型。仅两组覆盖完整时计算 token 变化；这仍不代表账单费用或隐藏重试成本。",
         "",
         "## 补充：修复前后均成功的同题成本",
         "",
         "只用于排除提前失败对成本的影响，不能替代上面的全样本成功率。未同时成功的题目仍在主表与失败清单中。",
         "",
-        "| 任务 / 条件 | 同时成功尝试数 | 平均工具调用 前→后 | 平均 token 前→后 | token 变化 |",
+        "| 任务 / 条件 | 同时成功尝试数 | 平均工具调用 前→后 | 平均已报告 token 前→后 | token 变化 |",
         "| --- | ---: | ---: | ---: | ---: |",
     ]
     for key, group in report["real"].items():
@@ -256,7 +276,7 @@ def markdown(report):
         "",
         "单列多文件任务，避免用函数题的平均成本掩盖仓库任务的差异。",
         "",
-        "| 任务 / 条件 | 完成 前→后 | 工具调用 前→后 | token 前→后 |",
+        "| 任务 / 条件 | 完成 前→后 | 工具调用 前→后 | 已报告 token / 请求覆盖 前→后 |",
         "| --- | --- | ---: | ---: |",
     ]
     for key, group in report["real"].items():
@@ -267,7 +287,7 @@ def markdown(report):
             a, b = pair["before"], pair["after"]
             completion = f"{'通过' if a['passed'] else '失败'}→{'通过' if b['passed'] else '失败'}"
             lines.append(
-                f"| {pair['task_id']} / {VARIANTS[variant]} / 第 {pair['attempt']} 次 | {completion} | {a['steps']}→{b['steps']} | {a['total_tokens']:,}→{b['total_tokens']:,} |"
+                f"| {pair['task_id']} / {VARIANTS[variant]} / 第 {pair['attempt']} 次 | {completion} | {a['steps']}→{b['steps']} | {usage_label(usage_summary([a]))}→{usage_label(usage_summary([b]))} |"
             )
     lines += [
         "",
@@ -275,7 +295,7 @@ def markdown(report):
         "",
         "全部尝试的完成率先列出，成本补充仅比较两个条件都成功的同题；开关差异不能算模型重试。",
         "",
-        "| 任务 / 条件变化 | 全部尝试通过 前→后 | 两组均成功题次 | 同题工具总次数 前→后 | 同题 token 总数 前→后 | token 变化 |",
+        "| 任务 / 条件变化 | 全部尝试通过 前→后 | 两组均成功题次 | 同题工具总次数 前→后 | 同题已报告 token / 请求覆盖 前→后 | token 变化 |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for key, group in report["real_variant_comparisons"]["after"].items():
@@ -284,7 +304,7 @@ def markdown(report):
         ca, cb = common["before"], common["after"]
         rate = token_change(common["token_reduction"])
         lines.append(
-            f"| {SUITES[suite]} / {VARIANTS[group['left']]}→{VARIANTS[group['right']]} | {a['passed']}/{a['attempts']}→{b['passed']}/{b['attempts']} | {ca['attempts']} | {ca['total_tool_calls']}→{cb['total_tool_calls']} | {ca['total_tokens']:,}→{cb['total_tokens']:,} | {rate} |"
+            f"| {SUITES[suite]} / {VARIANTS[group['left']]}→{VARIANTS[group['right']]} | {a['passed']}/{a['attempts']}→{b['passed']}/{b['attempts']} | {ca['attempts']} | {ca['total_tool_calls']}→{cb['total_tool_calls']} | {usage_label(ca['usage_summary'])}→{usage_label(cb['usage_summary'])} | {rate} |"
         )
     context = report["context"]
     a, b = context["before"], context["after"]

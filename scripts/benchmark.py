@@ -19,9 +19,14 @@ from benchmark_support import (
     dataset_path,
     external_check,
     load_bank,
+    mean_tokens,
     prepare,
     run_memory,
     run_task,
+    token_number,
+    usage_label,
+    usage_metrics,
+    usage_summary,
 )
 
 from aster.config import load_settings
@@ -73,10 +78,11 @@ def summarize(rows):
             "pass_at_1": pass_at_k(values, 1),
             "pass_at_3": pass_at_k(values, 3),
             "mean_steps_all": mean(v["steps"] for v in values),
-            "mean_tokens_all": mean(v["total_tokens"] for v in values),
+            "mean_tokens_all": mean_tokens(values),
+            "usage_summary": usage_summary(values),
             "mean_seconds_all": mean(v["seconds"] for v in values),
             "mean_steps_success": mean(v["steps"] for v in success) if success else None,
-            "mean_tokens_success": mean(v["total_tokens"] for v in success) if success else None,
+            "mean_tokens_success": mean_tokens(success),
             "read_calls": sum(v["read_calls"] for v in values),
         }
     return result
@@ -146,16 +152,17 @@ def markdown(report):
         "",
         "脚本动作回放验证 Harness；真实模型独立完成任务才计入模型成功率。每次运行均用全新 fixture，独立验证器只在运行结束后加入隔离副本。",
         "",
-        "| 任务组/条件 | 独立任务 | 尝试 | 通过 | 全部尝试平均步数 | 全部尝试平均 token |",
-        "|---|---:|---:|---:|---:|---:|",
+        "| 任务组/条件 | 独立任务 | 尝试 | 通过 | 全部尝试平均步数 | 平均已报告 token | 已报告总 token / 请求覆盖 |",
+        "|---|---:|---:|---:|---:|---:|---|",
     ]
     for key, s in report["summary"].items():
         lines.append(
-            f"| {key} | {s['tasks']} | {s['attempts']} | {s['passed']}/{s['attempts']} | {s['mean_steps_all']:.2f} | {s['mean_tokens_all']:.0f} |"
+            f"| {key} | {s['tasks']} | {s['attempts']} | {s['passed']}/{s['attempts']} | {s['mean_steps_all']:.2f} | {token_number(s['mean_tokens_all'])} | {usage_label(s['usage_summary'])} |"
         )
     lines += [
         "",
         "记忆对照的两组都有相同的读取和存储阶段（各 2 次工具调用），表中仅统计新 Runtime 的后续问答；关闭记忆组仍保留同一源文件。",
+        "用量缺失为 —；明确报告的 0 保留为 0。覆盖为已报告该指标的请求数/模型调用数，逐指标详情见 JSON。部分用量及覆盖未知的历史记录不能当作完整费用；服务端隐藏重试的成本未知。",
     ]
     if report.get("baseline_checks"):
         checks = report["baseline_checks"]
@@ -179,14 +186,14 @@ def markdown(report):
             "",
             "core/all 分别为核心工具集/全部工具；memory_off/on 为关闭/开启记忆。两个条件不合并为一次重试。",
             "",
-            "| 任务 | 条件 | 完成 | 外部代码测试 | 工具调用 | 总 token | 秒 | 结束原因 |",
+            "| 任务 | 条件 | 完成 | 外部代码测试 | 工具调用 | 已报告总 token / 请求覆盖 | 秒 | 结束原因 |",
             "|---|---|---|---|---:|---:|---:|---|",
         ]
         for row in report["rows"]:
             tests = row.get("verifier")
             verified = ("通过" if tests["passed"] else "失败") if tests else "不适用"
             lines.append(
-                f"| {row['task_id']} | {row['variant']} | {'通过' if row['passed'] else '失败'} | {verified} | {row['steps']} | {row['total_tokens']} | {row['seconds']:.2f} | {row['stop_reason']} |"
+                f"| {row['task_id']} | {row['variant']} | {'通过' if row['passed'] else '失败'} | {verified} | {row['steps']} | {usage_label(usage_summary([row]))} | {row['seconds']:.2f} | {row['stop_reason']} |"
             )
     if report.get("grading_corrections"):
         lines += [
@@ -326,7 +333,7 @@ async def evaluate(args):
                         "steps": 0,
                         "turns": 0,
                         "read_calls": 0,
-                        "total_tokens": 0,
+                        **usage_metrics({}),
                         "seconds": 0,
                     }
                 row["attempt"] = attempt

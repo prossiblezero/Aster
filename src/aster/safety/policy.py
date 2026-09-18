@@ -19,14 +19,12 @@ def shell_argv(command: str) -> list[str] | None:
     Quotes around Python code are argument boundaries, not shell operators. This
     classifies syntax only: a simple command can still execute arbitrary code.
     """
-    if "\\\n" in command:
-        return None  # Shell line continuations do not share shlex's argv semantics.
     if "\x00" in command:
         raise ValueError("NUL in command")
-    argv = shlex.split(command)
-    if not argv:
-        raise ValueError("empty command")
-    # shlex discards quoting; scan active syntax before applying prefix rules.
+    if "\\\n" in command:
+        return None  # Shell line continuations do not share shlex's argv semantics.
+    # Classify shell syntax before shlex: heredoc bodies are not argv and may
+    # contain literal unmatched quotes. Shell programs still require approval.
     quote, escaped, unescape = "", False, set()
     for index, char in enumerate(command):
         if escaped:
@@ -44,10 +42,13 @@ def shell_argv(command: str) -> list[str] | None:
             quote = char
         elif char in ";&|<>()\n\r*?{}[]$`~#":
             return None
-    if unescape:
-        argv = shlex.split(
-            "".join(char for index, char in enumerate(command) if index not in unescape)
-        )
+    argv = shlex.split(
+        "".join(char for index, char in enumerate(command) if index not in unescape)
+        if unescape
+        else command
+    )
+    if not argv:
+        raise ValueError("empty command")
     # An embedded command is not protected by rules on the outer executable.
     executable = PurePosixPath(argv[0]).name or argv[0]
     if executable in {
