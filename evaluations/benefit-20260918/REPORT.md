@@ -1,6 +1,8 @@
 # Aster 真实产品与缓存、Memory、Skills 复测
 
-本轮全部Python使用`/home/dzh/.conda/envs/aster/bin/python`。模型请求使用已有配置；未安装base环境依赖、未推送或部署。实测仍在进行，以下以实际保存的结果为准。
+本轮全部Python使用`/home/dzh/.conda/envs/aster/bin/python`。模型请求使用已有配置；未安装base环境依赖、未推送或部署。基础产品已交付，Skills对照仍在进行，以下以实际保存的结果为准。
+
+可直接运行[课业清单](../../exam_project/campus_planner/README.md)：`conda activate aster`，进入`exam_project/campus_planner`，执行`python -m http.server 8000 --bind 127.0.0.1`，打开`http://127.0.0.1:8000/`。它由Aster编写实现、自测和README，通过6项正式Node自测、12项独立浏览器验收。基础开发3次尝试均受服务故障中断，另一次交付补齐任务才完成，不能写成单次自主成功。
 
 ## 已确认的发现
 
@@ -9,6 +11,10 @@
 基础产品任务的前两次非流式运行均在首轮以`empty_model_reply`停止，0工具步、无实现产物。第二次结构日志确认服务端`completed`但`output=[]`，报告120输出tokens，远低于32768上限。原始失败保留：[首次](results/base.json)、[第一次恢复](results/base-recovery-1.json)。这不是Memory保存/检索效果，也不是Skills开发效果。
 
 最后一次允许的基线恢复切换到已有流式传输，后续对照统一该模式；不将不同模式的恢复运行当作流式性能对照。事前协议与修订分别见[PROTOCOL.md](PROTOCOL.md)、[AMENDMENTS.md](AMENDMENTS.md)。成功调用的实际HTTP尝试数在部分驱动结果中未知，不把模型轮数当POST数。
+
+流式尝试完成28工具步后也以服务端错误停止，期间一次HTTP524由Aster自动重试恢复。已有页面首次浏览器评分8/12，但四项失败经重现全部属于评分器：隐式label定位过严影响2项、错误提示同义词漏匹配、Python Playwright不存在的API。修正评分器且不改候选后12/12通过；原失败和新评分均保留。之后单独的`delivery-base-finish`任务只新增README，Aster执行6项Node测试并以verified完成，再次浏览器12/12通过。
+
+Memory四次真实跨会话问答均通过：开启/关闭各17/17事实正确，来源有效；开启组首请求各召回3条。来源文档读取总数5→5，总read_file9→8（只少读一次目录README），总输入39666→41484（+4.58%）、总tokens40436→42208（+4.38%）。本样本确认召回可用，未测得token或来源查找收益。自然开发和交付中的memory_store仍为0；不能用操作员种入成功替代这项结果。诊断中4个中文改写命中预期条目、无关查询为空、修改来源后旧条目失效，正式QA来源始终可读。详见[Memory结果](memory/comparison.json)。
 
 ## 产品、评测与源码整理
 
