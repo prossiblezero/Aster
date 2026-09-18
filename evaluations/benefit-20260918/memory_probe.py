@@ -258,7 +258,7 @@ def diagnose(seed, output, records):
     }
 
 
-def grade(question, final, records):
+def grade(question, final, records, *, observations=()):
     try:
         answer = json.loads(final)
     except (ValueError, TypeError):
@@ -272,6 +272,23 @@ def grade(question, final, records):
     }
     valid_refs = {row["path"]: row["path"] for row in records}
     valid_refs.update({f"evidence:{row['read']['evidence_id']}": row["path"] for row in records})
+    source_hashes = {
+        row["path"]: row["read"].get("data", {}).get("source_sha256") for row in records
+    }
+    for event in observations:
+        outcome = event.get("outcome", {})
+        data = outcome.get("data", {})
+        path = data.get("path")
+        if (
+            event.get("event") == "tool_result"
+            and event.get("call", {}).get("name") == "read_file"
+            and outcome.get("status") == "success"
+            and source_hashes.get(path)
+            and data.get("source_sha256") == source_hashes[path]
+        ):
+            for reference in (outcome.get("evidence_id"), event.get("hash")):
+                if isinstance(reference, str) and reference:
+                    valid_refs[f"evidence:{reference}"] = path
     citations = answer.get("sources", []) if isinstance(answer, dict) else []
     refs_valid = (
         isinstance(citations, list)
@@ -338,7 +355,9 @@ def audit(output):
         reads = [row for row in tools if row["call"]["name"] == "read_file"]
         searches = [row for row in tools if row["call"]["name"] == "search"]
         requests = result.get("requests", [])
-        correctness = grade(case["question"], result.get("final", ""), manifest["records"])
+        correctness = grade(
+            case["question"], result.get("final", ""), manifest["records"], observations=tools
+        )
         unchanged = snapshot(root) == manifest["seed_product"]
         results.append(
             {

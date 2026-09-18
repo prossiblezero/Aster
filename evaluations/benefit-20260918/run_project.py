@@ -142,7 +142,7 @@ async def run(args):
         context_tokens=128000,
         output_tokens=4096 if args.read_only else 32768,
         request_timeout=180,
-        stream=False,
+        stream=True,
         sandbox="required",
         approval="auto",
         network=False,

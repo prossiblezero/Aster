@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from aster.schema import TaskSpec, ToolCall
+
 SPEC = importlib.util.spec_from_file_location(
     "memory_probe", Path(__file__).with_name("memory_probe.py")
 )
@@ -78,3 +80,68 @@ async def test_prepare_rejects_changed_public_sources_before_writing(tmp_path):
     with pytest.raises(ValueError, match="public rules"):
         await probe.prepare(source, tmp_path / "memory", "offline-test-source")
     assert not (tmp_path / "memory").exists()
+
+
+async def test_grade_accepts_current_run_read_evidence_with_frozen_source_hash(tmp_path):
+    shutil.copytree(probe.HERE / "rules", tmp_path / "docs")
+    runtime = probe.offline_runtime(tmp_path)
+    runtime.start(TaskSpec(prompt="Read the public rules without a model"))
+    records, citations = [], []
+    for index, path in enumerate(sorted(probe.SOURCES["storage-backup"])):
+        read = await runtime.step(ToolCall(name="read_file", arguments={"path": path}))
+        assert read.status == "success"
+        records.append(
+            {
+                "path": path,
+                "read": {
+                    "evidence_id": f"original-seed-{index}",
+                    "data": read.data,
+                },
+            }
+        )
+        events = runtime.evidence.events(runtime.state.run_id)
+        event = next(row for row in reversed(events) if row["event"] == "tool_result")
+        citations.append(f"evidence:{read.evidence_id if index == 0 else event['hash']}")
+    final = json.dumps({**probe.ANSWERS["storage-backup"], "sources": citations})
+    assert not probe.grade("storage-backup", final, records)["sources_passed"]
+    assert probe.grade("storage-backup", final, records, observations=events)["passed"]
+
+
+@pytest.mark.parametrize("invalid", ["failed", "wrong_tool", "unknown_path", "stale_source"])
+def test_grade_rejects_invalid_new_read_evidence(invalid):
+    paths = sorted(probe.SOURCES["storage-backup"])
+    records = [
+        {
+            "path": path,
+            "read": {
+                "evidence_id": f"seed-{index}",
+                "data": {"source_sha256": "frozen-hash"},
+            },
+        }
+        for index, path in enumerate(paths)
+    ]
+    event = {
+        "event": "tool_result",
+        "hash": "new-event",
+        "call": {"name": "read_file"},
+        "outcome": {
+            "status": "success",
+            "evidence_id": "new-read",
+            "data": {
+                "path": paths[0],
+                "source_sha256": "frozen-hash",
+            },
+        },
+    }
+    if invalid == "failed":
+        event["outcome"]["status"] = "error"
+    elif invalid == "wrong_tool":
+        event["call"]["name"] = "search"
+    elif invalid == "unknown_path":
+        event["outcome"]["data"]["path"] = "unrelated.md"
+    else:
+        event["outcome"]["data"]["source_sha256"] = "changed-hash"
+    final = json.dumps(
+        {**probe.ANSWERS["storage-backup"], "sources": ["evidence:new-read", paths[1]]}
+    )
+    assert not probe.grade("storage-backup", final, records, observations=[event])["sources_passed"]
