@@ -1,6 +1,6 @@
 # 执行环境与 Node 正式验收
 
-日期：2026-09-18。本批先修授权 DNS，并接入 Node 内置测试运行器；依赖跨命令复用仍未包含在这一阶段。
+日期：2026-09-18。授权 DNS 和 Node 内置测试运行器先独立交付；随后增加默认关闭的受控依赖复用。两阶段的检查分别记录。
 
 ## 授权联网的系统读取
 
@@ -27,3 +27,23 @@
 ```
 
 结果：97 passed。新增 Node 正式验收和 resolver 权限测试均为离线探针；官方网页检查单独记录，没有计入自动测试成功数。
+
+## 受控依赖复用
+
+在用户自己的 Aster TOML 配置中设置 `reuse_environment = true`，并保留 `sandbox = "required"`。默认关闭；复用不支持关闭沙箱或降级运行，隔离不可用时直接拒绝。开启后，每个 `SandboxRunner` 单独持有进程内的稳定临时执行目录，跨命令只保留 `.venv` 与 `node_modules`；受管理源码每次从当前工作区重新同步，继续校验并发修改、写范围和文件版本。依赖不回写项目源目录，不向主工作区的 `.aster` 或宿主 Python 环境安装内容。
+
+子进程仍使用 Aster 的 Python。`PIP_TARGET` 和 `PYTHONPATH` 指向临时执行根内 `.venv/lib/python<版本>/site-packages`，因此普通 `python -m pip install` 的目标受限于沙箱，后续命令可导入该处依赖。没有激活、替换或改写全局解释器；是否允许包下载仍由 `network` 和审批控制。Node 按标准规则使用执行根中的 `node_modules`。
+
+正式 pytest/unittest 先在 `-I` 模式导入可信运行器，再将候选源码放在搜索路径首位、受控依赖放在其后；同名已安装模块不能遮蔽当前候选源码，依赖中的伪造 `pytest.py` 也不能替代可信入口。测试与只读、plan、write_scope 命令使用新的源码副本，通过精确的 Landlock 只读授权借用父 Runner 依赖。借用期间还禁止 chmod/chown、时间戳和扩展属性修改，弥补 Landlock 不控制这些元数据的边界；因此借用命令中需要修改权限或时间戳的安装操作会被拒绝。普通可写命令保持原有权限位写入行为。
+
+依赖只允许树内符号链接，兼容 Node `.bin` 相对链接和 `.venv/lib64`。`.venv/bin/python*` 唯一的树外例外是当前 Aster Python 的真实路径；任意其他系统链接、断链和特殊文件均被拒绝。取消、非成功的可写执行、依赖校验失败或保护路径输出会销毁该执行根。同一 Runner 忙时拒绝并发调用；Worker 的 Runner 不共用可写根。
+
+每次可写执行与环境销毁都改变环境代次，旧正式测试因此失效。该规则保守作用于所有可写 Shell 命令，包括实际上仅输出信息的命令；需要在准备交付前最后执行正式测试。`run_tests` 绑定源码摘要与借用环境代次，运行前后均须一致。
+
+同一会话的继续保留环境；新任务、`/new`、恢复到另一个保存状态会清理原临时环境。没有跨进程持久化承诺，重启后需按锁文件重新安装并验证。独立发布或 README 重建仍须在新目录执行，不把已热好的临时依赖当成可重建性证据。
+
+依赖复用测试使用合成 Python/Node 模块、`venv --without-pip` 的真实目录布局，以及在执行目录中临时创建的 setuptools 小包。后者通过真实 `pip --no-index --no-deps --no-build-isolation` 安装到默认 `PIP_TARGET`，后续独立命令与正式 pytest 均导入成功，宿主环境没有安装该包。没有下载外部包或调用模型。这些检查覆盖跨命令读取、正式测试借用、来源同步、符号链接边界、权限/元数据防写、Runner 隔离及取消清理；尚不能代替后续 Aster 自主安装真实依赖的实战验收。
+
+本轮依赖专项与会话生命周期验收：`/home/dzh/.conda/envs/aster/bin/python -m pytest -q tests/test_dependency_environment.py tests/test_environment_lifecycle.py`，结果 21 passed；独立复核补充的 `tests/test_environment_review.py` 两项同名源码优先级反例通过。最终依赖、生命周期、Node 与工具契约相邻回归共 112 passed，源码发布与沙箱边界此前也已通过本轮回归，没有把历史网站成绩充作本轮结果。
+
+实现依据：[pip 的 `--target` / `PIP_TARGET`](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-t)、[Python 官方虚拟环境的不可搬移约束](https://docs.python.org/3.12/library/venv.html)。依赖保持在稳定路径，未把现有环境复制到每个新命令目录。

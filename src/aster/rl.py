@@ -68,6 +68,7 @@ class AsterEnv:
                     "await runtime.workers.close() before resetting an active episode"
                 )
             self.runtime.abort("episode_closed")
+            self.runtime.sandbox.close()
         if self._episode:
             self._episode.cleanup()
         self._episode = None

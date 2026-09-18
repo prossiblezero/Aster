@@ -309,6 +309,7 @@ if App is not None:
             if self._event in self.runtime.evidence.listeners:
                 self.runtime.evidence.listeners.remove(self._event)
             await self.action_cancel_task()
+            self.runtime.sandbox.close()
 else:
 
     class AsterTui:

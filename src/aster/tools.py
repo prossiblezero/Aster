@@ -234,7 +234,7 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands; each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
@@ -548,6 +548,7 @@ class WorkspaceTools:
         if node and any(option.startswith("--test-reporter") for option in options):
             return Outcome(status="blocked", reason="test_reporter_reserved")
         tested_fingerprint = self.context.workspace.fingerprint()
+        tested_environment = self.context.sandbox.environment_generation
         with tempfile.TemporaryDirectory(prefix="aster-tests-") as directory:
             target = Path(directory)
             for source in self.context.workspace.files():
@@ -612,12 +613,21 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                 boundary = options.index("--") if "--" in options else len(options)
                 options[boundary:boundary] = [f"--junitxml={report}", "-p", "no:cacheprovider"]
                 command = ["python", "-I", "-c", program, *options]
+            if not node and self.context.sandbox.settings.reuse_environment:
+                # -I intentionally ignores PYTHONPATH. Import the trusted test runner
+                # first, then expose only this sandbox's controlled dependency target.
+                marker = "sys.path.insert(0, os.getcwd())"
+                program = program.replace(marker, marker + "\n" + (
+                    "sys.path.insert(1, os.path.join(os.getcwd(), '.venv', 'lib', "
+                    "f'python{sys.version_info.major}.{sys.version_info.minor}', 'site-packages'))"
+                ))
+                command[3] = program
             settings = self.context.sandbox.settings.model_copy(
                 update={"read_only": False, "write_scope": [report]}
             )
             # Only a report may leave the execution copy, into this disposable copy.
             # Tests cannot publish any change to the actual repository, including in plan mode.
-            result = await SandboxRunner(settings).run(
+            result = await SandboxRunner(settings, environment=self.context.sandbox).run(
                 Workspace(target), shlex.join(command), args.timeout
             )
             cases = None
@@ -636,9 +646,13 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.changed_paths = []
             result.partial_success = False
             result.data["tested_workspace_hash"] = tested_fingerprint
+            result.data["tested_environment_generation"] = tested_environment
         if (
             result.status == "success"
-            and self.context.workspace.fingerprint() != tested_fingerprint
+            and (
+                self.context.workspace.fingerprint() != tested_fingerprint
+                or self.context.sandbox.environment_generation != tested_environment
+            )
         ):
             result.status, result.reason = "blocked", "workspace_changed_during_verification"
         if result.status in {"blocked", "timeout", "cancelled"}:

@@ -145,6 +145,7 @@ class WorkerManager:
             raise
         finally:
             await runtime.workers.close()
+            runtime.sandbox.close()
 
     async def status(self, worker_id: str):
         worker = self.workers.get(worker_id)

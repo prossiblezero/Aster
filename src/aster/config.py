@@ -128,9 +128,12 @@ class Settings(Record):
     tool_profile: Literal["core", "all"] = "core"
     max_workers: int = Field(default=2, ge=0, le=4)
     read_parallelism: int = Field(default=1, ge=1, le=8)
+    reuse_environment: bool = False
 
     @model_validator(mode="after")
     def valid_budget(self):
+        if self.reuse_environment and self.sandbox != "required":
+            raise ValueError("reuse_environment requires sandbox=required")
         if self.stream and self.protocol != "responses":
             raise ValueError("stream currently supports only the responses protocol")
         output = self.effective_output_tokens

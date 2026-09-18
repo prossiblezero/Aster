@@ -147,6 +147,9 @@ def main(argv=None):
     except KeyboardInterrupt:
         print("Aster cancelled.")
         return 130
+    finally:
+        if settings.reuse_environment:
+            runtime.sandbox.close()
     print(
         runtime.evidence.redactor.text(
             state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}"

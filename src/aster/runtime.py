@@ -84,6 +84,7 @@ class Runtime:
         self._history_origins: list[dict] = []
         self._continued_from: str | None = None
         self._checkpoint_workspace: dict[str, str] = {}
+        self._environment_generation = self.sandbox.environment_generation
         self.workers = WorkerManager(self)
 
     @contextmanager
@@ -206,7 +207,7 @@ class Runtime:
 
     @staticmethod
     def _safety_identity(identity):
-        identity = {"read_parallelism": 1, **identity}
+        identity = {"read_parallelism": 1, "reuse_environment": False, **identity}
         model_fields = {
             "provider",
             "profile",
@@ -223,6 +224,8 @@ class Runtime:
         self._ensure_idle()
         if self.state and not self.state.terminal:
             self.finish("new_session")
+        self.sandbox.close()
+        self._environment_generation = self.sandbox.environment_generation
         self.state = None
         self._structured_history, self._pending_messages = [], []
         self._archive_sources, self._history_origins = {}, []
@@ -327,6 +330,8 @@ class Runtime:
         self._ensure_idle()
         if self.state and not self.state.terminal:
             self.finish("superseded")
+        self.sandbox.close()
+        self._environment_generation = self.sandbox.environment_generation
         task = task.model_copy(deep=True)
         inferred = self.verifier.infer(task.prompt)
         for key, value in inferred.items():
@@ -398,6 +403,7 @@ class Runtime:
             "auth": "required",
             "stream": False,
             "read_parallelism": 1,
+            "reuse_environment": False,
             **saved_identity,
         }
         model_changed = saved_identity != current_identity
@@ -441,6 +447,13 @@ class Runtime:
                     state.run_id, data.get("structured_history", []), converted, origins
                 )
             )
+        self.sandbox.close()
+        self._environment_generation = self.sandbox.environment_generation
+        if self.settings.reuse_environment:
+            # Execution roots are process-local; persisted tests cannot attest to a
+            # dependency environment that was not restored with this checkpoint.
+            state.verification = Verification()
+            state.working_memory.pop("__run_tests__", None)
         self.state = state
         self.workers = WorkerManager(self)
         self._initial_text = data.get("initial_text", {})
@@ -955,6 +968,12 @@ class Runtime:
     def _collect_step(self, call: ToolCall, outcome: Outcome, step: int) -> Outcome:
         state = self.state
         assert state is not None
+        if self.settings.reuse_environment and (
+            self._environment_generation != self.sandbox.environment_generation
+        ):
+            state.verification = Verification()
+            state.working_memory.pop("__run_tests__", None)
+        self._environment_generation = self.sandbox.environment_generation
         self.verifier.observe(state, outcome)
         state.messages.append(
             {
@@ -1042,12 +1061,16 @@ class Runtime:
         for path in stale:
             state.read_evidence.pop(path)
             state.working_memory.pop(path, None)
-        verification_stale = (
-            state.verification.state == "passed"
-            and state.verification.workspace_hash != self.workspace.fingerprint()
+        verification_stale = state.verification.state == "passed" and (
+            state.verification.workspace_hash != self.workspace.fingerprint()
+            or (
+                self.settings.reuse_environment
+                and self._environment_generation != self.sandbox.environment_generation
+            )
         )
         if verification_stale:
             state.verification.state = "missing"
+        self._environment_generation = self.sandbox.environment_generation
         if stale or verification_stale:
             state.working_memory.pop("__search__", None)
             state.working_memory.pop("__run_tests__", None)
@@ -1448,6 +1471,7 @@ class Runtime:
         if self._operation_task is not None and self._operation_task is not asyncio.current_task():
             raise RuntimeError("runtime_busy: await the current operation before Final")
         self._settle_workers()
+        self._refresh_observations()
         feedback = completion_feedback(state) if self.settings.completion != "off" else ""
         if feedback and state.final_revisions < self.settings.max_final_revisions:
             state.final_revisions += 1

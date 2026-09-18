@@ -20,7 +20,7 @@ def checked(value: int, operation: str) -> int:
     return value
 
 
-def restrict(root: Path, network: bool) -> None:
+def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] = ()) -> None:
     if sys.platform != "linux" or platform.machine() not in {"x86_64", "aarch64"}:
         raise RuntimeError("Linux x86_64/aarch64 required")
     libc = ctypes.CDLL(None, use_errno=True)
@@ -70,6 +70,8 @@ def restrict(root: Path, network: bool) -> None:
             for raw in ("/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf", "/etc/gai.conf"):
                 allow(Path(raw).resolve(), 4)
         allow(Path("/dev/null"), 2 | 4)
+        for path in readonly_dependencies:
+            allow(path.resolve(strict=True), 1 | 4 | 8)
         allow(root, handled)
         checked(libc.prctl(38, 1, 0, 0, 0), "no_new_privs")
         checked(libc.syscall(446, fd, 0), "landlock restrict")
@@ -121,6 +123,17 @@ def restrict(root: Path, network: bool) -> None:
         "tkill",
         "tgkill",
     ]
+    if readonly_dependencies:
+        # Landlock mediates content writes, not chmod/chown/timestamps/xattrs.
+        # Borrowed dependencies share inodes, so scoped commands must not mutate
+        # their metadata either. Source publication is performed by the parent.
+        denied += [
+            "chmod", "fchmod", "fchmodat", "fchmodat2",
+            "chown", "fchown", "lchown", "fchownat",
+            "utime", "utimes", "futimesat", "utimensat",
+            "setxattr", "lsetxattr", "fsetxattr",
+            "removexattr", "lremovexattr", "fremovexattr",
+        ]
     if not network:
         denied += ["socket", "connect", "bind", "sendmsg", "sendmmsg"]
     try:
@@ -149,13 +162,13 @@ def restrict(root: Path, network: bool) -> None:
 
 
 def main():
-    root, network, command = sys.argv[1:]
+    root, network, command, *dependencies = sys.argv[1:]
     try:
         os.chdir(root)
         resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
         resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
         resource.setrlimit(resource.RLIMIT_CPU, (120, 120))
-        restrict(Path(root), network == "on")
+        restrict(Path(root), network == "on", tuple(Path(path) for path in dependencies))
     except Exception as exc:
         print(f"ASTER_SANDBOX_UNAVAILABLE:{type(exc).__name__}:{exc}", file=sys.stderr)
         sys.exit(125)
