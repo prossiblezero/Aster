@@ -579,13 +579,7 @@ class Runtime:
             output_tokens=self.settings.effective_output_tokens,
         )
         # Keep the actual model observation apart from the full execution trace.
-        request_hash = hashlib.sha256(
-            json.dumps(
-                self.evidence.redactor.value(payload, mask_fields=False),
-                sort_keys=True,
-                ensure_ascii=False,
-            ).encode()
-        ).hexdigest()
+        request_hash = self._request_hash(payload)
         artifact = ("runs", state.run_id, "requests", f"{state.turn + 1:04d}-{request_hash}.json")
         self.evidence.save(artifact, {"policy_version": report.policy_version, "payload": payload})
         self.evidence.emit(
@@ -603,9 +597,27 @@ class Runtime:
         )
         return prompt, tool_defs, report
 
+    def _request_hash(self, payload):
+        return hashlib.sha256(
+            json.dumps(
+                self.evidence.redactor.value(payload, mask_fields=False),
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()
+
     async def _model_turn(self, prompt, tool_defs):
         state = self.state
         assert state is not None
+        request_hash = self._request_hash(
+            request_payload(
+                prompt,
+                tool_defs,
+                protocol=self.settings.protocol,
+                model=self.settings.model,
+                output_tokens=self.settings.effective_output_tokens,
+            )
+        )
         try:
             request_messages = prompt
             if self.settings.stream and isinstance(self.model, ModelClient):
@@ -670,6 +682,7 @@ class Runtime:
             state.run_id,
             "model_reply",
             turn=state.turn,
+            request_sha256=request_hash,
             text=reply.text,
             calls=[c.model_dump() for c in reply.calls],
             usage=reply.usage,
