@@ -183,8 +183,14 @@ def canonicalize(
                     "reasoning_content",
                     "reasoning",
                     "annotations",
+                    "phase",
                 },
             )
+            phase = item.get("phase")
+            if "phase" in item and (
+                role != "assistant" or phase not in (None, "commentary", "final_answer")
+            ):
+                raise ContextHistoryError("invalid_history_phase")
             if item.get("annotations"):
                 raise ContextHistoryError("unsupported_history_annotations")
             if role != "assistant" and any(
@@ -235,8 +241,16 @@ def canonicalize(
                 function = call.get("function")
                 _fields(function, {"name", "arguments"})
                 calls.append(_call(call.get("id"), function.get("name"), function.get("arguments")))
-            if text or (role in {"system", "user"} and not isinstance(content, list)):
-                messages.append({"role": role, "content": text})
+            if (
+                text
+                or phase is not None
+                or (role in {"system", "user"} and not isinstance(content, list))
+            ):
+                message = {"role": role, "content": text}
+                if phase is not None:
+                    # Responses uses phase to distinguish progress from the final answer.
+                    message["phase"] = phase
+                messages.append(message)
             messages.extend(calls)
         else:
             raise ContextHistoryError(f"unsupported_history_role:{role}")

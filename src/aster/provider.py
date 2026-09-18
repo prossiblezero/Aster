@@ -242,6 +242,12 @@ def _anthropic_messages(messages):
 def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
     """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
     history_groups(messages)
+    if protocol in {"chat", "anthropic"} and any(
+        item.get("phase") is not None for item in messages
+    ):
+        # These protocols have no equivalent assistant-phase field. Fail preflight
+        # instead of turning intermediate commentary into an unlabelled answer.
+        raise ContextHistoryError("unsupported_history_phase_for_protocol")
     if protocol == "chat":
         history = _chat_messages(messages)
         payload = {
