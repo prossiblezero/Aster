@@ -174,4 +174,10 @@ python -m pytest -q tests/test_new_contracts.py tests/test_safety.py tests/test_
 
 ## 内建测试的语言范围
 
-`run_tests` 当前接受 `pytest`、`python -m pytest` 和 `python -m unittest`，使用结构化结果形成验证证据。其他命令可经 `run_shell` 执行，但普通 Shell 成功不会自动变成测试通过证明。当前内建完成验证与题库面向 Python；其他语言应接入对应验证器，不能把任意命令退出零当作验证成功。
+`run_tests` 当前接受 `pytest`、`python -m pytest`、`python -m unittest` 和 `node --test`，使用结构化结果形成验证证据。Node 使用内置 JUnit reporter，拒绝无显式测试、全跳过及报告缺失；npm 脚本仍通过 `run_shell` 执行，不会仅靠退出零成为测试通过证明。授权 DNS 的系统读取及 Node 边界见[执行环境](execution-environment.md)。
+
+## 项目摘录 Memory
+
+启用持久 Memory 时，动态上下文给出发现长期项目约定后保存短原文摘录的提示，并提供 `tool_load → memory_store` 入口；没有自动生成或自动写入经验。保存仍须引用本次成功 `read_file` 的证据 ID，核对原文、文件摘要、敏感/暂态/越权内容。
+
+自动召回同时使用初始请求和最近用户反馈。中文查询使用相邻双字片段与英文词面进行检索，改善“默认目录是什么”等改写；这是词面召回，不是向量语义搜索。文件变化后条目仍立即失效，Dream 只维护现有条目。命令失败经验、用户偏好和环境约束尚未纳入新来源；不能绕过现有出处/失效要求直接保存模型总结。

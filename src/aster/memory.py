@@ -186,7 +186,11 @@ class Memory:
     def retrieve(self, query: str, limit: int = 3):
         if not self.enabled or limit <= 0:
             return []
-        words = set(re.findall(r"\w+", query.casefold()))
+        # Adjacent Chinese pairs handle ordinary rephrasing without a tokenizer
+        # dependency; this remains lexical retrieval, not semantic similarity.
+        chinese = re.findall(r"[\u3400-\u9fff]+", query)
+        words = set(re.findall(r"\w+", re.sub(r"[\u3400-\u9fff]+", " ", query.casefold())))
+        words.update(span[index : index + 2] for span in chinese for index in range(len(span) - 1))
         ranked = []
         for item in self.state["lessons"]:
             if (
