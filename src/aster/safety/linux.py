@@ -64,6 +64,9 @@ def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] 
         ):
             allow(Path(raw).resolve(), 1 | 4 | 8)
         allow(Path("/etc/debian_version").resolve(), 4)  # pip's distro metadata, read only.
+        mime_types = Path("/etc/mime.types").resolve()
+        if mime_types.is_file():
+            allow(mime_types, 4)  # Python mimetypes/openpyxl need this exact read-only file.
         if network:
             # DNS needs these exact files; resolv.conf may point into /run/systemd.
             # Resolving the file grants neither its parent directory nor /etc writes.

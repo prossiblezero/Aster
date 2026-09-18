@@ -2,6 +2,7 @@
 
 import shlex
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -44,4 +45,31 @@ print('resolver boundaries preserved')
     )
     assert result.status == "success", result.model_dump()
     assert result.content == "resolver boundaries preserved\n"
+    assert result.data["isolation"] == "landlock+seccomp"
+
+
+@pytest.mark.skipif(not Path("/etc/mime.types").is_file(), reason="System MIME database absent")
+@pytest.mark.parametrize("network", [False, True])
+async def test_mimetypes_uses_exact_read_only_database_without_etc_access(tmp_path, network):
+    program = """import mimetypes
+import os
+from pathlib import Path
+
+assert mimetypes.MimeTypes().guess_type('report.csv')[0] == 'text/csv'
+assert Path('/etc/mime.types').read_bytes()
+for name, mode in [('/etc/mime.types', os.O_WRONLY), ('/etc/passwd', os.O_RDONLY)]:
+    try:
+        descriptor = os.open(name, mode)
+    except PermissionError:
+        pass
+    else:
+        os.close(descriptor)
+        raise AssertionError('unauthorized system access: ' + name)
+print('MIME database read-only; unrelated system files denied')
+"""
+    result = await SandboxRunner(Settings(network=network)).run(
+        Workspace(tmp_path), shlex.join([sys.executable, "-c", program]), 10
+    )
+    assert result.status == "success", result.model_dump()
+    assert result.content == "MIME database read-only; unrelated system files denied\n"
     assert result.data["isolation"] == "landlock+seccomp"

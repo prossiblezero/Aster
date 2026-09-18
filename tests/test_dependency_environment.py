@@ -81,6 +81,40 @@ async def test_default_environment_does_not_reuse_dependencies(tmp_path):
     assert result.status == "error" and runner.environment_generation == 0
 
 
+@pytest.mark.parametrize("reuse", [False, True])
+async def test_pip_and_xdg_caches_stay_temporary_and_are_not_published(tmp_path, reuse):
+    runner = SandboxRunner(Settings(reuse_environment=reuse))
+    workspace = Workspace(tmp_path)
+    program = """import os
+import subprocess
+import sys
+from pathlib import Path
+
+cache = Path.cwd() / '.tmp' / 'cache'
+assert Path(os.environ['XDG_CACHE_HOME']) == cache
+assert Path(os.environ['PIP_CACHE_DIR']) == cache
+assert subprocess.check_output([sys.executable, '-m', 'pip', 'cache', 'dir'], text=True).strip() == str(cache)
+cache.mkdir(parents=True, exist_ok=True)
+(cache / 'download.tmp').write_text('dependency cache, not a project deliverable')
+Path('artifact.txt').write_text('project deliverable')
+"""
+    try:
+        result = await runner.run(workspace, python(program))
+        assert result.status == "success", result.model_dump()
+        assert result.changed_paths == ["artifact.txt"]
+        assert not (tmp_path / ".cache").exists() and not (tmp_path / ".tmp").exists()
+        result = await runner.run(workspace, python(
+            "from pathlib import Path; "
+            "assert not Path('.tmp/cache/download.tmp').exists(); "
+            "assert not Path('.cache').exists(); "
+            "assert Path('artifact.txt').read_text() == 'project deliverable'"
+        ))
+        assert result.status == "success", result.model_dump()
+        assert result.changed_paths == []
+    finally:
+        runner.close()
+
+
 @pytest.mark.parametrize("sandbox", ["off", "best_effort"])
 async def test_reuse_never_degrades_to_the_real_workspace(tmp_path, sandbox, monkeypatch):
     with pytest.raises(ValidationError, match="requires sandbox=required"):

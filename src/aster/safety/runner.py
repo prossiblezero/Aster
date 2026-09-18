@@ -151,6 +151,8 @@ class SandboxRunner:
             "PATH": f"{sys.prefix}/bin:/usr/bin:/bin",
             "HOME": str(root),
             "TMPDIR": str(root / ".tmp"),
+            "XDG_CACHE_HOME": str(root / ".tmp" / "cache"),
+            "PIP_CACHE_DIR": str(root / ".tmp" / "cache"),
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
             "PYTHONDONTWRITEBYTECODE": "1",

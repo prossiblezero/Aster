@@ -1,0 +1,1 @@
+继续完成原实验数据整理器。操作员发现并修复了沙箱对系统 /etc/mime.types 的只读权限缺口，标准 mimetypes 和 openpyxl 现在可正常工作；pip缓存也已引导到沙箱临时目录。请检查并清理之前为绕过这个环境问题添加的 sitecustomize.py、.tmp_runtime 和缓存等临时产物，不保留此类产品补丁。新进程的沙箱依赖需按 requirements.txt 重新安装，复用环境已开启，无需再额外创建虚拟环境；宿主自动把 pip 安装目标限定到沙箱目录。请完成真正的 run_tests 正式验证（支持 python -m unittest），最后验证之后不要再用Shell清理依赖而让验证失效。保留原完整产品要求，不用再调研一遍。
