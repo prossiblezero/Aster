@@ -1,0 +1,98 @@
+:root {
+  --ink: #17232b;
+  --muted: #64737b;
+  --line: #dce5e6;
+  --surface: #ffffff;
+  --canvas: #f5f8f7;
+  --teal: #087f78;
+  --teal-dark: #075c59;
+  --teal-soft: #e6f4f1;
+  --amber: #98610b;
+  --amber-soft: #fff5dc;
+  --red: #a63d42;
+  --red-soft: #fff0f0;
+  --shadow: 0 10px 30px rgba(23, 35, 43, .06);
+}
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--canvas); }
+body { margin: 0; color: var(--ink); background: var(--canvas); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.shell { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
+.site-header { background: var(--ink); color: #fff; padding: 34px 0 38px; }
+.header-inner { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.eyebrow, .section-kicker { margin: 0 0 5px; color: #56c8bc; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 4px; font-size: clamp(28px, 5vw, 43px); line-height: 1.15; letter-spacing: 0; }
+.subtitle { margin: 0; color: #b8c7c9; }
+.header-mark { display: grid; place-items: center; width: 60px; height: 60px; border: 1px solid #517275; color: #65d6ca; font-size: 24px; transform: rotate(45deg); }
+.header-mark::first-letter { transform: rotate(-45deg); }
+main { padding: 30px 0 60px; }
+.panel, .plan-section { margin-bottom: 22px; padding: 27px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.section-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 22px; }
+h2 { margin: 0; font-size: 23px; line-height: 1.25; }
+.saved-note, .course-count { color: var(--muted); font-size: 13px; }
+.form-grid { display: grid; gap: 18px; }
+.settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 700px; }
+.course-grid { grid-template-columns: minmax(0, 1.4fr) minmax(160px, 1fr) minmax(140px, .8fr); }
+.field { min-width: 0; }
+label { display: block; margin-bottom: 7px; color: var(--ink); font-size: 14px; font-weight: 700; }
+input { width: 100%; min-height: 46px; padding: 9px 12px; color: var(--ink); background: #fbfdfd; border: 1px solid #b9cacc; border-radius: 4px; outline: none; }
+input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8, 127, 120, .14); }
+.hint { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.form-actions { display: flex; gap: 10px; margin-top: 20px; }
+.button { min-height: 42px; padding: 8px 16px; border: 1px solid transparent; border-radius: 4px; font-weight: 700; transition: background .15s, border-color .15s, transform .15s; }
+.button:hover { transform: translateY(-1px); }
+.button-primary { color: #fff; background: var(--teal); }
+.button-primary:hover { background: var(--teal-dark); }
+.button-quiet { color: var(--muted); background: #fff; border-color: var(--line); }
+.button-quiet:hover { color: var(--ink); border-color: #aababc; }
+.button-small { min-height: 34px; padding: 5px 10px; font-size: 13px; }
+.hidden { display: none !important; }
+.table-wrap { overflow-x: auto; }
+.course-table { margin-top: 28px; }
+.data-table { width: 100%; border-collapse: collapse; text-align: left; }
+.data-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+th { padding: 0 12px 10px; color: var(--muted); border-bottom: 2px solid var(--ink); font-size: 12px; letter-spacing: .03em; }
+td { padding: 14px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td:first-child, th:first-child { padding-left: 0; }
+td:last-child, th:last-child { padding-right: 0; }
+.actions-heading, .actions { text-align: right; }
+.actions { white-space: nowrap; }
+.actions .button + .button { margin-left: 6px; }
+.course-name-cell { font-weight: 700; }
+.empty-state { margin: 22px 0 0; padding: 18px; color: var(--muted); background: #f7faf9; text-align: center; }
+.status-area { min-height: 0; margin-bottom: 22px; }
+.status-message { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; border-left: 4px solid var(--teal); color: var(--teal-dark); background: var(--teal-soft); }
+.status-message.warning { border-color: var(--amber); color: #704708; background: var(--amber-soft); }
+.status-message.error { border-color: var(--red); color: #7c252b; background: var(--red-soft); }
+.status-message strong { display: block; margin-bottom: 2px; }
+.plan-section { margin-bottom: 0; }
+.plan-heading { align-items: end; }
+.plan-meta { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.generate-button { flex-shrink: 0; }
+.summary-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 25px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.summary-strip div { padding: 14px 18px; border-right: 1px solid var(--line); }
+.summary-strip div:last-child { border-right: 0; }
+.summary-strip strong { display: block; color: var(--teal-dark); font-size: 23px; line-height: 1.2; }
+.summary-strip span { color: var(--muted); font-size: 13px; }
+.plan-table tbody tr:nth-child(even) { background: #fbfdfd; }
+.plan-table td:nth-child(1) { width: 30%; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plan-table td:nth-child(3) { width: 25%; font-weight: 700; }
+.site-footer { padding: 22px 0 35px; color: var(--muted); font-size: 12px; }
+@media (max-width: 700px) {
+  .shell { width: min(100% - 28px, 560px); }
+  .site-header { padding: 26px 0 30px; }
+  .header-mark { width: 43px; height: 43px; font-size: 17px; }
+  main { padding-top: 18px; }
+  .panel, .plan-section { padding: 20px 16px; }
+  .settings-grid, .course-grid { grid-template-columns: 1fr; gap: 14px; }
+  .section-heading { margin-bottom: 18px; }
+  .plan-heading { align-items: stretch; flex-direction: column; }
+  .generate-button { width: 100%; }
+  .summary-strip div { padding: 12px 8px; }
+  .summary-strip strong { font-size: 20px; }
+  th, td { padding-right: 9px; padding-left: 9px; }
+  .course-table { min-width: 530px; }
+  .plan-table { min-width: 420px; }
+}

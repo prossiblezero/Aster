@@ -1,10 +1,11 @@
-import { STORAGE_KEY, MAX_BACKUP_BYTES, parseStore, encodeStore, parseBackup, mergeBackup, makeTask, makeId, validateTask, visibleTasks, summarize, isOverdue } from './logic.mjs';
+import { STORAGE_KEY, MAX_BACKUP_BYTES, parseStore, encodeStore, parseBackup, mergeBackup, restoreDeletedTask, makeTask, makeId, validateTask, visibleTasks, summarize, isOverdue } from './logic.mjs';
 import { buildCalendar } from './calendar.mjs';
 
 const $ = id => document.getElementById(id);
 let tasks = [];
 let warning = '';
 let needsRecoveryConfirmation = false;
+let undoTask = null;
 try {
   const loaded = parseStore(localStorage.getItem(STORAGE_KEY));
   tasks = loaded.tasks;
@@ -67,6 +68,9 @@ function element(tag, className, text) {
 }
 
 function render() {
+  const undoButton = $('undo-delete');
+  undoButton.classList.toggle('hidden', !undoTask);
+  undoButton.disabled = !undoTask;
   const counts = summarize(tasks);
   $('total-count').textContent = counts.total - counts.done;
   $('done-count').textContent = counts.done;
@@ -143,10 +147,12 @@ function handleAction(id, action) {
     return;
   }
   if (action === 'delete') {
-    if (!window.confirm(`确定删除“${task.title}”？此操作无法撤销。`)) return;
+    if (!window.confirm(`确定删除“${task.title}”？确认后可使用“撤销删除”恢复最近删除的一条。`)) return;
     if (commit(tasks.filter(t => t.id !== id), '作业已删除')) {
+      undoTask = { ...task };
+      render();
       if ($('editing-id').value === id) resetForm();
-      focusCard(id, action);
+      $('undo-delete').focus();
     }
   } else {
     if (commit(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t), task.completed ? '作业已恢复' : '作业已完成')) focusCard(id, action);
@@ -177,6 +183,21 @@ $('task-form').addEventListener('submit', event => {
   }
 });
 $('cancel-edit').addEventListener('click', () => { resetForm(); $('title').focus(); });
+$('undo-delete').addEventListener('click', () => {
+  if (!undoTask) return;
+  const deletedTask = undoTask;
+  if (tasks.some(task => task.id === deletedTask.id)) {
+    undoTask = null;
+    render();
+    notify('撤销失败：该任务已存在，未复制任务。', true);
+    return;
+  }
+  if (commit(restoreDeletedTask(tasks, deletedTask), '删除已撤销，作业已恢复')) {
+    undoTask = null;
+    render();
+    $('undo-delete').focus();
+  }
+});
 for (const id of ['search', 'course-filter', 'status-filter']) $(id).addEventListener(id === 'search' ? 'input' : 'change', render);
 function download(content, type, filename) {
   const blob = new Blob([content], { type });

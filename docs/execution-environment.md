@@ -6,6 +6,8 @@
 
 `network` 默认仍为 `false`。显式开启后，Landlock 只增加 `/etc/resolv.conf`、`/etc/hosts`、`/etc/nsswitch.conf`、`/etc/gai.conf` 四个已有文件的只读权限。符号链接先解析到真实文件，因此本机 `/etc/resolv.conf` 指向的 `/run/systemd/resolve/stub-resolv.conf` 可读；没有放开 `/etc`、`/run` 整个目录，也没有系统写权限。现有证书路径继续使用原有只读授权。
 
+v0.2 真实依赖任务另补 `/etc/mime.types` 已有真实文件的精确只读授权，供 Python 标准库 `mimetypes` 和 openpyxl 使用；这项本地元数据读取不要求联网，不授予系统目录或写权限。首测的导入失败和修复见[环境问题记录](../evaluations/v0.2-release/engineering-issue-02.md)。
+
 没有自动继承宿主代理、私有证书、凭证或新增抓取服务。需要代理的网络仍须后续增加明确配置；此次官方站验证不能代表所有企业网络均可用。
 
 本轮只读探针于 `2026-09-18T08:48:17Z` 使用 Aster Python，请求相同 URL：<https://docs.python.org/3.12/library/venv.html>。宿主返回 HTTP 200；`network=true`、`sandbox=required` 返回 HTTP 200（1,147.82 ms，`landlock+seccomp`）；禁网沙箱失败，未收到网页。没有安装依赖或调用模型。这是基础联网检查，不是 Aster 自主调研成绩。
@@ -33,6 +35,8 @@
 在用户自己的 Aster TOML 配置中设置 `reuse_environment = true`，并保留 `sandbox = "required"`。默认关闭；复用不支持关闭沙箱或降级运行，隔离不可用时直接拒绝。开启后，每个 `SandboxRunner` 单独持有进程内的稳定临时执行目录，跨命令只保留 `.venv` 与 `node_modules`；受管理源码每次从当前工作区重新同步，继续校验并发修改、写范围和文件版本。依赖不回写项目源目录，不向主工作区的 `.aster` 或宿主 Python 环境安装内容。
 
 子进程仍使用 Aster 的 Python。`PIP_TARGET` 和 `PYTHONPATH` 指向临时执行根内 `.venv/lib/python<版本>/site-packages`，因此普通 `python -m pip install` 的目标受限于沙箱，后续命令可导入该处依赖。没有激活、替换或改写全局解释器；是否允许包下载仍由 `network` 和审批控制。Node 按标准规则使用执行根中的 `node_modules`。
+
+`PIP_CACHE_DIR`、`XDG_CACHE_HOME` 指向执行根的 `.tmp/cache`，不把包缓存回写为项目源码。pip 在检查宿主 editable 包元数据时仍可能遇到沙箱拒绝并打印冲突检查警告；本轮 openpyxl 安装退出成功且后续独立命令和正式测试均能导入。没有为了消除诊断而开放宿主源码路径。真实使用及独立干净环境重建证据见[v0.2验收](../evaluations/v0.2-release/REPORT.md)，产品质量与安装成功分别判断。
 
 正式 pytest/unittest 先在 `-I` 模式导入可信运行器，再将候选源码放在搜索路径首位、受控依赖放在其后；同名已安装模块不能遮蔽当前候选源码，依赖中的伪造 `pytest.py` 也不能替代可信入口。测试与只读、plan、write_scope 命令使用新的源码副本，通过精确的 Landlock 只读授权借用父 Runner 依赖。借用期间还禁止 chmod/chown、时间戳和扩展属性修改，弥补 Landlock 不控制这些元数据的边界；因此借用命令中需要修改权限或时间戳的安装操作会被拒绝。普通可写命令保持原有权限位写入行为。
 

@@ -122,3 +122,10 @@ export function mergeBackup(currentTasks, importedTasks) {
   }
   return merged;
 }
+
+export function restoreDeletedTask(currentTasks, deletedTask) {
+  if (!deletedTask || currentTasks.some(task => task.id === deletedTask.id)) {
+    return currentTasks.map(task => ({ ...task }));
+  }
+  return [...currentTasks.map(task => ({ ...task })), { ...deletedTask }];
+}

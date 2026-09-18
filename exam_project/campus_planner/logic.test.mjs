@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_BACKUP_BYTES, isValidDue, validateTask, parseStore, parseBackup, mergeBackup, visibleTasks, summarize, encodeStore } from './logic.mjs';
+import { MAX_BACKUP_BYTES, isValidDue, validateTask, parseStore, parseBackup, mergeBackup, restoreDeletedTask, visibleTasks, summarize, encodeStore } from './logic.mjs';
 
 const task = (id, due, extra = {}) => ({ id, title: `作业${id}`, course: '课程A', due, notes: '', completed: false, ...extra });
 
@@ -38,6 +38,26 @@ test('摘要不把已完成逾期任务计入逾期', () => {
 
 test('存储编码符合公开 version=1 契约', () => {
   assert.deepEqual(JSON.parse(encodeStore([task('a', '2026-01-01T10:00')])), { version: 1, tasks: [task('a', '2026-01-01T10:00')] });
+});
+
+test('撤销删除恢复完整任务并保留其他任务', () => {
+  const current = [task('keep', '2026-01-01T10:00')];
+  const deleted = task('deleted', '2026-01-02T10:00', {
+    title: '已完成的作业',
+    course: '课程B',
+    notes: '完整备注',
+    completed: true
+  });
+  const restored = restoreDeletedTask(current, deleted);
+  assert.deepEqual(restored, [current[0], deleted]);
+  assert.deepEqual(current, [task('keep', '2026-01-01T10:00')]);
+});
+
+test('恢复已存在的 ID 时不复制任务', () => {
+  const current = [task('same', '2026-01-01T10:00')];
+  const restored = restoreDeletedTask(current, task('same', '2026-02-02T10:00'));
+  assert.deepEqual(restored, current);
+  assert.notEqual(restored, current);
 });
 
 test('备份按 ID 替换和追加，并保留未涉及的现有任务', () => {

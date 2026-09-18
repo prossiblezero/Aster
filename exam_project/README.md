@@ -4,7 +4,11 @@
 
 以下七个产品从历史候选原样复制，没有人工修补实现。各目录的 `ORIGIN.md` 记录来源，[迁移记录](../evaluations/archive-migration-20260918.json) 保存逐文件摘要。历史验收不代表新实验结果，也不代表完整的发布审计；使用限制以各项目 README 为准。
 
-新增 [课业清单](campus_planner/README.md)：大学生本地作业管理网页，支持添加、编辑、搜索筛选、截止日期与完成状态、JSON备份和ICS日历导出，刷新后保留数据，适配手机。运行 `conda activate aster`，进入 `exam_project/campus_planner` 后执行 `python -m http.server 8000 --bind 127.0.0.1`，浏览器打开 `http://127.0.0.1:8000/`。最终版本通过17项Node自测及26项独立浏览器验收；[来源与人工恢复记录](campus_planner/ORIGIN.md)保留完整边界。
+新增 [课业清单](campus_planner/README.md)：大学生本地作业管理网页，支持添加、编辑、搜索筛选、截止日期与完成状态、JSON备份和ICS日历导出，刷新后保留数据，适配手机。本轮增加撤销最近一次删除，最终19项Node自测、32项独立浏览器验收通过；[来源与人工恢复记录](campus_planner/ORIGIN.md)保留首次TUI切换失败和修复补验。
+
+新增 [期末复习安排器](study_planner/README.md)：录入课程、考试日期和剩余小时，设置开始日期与每日上限，生成截止日前的复习计划，不足时提示缺少小时；支持编辑删除、刷新保存和手机使用。由Aster从模糊需求经一次澄清实现，首测8/9、唯一返修后9/9，实际应用Node回归2项通过；[来源记录](study_planner/ORIGIN.md)保留框架修复、超时及返修。
+
+预览以上任一网页：`conda activate aster`，进入对应目录后执行 `python -m http.server 8000 --bind 127.0.0.1`，浏览器打开 `http://127.0.0.1:8000/`。浏览器验收由操作员执行，不代表Aster自主浏览器测试。同期CSV→Excel候选仍有公式文本处理缺陷，未作为合格产品复制；见[v0.2完整验收](../evaluations/v0.2-release/REPORT.md)。
 
 先启用指定环境，再进入对应产品目录：
 

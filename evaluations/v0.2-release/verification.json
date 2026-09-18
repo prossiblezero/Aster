@@ -1,0 +1,35 @@
+{
+  "core_source_commit": "7adc9e16f609a47c1e35c092887f0ab3bf886187",
+  "python": "/home/dzh/.conda/envs/aster/bin/python",
+  "full_regression": {
+    "command": "python -m pytest -q",
+    "result": "954 passed in 46.19s",
+    "log_sha256": "8bdb296636cba997634df4de508d5384bad61c630daee49aa4af5221042c51c2"
+  },
+  "evaluation_offline": {
+    "command": "python -m pytest -q evaluations/v0.2-release/test_lab_grader.py evaluations/v0.2-release/test_study_grader.py evaluations/v0.2-release/test_maintenance_grader.py evaluations/v0.2-release/test_tui_driver.py",
+    "result": "35 passed in 0.15s"
+  },
+  "website_rebuild": {
+    "command": "python learn_web/build.py",
+    "exit_code": 0
+  },
+  "website_after_rebuild": {
+    "command": "python -m pytest -q learn_web/tests/test_site.py",
+    "result": "6 passed in 0.91s",
+    "included_in_full_suite_count": true
+  },
+  "lint": {
+    "command": "python -m ruff check src tests evaluations/v0.2-release",
+    "exit_code": 0
+  },
+  "help": {
+    "command": "aster --help",
+    "exit_code": 0
+  },
+  "diff_check": {
+    "command": "git diff --check",
+    "exit_code": 0
+  },
+  "notes": "Full regression includes existing website tests; the extra site run checks regenerated source and must not be added as six new tests. No training run or model benchmark implied."
+}
