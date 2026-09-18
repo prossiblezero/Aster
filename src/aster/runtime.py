@@ -419,6 +419,11 @@ class Runtime:
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
                 "content": self.evidence.redactor.text(outcome.content),
+                **({"observation": outcome.data["observation"]}
+                   if "observation" in outcome.data else {}),
+                **({key: outcome.data[key] for key in (
+                    "output_bytes", "captured_bytes", "output_truncated", "output_limit_bytes"
+                ) if key in outcome.data} if call.name in {"run_shell", "run_tests"} else {}),
                 **(
                     {
                         key: outcome.data[key]
@@ -672,6 +677,32 @@ class Runtime:
         registry = ToolRegistry(context)
         started = time.monotonic()
         outcome = await registry.execute(call)
+        if call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data:
+            outcome.content = self.evidence.redactor.text(outcome.content)
+            ref = None
+            try:
+                ref = self.evidence.archive_observation(
+                    state.run_id, call.call_id, call.name, outcome.content
+                )
+            except (OSError, ValueError):
+                # Execution already happened: preserve its facts even if storage failed.
+                outcome.data["execution_status"] = outcome.status
+                outcome.data["stop_requested"] = "output_archive_unavailable"
+                outcome.status, outcome.reason = "error", "output_archive_unavailable"
+                outcome.partial_success = bool(outcome.changed_paths)
+            if ref:
+                outcome.data["observation"] = {"id": ref["id"], "characters": ref["characters"]}
+            if ref and len(outcome.content) > 8192:
+                outcome.content = outcome.content[:8192] + (
+                    f"\n[Preview clipped; observation_read id={ref['id']} "
+                    f"has {ref['characters']} captured characters.]"
+                )
+            if outcome.data.get("output_truncated"):
+                outcome.content += (
+                    f"\n[Output exceeded {outcome.data['output_limit_bytes']} bytes; "
+                    f"captured {outcome.data['captured_bytes']} of {outcome.data['output_bytes']} "
+                    "bytes. Overflow is unavailable; narrow or redirect the command output.]"
+                )
         outcome.duration_ms = (time.monotonic() - started) * 1000
         outcome.evidence_id = self.evidence.emit(
             state.run_id,

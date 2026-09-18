@@ -16,6 +16,8 @@ from ..config import Settings
 from ..schema import Outcome
 from ..workspace import CONTROL, BoundaryError, Workspace, sensitive
 
+OUTPUT_LIMIT = 4 * 1024 * 1024
+
 
 class SandboxRunner:
     def __init__(self, settings: Settings):
@@ -126,7 +128,7 @@ class SandboxRunner:
                         status="blocked",
                         reason="read_only",
                         content=result.content,
-                        data={"isolation": "landlock+seccomp"},
+                        data=result.data,
                     )
                 return self._publish(workspace, root, before, after, result)
             finally:
@@ -234,11 +236,14 @@ class SandboxRunner:
             start_new_session=True,
         )
         chunks = bytearray()
+        output_bytes = 0
 
         async def drain():
+            nonlocal output_bytes
             while chunk := await process.stdout.read(8192):
-                if len(chunks) < 256 * 1024:
-                    chunks.extend(chunk[: 256 * 1024 - len(chunks)])
+                output_bytes += len(chunk)
+                if len(chunks) < OUTPUT_LIMIT:
+                    chunks.extend(chunk[: OUTPUT_LIMIT - len(chunks)])
             await process.wait()
 
         reader = asyncio.create_task(drain())
@@ -267,4 +272,6 @@ class SandboxRunner:
             content=chunks.decode("utf-8", errors="replace"),
             exit_code=process.returncode,
             duration_ms=(time.monotonic() - started) * 1000,
+            data={"output_bytes": output_bytes, "captured_bytes": len(chunks),
+                  "output_truncated": output_bytes > len(chunks), "output_limit_bytes": OUTPUT_LIMIT},
         )

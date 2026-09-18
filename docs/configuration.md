@@ -43,6 +43,10 @@ Responses/Chat 的缓存读取与推理量分别属于已报告输入、输出�
 
 普通工具的完整结果保留在 trace；分页工具返回当前页，完整计划仍在运行状态中，完整技能仍在原文件中。自动摘要被截断时可以继续翻页，选中技能不等于看完全文。正文与元数据的 JSON 结构、中文分页示例见 [归档与分页](learning/07-context-archives.md)。
 
+Shell/测试输出最多采集 4 MiB，正常、失败及超时结束均在脱敏后归档；模型正文只保留最多 8,192 字符预览，用结果里的 `observation.id` 经 `observation_read` 回读。`output_bytes/captured_bytes/output_truncated` 明确说明资源超限；超过采集上限的部分无法回读。取消中的输出暂不保留。归档失败会记录已执行命令及已修改文件，然后以 `output_archive_unavailable` 停止。
+
+`patch_file` 可传 `edits=[{old_text,new_text}, ...]`（1–100 项），每项都匹配同一原文的唯一、不重叠区域；任一无效则整批不写入。旧 `old_text/new_text` 仍支持，但不能同时传两种形式。补丁保留 BOM 和未改区域换行；每次成功后仍需重新读取才能继续编辑。
+
 ## 权限与执行范围
 
 | 字段 | 默认值 | 含义与边界 |

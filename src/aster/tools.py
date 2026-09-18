@@ -57,12 +57,27 @@ class WriteFile(Record):
     content: str = Field(description="Complete replacement text; combine planned edits here.")
 
 
-class PatchFile(Record):
-    path: str
+class PatchEdit(Record):
     old_text: str = Field(
         min_length=1, description="Exact, case-sensitive text from the latest read_file; must occur once."
     )
     new_text: str
+
+
+class PatchFile(Record):
+    path: str
+    edits: list[PatchEdit] | None = Field(default=None, min_length=1, max_length=100)
+    old_text: str | None = Field(default=None, min_length=1)
+    new_text: str | None = None
+
+    @model_validator(mode="after")
+    def valid_edits(self):
+        if self.edits is not None:
+            if self.old_text is not None or self.new_text is not None:
+                raise ValueError("Use edits or old_text/new_text, not both")
+        elif self.old_text is None or self.new_text is None:
+            raise ValueError("Provide edits or both old_text and new_text")
+        return self
 
 
 class RunShell(Record):
@@ -202,12 +217,12 @@ SCHEMAS = {
     ),
     "patch_file": (
         PatchFile,
-        "Replace one unique literal occurrence in a workspace file. Call read_file before editing. Each successful edit invalidates that read: read_file again before another edit to the same file, including calls in the same batch. Combine changes in one patch or write when possible.",
+        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Call read_file before editing; every successful edit invalidates that read. Preserves BOM and newline style.",
         "write",
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes. Shell syntax may require approval.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval.",
         "process",
     ),
     "run_tests": (RunTests, "Run an explicitly provided repository test command.", "process"),
@@ -308,14 +323,15 @@ def definitions(
     return result
 
 
-def read_edit_source(path: Path) -> tuple[str, str]:
+def read_edit_source(path: Path, *, normalize: bool = True) -> tuple[str, str]:
     """Derive normalized edit text and a raw-byte version from the same bounded read."""
     limit = 2 * 1024 * 1024
     with path.open("rb") as stream:
         data = stream.read(limit + 1)
     if len(data) > limit:
         raise ValueError("file exceeds 2 MiB text limit")
-    return data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n"), digest(data)
+    text = data.decode("utf-8")
+    return (text.replace("\r\n", "\n").replace("\r", "\n") if normalize else text), digest(data)
 
 
 @dataclass
@@ -422,7 +438,7 @@ class WorkspaceTools:
 
     async def _patch_file(self, args: PatchFile) -> Outcome:
         path = self.context.workspace.path(args.path, write=True)
-        text, fingerprint = read_edit_source(path)
+        raw, fingerprint = read_edit_source(path, normalize=False)
         relative = str(path.relative_to(self.context.workspace.root))
         if (
             self.context.expected_files is not None
@@ -433,14 +449,44 @@ class WorkspaceTools:
                 reason="fresh_read_required",
                 content=f"Call read_file on {args.path} again, then rebuild the patch from its current content.",
             )
-        occurrences = text.count(args.old_text)
-        if occurrences != 1:
-            return Outcome(
-                status="blocked",
-                reason="patch_nonunique",
-                content=f"found {occurrences} occurrences",
-            )
-        new_text = text.replace(args.old_text, args.new_text, 1)
+        bom = "\ufeff" if raw.startswith("\ufeff") else ""
+        raw = raw[len(bom):]
+        text = raw.replace("\r\n", "\n").replace("\r", "\n")
+        edits = args.edits or [PatchEdit(old_text=args.old_text, new_text=args.new_text)]
+        spans = []
+        for index, edit in enumerate(edits):
+            old = edit.old_text.replace("\r\n", "\n").replace("\r", "\n")
+            anchored = bool(bom and old.startswith(bom))
+            if bom:
+                old = old.removeprefix(bom)
+            if not old:
+                return Outcome(status="blocked", reason="patch_empty", content="Match text beyond the BOM")
+            start = (0 if text.startswith(old) else -1) if anchored else text.find(old)
+            if start < 0 or (not anchored and text.find(old, start + 1) >= 0):
+                return Outcome(status="blocked", reason="patch_nonunique",
+                               content=f"edits[{index}] found {max(2, text.count(old)) if start >= 0 else 0} occurrences; must match exactly once in the original file")
+            spans.append((start, start + len(old), edit.new_text))
+        spans.sort()
+        if any(left[1] > right[0] for left, right in zip(spans, spans[1:], strict=False)):
+            return Outcome(status="blocked", reason="patch_overlap",
+                           content="Merge overlapping edits into one replacement")
+        # Map only edit boundaries back to raw offsets, preserving even mixed line endings.
+        boundaries = {position for start, end, _ in spans for position in (start, end)}
+        offsets = {}
+        raw_index = 0
+        for index in range(len(text) + 1):
+            if index in boundaries:
+                offsets[index] = raw_index
+            raw_index += 2 if raw[raw_index:raw_index + 2] == "\r\n" else 1
+        first_newline = next((i for i, char in enumerate(raw) if char in "\r\n"), None)
+        ending = ("\r\n" if raw[first_newline:first_newline + 2] == "\r\n"
+                  else raw[first_newline]) if first_newline is not None else "\n"
+        for start, end, replacement in reversed(spans):
+            replacement = replacement.replace("\r\n", "\n").replace("\r", "\n")
+            if bom and start == 0:
+                replacement = replacement.removeprefix(bom)
+            raw = raw[:offsets[start]] + replacement.replace("\n", ending) + raw[offsets[end]:]
+        new_text = bom + raw
         command = self._write_command(relative, new_text)
         result = await self.context.sandbox.run(
             self.context.workspace, command, expected_files=self.context.expected_files
