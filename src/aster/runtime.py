@@ -10,18 +10,21 @@ import shlex
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
+from copy import deepcopy
 from pathlib import Path
+from uuid import uuid4
 
 from .config import Settings
 from .context import ContextBudgetError, ContextBuilder, ContextHistoryError
 from .evidence import EvidenceStore, Redactor
+from .history import canonicalize
 from .hooks import Hooks
 from .memory import Memory
 from .provider import ModelClient, ProviderError, history_groups, request_payload
 from .recovery import StallDetector, completion_feedback
 from .safety.policy import Decision, permission
 from .safety.runner import SandboxRunner
-from .schema import Outcome, RunState, TaskSpec, ToolCall, VerifierResult
+from .schema import Outcome, RunState, TaskSpec, ToolCall, Verification, VerifierResult
 from .skills import Skills
 from .tools import (
     CORE_TOOLS,
@@ -61,7 +64,9 @@ class Runtime:
         self.model = model or ModelClient(settings)
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
-        self.context = ContextBuilder(settings.effective_context_tokens, settings.effective_output_tokens)
+        self.context = ContextBuilder(
+            settings.effective_context_tokens, settings.effective_output_tokens
+        )
         self.hooks = hooks or Hooks()
         self.verifier = Verifier(self.workspace)
         self.stall = StallDetector()
@@ -75,6 +80,10 @@ class Runtime:
         self._finish_hook_ran = False
         self._dream_ran = False
         self._operation_task: asyncio.Task | None = None
+        self._archive_sources: dict[str, str] = {}
+        self._history_origins: list[dict] = []
+        self._continued_from: str | None = None
+        self._checkpoint_workspace: dict[str, str] = {}
         self.workers = WorkerManager(self)
 
     @contextmanager
@@ -101,23 +110,218 @@ class Runtime:
             raise RuntimeError("runtime_busy: await current operations and workers")
 
     def switch_model(self, alias: str) -> Settings:
-        """Select a validated profile for subsequent tasks without changing permissions."""
+        """Switch at an idle boundary, validating portable history and the new budget first."""
         self._ensure_idle()
-        if self.state and not self.state.terminal:
-            raise RuntimeError("active_run: finish the current task before switching models")
         settings = self.settings.select_profile(alias)
         model = ModelClient(settings)
-        context = ContextBuilder(settings.effective_context_tokens, settings.effective_output_tokens)
+        context = ContextBuilder(
+            settings.effective_context_tokens, settings.effective_output_tokens
+        )
         redactor = Redactor([*self.evidence.redactor.secrets, settings.api_key.get_secret_value()])
         model.redaction_secrets = redactor.secrets
         previous = self.settings.identity()
+        state, history, report = self.state, self._structured_history, None
+        origin = None
+        old_redactor = self.evidence.redactor
+        try:
+            # Preflight may archive compacted observations. New credentials must be
+            # protected before any persistence, including native opaque validation.
+            self.evidence.redactor = redactor
+            if state:
+                if Workspace.changes(self._checkpoint_workspace, self.workspace.snapshot()):
+                    raise ValueError(
+                        "workspace_mismatch: adopt external edits before switching models"
+                    )
+                self.evidence.validate_native_history(history)
+                converted = canonicalize(
+                    history,
+                    provider=self.settings.provider,
+                    protocol=self.settings.protocol,
+                    model=self.settings.model,
+                )
+                state = state.model_copy(deep=True)
+                history = converted.messages
+                report = self._preview_context(state, history, settings, self._archive_sources)
+                origin = self._archive_native_history(
+                    state.run_id, self._structured_history, converted, self._history_origins
+                )
+        finally:
+            self.evidence.redactor = old_redactor
         self.settings, self.model, self.context = settings, model, context
+        self.state, self._structured_history = state, history
         self.sandbox.settings = settings
         self.evidence.redactor = self.memory.redactor = redactor
         if self.state:
-            self.evidence.emit(self.state.run_id, "model_selected", previous=previous,
-                               selected=settings.identity(), scope="subsequent_tasks")
+            self._history_origins.append(origin)
+            self.evidence.emit(
+                self.state.run_id,
+                "model_changed",
+                previous=previous,
+                selected=settings.identity(),
+                origin=origin,
+                compacted=report.compacted,
+                estimated_tokens=report.estimated_tokens,
+            )
+            self.checkpoint()
         return settings
+
+    def _archive_native_history(self, run_id, history, converted, origins):
+        artifact = ("runs", run_id, f"native-history-{len(origins) + 1}.json")
+        self.evidence.save(
+            artifact,
+            {"source": converted.source, "structured_history": history},
+            preserve_native_history=True,
+        )
+        return {
+            "artifact": "/".join(artifact),
+            "source": converted.source,
+            "omitted_reasoning": converted.omitted_reasoning,
+        }
+
+    def _preview_context(self, state, history, settings, sources):
+        """Budget-check detached state; optional recall can be reconstructed on the next turn."""
+        previous = self.state
+        try:
+            self.state = state
+            tools = self.tool_definitions()
+        finally:
+            self.state = previous
+        _, report = ContextBuilder(
+            settings.effective_context_tokens, settings.effective_output_tokens
+        ).build(
+            state,
+            state.task.prompt,
+            structured_history=history,
+            tools=tools,
+            protocol=settings.protocol,
+            model=settings.model,
+            archive=lambda call_id, tool, content: self.evidence.archive_observation(
+                state.run_id, call_id, tool, content
+            ),
+            validate_archive=lambda ref: self.evidence.read_observation(
+                sources.get(ref["id"], state.run_id), ref["id"], limit=1
+            ),
+        )
+        return report
+
+    @staticmethod
+    def _safety_identity(identity):
+        identity = {"read_parallelism": 1, **identity}
+        model_fields = {
+            "provider",
+            "profile",
+            "model",
+            "protocol",
+            "auth",
+            "stream",
+            "context_tokens",
+            "output_tokens",
+        }
+        return {key: value for key, value in identity.items() if key not in model_fields}
+
+    def new_session(self):
+        self._ensure_idle()
+        if self.state and not self.state.terminal:
+            self.finish("new_session")
+        self.state = None
+        self._structured_history, self._pending_messages = [], []
+        self._archive_sources, self._history_origins = {}, []
+
+    def continue_task(
+        self,
+        feedback: str | None = None,
+        *,
+        adopt_workspace: bool = False,
+        max_steps: int | None = None,
+        max_turns: int | None = None,
+    ) -> RunState:
+        """An explicit continuation gets a bounded run in the same persistent conversation."""
+        self._ensure_idle()
+        if self.state is None:
+            raise ValueError("no_session: start or resume a task first")
+        if feedback is not None and not feedback.strip():
+            raise ValueError("empty_feedback")
+        previous = self.state
+        current = self.workspace.snapshot()
+        drift = Workspace.changes(self._checkpoint_workspace, current)
+        if drift and not adopt_workspace:
+            raise ValueError("workspace_mismatch: " + ", ".join(drift[:20]))
+        state = previous.model_copy(deep=True)
+        state.run_id = uuid4().hex
+        state.phase, state.stop_reason, state.final, state.feedback = "running", "", "", ""
+        state.step = state.turn = state.final_revisions = 0
+        state.usage = {}
+        history = deepcopy(self._structured_history)
+        if feedback is not None:
+            inferred = self.verifier.infer(feedback)
+            unfinished = previous.phase != "completed"
+            if unfinished:
+                inferred = {
+                    key: value or getattr(previous.task, key) for key, value in inferred.items()
+                }
+            if inferred["require_edit"] and previous.task.require_verification:
+                inferred["require_verification"] = True
+            state.task = TaskSpec(
+                prompt=previous.task.prompt,
+                max_steps=previous.task.max_steps,
+                max_turns=previous.task.max_turns,
+                required_artifacts=previous.task.required_artifacts
+                if inferred["require_edit"] or unfinished
+                else [],
+                **inferred,
+            )
+            if not unfinished:
+                state.observed, state.changed_paths = False, []
+            history.append({"role": "user", "content": feedback})
+            state.messages.append({"role": "user", "content": feedback, "important": True})
+        limits = {
+            key: value
+            for key, value in {"max_steps": max_steps, "max_turns": max_turns}.items()
+            if value is not None
+        }
+        if limits:
+            state.task = TaskSpec.model_validate({**state.task.model_dump(), **limits})
+        if feedback is not None or drift:
+            state.verification = Verification()
+            state.read_evidence, state.working_memory, state.recalled_ids = {}, {}, []
+        if drift:
+            note = (
+                "User adopted external workspace edits; read current files before editing: "
+                + ", ".join(drift)
+            )
+            history.append({"role": "user", "content": note})
+        sources = dict(self._archive_sources)
+        directory = self.evidence.path("runs", previous.run_id, "observations")
+        for path in directory.glob("*.json"):
+            self.evidence.read_observation(previous.run_id, path.stem, limit=1)
+            sources[path.stem] = previous.run_id
+        self._preview_context(state, history, self.settings, sources)
+        initial_text = (
+            self.workspace.text_snapshot() if feedback is not None or drift else self._initial_text
+        )
+        initial_modes = (
+            self.workspace.mode_snapshot() if feedback is not None or drift else self._initial_modes
+        )
+        self.state, self._structured_history, self._archive_sources = state, history, sources
+        self._continued_from = previous.run_id
+        self._initial_text, self._initial_modes = initial_text, initial_modes
+        self._pending_messages = []
+        self.workers = WorkerManager(self)
+        self.stall.items.clear()
+        self._recovery_used = 0
+        self._finish_hook_ran = self._dream_ran = False
+        self.evidence.emit(
+            state.run_id,
+            "run_continued",
+            continued_from=previous.run_id,
+            session_id=state.session_id,
+            feedback=feedback,
+            adopted_paths=drift,
+            task=state.task.model_dump(),
+            config=self.settings.identity(),
+        )
+        self.checkpoint()
+        return state
 
     def start(self, task: TaskSpec) -> RunState:
         self._ensure_idle()
@@ -137,6 +341,9 @@ class Runtime:
         # The first turn is rebuilt by ContextBuilder so system policy and untrusted-data
         # boundaries are actually sent to the model; this seed is only for the task state.
         self._structured_history = []
+        self._archive_sources = {}
+        self._history_origins = []
+        self._continued_from = None
         self._pending_messages = []
         self._finish_hook_ran = False
         self._dream_ran = False
@@ -154,36 +361,86 @@ class Runtime:
         if not self.state or self._in_turn:
             return
         history_groups(self._structured_history)
+        workspace = self.workspace.snapshot()
         self.evidence.save(
             ("runs", self.state.run_id, "checkpoint.json"),
             {
                 "state": self.state.model_dump(mode="json"),
                 "workspace_hash": self.workspace.fingerprint(),
-                "workspace": self.workspace.snapshot(),
+                "workspace": workspace,
                 "runtime_identity": self.settings.identity(),
                 "structured_history": self._structured_history,
                 "initial_text": self._initial_text,
                 "initial_modes": self._initial_modes,
                 "recovery_used": self._recovery_used,
                 "stall_items": list(self.stall.items),
+                "archive_sources": self._archive_sources,
+                "history_origins": self._history_origins,
+                "continued_from": self._continued_from,
             },
             preserve_native_history=True,
         )
+        self._checkpoint_workspace = workspace
 
-    def resume(self, run_id: str) -> RunState:
+    def resume(
+        self, run_id: str, *, allow_model_change: bool = False, adopt_workspace: bool = False
+    ) -> RunState:
         self._ensure_idle()
         if self.state and not self.state.terminal:
             raise RuntimeError("active_run: finish the current run before resuming another")
         data = json.loads(self.evidence.path("runs", run_id, "checkpoint.json").read_text())
-        if data["runtime_identity"] != self.settings.identity():
+        saved_identity = data["runtime_identity"]
+        current_identity = self.settings.identity()
+        # Old checkpoints predate named providers and streaming; their defaults are explicit.
+        saved_identity = {
+            "provider": "openai",
+            "profile": None,
+            "auth": "required",
+            "stream": False,
+            "read_parallelism": 1,
+            **saved_identity,
+        }
+        model_changed = saved_identity != current_identity
+        if model_changed and (
+            not allow_model_change
+            or self._safety_identity(saved_identity) != self._safety_identity(current_identity)
+        ):
             raise ValueError("runtime_identity_mismatch")
-        if data["workspace_hash"] != self.workspace.fingerprint():
+        if data["workspace_hash"] != self.workspace.fingerprint() and not adopt_workspace:
             raise ValueError("workspace_mismatch")
         state = RunState.model_validate(data["state"])
         if not state.terminal and "initial_text" not in data:
             raise ValueError("legacy_checkpoint_missing_diff_baseline")
         history_groups(data.get("structured_history", []))
         self.evidence.validate_native_history(data.get("structured_history", []))
+        history = data.get("structured_history", [])
+        sources = data.get("archive_sources", {})
+        if not isinstance(sources, dict):
+            raise ValueError("invalid_archive_sources")
+        for observation_id, source_run in sources.items():
+            source = json.loads(
+                self.evidence.path("runs", source_run, "checkpoint.json").read_text()
+            )
+            if source["state"]["session_id"] != state.session_id or self._safety_identity(
+                source["runtime_identity"]
+            ) != self._safety_identity(current_identity):
+                raise ValueError("archive_source_identity_mismatch")
+            self.evidence.read_observation(source_run, observation_id, limit=1)
+        origins = list(data.get("history_origins", []))
+        if model_changed:
+            converted = canonicalize(
+                history,
+                provider=saved_identity["provider"],
+                protocol=saved_identity["protocol"],
+                model=saved_identity["model"],
+            )
+            history = converted.messages
+            self._preview_context(state, history, self.settings, sources)
+            origins.append(
+                self._archive_native_history(
+                    state.run_id, data.get("structured_history", []), converted, origins
+                )
+            )
         self.state = state
         self.workers = WorkerManager(self)
         self._initial_text = data.get("initial_text", {})
@@ -194,7 +451,20 @@ class Runtime:
         self._finish_hook_ran = False
         self._dream_ran = False
         self._pending_messages = []
-        self._structured_history = data.get("structured_history", [])
+        self._structured_history = history
+        self._archive_sources = sources
+        self._history_origins = origins
+        self._continued_from = data.get("continued_from")
+        self._checkpoint_workspace = data["workspace"]
+        if adopt_workspace:
+            self._refresh_observations()
+        if model_changed:
+            self.evidence.emit(
+                state.run_id,
+                "resume_model_changed",
+                previous=saved_identity,
+                selected=current_identity,
+            )
         return self.state
 
     async def run(self, task: TaskSpec | None = None, *, max_steps: int | None = None) -> RunState:
@@ -281,7 +551,9 @@ class Runtime:
 
         def validate_archive(ref):
             # The archive id already hashes provenance and body; read verifies both.
-            self.evidence.read_observation(state.run_id, ref["id"], limit=1)
+            self.evidence.read_observation(
+                self._archive_sources.get(ref["id"], state.run_id), ref["id"], limit=1
+            )
 
         prompt, report = self.context.build(
             state,
@@ -338,8 +610,11 @@ class Runtime:
             request_messages = prompt
             if self.settings.stream and isinstance(self.model, ModelClient):
                 reply = await self.model.complete(
-                    request_messages, tool_defs,
-                    on_event=lambda event: self.evidence.emit(state.run_id, "model_stream", **event),
+                    request_messages,
+                    tool_defs,
+                    on_event=lambda event: self.evidence.emit(
+                        state.run_id, "model_stream", **event
+                    ),
                 )
             else:
                 reply = await self.model.complete(request_messages, tool_defs)
@@ -406,14 +681,17 @@ class Runtime:
             self.finish("empty_model_reply", failed=True)
             return state
         self._in_turn = True
+        batch_started = time.monotonic()
         try:
-            for call in reply.calls:
-                if state.terminal:
-                    outcome = Outcome(status="blocked", reason="run_terminal")
-                else:
-                    outcome = await self.step(call)
-                self._append_output(call, outcome)
+            await self._execute_batch(reply.calls, on_result=self._append_output)
         finally:
+            self.evidence.emit(
+                state.run_id,
+                "tool_batch_finished",
+                calls=len(reply.calls),
+                duration_ms=(time.monotonic() - batch_started) * 1000,
+                read_parallelism=self.settings.read_parallelism,
+            )
             # Never persist a half call/result batch, even on cancellation.
             answered = {
                 x.get("call_id")
@@ -444,11 +722,25 @@ class Runtime:
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
                 "content": self.evidence.redactor.text(outcome.content),
-                **({"observation": outcome.data["observation"]}
-                   if "observation" in outcome.data else {}),
-                **({key: outcome.data[key] for key in (
-                    "output_bytes", "captured_bytes", "output_truncated", "output_limit_bytes"
-                ) if key in outcome.data} if call.name in {"run_shell", "run_tests"} else {}),
+                **(
+                    {"observation": outcome.data["observation"]}
+                    if "observation" in outcome.data
+                    else {}
+                ),
+                **(
+                    {
+                        key: outcome.data[key]
+                        for key in (
+                            "output_bytes",
+                            "captured_bytes",
+                            "output_truncated",
+                            "output_limit_bytes",
+                        )
+                        if key in outcome.data
+                    }
+                    if call.name in {"run_shell", "run_tests"}
+                    else {}
+                ),
                 **(
                     {
                         key: outcome.data[key]
@@ -534,6 +826,122 @@ class Runtime:
             return Outcome(status="blocked", reason="step_limit")
         state.step += 1
         outcome = await self._execute(call)
+        return self._collect_step(call, outcome, state.step)
+
+    async def _execute_batch(self, calls: list[ToolCall], *, on_result=None) -> list[Outcome]:
+        """Preflight in order, overlap detached reads, then publish results in order.
+
+        The preparation/execution/collection split follows pi agent-loop.ts at
+        46c9de402bddf46b03c3b9f46487b777aaa41861; Aster permits only read-only batches.
+        """
+
+        def record(call, outcome):
+            if on_result is not None:
+                on_result(call, outcome)
+            return outcome
+
+        if (
+            self.settings.read_parallelism == 1
+            or len(calls) < 2
+            or any(call.name not in {"read_file", "search", "list_files"} for call in calls)
+        ):
+            return [record(call, await self.step(call)) for call in calls]
+        state = self.state
+        assert state is not None
+        preparations = []
+        exhausted = False
+        for call in calls:
+            if state.terminal:
+                preparations.append((call, Outcome(status="blocked", reason="run_terminal"), None))
+            elif state.step >= state.task.max_steps:
+                reason = "run_terminal" if exhausted else "step_limit"
+                exhausted = True
+                preparations.append((call, Outcome(status="blocked", reason=reason), None))
+            else:
+                state.step += 1
+                preparations.append(
+                    (call, await self._prepare_tool(call, detached=True), state.step)
+                )
+
+        semaphore = asyncio.Semaphore(self.settings.read_parallelism)
+
+        async def execute(prepared):
+            async with semaphore:
+                call, registry = prepared
+
+                def read():
+                    started = time.monotonic()
+                    try:
+                        outcome = asyncio.run(registry.execute(call))
+                    except Exception as exc:
+                        outcome = Outcome(
+                            status="error", reason=type(exc).__name__, content=str(exc)
+                        )
+                    return outcome, (time.monotonic() - started) * 1000
+
+                work = asyncio.create_task(asyncio.to_thread(read))
+                try:
+                    return await asyncio.shield(work)
+                except asyncio.CancelledError:
+                    # Python cannot cancel a running thread. Keep the operation gate
+                    # until it exits; cancelled results never enter Runtime state.
+                    await work
+                    raise
+
+        # A stop during any preflight prevents the whole prepared batch starting.
+        if state.terminal:
+            preparations = [
+                (
+                    call,
+                    prepared
+                    if isinstance(prepared, Outcome)
+                    else Outcome(status="blocked", reason="run_terminal"),
+                    step,
+                )
+                for call, prepared, step in preparations
+            ]
+        jobs = [
+            asyncio.create_task(execute(prepared))
+            for _, prepared, _ in preparations
+            if not isinstance(prepared, Outcome)
+        ]
+        group = asyncio.gather(*jobs, return_exceptions=True)
+        try:
+            completed = iter(await asyncio.shield(group))
+        except asyncio.CancelledError:
+            for job in jobs:
+                job.cancel()
+            while not group.done():
+                try:
+                    await asyncio.shield(group)
+                except asyncio.CancelledError:
+                    continue
+            raise
+        outcomes = []
+        for call, prepared, step in preparations:
+            if step is None:
+                if state.terminal:
+                    prepared = Outcome(status="blocked", reason="run_terminal")
+                elif prepared.reason == "step_limit":
+                    self.finish("step_limit")
+                outcomes.append(record(call, prepared))
+                continue
+            if isinstance(prepared, Outcome):
+                outcome = prepared
+            else:
+                result = next(completed)
+                if isinstance(result, BaseException):
+                    outcome = Outcome(status="error", reason=type(result).__name__)
+                    duration = 0
+                else:
+                    outcome, duration = result
+                outcome = self._finish_tool(prepared[0], outcome, duration)
+            outcomes.append(record(call, self._collect_step(call, outcome, step)))
+        return outcomes
+
+    def _collect_step(self, call: ToolCall, outcome: Outcome, step: int) -> Outcome:
+        state = self.state
+        assert state is not None
         self.verifier.observe(state, outcome)
         state.messages.append(
             {
@@ -582,7 +990,7 @@ class Runtime:
         self.evidence.emit(
             state.run_id,
             "tool_result",
-            step=state.step,
+            step=step,
             call=call.model_dump(),
             outcome=trace_outcome,
             stall_reason=reason,
@@ -638,6 +1046,15 @@ class Runtime:
             )
 
     async def _execute(self, call: ToolCall) -> Outcome:
+        prepared = await self._prepare_tool(call)
+        if isinstance(prepared, Outcome):
+            return prepared
+        call, registry = prepared
+        started = time.monotonic()
+        outcome = await registry.execute(call)
+        return self._finish_tool(call, outcome, (time.monotonic() - started) * 1000)
+
+    async def _prepare_tool(self, call: ToolCall, *, detached=False):
         state = self.state
         assert state is not None
         if call.name not in SCHEMAS:
@@ -685,23 +1102,27 @@ class Runtime:
         if decision.action == "ask":
             if self.approval_callback is None:
                 return Outcome(status="blocked", reason="approval_unavailable")
-            approved = self.approval_callback(call, decision)
+            approved = self.approval_callback(call.model_copy(deep=True), decision)
             if inspect.isawaitable(approved):
                 approved = await approved
             if not approved:
                 return Outcome(status="blocked", reason="approval_denied")
         if state.terminal:
             return Outcome(status="blocked", reason="run_terminal")
-        before = self.hooks.before_tool(state, call)
+        before = self.hooks.before_tool(state, call.model_copy(deep=True))
         if before.action == "stop":
             self.finish("hook_stop")
             return Outcome(status="blocked", reason=before.feedback or "hook_stop")
         if before.action == "deny":
             return Outcome(status="blocked", reason=before.feedback or "hook_denied")
-        context = ToolContext(self.workspace, self.sandbox, state.run_id, self, expected_files)
-        registry = ToolRegistry(context)
-        started = time.monotonic()
-        outcome = await registry.execute(call)
+        context = ToolContext(
+            self.workspace, self.sandbox, state.run_id, None if detached else self, expected_files
+        )
+        return call, ToolRegistry(context)
+
+    def _finish_tool(self, call: ToolCall, outcome: Outcome, duration_ms: float) -> Outcome:
+        state = self.state
+        assert state is not None
         if call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data:
             outcome.content = self.evidence.redactor.text(outcome.content)
             ref = None
@@ -728,7 +1149,7 @@ class Runtime:
                     f"captured {outcome.data['captured_bytes']} of {outcome.data['output_bytes']} "
                     "bytes. Overflow is unavailable; narrow or redirect the command output.]"
                 )
-        outcome.duration_ms = (time.monotonic() - started) * 1000
+        outcome.duration_ms = duration_ms
         outcome.evidence_id = self.evidence.emit(
             state.run_id,
             "tool_decision",
@@ -759,19 +1180,45 @@ class Runtime:
             try:
                 if args["observation_id"]:
                     page = self.evidence.read_observation(
-                        state.run_id,
+                        self._archive_sources.get(args["observation_id"], state.run_id),
                         args["observation_id"],
                         offset=args["offset"],
                         limit=args["limit"],
                         query=args["query"],
                     )
                 else:
-                    page = self.evidence.list_observations(
-                        state.run_id,
-                        offset=args["offset"],
-                        limit=min(10, args["limit"]),
-                        query=args["query"],
-                    )
+                    if not self._archive_sources:
+                        page = self.evidence.list_observations(
+                            state.run_id,
+                            offset=args["offset"],
+                            limit=min(10, args["limit"]),
+                            query=args["query"],
+                        )
+                    else:
+                        records = {}
+                        for run_id in [state.run_id, *sorted(set(self._archive_sources.values()))]:
+                            offset = 0
+                            while True:
+                                listing = self.evidence.list_observations(
+                                    run_id, offset=offset, limit=20, query=args["query"]
+                                )
+                                for ref in listing["observations"]:
+                                    if (
+                                        run_id == state.run_id
+                                        or self._archive_sources.get(ref["id"]) == run_id
+                                    ):
+                                        records[ref["id"]] = ref
+                                offset = listing["next_offset"]
+                                if offset is None:
+                                    break
+                        ordered = [records[key] for key in sorted(records)]
+                        start, end = args["offset"], args["offset"] + min(10, args["limit"])
+                        page = {
+                            "observations": ordered[start:end],
+                            "offset": start,
+                            "next_offset": end if end < len(ordered) else None,
+                            "total": len(ordered),
+                        }
             except (OSError, ValueError) as exc:
                 return Outcome(status="blocked", reason="observation_unavailable", content=str(exc))
             # Wire previews need only the locator and paging fields; full provenance

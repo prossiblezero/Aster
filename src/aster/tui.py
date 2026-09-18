@@ -186,6 +186,44 @@ if App is not None:
             if prompt.split(maxsplit=1)[0] == "/model":
                 self._model_command(prompt)
                 return
+            if prompt == "/new":
+                self.runtime.new_session()
+                self.query_one("#log", RichLog).write("New conversation. Describe the next task.")
+                return
+            if prompt.startswith("/"):
+                parts = prompt.split()
+                command = parts.pop(0)
+                flags = {part for part in parts if part.startswith("--")}
+                args = [part for part in parts if not part.startswith("--")]
+                if (
+                    command not in {"/continue", "/resume"}
+                    or flags - {"--adopt-workspace", "--allow-model-change"}
+                    or (command == "/resume" and len(args) != 1)
+                    or (command == "/continue" and (args or "--allow-model-change" in flags))
+                ):
+                    self.query_one("#log", RichLog).write(
+                        "Use /new, /model [alias], /continue [--adopt-workspace], or "
+                        "/resume RUN_ID [--allow-model-change] [--adopt-workspace]."
+                    )
+                    return
+                try:
+                    if command == "/resume":
+                        self.runtime.resume(
+                            args[0],
+                            allow_model_change="--allow-model-change" in flags,
+                            adopt_workspace="--adopt-workspace" in flags,
+                        )
+                except (OSError, ValueError, RuntimeError) as exc:
+                    self.query_one("#log", RichLog).write(
+                        self.runtime.evidence.redactor.text(str(exc))
+                    )
+                    return
+                event.input.disabled = True
+                self.task_worker = self.run_worker(
+                    self._run_task(None, adopt_workspace="--adopt-workspace" in flags),
+                    exit_on_error=False,
+                )
+                return
             event.input.disabled = True
             self.query_one("#log", RichLog).write(f"Task: {prompt}")
             self.task_worker = self.run_worker(self._run_task(prompt), exit_on_error=False)
@@ -219,15 +257,23 @@ if App is not None:
                 f"{settings.profile} | {settings.provider}/{settings.model} | "
                 f"{settings.effective_context_tokens - settings.effective_output_tokens:,} input tokens"
             )
-            log.write(f"Selected {settings.profile} for subsequent tasks.")
+            log.write(f"Selected {settings.profile} for this conversation.")
 
-        async def _run_task(self, prompt: str) -> None:
+        async def _run_task(self, prompt: str | None, *, adopt_workspace: bool = False) -> None:
             self._last_model_text = ""
             self._stream_active = False
             self._stream_status = ""
             self.query_one("#model-output").display = False
+            started = False
             try:
-                state = await self.runtime.run(TaskSpec(prompt=prompt))
+                if self.runtime.state:
+                    self.runtime.continue_task(prompt, adopt_workspace=adopt_workspace)
+                elif prompt is not None:
+                    self.runtime.start(TaskSpec(prompt=prompt))
+                else:
+                    raise ValueError("No conversation to continue. Describe a task first.")
+                started = True
+                state = await self.runtime.run()
                 if not state.final or state.final != self._last_model_text:
                     self.query_one("#log", RichLog).write(
                         self.runtime.evidence.redactor.text(
@@ -239,9 +285,11 @@ if App is not None:
                     self.runtime.abort()
                 raise
             except Exception as exc:
-                if self.runtime.state and not self.runtime.state.terminal:
+                if started and self.runtime.state and not self.runtime.state.terminal:
                     self.runtime.finish("ui_error", failed=True)
-                self.query_one("#log", RichLog).write(f"Run failed: {type(exc).__name__}")
+                self.query_one("#log", RichLog).write(
+                    self.runtime.evidence.redactor.text(f"Run failed: {type(exc).__name__}: {exc}")
+                )
             finally:
                 if self._stream_active:
                     self.query_one("#model-output", Static).update(

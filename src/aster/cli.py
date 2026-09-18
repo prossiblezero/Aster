@@ -34,6 +34,19 @@ def main(argv=None):
     parser.add_argument("--output-tokens", type=int, help="Maximum tokens per model response")
     parser.add_argument("--max-steps", type=int, help="Tool action cap for a one-shot task")
     parser.add_argument("--max-turns", type=int, help="Model turn cap for a one-shot task")
+    parser.add_argument(
+        "--resume", metavar="RUN_ID", help="Continue a saved run, optionally with new feedback"
+    )
+    parser.add_argument(
+        "--allow-model-change",
+        action="store_true",
+        help="Explicitly convert saved history to the selected model",
+    )
+    parser.add_argument(
+        "--adopt-workspace",
+        action="store_true",
+        help="Adopt external edits when continuing; fresh reads and tests are required",
+    )
     parser.add_argument("--protocol", choices=["responses", "chat", "anthropic"])
     parser.add_argument("--stream", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--sandbox", choices=["required", "best_effort", "off"])
@@ -42,6 +55,10 @@ def main(argv=None):
     parser.add_argument("--rl-smoke", action="store_true")
     parser.add_argument("--tui", action="store_true")
     args = parser.parse_args(argv)
+    if (args.allow_model_change or args.adopt_workspace) and not args.resume:
+        parser.error("--allow-model-change and --adopt-workspace require --resume")
+    if args.resume and (args.tui or args.rl_smoke):
+        parser.error("--resume is a one-shot option; use /resume inside TUI")
     if (args.tui or args.rl_smoke) and (args.max_steps is not None or args.max_turns is not None):
         parser.error("--max-steps and --max-turns apply only to one-shot tasks")
     env_file = args.env_file or (Path.cwd() / ".env")
@@ -99,7 +116,7 @@ def main(argv=None):
         return asyncio.run(
             _rl_smoke(Path(args.cwd), settings, args.prompt or "inspect the workspace")
         )
-    if not args.prompt:
+    if not args.prompt and not args.resume:
         parser.error("prompt is required")
     terminal = Terminal(settings)
     runtime = Runtime(
@@ -114,13 +131,27 @@ def main(argv=None):
             for name, value in {"max_steps": args.max_steps, "max_turns": args.max_turns}.items()
             if value is not None
         }
-        state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt, **task_limits)))
+        if args.resume:
+            runtime.resume(
+                args.resume,
+                allow_model_change=args.allow_model_change,
+                adopt_workspace=args.adopt_workspace,
+            )
+            runtime.continue_task(args.prompt, adopt_workspace=args.adopt_workspace, **task_limits)
+            state = asyncio.run(runtime.run())
+        else:
+            state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt, **task_limits)))
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(runtime.evidence.redactor.text(f"Aster: {exc}"), file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
         print("Aster cancelled.")
         return 130
-    print(runtime.evidence.redactor.text(
-        state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}"
-    ))
+    print(
+        runtime.evidence.redactor.text(
+            state.final or f"Aster stopped: {state.stop_reason}\n{state.feedback}"
+        )
+    )
     print(f"run_id={state.run_id} steps={state.step} verification={state.verification.state}")
     return 0 if state.phase == "completed" else 1
 

@@ -1,9 +1,12 @@
 """Provider usage coverage and one-shot generation budgets remain observable."""
 
+from types import SimpleNamespace
+
 import httpx
 import pytest
 
 from aster.config import MODEL_CONTEXT_LIMITS, Settings
+from aster.evidence import Redactor
 from aster.provider import ModelClient
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
@@ -193,13 +196,17 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
     class NoNetworkRuntime:
         def __init__(self, _root, settings, **_kwargs):
             seen["settings"] = settings
+            self.evidence = SimpleNamespace(
+                redactor=Redactor([settings.api_key.get_secret_value()])
+            )
 
         async def run(self, task):
             from aster.schema import RunState
 
             seen["task"] = task
-            return RunState(task=task, phase="completed", final="done")
+            return RunState(task=task, phase="completed", final="done fake-budget-key")
 
+    monkeypatch.setenv("ASTER_API_KEY", "fake-budget-key")
     monkeypatch.setattr(cli, "Runtime", NoNetworkRuntime)
     assert (
         cli.main(
@@ -224,6 +231,9 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
     assert seen["settings"].effective_context_tokens == 128000
     assert seen["settings"].effective_output_tokens == 32768
     assert seen["task"].max_steps == 80 and seen["task"].max_turns == 60
-    assert "95,232 input + 32,768 output" in capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert "95,232 input + 32,768 output" in captured.err
+    assert "done [REDACTED]" in captured.out
+    assert "fake-budget-key" not in captured.out + captured.err
     with pytest.raises(SystemExit, match="2"):
         cli.main(["--tui", "--max-steps", "80"])

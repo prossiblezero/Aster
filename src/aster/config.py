@@ -127,6 +127,7 @@ class Settings(Record):
     auto_dream: bool = True
     tool_profile: Literal["core", "all"] = "core"
     max_workers: int = Field(default=2, ge=0, le=4)
+    read_parallelism: int = Field(default=1, ge=1, le=8)
 
     @model_validator(mode="after")
     def valid_budget(self):
