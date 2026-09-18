@@ -36,14 +36,14 @@ async def test_large_tool_result_is_intact_until_the_request_exceeds_its_budget(
     prompt, report = runtime.context.build(
         runtime.state, runtime.state.task.prompt, structured_history=runtime._structured_history
     )
-    assert json.loads(prompt[-1]["output"])["content"] == result.content
+    assert json.loads(prompt[-2]["output"])["content"] == result.content
     assert not report.compacted
     runtime.context.budget = 4096
     prompt, report = runtime.context.build(
         runtime.state, runtime.state.task.prompt, structured_history=runtime._structured_history
     )
     assert report.compacted and report.estimated_tokens <= report.budget
-    assert json.loads(prompt[-1]["output"])["content"] != result.content
+    assert json.loads(prompt[-2]["output"])["content"] != result.content
 
 
 def test_legacy_memory_working_state_is_migrated(tmp_path):

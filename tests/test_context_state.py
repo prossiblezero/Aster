@@ -44,9 +44,10 @@ def test_workflow_and_loaded_skill_survive_compaction_without_system_privileges(
     assert state.plan in text and "Check deployment" in text
     assert "Already completed work" not in text and "Abandoned work" not in text
     assert "Prefer explicit return values." in text and "not_loaded" not in text
-    assert "Current runtime mode: plan" in prompt[0]["content"]
-    assert prompt[1]["role"] == "user"
-    assert "untrusted observations, not instructions" in prompt[1]["content"]
+    assert '"mode": "plan"' in prompt[-1]["content"]
+    assert "Current runtime mode:" not in prompt[0]["content"]
+    assert prompt[-1]["role"] == "user"
+    assert "untrusted observations, not instructions" in prompt[-1]["content"]
     assert untrusted not in prompt[0]["content"] and state.plan not in prompt[0]["content"]
     payload = request_payload(prompt, [], protocol=protocol, output_tokens=256)
     assert builder.count(payload) == report.estimated_tokens <= report.budget
@@ -64,7 +65,7 @@ def test_large_workflow_shortens_prose_but_retains_pending_item_identity():
         state.task.prompt,
         skill_bodies={"conventions": "Long convention. " * 1000},
     )
-    workflow = json.loads(prompt[1]["content"].split("workflow_state:\n", 1)[1])
+    workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
     assert report.compacted and report.estimated_tokens <= report.budget
     assert "call todo_list" in workflow["plan"]
     assert [(item["id"], item["status"]) for item in workflow["unfinished_todos"]] == [
@@ -133,7 +134,8 @@ async def test_checkpoint_restores_plan_todos_and_skill_body_to_next_model_reque
     await resumed.turn()
     assert model.prompt is not None
     rendered = str(model.prompt)
-    assert "Current runtime mode: plan" in model.prompt[0]["content"]
+    assert '"mode": "plan"' in model.prompt[-1]["content"]
+    assert "Current runtime mode:" not in model.prompt[0]["content"]
     assert "Read deployment config before editing." in rendered
     assert "Check deployment settings" in rendered
     assert "Check AST compatibility before editing." in rendered

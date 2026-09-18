@@ -48,7 +48,7 @@ def test_native_envelope_stays_valid_json_while_only_its_body_is_clipped():
     prompt, report = context.build(
         RunState(task=TaskSpec(prompt="Continue")), "Continue", structured_history=history
     )
-    received = json.loads(prompt[-1]["output"])
+    received = json.loads(prompt[-2]["output"])
     assert context.count(received["content"]) < context.count(record["content"])
     assert "tool output clipped" in received["content"]
     assert {key: value for key, value in received.items() if key != "content"} == {

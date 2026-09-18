@@ -1546,15 +1546,6 @@ class Runtime:
         )
 
     def _unavailable_reason(self, name):
-        if name == "observation_read" and not (
-            self.state
-            and (
-                any(item.get("type") == "function_call_output" for item in self._structured_history)
-                or any(item.get("role") == "tool" for item in self.state.messages)
-                or self.evidence.path("runs", self.state.run_id, "observations").is_dir()
-            )
-        ):
-            return "no_archived_observations"
         if self.settings.sandbox == "off" and (
             name == "run_tests"
             or (

@@ -13,7 +13,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
     (tmp_path / "config.txt").write_text("timeout=12\n")
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
     initial, _ = env.reset("Inspect the configuration.")
-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v4"
+    assert initial["model_input"] and initial["context_policy"] == "deterministic-v5"
     observation, _, _, _, _ = await env.step(
         ToolCall(name="read_file", arguments={"path": "config.txt"})
     )
@@ -133,5 +133,5 @@ def test_user_correction_does_not_make_latest_tool_batch_disposable():
     )
     assert report.removed_messages > 0
     assert sum(item.get("call_id") == "19" for item in prompt) == 2
-    assert prompt[-1]["content"] == "Keep the public API unchanged."
+    assert prompt[-2]["content"] == "Keep the public API unchanged."
     history_groups(prompt)

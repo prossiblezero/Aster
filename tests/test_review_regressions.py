@@ -134,7 +134,7 @@ async def test_responses_reasoning_message_parallel_calls_survive_next_turn(tmp_
             if self.turn == 1:
                 return ModelReply(text="Inspecting both files.", calls=calls, raw=raw)
             start = next(i for i, item in enumerate(prompt) if item.get("type") == "reasoning")
-            exchanges = history_groups(prompt[start:])
+            exchanges = history_groups(prompt[start:-1])
             assert len(exchanges) == 1 and len(exchanges[0]) == 6
             assert exchanges[0][0]["encrypted_content"] == "opaque"
             return ModelReply(text="done", raw=[{"role": "assistant", "content": "done"}])
@@ -301,8 +301,8 @@ async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
             if self.turn == 1:
                 assert set(by_name) == CORE_TOOLS
                 catalog = by_name["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
-                assert set(catalog) == set(SCHEMAS) - {"ask_user", "observation_read"}
-                assert set(SCHEMAS) - CORE_TOOLS - {"ask_user", "observation_read"} <= set(catalog)
+                assert set(catalog) == set(SCHEMAS) - {"ask_user"}
+                assert set(SCHEMAS) - CORE_TOOLS - {"ask_user"} <= set(catalog)
                 return ModelReply(
                     calls=[ToolCall(name="tool_load", arguments={"names": ["todo_add"]})]
                 )

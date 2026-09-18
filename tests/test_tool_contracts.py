@@ -82,7 +82,7 @@ async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
     runtime.start(TaskSpec(prompt="look around"))
     runtime.state.mode = case.get("mode", "work")
     disabled = {name for names in case["unavailable"].values() for name in names}
-    available = set(SCHEMAS) - disabled - {"observation_read"}
+    available = set(SCHEMAS) - disabled
     tools = {tool["name"]: tool for tool in runtime.tool_definitions()}
     assert tools.keys() == (available if profile == "all" else available & CORE_TOOLS)
     catalog = tools["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]

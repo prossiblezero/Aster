@@ -59,7 +59,7 @@ def test_compaction_retains_full_call_batches_and_reasoning_beyond_old_slice_lim
     assert all(len(group) == 3 for group in groups)
     assert history[-3]["encrypted_content"] == "opaque23"
     assert history[-1]["call_id"] == "c23"
-    assert prompt[-len(history) :] == history
+    assert prompt[2:-1] == history
 
 
 def test_parallel_batch_retains_all_results():
