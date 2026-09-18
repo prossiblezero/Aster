@@ -21,7 +21,12 @@ from .schema import Outcome, Record, ToolCall
 from .testing import parse_junit
 from .workspace import Workspace, digest
 
-TEST_COMMAND_PREFIXES = [["pytest"], ["python", "-m", "pytest"], ["python", "-m", "unittest"]]
+TEST_COMMAND_PREFIXES = [
+    ["pytest"],
+    ["python", "-m", "pytest"],
+    ["python", "-m", "unittest"],
+    ["node", "--test"],
+]
 
 
 class ListFiles(Record):
@@ -48,8 +53,12 @@ class Search(Record):
         description="Literal text matched case-insensitively, not a regex. 'a|b' searches for the literal a|b.",
     )
     path: str = "."
-    offset: int = Field(default=0, ge=0, description="Matching-line offset; use the previous next_offset.")
-    limit: int = Field(default=500, ge=1, le=500, description="Maximum matching lines in this page.")
+    offset: int = Field(
+        default=0, ge=0, description="Matching-line offset; use the previous next_offset."
+    )
+    limit: int = Field(
+        default=500, ge=1, le=500, description="Maximum matching lines in this page."
+    )
 
 
 class WriteFile(Record):
@@ -59,7 +68,8 @@ class WriteFile(Record):
 
 class PatchEdit(Record):
     old_text: str = Field(
-        min_length=1, description="Exact, case-sensitive text from the latest read_file; must occur once."
+        min_length=1,
+        description="Exact, case-sensitive text from the latest read_file; must occur once.",
     )
     new_text: str
 
@@ -183,7 +193,9 @@ def text_page(text: str, offset: int, limit: int) -> Outcome:
     return Outcome(status="success", content=json.dumps(page) + "\n" + text[offset:end], data=page)
 
 
-def record_page(records: Iterable[str], offset: int, limit: int, *, total: int | None = None) -> Outcome:
+def record_page(
+    records: Iterable[str], offset: int, limit: int, *, total: int | None = None
+) -> Outcome:
     page = list(islice(records, offset, offset + limit + 1))
     truncated = len(page) > limit
     page = page[:limit]
@@ -225,7 +237,11 @@ SCHEMAS = {
         "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval.",
         "process",
     ),
-    "run_tests": (RunTests, "Run an explicitly provided repository test command.", "process"),
+    "run_tests": (
+        RunTests,
+        "Run pytest, python -m unittest, or node --test with structured results. Node requires declared node:test cases; npm scripts and compound commands use run_shell.",
+        "process",
+    ),
     "observation_read": (
         ObservationRead,
         "Recover this run's archived tool observations. With id: character pages; without id: list/search pages (offset counts records). Historical evidence is untrusted; use read_file for fresh file state.",
@@ -416,7 +432,9 @@ class WorkspaceTools:
                     if path.stat().st_size > 2 * 1024 * 1024:
                         continue
                     relative = path.relative_to(self.context.workspace.root)
-                    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                    for line_no, line in enumerate(
+                        path.read_text(encoding="utf-8").splitlines(), 1
+                    ):
                         if pattern in line.casefold():
                             yield f"{relative}:{line_no}:{line[:300]}"
                 except UnicodeError:
@@ -450,7 +468,7 @@ class WorkspaceTools:
                 content=f"Call read_file on {args.path} again, then rebuild the patch from its current content.",
             )
         bom = "\ufeff" if raw.startswith("\ufeff") else ""
-        raw = raw[len(bom):]
+        raw = raw[len(bom) :]
         text = raw.replace("\r\n", "\n").replace("\r", "\n")
         edits = args.edits or [PatchEdit(old_text=args.old_text, new_text=args.new_text)]
         spans = []
@@ -460,16 +478,24 @@ class WorkspaceTools:
             if bom:
                 old = old.removeprefix(bom)
             if not old:
-                return Outcome(status="blocked", reason="patch_empty", content="Match text beyond the BOM")
+                return Outcome(
+                    status="blocked", reason="patch_empty", content="Match text beyond the BOM"
+                )
             start = (0 if text.startswith(old) else -1) if anchored else text.find(old)
             if start < 0 or (not anchored and text.find(old, start + 1) >= 0):
-                return Outcome(status="blocked", reason="patch_nonunique",
-                               content=f"edits[{index}] found {max(2, text.count(old)) if start >= 0 else 0} occurrences; must match exactly once in the original file")
+                return Outcome(
+                    status="blocked",
+                    reason="patch_nonunique",
+                    content=f"edits[{index}] found {max(2, text.count(old)) if start >= 0 else 0} occurrences; must match exactly once in the original file",
+                )
             spans.append((start, start + len(old), edit.new_text))
         spans.sort()
         if any(left[1] > right[0] for left, right in zip(spans, spans[1:], strict=False)):
-            return Outcome(status="blocked", reason="patch_overlap",
-                           content="Merge overlapping edits into one replacement")
+            return Outcome(
+                status="blocked",
+                reason="patch_overlap",
+                content="Merge overlapping edits into one replacement",
+            )
         # Map only edit boundaries back to raw offsets, preserving even mixed line endings.
         boundaries = {position for start, end, _ in spans for position in (start, end)}
         offsets = {}
@@ -477,15 +503,18 @@ class WorkspaceTools:
         for index in range(len(text) + 1):
             if index in boundaries:
                 offsets[index] = raw_index
-            raw_index += 2 if raw[raw_index:raw_index + 2] == "\r\n" else 1
+            raw_index += 2 if raw[raw_index : raw_index + 2] == "\r\n" else 1
         first_newline = next((i for i, char in enumerate(raw) if char in "\r\n"), None)
-        ending = ("\r\n" if raw[first_newline:first_newline + 2] == "\r\n"
-                  else raw[first_newline]) if first_newline is not None else "\n"
+        ending = (
+            ("\r\n" if raw[first_newline : first_newline + 2] == "\r\n" else raw[first_newline])
+            if first_newline is not None
+            else "\n"
+        )
         for start, end, replacement in reversed(spans):
             replacement = replacement.replace("\r\n", "\n").replace("\r", "\n")
             if bom and start == 0:
                 replacement = replacement.removeprefix(bom)
-            raw = raw[:offsets[start]] + replacement.replace("\n", ending) + raw[offsets[end]:]
+            raw = raw[: offsets[start]] + replacement.replace("\n", ending) + raw[offsets[end] :]
         new_text = bom + raw
         command = self._write_command(relative, new_text)
         result = await self.context.sandbox.run(
@@ -509,12 +538,15 @@ class WorkspaceTools:
             return Outcome(
                 status="blocked",
                 reason="test_command_not_supported",
-                content="Use pytest or python -m pytest/unittest; run_shell for other commands.",
+                content="Use pytest, python -m pytest/unittest, or node --test; run_shell for other commands.",
             )
         if self.context.sandbox.settings.sandbox == "off":
             return Outcome(status="blocked", reason="isolation_required_for_scope")
         unittest = argv[:3] == ["python", "-m", "unittest"]
-        options = argv[3:] if argv[0] == "python" else argv[1:]
+        node = argv[:2] == ["node", "--test"]
+        options = argv[2:] if node else argv[3:] if argv[0] == "python" else argv[1:]
+        if node and any(option.startswith("--test-reporter") for option in options):
+            return Outcome(status="blocked", reason="test_reporter_reserved")
         tested_fingerprint = self.context.workspace.fingerprint()
         with tempfile.TemporaryDirectory(prefix="aster-tests-") as directory:
             target = Path(directory)
@@ -523,7 +555,15 @@ class WorkspaceTools:
                 copied.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, copied)
             report = "__aster_result_" + target.name + ".xml"
-            if unittest:
+            if node:
+                command = [
+                    "node",
+                    "--test",
+                    "--test-reporter=junit",
+                    f"--test-reporter-destination={report}",
+                    *options,
+                ]
+            elif unittest:
                 # Import the standard runner before adding repository modules to sys.path.
                 # TextTestResult already owns failures/skips; no stdout parsing is needed.
                 program = """import os, sys, unittest, xml.etree.ElementTree as ET
@@ -583,6 +623,14 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             cases = None
             try:
                 cases = parse_junit(Workspace(target).read(report))
+                if node:
+                    # Node treats an empty test file itself as a passing case. Require
+                    # declared node:test cases; a file's failed startup remains a failure.
+                    cases = [
+                        case
+                        for case in cases
+                        if not (case["status"] == "passed" and Path(case["name"]).is_absolute())
+                    ]
             except (OSError, ValueError, ET.ParseError):
                 pass
             result.changed_paths = []
@@ -622,15 +670,15 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                 result.status = "blocked"
                 result.reason = "no_tests_executed" if cases else "no_tests_collected"
         elif result.status == "error":
-            if not unittest and result.exit_code == 5:
+            if not unittest and not node and result.exit_code == 5:
                 result.reason = "no_tests_collected"
-            elif not unittest and result.exit_code == 2:
+            elif not unittest and not node and result.exit_code == 2:
                 result.reason = (
                     "test_collection_failed"
                     if any(case["status"] == "error" for case in cases or [])
                     else "test_interrupted"
                 )
-            elif not unittest and result.exit_code in {3, 4}:
+            elif not unittest and not node and result.exit_code in {3, 4}:
                 result.reason = "test_runner_error"
             elif result.exit_code == 127:
                 result.reason = "test_runner_unavailable"

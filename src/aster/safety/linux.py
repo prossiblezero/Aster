@@ -64,6 +64,11 @@ def restrict(root: Path, network: bool) -> None:
         ):
             allow(Path(raw).resolve(), 1 | 4 | 8)
         allow(Path("/etc/debian_version").resolve(), 4)  # pip's distro metadata, read only.
+        if network:
+            # DNS needs these exact files; resolv.conf may point into /run/systemd.
+            # Resolving the file grants neither its parent directory nor /etc writes.
+            for raw in ("/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf", "/etc/gai.conf"):
+                allow(Path(raw).resolve(), 4)
         allow(Path("/dev/null"), 2 | 4)
         allow(root, handled)
         checked(libc.prctl(38, 1, 0, 0, 0), "no_new_privs")
