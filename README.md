@@ -1,38 +1,275 @@
 # Aster
 
-面向本地代码仓库的轻量 Coding Agent Harness。一个 Runtime 统一模型、工具、权限、工作记忆、恢复与交互，也供外部策略做 rollout；尚未实现 SFT 或 GRPO。
+**面向本地代码仓库的轻量级 Coding Agent，提供可检查、可恢复的任务执行过程。**
 
-[分阶段学习](docs/learning/README.md) · [教学网站](learn_web/README.md) · [配置说明](docs/configuration.md) · [修复验收](docs/repair-results.md) · [评测与比较](docs/benchmark.md) · [简历写法](docs/resume-draft.md)
+Aster 使用 Python 实现，将大模型、文件操作、命令执行、测试与交互接入同一个 Runtime。你可以在终端中让它阅读项目、修改代码、执行测试和维护文档，也可以沿着源码与配套教程学习 Coding Agent 的实现，或通过外部策略接口开展 Agent 评测研究。
 
-最近实现：[长任务分批记录](docs/long-task-implementation.md)，包括批量补丁、命令输出回读、模型配置与会话续聊、Responses 流式、只读工具并行、受控依赖复用及 [Skills 包](docs/skills.md)。
+[快速开始](#快速开始) · [使用指南](#使用指南) · [架构与模块](#架构与模块) · [目录结构](#目录结构) · [学习文档](#学习文档) · [示例项目](#示例项目)
 
-[v0.2 工程收尾与真实任务验收](evaluations/v0.2-release/REPORT.md)：补齐模型响应诊断、有界重试、CLI 流式进度、安全恢复和执行环境契约。新会话默认单 Agent，Memory、自动维护及 Worker 默认关闭，可显式开启；九个核心工具不变。真实任务的首测失败、修复、独立验收和剩余门槛均保留，不把可选机制存在等同于收益。
+## 项目目标
 
-[实验数据工具修复复测](evaluations/lab-followup-20260919/REPORT.md)：补齐依赖丢失和正式测试入口的反馈。隔离首测失败及有限返修全部保留；最终[可交互CSV→Excel产品](exam_project/lab_data/README.md)通过24项独立验收和5项正式自测，不能解释为首次自主成功。
+Aster 关注模型提出动作之后的工程问题：如何组织上下文、约束工具权限、保留执行证据、恢复中断任务，以及判断是否满足交付条件。这层连接模型与执行环境的运行系统称为 **Harness**。
 
-教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；可运行的小项目统一放在 [exam_project/](exam_project/README.md)，评测协议、驱动、报告与历史证据放在 [evaluations/](evaluations/README.md)。课程正文仍以 `docs/learning/` 为来源。
+- **完成本地编码任务**：在指定工作区中阅读、编辑和验证代码，通过 CLI 或 TUI 与用户协作。
+- **保持实现可理解**：共享一条执行链路，从少量核心工具开始，按需加载计划、Skills、Memory 和 Worker 等能力。
+- **支持可复现研究**：记录请求、动作、结果和成本，将工程测试、真实模型评测与外部策略 rollout 分别组织。
 
-独立实测：[流式](evaluations/archive/stream_comparison/report.md) · [只读并行](evaluations/archive/parallel_comparison/report.md) · [缓存](evaluations/archive/cache_comparison/report.md) · [Memory](evaluations/archive/memory_followup/report.md) · [Skills](evaluations/archive/skills_comparison/report.md) · [会话恢复](evaluations/archive/session_recovery/report.md)。后训练仅完成[方案与数据契约](docs/post-training-design.md)，尚无训练器或训练效果。
+## 核心能力
+
+| 能力 | 简介 |
+|---|---|
+| 模型接入 | 支持 Responses、Chat Completions、Anthropic Messages 三种协议；通过具名 profile 配置远程服务或兼容的本地模型服务 |
+| 终端交互 | 提供一次性 CLI 和持续会话 TUI，支持审批、追问、取消、恢复，以及空闲时切换模型 |
+| 工具执行 | 文件读取、搜索、创建、精确补丁、命令和测试；可选并行执行同轮纯只读工具批次 |
+| 权限与隔离 | 审批策略、工作区写入范围、编辑前版本检查，以及基于 Landlock / seccomp 的 Linux 执行沙箱 |
+| 长任务管理 | 请求预算控制、历史压缩、工具结果归档回读、检查点与同会话续接 |
+| 按需扩展能力 | 计划与待办、项目 Skills、带来源验证的持久 Memory、可选 Worker；通过配置与工具目录启用 |
+| 验证与审计 | 将正式测试绑定到工作区版本，保留事件轨迹、模型诊断和供应商报告的 token 用量 |
+
+默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker、流式输出及依赖复用均需显式开启。功能边界与配置项见[配置说明](docs/configuration.md)。
+
+## 快速开始
+
+### 1. 准备环境
+
+- Python **3.12+**，建议使用独立虚拟环境。
+- 完整的文件写入、命令执行和正式测试需要支持 **Landlock / seccomp** 的 Linux 环境，以及 `libseccomp.so.2`（Debian / Ubuntu 对应 `libseccomp2` 包）。
+- Node.js 仅在执行 JavaScript 项目或 `node --test` 时需要。
+
+进入本仓库根目录，安装项目及开发依赖；已有 `aster` 环境时跳过创建步骤：
 
 ```bash
+conda create -n aster python=3.12
 conda activate aster
-pip install -e '.[dev]'
-python -m pytest -q
-# 无需 API Key，先体验离线循环：
-python docs/learning/run_examples.py 00
-# 真实模型与 TUI 的配置、演示目录见学习第 00 章。
+python -m pip install -e '.[dev]'
 ```
 
-模型连接从项目 `.env` 的 `ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY` 读取，默认 Responses 协议。审批界面需明确批准，Escape 拒绝；Ctrl+C 取消当前任务。
-
-任务内容在 [datasets](datasets/README.md)：193 条基础主任务、85 个机制场景；另有 [上下文与恢复专项](datasets/robustness.md)，用真实模型验证历史裁剪与停滞纠偏。题目、故障场景、预算配置和重复次数分别统计。
+先运行一个不调用模型 API 的示例，观察完整的模型替身 → 工具 → 结果循环：
 
 ```bash
-python scripts/benchmark.py --concurrency 4
-python scripts/benchmark_mechanisms.py
-python scripts/benchmark.py --real --selection real_subset.json --concurrency 4
-python scripts/compare_benchmarks.py
-python scripts/benchmark_robustness.py --real --concurrency 8 --output artifacts/benchmark-v5-robustness
+python docs/learning/run_examples.py 00
 ```
 
-报告按任务类型展示正确性、工具调用、token 和失败原因；脚本回放不冒充模型成绩，已有评测题及轨迹不进入后续训练集。
+首次使用 `tiktoken` 可能下载词表；需要完全离线运行时，请提前准备词表缓存。
+
+### 2. 配置模型
+
+参考 [.env.example](.env.example)，在启动目录的 `.env` 中填写实际服务信息：
+
+```dotenv
+ASTER_PROTOCOL=responses
+ASTER_BASE_URL=https://api.openai.com/v1
+ASTER_MODEL=your-model-id
+ASTER_API_KEY=your-api-key
+```
+
+`ASTER_MODEL` 填写服务实际提供的模型名称；`ASTER_BASE_URL` 是 API 根地址，不包含 `/responses` 等接口后缀。使用兼容网关时替换地址和模型名。密钥保存在本地 `.env` 或进程环境中。
+
+未识别的模型使用保守预算回退，请按服务规格通过 profile 或 `--context-tokens`、`--output-tokens` 显式配置窗口与输出额度，详见[模型预算](docs/configuration.md#模型与输入预算)。
+
+### 3. 启动任务
+
+以下命令从 Aster 仓库根目录执行，`/path/to/project` 替换为目标项目目录：
+
+```bash
+# 先以只读方式了解项目
+aster --env-file .env --cwd /path/to/project --read-only \
+  '阅读项目，说明主要模块、启动方式和测试入口'
+
+# 修改代码并验证结果
+aster --env-file .env --cwd /path/to/project \
+  '定位测试失败的原因，修复问题并运行相关测试'
+
+# 启动交互界面
+aster --tui --env-file .env --cwd /path/to/project
+```
+
+`--cwd` 决定 Agent 工作区，`--env-file` 决定模型凭证来源；省略后者时读取启动命令所在目录的 `.env`。默认审批策略为 `ask`，需要批准的动作会先询问用户。真实模型任务会调用所配置的服务。
+
+## 使用指南
+
+### 会话与恢复
+
+在 TUI 输入任务即可开始工作，后续输入沿当前会话继续。常用命令如下：
+
+| 命令 | 作用 |
+|---|---|
+| `/model` | 列出已配置的模型 profile |
+| `/model local` | 在空闲时切换到 `local` profile |
+| `/new` | 开始新会话 |
+| `/continue` | 继续当前已停止的任务 |
+| `/resume RUN_ID` | 加载并继续保存的运行 |
+| `Ctrl+C` / `Ctrl+Q` | 取消当前任务 / 退出 TUI |
+
+CLI 可使用运行结束时显示的 `run_id` 续接：
+
+```bash
+aster --env-file .env --cwd /path/to/project --resume RUN_ID \
+  '继续处理尚未完成的测试，并总结修改结果'
+```
+
+恢复时会检查模型配置、工作区和工具执行状态。需要显式切换模型或采用外部编辑时，使用 `--allow-model-change`、`--adopt-workspace`；这些选项不会放宽安全设置。详见[检查点与恢复](docs/learning/09-checkpoint-resume.md)。
+
+### 多模型配置
+
+在自己的 `aster.toml` 中定义 profile。下面的模型名和远程地址需要替换为实际值，预算也应与服务能力匹配：
+
+```toml
+[profiles.remote]
+provider = "gateway"
+protocol = "responses"
+base_url = "https://your-provider.example/v1"
+model = "your-model-id"
+api_key_env = "MY_MODEL_KEY"
+context_tokens = 128000
+output_tokens = 32768
+stream = true
+
+[profiles.local]
+provider = "local"
+protocol = "chat"
+base_url = "http://127.0.0.1:8000/v1"
+model = "local-model-id"
+auth = "none"
+context_tokens = 24000
+output_tokens = 2048
+```
+
+将 `MY_MODEL_KEY` 放入 `.env` 或进程环境后启动：
+
+```bash
+aster --tui --config aster.toml --env-file .env \
+  --profile remote --cwd /path/to/project
+```
+
+随后可通过 `/model local` 请求切换到已经启动的本地服务。profile 选择会校验新预算并转换可移植的文本与工具历史；服务专有的推理状态不能无损迁移，历史中的图片、引用或阶段信息无法转换时会拒绝切换。当前流式响应仅支持 Responses，工具调用在完整响应确认后才执行。其他协议已有离线契约测试，已归档的真实服务验证主要使用 Responses。
+
+### 工具与执行设置
+
+默认核心工具共九个，实际可见范围受权限和运行状态约束：
+
+```text
+list_files  read_file   search      write_file  patch_file
+run_shell   run_tests   git_diff    tool_load
+```
+
+`tool_load` 按需展开额外工具的完整定义。项目 Skills 支持 `.skills/<name>/SKILL.md`、`.aster/skills/<name>/SKILL.md` 及旧式单文件格式；已加载正文使用固定快照，显式刷新后更新。参见[Skills 使用说明](docs/skills.md)。
+
+常用设置通过 TOML 配置：
+
+| 设置 | 默认值 | 用途 |
+|---|---|---|
+| `network` | `false` | 控制沙箱内命令联网；不影响 Harness 调用模型 API |
+| `read_parallelism` | `1` | 大于 1 时并行执行纯 `read_file` / `search` / `list_files` 批次 |
+| `reuse_environment` | `false` | 在同一 Runtime 中复用受控依赖目录，要求 `sandbox="required"` |
+| `memory_enabled` | `false` | 开启项目持久记忆；会话工作记忆始终独立保留 |
+| `max_workers` | `0` | 开启有独立预算的子任务 Worker |
+
+默认每个任务最多 40 个工具步骤、40 个模型轮次。CLI / TUI 均可用 `--max-steps`、`--max-turns` 调整；`--context-tokens` 与 `--output-tokens` 则控制模型请求预算。
+
+正式验证使用 `run_tests`，支持 pytest、unittest 和 Node 内置测试；普通 `run_shell` 成功不会自动生成正式测试证据。依赖默认不跨命令保留，后台服务也不跨调用存活，详见[执行环境](docs/execution-environment.md)。
+
+## 架构与模块
+
+CLI、TUI 与外部策略接口共用 Runtime，工具执行、权限检查和证据记录保持一致。
+
+```mermaid
+flowchart LR
+    UI[CLI / TUI] --> R[Runtime]
+    RL[AsterEnv 外部策略] --> R
+    R --> C[上下文构造]
+    C --> M[模型协议适配]
+    M --> R
+    R --> P[权限与 Hooks]
+    P --> T[工具执行与沙箱]
+    T --> R
+    R --> E[状态 / 证据 / 检查点]
+    R --> V[完成验证]
+```
+
+| 模块 | 主要文件 | 职责 |
+|---|---|---|
+| 运行与交互 | `runtime.py`、`cli.py`、`tui.py`、`schema.py` | 组织任务循环、交互事件及统一数据结构 |
+| 模型与协议 | `config.py`、`provider.py`、`streaming.py`、`history.py` | 解析配置，构造请求，处理流式、错误诊断与历史转换 |
+| 上下文 | `context.py` | 预算估算、历史压缩和动态状态组织 |
+| 工具与安全 | `tools.py`、`workspace.py`、`safety/` | 工具分发、文件边界、审批、沙箱执行与修改回写 |
+| 证据与会话 | `evidence.py`、`session.py` | 事件轨迹、观察归档、检查点校验和会话续接 |
+| 验证与恢复 | `testing.py`、`verifier.py`、`recovery.py`、`hooks.py` | 正式测试、完成条件、停滞反馈及生命周期钩子 |
+| 可选协作能力 | `skills.py`、`memory.py`、`workers.py` | 加载项目说明、保存有来源的记忆、管理子任务 |
+| 研究接口 | `rl.py`、`training.py` | 外部策略 rollout、SFT 数据导出与 GRPO 数据契约校验 |
+
+Memory 保存经过来源验证的项目摘录；Dream 根据确定性规则维护已有记录。后训练部分已提供数据契约与方案，实际 SFT / GRPO 训练器、优化器和权重训练尚未实现。
+
+## 目录结构
+
+```text
+Aster/
+├── src/aster/          # Agent 运行时与公共接口
+│   ├── runtime.py      # 统一任务执行循环
+│   ├── cli.py          # 命令行入口
+│   ├── tui.py          # 终端交互界面
+│   └── safety/         # 权限策略与 Linux 沙箱
+├── tests/              # 工程契约与回归测试
+├── docs/               # 配置、设计与研究文档
+│   └── learning/       # 16 章教程及可运行实验
+├── learn_web/          # 教学网站、构建器与网站测试
+├── exam_project/       # Aster 实现的可运行示例产品
+├── datasets/           # 评测任务、初始文件、来源与评分标准
+├── scripts/            # 评测驱动及结果比较脚本
+├── evaluations/        # 实验协议、独立验收与运行证据
+├── artifacts/          # 既有评测产物与报告
+├── .github/workflows/  # CI 工作流
+├── .env.example        # 模型连接配置示例
+├── pyproject.toml      # 包信息、依赖与开发工具配置
+└── NOTICE.md           # 设计参考与第三方来源说明
+```
+
+运行产生的检查点、轨迹与持久记忆位于目标工作区的 `.aster/`。示例产品、教学网站与评测材料分别维护，便于独立使用和审查。
+
+## 学习文档
+
+| 入口 | 内容 |
+|---|---|
+| [分阶段教程](docs/learning/README.md) | 从一次任务出发，逐步理解循环、协议、工具、上下文、记忆与评测 |
+| [教学网站](learn_web/README.md) | 本地构建、预览及 GitHub Pages 部署方法 |
+| [完整配置](docs/configuration.md) | 模型 profile、预算、权限与功能开关 |
+| [Skills](docs/skills.md) | 技能包格式、资源读取和正文快照 |
+| [执行环境](docs/execution-environment.md) | 依赖复用、网络与测试运行边界 |
+| [评测说明](docs/benchmark.md) | 任务类型、执行方式与指标口径 |
+| [后训练方案](docs/post-training-design.md) | 数据集构建、SFT / GRPO 设计与现有接口 |
+
+## 示例项目
+
+以下成果可按各自 README 独立运行，完整列表见 [exam_project](exam_project/README.md)。
+
+| 项目 | 功能 |
+|---|---|
+| [课业清单](exam_project/campus_planner/README.md) | 管理作业、截止日期与完成状态，支持备份和日历导出 |
+| [期末复习安排器](exam_project/study_planner/README.md) | 根据考试日期、剩余学习量和每日上限生成复习计划 |
+| [实验数据整理器](exam_project/lab_data/README.md) | 将课程实验 CSV 转为包含原始数据、汇总和异常的 Excel 工作簿 |
+| [Markdown 检查器](exam_project/mdcheck/README.md) | 检查本地文档链接与标题锚点 |
+
+各项目的来源和人工干预记录随产品保留。真实任务报告集中在 [evaluations](evaluations/README.md)，包括[工程验收](evaluations/v0.2-release/REPORT.md)、[实验数据工具复测](evaluations/lab-followup-20260919/REPORT.md)和[教程维护](evaluations/tutorial-refresh-20260919/REPORT.md)。首次结果、返修和独立验收分别记录；当前浏览器验收由操作员执行。
+
+## 开发与验证
+
+在已安装开发依赖的 `aster` 环境中运行：
+
+```bash
+# 工程回归测试，不调用真实模型 API
+python -m pytest -q
+
+# 静态检查
+python -m ruff check src tests scripts learn_web/scripts learn_web/tests
+
+# 运行教程中的全部标记实验
+python docs/learning/run_examples.py all
+```
+
+真实模型评测需要另外配置服务并显式启动，命令与数据说明见[评测指南](docs/benchmark.md)及[数据集说明](datasets/README.md)。工程测试通过、机制被调用和真实任务交付质量是不同指标；未知 usage 保留为未知，已有开发与评测题不作为未见训练测试集。
+
+修改运行行为时，请同步相关文档并运行对应检查；报告问题时附上复现步骤、实际配置和脱敏后的错误信息。涉及模型服务的结果应注明服务配置及人工干预情况。
+
+## 设计参考与许可
+
+Aster 的设计参考与第三方来源见 [NOTICE.md](NOTICE.md)，数据集来源及许可见 [datasets/SOURCES.md](datasets/SOURCES.md)。当前仓库尚未提供项目级 `LICENSE` 文件；第三方数据的许可与项目代码许可分别处理。
