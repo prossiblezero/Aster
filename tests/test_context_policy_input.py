@@ -13,7 +13,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
     (tmp_path / "config.txt").write_text("timeout=12\n")
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
     initial, _ = env.reset("Inspect the configuration.")
-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v6"
+    assert initial["model_input"] and initial["context_policy"] == "deterministic-v7"
     observation, _, _, _, _ = await env.step(
         ToolCall(name="read_file", arguments={"path": "config.txt"})
     )

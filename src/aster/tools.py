@@ -232,12 +232,12 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands; each writable shell command invalidates prior tests, so run formal tests last.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands; each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m unittest, or node --test with structured results. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these are separate from formal test evidence.",
+        "Run pytest, python -m unittest, or node --test with structured results. Tests should exercise the actual implementation or public entry point and assert requested behavior, including relevant boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these are separate from formal test evidence.",
         "process",
     ),
     "observation_read": (

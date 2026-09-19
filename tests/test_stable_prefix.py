@@ -98,7 +98,7 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
     )
     assert "TASK-END-MARKER" in shared and "OBSERVATION-ONE-END" in shared
     assert not first_report.compacted and not second_report.compacted
-    assert second_report.policy_version == "deterministic-v6"
+    assert second_report.policy_version == "deterministic-v7"
     assert second_report.sections["history"] == builder.count(original_history)
 
 
