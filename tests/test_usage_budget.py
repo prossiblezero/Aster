@@ -7,7 +7,7 @@ import pytest
 
 from aster.config import MODEL_CONTEXT_LIMITS, Settings
 from aster.evidence import Redactor
-from aster.provider import ModelClient
+from aster.providers.usage import normalize_usage
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
@@ -36,7 +36,7 @@ from aster.schema import ModelReply, TaskSpec, ToolCall
     ],
 )
 def test_openai_cache_and_reasoning_are_subsets_not_extra_tokens(protocol, raw):
-    usage = ModelClient._usage(raw, protocol)
+    usage = normalize_usage(raw, protocol)
     assert usage["input_tokens"] == 100 and usage["total_tokens"] == 130
     assert usage["cache_read_input_tokens"] == 60 and usage["reasoning_tokens"] == 20
     assert usage["cache_read_input_tokens_requests"] == usage["reasoning_tokens_requests"] == 1
@@ -50,19 +50,19 @@ def test_anthropic_cache_counts_are_additional_input_and_missing_is_unknown():
         "cache_read_input_tokens": 100,
         "cache_creation_input_tokens": 50,
     }
-    usage = ModelClient._usage(raw, "anthropic")
+    usage = normalize_usage(raw, "anthropic")
     assert usage["uncached_input_tokens"] == 10
     assert usage["input_tokens"] == 160 and usage["total_tokens"] == 180
     assert "reasoning_tokens" not in usage
     del raw["cache_creation_input_tokens"]
-    partial = ModelClient._usage(raw, "anthropic")
+    partial = normalize_usage(raw, "anthropic")
     assert partial["uncached_input_tokens"] == 10
     assert partial["cache_read_input_tokens"] == 100
     assert "input_tokens" not in partial and "total_tokens" not in partial
 
 
 def test_reported_zero_does_not_fall_back_to_another_field_or_become_unknown():
-    usage = ModelClient._usage(
+    usage = normalize_usage(
         {
             "input_tokens": 0,
             "prompt_tokens": 99,
@@ -76,7 +76,7 @@ def test_reported_zero_does_not_fall_back_to_another_field_or_become_unknown():
     assert usage["cache_read_input_tokens"] == 0
     assert usage["cache_read_input_tokens_requests"] == 1
     assert "reasoning_tokens" not in usage
-    assert "total_tokens" not in ModelClient._usage({"input_tokens": 2})
+    assert "total_tokens" not in normalize_usage({"input_tokens": 2})
 
 
 async def test_runtime_retains_partial_usage_coverage_across_requests(tmp_path):
@@ -87,7 +87,7 @@ async def test_runtime_retains_partial_usage_coverage_across_requests(tmp_path):
             [
                 ModelReply(
                     calls=[ToolCall(name="read_file", arguments={"path": "note.txt"})],
-                    usage=ModelClient._usage(
+                    usage=normalize_usage(
                         {
                             "input_tokens": 100,
                             "output_tokens": 10,
@@ -95,7 +95,7 @@ async def test_runtime_retains_partial_usage_coverage_across_requests(tmp_path):
                         }
                     ),
                 ),
-                ModelReply(text="hello", usage=ModelClient._usage(None)),
+                ModelReply(text="hello", usage=normalize_usage(None)),
             ]
         )
 
@@ -176,7 +176,7 @@ async def test_effective_budget_reaches_wire_and_truncated_tool_never_executes(
 
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     runtime = Runtime(tmp_path, Settings(api_key="fake-key", approval="auto", auto_dream=False))

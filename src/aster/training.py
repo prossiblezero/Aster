@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import Field, FiniteFloat, StrictBool, StrictInt, model_validator
 
-from .history import canonicalize
+from .messages import canonicalize
 from .schema import Record, ToolCall
 from .workspace import digest
 

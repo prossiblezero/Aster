@@ -8,6 +8,8 @@ import pytest
 
 from aster.config import Settings
 from aster.provider import ModelClient, ProviderError
+from aster.providers.codec import responses_reply
+from aster.providers.usage import normalize_usage
 from aster.runtime import Runtime
 from aster.schema import TaskSpec
 
@@ -46,7 +48,7 @@ class Chunks(httpx.AsyncByteStream):
 def install(monkeypatch, handler):
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.streaming.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
 
@@ -86,7 +88,7 @@ async def test_text_arrives_before_terminal_with_split_utf8_and_json(monkeypatch
     assert not task.done() and not any(e["type"] == "completed" for e in events)
     release.set()
     reply = await task
-    expected = ModelClient._responses_reply(terminal, ModelClient._usage(terminal["usage"]))
+    expected = responses_reply(terminal, normalize_usage(terminal["usage"]))
     assert reply.model_dump(exclude={"diagnostics"}) == expected.model_dump(exclude={"diagnostics"})
     assert reply.diagnostics["classification"] == "success"
     assert "".join(e["text"] for e in events if e["type"] == "text_delta") == "你好"
@@ -328,7 +330,7 @@ async def test_multiline_sse_and_observer_failure_do_not_change_reply(monkeypatc
 
 
 async def test_unterminated_sse_line_and_progress_have_capacity_limits(monkeypatch):
-    from aster import streaming
+    from aster.providers import streaming
 
     with monkeypatch.context() as limited:
         limited.setattr(streaming, "MAX_EVENT_BYTES", 32)
@@ -376,7 +378,7 @@ async def test_old_profile_credentials_cannot_be_reconstructed_from_stream_event
 
 
 async def test_single_character_deltas_have_a_bounded_event_count(monkeypatch):
-    from aster import streaming
+    from aster.providers import streaming
 
     monkeypatch.setattr(streaming, "MAX_PROGRESS_EVENTS", 3, raising=False)
     chunks = [

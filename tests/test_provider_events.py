@@ -9,6 +9,7 @@ import pytest
 from aster.config import Settings
 from aster.evidence import EvidenceStore, Redactor
 from aster.provider import ModelClient, ProviderError
+from aster.providers.usage import normalize_usage
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 
@@ -64,7 +65,7 @@ async def test_truncated_generation_is_not_finalized_or_retried(
 
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     settings = Settings(protocol=protocol, api_key="fake-provider-secret")
@@ -98,7 +99,7 @@ async def test_provider_cancellation_is_not_retried(monkeypatch):
 
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     client = ModelClient(Settings(api_key="fake-provider-secret"))
@@ -155,7 +156,7 @@ def test_listeners_cannot_mutate_authoritative_rows_or_other_observers(tmp_path)
     "raw", [None, [], {"input_tokens": -1, "output_tokens": True}, {"input_tokens": float("inf")}]
 )
 def test_malformed_usage_never_crashes_a_response(raw):
-    assert ModelClient._usage(raw) == {"usage_requests": 1}
+    assert normalize_usage(raw) == {"usage_requests": 1}
 
 
 async def test_redaction_preserves_checkpoint_mapping_types_on_resume(tmp_path):
@@ -255,7 +256,7 @@ async def test_checkpoint_resume_preserves_opaque_wire_state_but_redacts_audit_c
 
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     restored = Runtime(tmp_path, settings)
@@ -354,7 +355,7 @@ def test_signed_thinking_cannot_be_silently_changed_by_redaction(tmp_path, think
 def install_provider(monkeypatch, handler):
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
 
@@ -454,7 +455,7 @@ async def test_empty_retry_shares_three_attempt_budget_and_preserves_all_usage(
         return
 
     install_provider(monkeypatch, handler)
-    monkeypatch.setattr("aster.provider.asyncio.sleep", no_sleep)
+    monkeypatch.setattr("aster.providers.client.asyncio.sleep", no_sleep)
     client = ModelClient(Settings(auth="none", stream=stream))
     if sequence[1] == "empty" and sequence[0] == "empty" or sequence[-1] == "empty":
         with pytest.raises(ProviderError) as caught:
@@ -649,7 +650,7 @@ async def test_invalid_second_call_never_publishes_or_executes_first_call(
 
 
 def test_attribution_is_bounded_and_contradictions_are_visible():
-    from aster.provider import _numeric_usage, _usage_warnings
+    from aster.providers.usage import _numeric_usage, _usage_warnings
 
     raw = {
         "input_tokens": 10,
@@ -660,7 +661,7 @@ def test_attribution_is_bounded_and_contradictions_are_visible():
         },
     }
     assert "input_attribution_disagrees" in _usage_warnings(
-        _numeric_usage(raw), ModelClient._usage(raw)
+        _numeric_usage(raw), normalize_usage(raw)
     )
     raw["attribution"]["items"] = {
         f"private-{i}": {"input_tokens": i, "secret": "private"} for i in range(1000)
@@ -669,7 +670,7 @@ def test_attribution_is_bounded_and_contradictions_are_visible():
     assert safe["attribution"]["items_count"] == 1000
     assert len(safe["attribution"]["items"]) == 128
     assert "private" not in json.dumps(safe)
-    assert "input_attribution_disagrees" not in _usage_warnings(safe, ModelClient._usage(raw))
+    assert "input_attribution_disagrees" not in _usage_warnings(safe, normalize_usage(raw))
 
 
 async def test_nonstream_diagnostic_observer_cannot_mutate_reply_or_leak_failure(

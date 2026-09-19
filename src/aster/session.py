@@ -11,8 +11,7 @@ from uuid import uuid4
 from .config import Settings
 from .context import ContextBuilder, ContextReport
 from .evidence import EvidenceStore, Redactor
-from .history import CanonicalHistory
-from .provider import history_groups
+from .messages import CanonicalHistory, history_groups
 from .schema import Outcome, RunState, SkillSnapshot, TaskSpec, Verification
 from .verifier import Verifier
 from .workspace import Workspace

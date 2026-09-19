@@ -141,7 +141,7 @@ elif candidates:
 不可以：只移除 call-A，却保留 result-A
 ```
 
-[history_groups()](../../src/aster/provider.py) 校验非空 ID、重复调用、孤儿结果、
+[history_groups()](../../src/aster/messages.py) 校验非空 ID、重复调用、孤儿结果、
 重复结果和未完成批次，并把相关推理项放进相同裁剪组。
 `ContextBuilder` 先在历史副本上处理，整次请求满足预算后才更新正式历史。
 格式出错会抛出 `ContextHistoryError`，不会把不合法请求送给模型碰运气。
@@ -258,7 +258,7 @@ token 数会略有变化；重要的是断言一直成立。
 旧结果正文移出窗口之后，模型能否发现需要回读、是否读到关键证据，
 仍属于任务层面的能力；下一章会把“可以找回”这条路径跑通。
 
-源码继续读：[context.py](../../src/aster/context.py)、[provider.py](../../src/aster/provider.py)。
+源码继续读：[context.py](../../src/aster/context.py)、[providers/codec.py](../../src/aster/providers/codec.py)。
 对应合同检查见 [test_context_archives.py](../../tests/test_context_archives.py)
 和 [test_protocol_pairing.py](../../tests/test_protocol_pairing.py)。
 本章借鉴 learn-claude-code 的“问题 → 机制 → 实验”组织；Aster 的压缩顺序与无 LLM 策略以自己的源码为准。

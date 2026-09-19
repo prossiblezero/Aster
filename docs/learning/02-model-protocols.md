@@ -8,7 +8,7 @@
 
 同样是“读取文件”，Responses API、Chat Completions 和 Anthropic Messages 的 JSON 形状不同。有的把调用写成独立条目，有的放在助手消息的 `tool_calls` 里，有的放在 `content` 的 `tool_use` 块里。
 
-如果循环内部到处判断“当前是哪家模型”，工具、安全、记忆都会被接口格式牵着走。Aster 把适配收在 [provider.py](../../src/aster/provider.py)：请求前转换协议，返回后解析成统一 `ModelReply`，Runtime 只处理 `ToolCall`。
+如果循环内部到处判断“当前是哪家模型”，工具、安全、记忆都会被接口格式牵着走。传输与请求记账分别位于 `providers/client.py`、`providers/streaming.py` 和 `providers/usage.py`；Aster 把纯协议适配收在 [providers/codec.py](../../src/aster/providers/codec.py)：请求前转换协议，返回后解析成统一 `ModelReply`，Runtime 只处理 `ToolCall`。
 
 ```text
 Runtime.prepare_request()
@@ -70,7 +70,7 @@ payload = request_payload(
 
 ## Provider、profile 与模型切换
 
-`Settings.provider` 是身份与连接配置元数据，实际适配分支由 `protocol` 选择（当前代码在 `provider.py` 中按 `responses`、`chat`、`anthropic` 分支处理）。profile 提供可移植的模型窗口、输入/输出预算和默认协议；显式 `model` 切换会重新解析有效预算。默认恢复会检查保存的身份，配置不一致时拒绝；显式 `allow_model_change=True` 才能走受限的模型转换路径。它可以把可移植的文本/工具历史 canonicalize 到另一协议，但不能迁移服务特定的原生推理状态，也不能改变安全或能力设置。`provider_model` 只是服务响应报告的身份字段，不能证明网关真的使用了所请求的内部模型。
+`Settings.provider` 是身份与连接配置元数据，实际适配分支由 `protocol` 选择（当前代码在 `providers/codec.py` 中按 `responses`、`chat`、`anthropic` 分支处理）。profile 提供可移植的模型窗口、输入/输出预算和默认协议；显式 `model` 切换会重新解析有效预算。默认恢复会检查保存的身份，配置不一致时拒绝；显式 `allow_model_change=True` 才能走受限的模型转换路径。它可以把可移植的文本/工具历史 canonicalize 到另一协议，但不能迁移服务特定的原生推理状态，也不能改变安全或能力设置。`provider_model` 只是服务响应报告的身份字段，不能证明网关真的使用了所请求的内部模型。
 
 Responses 的流式路径目前由 `streaming.complete_responses` 实现，默认关闭，且不能据此推断 Chat 或 Anthropic 也支持流式。delta 事件是临时预览；只有完整成功响应和调用配对确认后才执行工具。空响应最多只额外重试一次，且非流式 `_post` 与 Responses streaming 都受总尝试最多 3 次的边界约束。空响应、协议解析失败、未知 usage 和传输错误都会进入诊断；unknown usage 不是 0，也不能从诊断中的尝试数推导成功。流式预览本身不是已执行动作的证据。
 

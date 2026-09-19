@@ -9,6 +9,7 @@ import pytest
 from aster.config import Settings
 from aster.context import ContextBudgetError, ContextBuilder, ContextHistoryError, history_groups
 from aster.provider import ModelClient, ProviderError, request_payload
+from aster.providers.codec import anthropic_reply, chat_reply
 from aster.schema import RunState, TaskSpec
 from aster.tools import CORE_TOOLS, definitions
 
@@ -113,7 +114,7 @@ def test_chat_native_calls_and_reasoning_survive_round_trip():
             }
         ],
     }
-    reply = ModelClient._chat_reply({"choices": [{"message": raw}]})
+    reply = chat_reply({"choices": [{"message": raw}]})
     history = reply.raw + [
         {"type": "function_call_output", "call_id": "c1", "output": "file contents"}
     ]
@@ -134,7 +135,7 @@ def test_anthropic_native_thinking_tool_results_and_system_are_preserved():
         {"type": "tool_use", "id": "c1", "name": "read_file", "input": {"path": "a.py"}},
         {"type": "tool_use", "id": "c2", "name": "read_file", "input": {"path": "b.py"}},
     ]
-    reply = ModelClient._anthropic_reply({"content": blocks})
+    reply = anthropic_reply({"content": blocks})
     history = reply.raw + [
         {"type": "function_call_output", "call_id": key, "output": "observed"}
         for key in ("c1", "c2")
@@ -172,7 +173,7 @@ def test_tool_images_are_kept_in_supported_native_shape(protocol):
 def mock_transport(monkeypatch, handler):
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     sleeps = []
@@ -180,7 +181,7 @@ def mock_transport(monkeypatch, handler):
     async def no_sleep(delay):
         sleeps.append(delay)
 
-    monkeypatch.setattr("aster.provider.asyncio.sleep", no_sleep)
+    monkeypatch.setattr("aster.providers.client.asyncio.sleep", no_sleep)
     return sleeps
 
 

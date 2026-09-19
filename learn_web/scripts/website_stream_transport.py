@@ -81,13 +81,12 @@ class ResponsesStreamingClient(ModelClient):
             diagnostics[field] = safe
         return diagnostics
 
-    async def _post(self, suffix: str, payload: dict, extra: dict, *, on_event=None) -> dict:
+    async def _post(self, suffix: str, payload: dict, extra: dict, accounting, *, on_event=None) -> dict:
         if self.settings.protocol != "responses" or suffix != "/responses":
             raise ProviderError("Experimental transport requires Responses", category="configuration")
         secret = self.settings.api_key.get_secret_value()
         if not secret:
             raise ProviderError("ASTER_API_KEY is empty", category="configuration")
-        self.last_usage = {}
         self.request_number += 1
         number, started = self.request_number, time.monotonic()
         count, first_event, last_progress = 0, None, 0.0
@@ -154,9 +153,9 @@ class ResponsesStreamingClient(ModelClient):
                             terminal = expected
                             if expected != "completed":
                                 diagnostics = self._terminal_diagnostics(complete)
-                            self.last_usage = self._usage(complete.get("usage", {}))
+                            accounting.record(complete)
                             # complete() delegates incomplete/failed handling and tool parsing
-                            # to ModelClient._responses_reply; deltas never become tool calls.
+                            # to providers.codec.responses_reply; deltas never become tool calls.
                             return complete
                         raise ProviderError("SSE ended without a terminal response", category="incomplete_response")
         except (TimeoutError, httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError) as exc:

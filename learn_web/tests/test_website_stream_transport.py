@@ -9,6 +9,7 @@ from website_stream_transport import ResponsesStreamingClient
 
 from aster.config import Settings
 from aster.provider import ModelClient, ProviderError
+from aster.providers import codec
 from aster.runtime import Runtime
 from aster.schema import TaskSpec
 
@@ -62,13 +63,13 @@ async def test_multiline_sse_waits_for_complete_tool_and_reuses_parser(tmp_path,
     ]
     requests = mock_stream(monkeypatch, chunks)
     seen = []
-    parser = ModelClient._responses_reply
+    parser = codec.responses_reply
 
     def parse(data, usage=None):
         seen.append(data)
         return parser(data, usage)
 
-    monkeypatch.setattr(ModelClient, "_responses_reply", staticmethod(parse))
+    monkeypatch.setattr(codec, "responses_reply", parse)
     result = await client(tmp_path).complete([], [])
     assert len(result.calls) == 1 and result.calls[0].arguments == {"path": "x", "content": "done"}
     assert result.usage["total_tokens"] == 12 and seen == [terminal]

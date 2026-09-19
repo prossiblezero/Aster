@@ -156,7 +156,7 @@ def test_anthropic_result_must_precede_user_text_and_complete_batch():
 def test_wire_conversion_cannot_send_an_incomplete_batch(monkeypatch, protocol):
     broken = batch(protocol, ("a",), ())[:1]
     monkeypatch.setattr(
-        f"aster.provider._{protocol}_messages",
+        f"aster.providers.codec._{protocol}_messages",
         lambda messages: ("", broken) if protocol == "anthropic" else broken,
     )
     with pytest.raises(ContextHistoryError, match="missing_tool_output"):

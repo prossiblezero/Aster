@@ -7,8 +7,9 @@ import json
 from copy import deepcopy
 from dataclasses import dataclass
 
-from .provider import ContextHistoryError as ContextHistoryError
-from .provider import history_groups, request_payload
+from .messages import ContextHistoryError as ContextHistoryError
+from .messages import history_groups
+from .providers.codec import request_payload
 
 try:
     import tiktoken

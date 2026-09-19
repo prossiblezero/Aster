@@ -17,7 +17,7 @@ NEW_KEY = "new-synthetic-profile-secret"
 async def test_nonstream_error_redacts_all_previously_selected_credentials(monkeypatch):
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(
             transport=httpx.MockTransport(
                 lambda _: httpx.Response(

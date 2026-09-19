@@ -1,7 +1,7 @@
 """Bounded Responses SSE transport; deltas are observations, never executable calls.
 
 Wire contract: https://developers.openai.com/api/docs/guides/streaming-responses
-The completed event contains the authoritative response, parsed by ModelClient.
+The completed event contains the authoritative response, parsed by the shared codec.
 """
 
 from __future__ import annotations
@@ -14,14 +14,13 @@ import time
 
 import httpx
 
-from .evidence import Redactor
-from .provider import ProviderError
+from ..evidence import Redactor
+from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request
 
 MAX_EVENT_BYTES = 16 * 1024 * 1024
 MAX_STREAM_BYTES = 64 * 1024 * 1024
 MAX_PROGRESS_CHARS = 1024 * 1024
 MAX_PROGRESS_EVENTS = 512
-RETRYABLE_HTTP = {408, 409, 425, 429, 500, 502, 503, 504, 524}
 
 
 async def _lines(response):
@@ -156,15 +155,13 @@ class _Progress:
         }
 
 
-async def complete_responses(model, payload, extra, on_event):
-    settings = model.settings
+async def complete_responses(settings, payload, extra, on_event, *, parse_reply, accounting):
     secret = settings.api_key.get_secret_value()
     if not secret and settings.auth != "none":
         raise ProviderError("ASTER_API_KEY is empty", category="configuration")
     headers = {"Content-Type": "application/json", "Accept": "text/event-stream", **extra}
     if settings.auth != "none":
         headers["Authorization"] = f"Bearer {secret}"
-    model.last_usage, model.last_diagnostics = {}, {}
     payload = {**payload, "stream": True}
     empty_retries = 0
     progress = None
@@ -172,7 +169,7 @@ async def complete_responses(model, payload, extra, on_event):
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
             for attempt in range(1, 4):
-                progress = _Progress(on_event, [*model.redaction_secrets, secret], attempt)
+                progress = _Progress(on_event, [*accounting.redaction_secrets, secret], attempt)
                 progress.emit("begin")
                 retry_after = 0
                 terminal, response, usage = None, None, {}
@@ -199,7 +196,7 @@ async def complete_responses(model, payload, extra, on_event):
                                 except ValueError:
                                     terminal = None
                                 if isinstance(terminal, dict) and "usage" in terminal:
-                                    usage = model._record_usage(terminal)
+                                    usage = accounting.record(terminal)
                                 try:
                                     retry_after = float(response.headers.get("retry-after", "0"))
                                 except ValueError:
@@ -267,7 +264,7 @@ async def complete_responses(model, payload, extra, on_event):
                                     continue
                                 terminal = item.get("response")
                                 if isinstance(terminal, dict):
-                                    usage = model._record_usage(terminal)
+                                    usage = accounting.record(terminal)
                                 if not isinstance(terminal, dict) or terminal.get(
                                     "status"
                                 ) != kind.removeprefix("response."):
@@ -281,8 +278,8 @@ async def complete_responses(model, payload, extra, on_event):
                                     raise ProviderError(
                                         "Invalid completed response", category="invalid_response"
                                     )
-                                reply = model._parse(terminal, model.last_usage)
-                                reply.diagnostics = model._diagnostic(
+                                reply = parse_reply(terminal, accounting.usage)
+                                reply.diagnostics = accounting.diagnose(
                                     payload,
                                     terminal,
                                     response,
@@ -316,17 +313,17 @@ async def complete_responses(model, payload, extra, on_event):
                         "Malformed stream or tool arguments",
                         category="invalid_response",
                         attempts=attempt,
-                        usage=model.last_usage,
+                        usage=accounting.usage,
                     )
                 except ProviderError as exc:
                     error = ProviderError(
                         **{
                             **exc.details,
                             "attempts": attempt,
-                            "usage": exc.details["usage"] or model.last_usage,
+                            "usage": exc.details["usage"] or accounting.usage,
                         }
                     )
-                diagnostic = model._diagnostic(
+                diagnostic = accounting.diagnose(
                     payload,
                     terminal,
                     response,
@@ -340,25 +337,21 @@ async def complete_responses(model, payload, extra, on_event):
                 error = ProviderError(
                     **{
                         **error.details,
-                        "usage": model.last_usage,
+                        "usage": accounting.usage,
                         "attempts": attempt,
                         "diagnostics": diagnostic,
                     }
                 )
                 category = error.details["category"]
-                retry = category in {"transport", "transient_http"}
-                if category == "empty_response" and empty_retries == 0:
-                    empty_retries += 1
-                    retry = True
-                retry = retry and attempt < 3
+                retry, empty_retries = retry_request(category, attempt, empty_retries)
                 progress.emit("error", **error.details, retrying=retry, **progress.timing())
                 if not retry:
                     raise error
-                await asyncio.sleep(min(2, max(0.25 * 2 ** (attempt - 1), retry_after)))
+                await asyncio.sleep(retry_delay(attempt, retry_after))
     except asyncio.CancelledError:
         if progress is not None:
             if not diagnosed:
-                model._diagnostic(
+                accounting.diagnose(
                     payload,
                     terminal,
                     response,

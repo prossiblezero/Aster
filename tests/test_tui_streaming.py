@@ -157,7 +157,7 @@ async def test_real_sse_adapter_streams_reasoning_and_text_into_tui(tmp_path, mo
 
     original = httpx.AsyncClient
     monkeypatch.setattr(
-        "aster.provider.httpx.AsyncClient",
+        "aster.providers.client.httpx.AsyncClient",
         lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs),
     )
     async with app.run_test() as pilot:

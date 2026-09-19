@@ -3,7 +3,7 @@ import pytest
 from aster.config import Settings
 from aster.hooks import HookResult, Hooks
 from aster.memory import Memory
-from aster.provider import ModelClient
+from aster.providers.codec import responses_reply
 from aster.rl import AsterEnv
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
@@ -127,7 +127,7 @@ def test_verifier_infer_respects_read_only_language(tmp_path):
 
 
 def test_provider_reply_keeps_usage_for_cost_metrics():
-    reply = ModelClient._responses_reply(
+    reply = responses_reply(
         {"model": "gpt-5.6-luna", "output_text": "ok", "output": []},
         {"input_tokens": 12, "output_tokens": 3, "total_tokens": 15},
     )

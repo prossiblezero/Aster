@@ -15,10 +15,12 @@ from pathlib import Path
 from ..config import Settings
 from ..context import ContextBudgetError, ContextBuilder, ContextHistoryError
 from ..evidence import EvidenceStore, Redactor
-from ..history import canonicalize
 from ..hooks import Hooks
 from ..memory import Memory
-from ..provider import ModelClient, ProviderError, history_groups, request_payload
+from ..messages import canonicalize, history_groups
+from ..providers.client import ModelClient
+from ..providers.codec import request_payload
+from ..providers.errors import ProviderError
 from ..recovery import StallDetector, completion_feedback
 from ..safety.policy import Decision, permission
 from ..safety.runner import SandboxRunner
