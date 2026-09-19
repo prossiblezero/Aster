@@ -138,7 +138,7 @@ aster --cwd /tmp/aster-learning-demo
 
 `aster '任务内容'` 执行一次任务后退出；`aster --tui`、`aster-tui` 仍可显式启动 TUI。非交互输入下需要提供任务文本，避免程序等待输入；`--resume` 与 `--rl-smoke` 保持专用执行路径。
 
-CLI 启动时会打印输入预算及来源。通常让 Aster 根据模型配置自动选择；学习实验里的小预算只用来制造上下文压力，详见 [第 06 章](06-context-budget.md)。
+单次 CLI 启动时会打印输入预算及来源，交互界面则在欢迎页和 `/context` 命令中显示。交互入口默认启用 Responses 流式，可用 `--no-stream` 关闭。通常让 Aster 根据模型配置自动选择预算；学习实验里的小预算只用来制造上下文压力，详见 [第 06 章](06-context-budget.md)。
 
 ## 源码怎么读
 

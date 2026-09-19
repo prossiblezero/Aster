@@ -26,7 +26,7 @@ Aster 关注模型提出动作之后的工程问题：如何组织上下文、�
 | 按需扩展能力 | 计划与待办、项目 Skills、带来源验证的持久 Memory、可选 Worker；通过配置与工具目录启用 |
 | 验证与审计 | 将正式测试绑定到工作区版本，保留事件轨迹、模型诊断和供应商报告的 token 用量 |
 
-默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker、流式输出及依赖复用均需显式开启。功能边界与配置项见[配置说明](docs/configuration.md)。
+默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker 及依赖复用均需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
 
 ## 快速开始
 
@@ -93,16 +93,31 @@ aster --cwd /path/to/project --read-only '说明主要模块和测试入口'
 
 ### 会话与恢复
 
-在 TUI 输入任务即可开始工作，后续输入沿当前会话继续。常用命令如下：
+TUI 默认使用简体中文，欢迎页显示 Aster 艺术字。输入任务即可开始工作，后续输入沿当前会话继续。输入 `/` 查看命令提示，按 `↑↓` 选择、`Tab` 补全；没有命令提示时，`↑↓` 浏览输入历史。
+
+交互入口默认开启 Responses 流式输出；配置文件中的 `stream = false` 或 `--no-stream` 仍优先。运行时显示等待耗时、工具调用及结果；接口返回的思考摘要会单独显示，接口没有返回摘要时只显示实际运行状态。Chat 和 Anthropic 协议目前仍使用非流式请求。任务进行中仍可查看帮助和状态、取消或退出；新的任务输入会留在输入框中，等待本轮结束后再发送。
 
 | 命令 | 作用 |
 |---|---|
+| `/help` / `F1` | 中文命令说明与快捷键 |
 | `/model` | 列出已配置的模型 profile |
 | `/model local` | 在空闲时切换到 `local` profile |
 | `/new` | 开始新会话 |
+| `/clear` / `Ctrl+L` | 仅清屏，保留会话 |
+| `/cancel` / `Ctrl+C` / `Esc` | 取消当前任务（有命令提示时，Esc 先关闭提示） |
 | `/continue` | 继续当前已停止的任务 |
-| `/resume RUN_ID` | 加载并继续保存的运行 |
-| `Ctrl+C` / `Ctrl+Q` | 取消当前任务 / 退出 TUI |
+| `/history` / `/resume RUN_ID` / `/resume latest` | 列出、选择或恢复最近的运行 |
+| `/status` / `/session` | 查看状态、会话编号与保存位置 |
+| `/context` / `/usage` | 查看上下文预算、最近请求估算和当前运行 token 用量 |
+| `/tools` / `/skills` | 查看可用工具和项目技能 |
+| `/memory` / `/working-memory` | 查看长期记忆和会话工作记忆 |
+| `/agents` / `/todos` | 查看子任务、计划与待办 |
+| `/plan [任务]` / `/plan-exit` | 进入只读规划模式 / 返回执行模式 |
+| `/review [范围]` / `/test [目标]` | 提交代码审查 / 测试任务，会调用模型 |
+| `/stream on\|off` / `/thinking on\|off` | 开关流式输出 / 思考摘要展示 |
+| `quit` / `exit` / `/quit` / `/exit` / `Ctrl+Q` | 取消正在运行的请求并退出 |
+
+界面实现参考 pico-v3 的欢迎区、命令目录与补全、活动指示和工具展示；所有命令仍复用 Aster 的 Runtime。`/clear` 只清屏，`/new` 才会重置会话。`/resume` 保留原有配置与工作区校验：旧的非流式运行可先用 `/stream off` 恢复相同配置，或显式使用 `--allow-model-change`；外部修改需用 `--adopt-workspace`。
 
 CLI 可使用运行结束时显示的 `run_id` 续接：
 

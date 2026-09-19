@@ -172,8 +172,9 @@ def test_cli_selects_profile_and_reports_effective_configuration_without_credent
     )
     assert received[0].profile == "remote"
     output = capsys.readouterr().err
-    assert "remote | gateway/gateway-model | responses | stream=True" in output
-    assert "9,952 input + 2,048 output" in output
+    assert output == ""  # The TUI renders its own Chinese model/budget display.
+    assert received[0].effective_context_tokens == 12000
+    assert received[0].effective_output_tokens == 2048
     assert "profile-synthetic-secret" not in output
     with pytest.raises(SystemExit) as caught:
         cli.main(["--tui", "--config", str(config), "--env-file", str(env), "--profile", "missing"])
@@ -213,3 +214,38 @@ async def test_tui_model_commands_stay_out_of_tasks_and_fail_without_polluting_s
         assert app.runtime.state is None and app.task_worker is None and model.requests == []
         assert "gateway-model" in app.sub_title
         assert not prompt.disabled
+
+
+@pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+def test_interactive_stream_default_respects_protocol_and_explicit_opt_out(
+    tmp_path, monkeypatch, protocol
+):
+    for name in ("ASTER_PROTOCOL", "ASTER_MODEL", "ASTER_BASE_URL", "ASTER_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    assert load_settings(interactive=True, protocol=protocol).stream == (protocol == "responses")
+    assert not load_settings(protocol=protocol).stream
+    assert not load_settings(interactive=True, protocol=protocol, stream=False).stream
+    config = tmp_path / "models.toml"
+    config.write_text("""
+profile = "primary"
+[profiles.primary]
+provider = "local"
+model = "local-model"
+protocol = "responses"
+base_url = "http://localhost:8000/v1"
+auth = "none"
+context_tokens = 4096
+output_tokens = 512
+[profiles.buffered]
+provider = "local"
+model = "local-model"
+protocol = "responses"
+base_url = "http://localhost:8000/v1"
+auth = "none"
+context_tokens = 4096
+output_tokens = 512
+stream = false
+""")
+    settings = load_settings(config_file=config, interactive=True)
+    assert settings.stream and not settings.select_profile("buffered").stream
+    assert not load_settings(config_file=config, interactive=True, stream=False).stream

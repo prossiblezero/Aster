@@ -232,6 +232,7 @@ async def complete_responses(model, payload, extra, on_event):
                                 if kind in {
                                     "response.output_text.delta",
                                     "response.function_call_arguments.delta",
+                                    "response.reasoning_summary_text.delta",
                                 }:
                                     delta, index, item_id = (
                                         item.get("delta"),
@@ -249,9 +250,11 @@ async def complete_responses(model, payload, extra, on_event):
                                             "Invalid SSE delta", category="invalid_response"
                                         )
                                     progress.delta(
-                                        "text_delta"
-                                        if kind == "response.output_text.delta"
-                                        else "tool_delta",
+                                        {
+                                            "response.output_text.delta": "text_delta",
+                                            "response.function_call_arguments.delta": "tool_delta",
+                                            "response.reasoning_summary_text.delta": "reasoning_delta",
+                                        }[kind],
                                         delta,
                                         index,
                                         item_id,

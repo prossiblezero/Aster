@@ -97,18 +97,20 @@ async def test_tui_question_answer_reaches_next_model_turn(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_tui_cancel_closes_pending_human_prompt(tmp_path):
+@pytest.mark.parametrize("key", ["ctrl+c", "ctrl+q"])
+async def test_tui_cancel_closes_pending_human_prompt(tmp_path, key):
     app = AsterTui(tmp_path, Settings(approval="ask", completion="off"))
     app.runtime.model = CallThenFinish("write_file", {"path": "new.txt", "content": "hello"})
     async with app.run_test() as pilot:
         app.query_one("#prompt").value = "demo"
         await pilot.press("enter")
         await wait_until(lambda: isinstance(app.screen, HumanPrompt))
-        await app.action_cancel_task()
+        await pilot.press(key)
         await pilot.pause()
         assert app.runtime.state.terminal
         assert not isinstance(app.screen, HumanPrompt)
         assert not (tmp_path / "new.txt").exists()
+        assert app.is_running == (key == "ctrl+c")
 
 
 @pytest.mark.asyncio

@@ -154,29 +154,18 @@ def test_removed_single_tool_token_cap_is_rejected_instead_of_silently_ignored(t
     [
         (
             "gpt-5.6-luna",
-            "875,900 input + 32,768 output tokens (model default with 5% estimation margin)",
+            "875,900 输入 + 32,768 输出 token（模型默认预算，含估算余量）",
         ),
-        ("local-model", "21,952 input + 2,048 output tokens (unknown model fallback"),
+        ("local-model", "21,952 输入 + 2,048 输出 token（未知模型，使用保守预算）"),
     ],
 )
-def test_cli_displays_effective_budget_and_unknown_model_fallback(
-    monkeypatch, capsys, model, expected
-):
-    from aster import cli
+async def test_tui_displays_effective_budget_and_unknown_model_fallback(tmp_path, model, expected):
+    from aster.tui import AsterTui
 
-    subtitles = []
-
-    class NoNetworkTui:
-        def __init__(self, *_):
-            pass
-
-        def run(self):
-            subtitles.append(self.sub_title)
-
-    monkeypatch.setattr(cli, "load_settings", lambda *_args, **_kwargs: Settings(model=model))
-    monkeypatch.setattr(cli, "AsterTui", NoNetworkTui)
-    assert cli.main(["--tui"]) == 0
-    assert expected in capsys.readouterr().err
-    assert "input tokens" in subtitles[0]
-    if model == "local-model":
-        assert "Unknown model fallback" in subtitles[0]
+    app = AsterTui(tmp_path, Settings(model=model))
+    async with app.run_test(size=(120, 40)) as pilot:
+        assert expected in str(app.query_one("#welcome").content)
+        app.query_one("#prompt").value = "/context"
+        await pilot.press("enter")
+        text = "\n".join(line.text for line in app.query_one("#log").lines)
+        assert expected in text

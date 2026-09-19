@@ -42,7 +42,7 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 提交任务后由异步 worker 驱动 Runtime，输入框暂时禁用，避免两个前台任务争用同一个运行状态。
 日志订阅 <code>EvidenceStore</code> 的事件，因此界面显示与执行记录来自同一条事件流。</p>
 <p>人工弹窗使用一个异步锁：父运行和子运行如果同时提问，问题会排队，而不是叠放两个互相遮挡的批准框。
-批准框默认聚焦 <code>Deny</code>；Escape 取消当前问题，Ctrl+C 取消任务，Ctrl+Q 退出界面。
+批准框默认聚焦“拒绝”；Escape 取消当前问题，Ctrl+C 取消任务，Ctrl+Q 退出界面。
 取消会传播到正在运行的协程和工具清理路径，不只是把屏幕上的状态改成“取消”。</p>
 <p>想手动体验时，在已激活的 <code>aster</code> 环境和交互终端中直接运行 <code>aster</code> 即可。它默认以当前目录为工作区，并自动读取当前目录的 <code>.env</code>。也可以从项目根目录指定练习工作区：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>aster<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-tui-practice

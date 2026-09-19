@@ -90,6 +90,7 @@ def main(argv=None):
             env_file if env_file.exists() else None,
             args.config,
             profile=args.profile,
+            interactive=args.tui or default_tui,
             model=args.model,
             context_tokens=args.context_tokens,
             output_tokens=args.output_tokens,
@@ -101,6 +102,12 @@ def main(argv=None):
         )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
+    if args.tui or default_tui:
+        if AsterTui is None:
+            parser.error("交互界面需要安装 textual")
+        app = AsterTui(Path(args.cwd), settings, **task_limits)
+        app.run()
+        return 0
     context_source = {
         "explicit": "configured total budget",
         "model_profile": "model default with 5% estimation margin",
@@ -123,18 +130,6 @@ def main(argv=None):
         f"+ {output:,} output tokens ({context_source}); output: {output_source}.",
         file=sys.stderr,
     )
-    if args.tui or default_tui:
-        if AsterTui is None:
-            parser.error("TUI requires textual")
-        app = AsterTui(Path(args.cwd), settings, **task_limits)
-        label = (
-            "Unknown model fallback"
-            if settings.context_budget_source == "fallback"
-            else settings.model
-        )
-        app.sub_title = f"{label} | {settings.effective_context_tokens - output:,} input tokens"
-        app.run()
-        return 0
     if args.rl_smoke:
         return asyncio.run(
             _rl_smoke(Path(args.cwd), settings, args.prompt or "inspect the workspace")

@@ -226,6 +226,7 @@ def load_settings(
     config_file: Path | None = None,
     *,
     profile: str | None = None,
+    interactive: bool = False,
     **overrides,
 ) -> Settings:
     values = tomllib.loads(config_file.read_text()) if config_file else {}
@@ -237,7 +238,12 @@ def load_settings(
     if not isinstance(values.get("profiles", {}), dict):
         raise ValueError("profiles must be a TOML table")
     profiles = {
-        name: ModelProfile.model_validate(item) for name, item in values.get("profiles", {}).items()
+        name: ModelProfile.model_validate(
+            {"stream": item.get("protocol") == "responses", **item}
+            if interactive and isinstance(item, dict)
+            else item
+        )
+        for name, item in values.get("profiles", {}).items()
     }
     credentials = {
         item.api_key_env: SecretStr(env[item.api_key_env])
@@ -255,6 +261,8 @@ def load_settings(
         values["profile"] = alias
     values["profiles"] = profiles
     values.update({k: v for k, v in overrides.items() if v is not None})
+    if interactive:
+        values.setdefault("stream", values.get("protocol", "responses") == "responses")
     result = Settings.model_validate(values)
     result._profile_credentials = credentials
     return result
