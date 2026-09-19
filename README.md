@@ -206,7 +206,7 @@ flowchart LR
 
 | 模块 | 主要文件 | 职责 |
 |---|---|---|
-| 运行与交互 | `core/runtime.py`、`cli.py`、`tui.py`、`schema.py` | 组织任务循环、交互事件及统一数据结构 |
+| 运行与交互 | `core/runtime.py`、`cli.py`、`ui/`、`schema.py` | 组织任务循环、交互事件及统一数据结构 |
 | 模型与协议 | `config.py`、`providers/`、`messages.py` | 解析配置，构造请求，处理流式、错误诊断与历史转换 |
 | 上下文 | `context/` | 预算估算、历史压缩和动态状态组织 |
 | 工具与安全 | `tools/`、`workspace.py`、`safety/` | 工具分发、文件边界、审批、沙箱执行与修改回写 |
@@ -226,7 +226,11 @@ Aster/
 │   ├── tools/          # 工具 schema、业务与正式测试
 │   ├── runtime.py      # Runtime 兼容导出
 │   ├── cli.py          # 命令行入口
-│   ├── tui.py          # 终端交互界面
+│   ├── providers/      # 协议转换、传输与请求记账
+│   ├── context/        # 策略、预算计算与成功提交
+│   ├── sessions/       # 检查点与会话候选准备
+│   ├── ui/             # 中文终端界面、命令和输入组件
+│   ├── tui.py          # AsterTui 兼容导出
 │   └── safety/         # 权限策略与 Linux 沙箱
 ├── tests/              # 工程契约与回归测试
 ├── docs/               # 配置、设计与研究文档
@@ -242,6 +246,8 @@ Aster/
 ├── pyproject.toml      # 包信息、依赖与开发工具配置
 └── NOTICE.md           # 设计参考与第三方来源说明
 ```
+
+源码布局的迁移、前后指标和安装验收见 [源码重构结果](docs/src-refactor-results.md)。
 
 运行产生的检查点、轨迹与持久记忆位于目标工作区的 `.aster/`。示例产品、教学网站与评测材料分别维护，便于独立使用和审查。
 

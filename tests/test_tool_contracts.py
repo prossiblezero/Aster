@@ -243,3 +243,18 @@ async def test_preflight_validates_once_and_direct_registry_still_validates(tmp_
     result = await registry.execute(ToolCall(name="read_file", arguments={}))
     assert result.reason == "invalid_arguments"
     assert len(validations) == 2
+
+
+async def test_direct_registry_preserves_unknown_tool_diagnostic(tmp_path):
+    from aster.tools import ToolContext, ToolRegistry
+
+    runtime = Runtime(tmp_path, Settings(approval="auto", completion="off"))
+    runtime.start(TaskSpec(prompt="inspect"))
+    registry = ToolRegistry(ToolContext(runtime.workspace, runtime.sandbox, runtime.state.run_id))
+    call = ToolCall(name="missing")
+    direct = await registry.execute(call)
+    assert (direct.status, direct.reason, direct.content) == (
+        "blocked", "unknown_tool", "unknown tool missing",
+    )
+    mediated = await runtime.step(call)
+    assert (mediated.status, mediated.reason, mediated.content) == ("blocked", "unknown_tool", "")

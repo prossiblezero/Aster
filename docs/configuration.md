@@ -59,7 +59,7 @@ CLI 可直接覆盖预算及每次任务轮数，不必编辑 TOML。例如 `ast
 
 已移除 `tool_output_tokens`：工具正文不再预先截到固定 token 数，整份请求超预算后才压缩。旧 TOML 中该字段需删除，否则明确报配置错误。执行超时、进程输出采集大小、读取行数和分页字符数仍各管自己的资源边界；它们不等于模型上下文预算。
 
-例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。`ContextBuilder` 使用与 Provider 相同的请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
+例如 `context_tokens=4096`、`output_tokens=512`，实际输入上限就是 `3584`。[ContextBuilder](../src/aster/context/builder.py) 使用与 Provider 相同的 [request_payload](../src/aster/providers/codec.py) 请求构造函数，把工具名称、说明、参数 schema、消息和协议包装一并计数。无法保留当前任务及必需交互时，返回 `context_budget_exceeded`，不继续发送已知超预算请求。
 
 这里的 token 来自本地 tokenizer，对远端模型仍是估算。图片编码、供应商内部模板和计费规则可能不同；费用与真实 usage 以网关返回结果为准。详见 [上下文预算](learning/06-context-budget.md)。
 

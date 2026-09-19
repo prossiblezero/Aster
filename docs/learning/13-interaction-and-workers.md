@@ -50,7 +50,7 @@ return Outcome(status="success", content=str(answer))
 
 ## TUI 改变的是交互方式
 
-[AsterTui](../../src/aster/tui.py) 使用 Textual，包含输入框、执行日志、轮次/工具次数和验证状态。
+[AsterTui](../../src/aster/ui/app.py) 使用 Textual，包含输入框、执行日志、轮次/工具次数和验证状态。[ui/widgets.py](../../src/aster/ui/widgets.py) 定义输入和批准框；[ui/commands.py](../../src/aster/ui/commands.py) 管理命令目录、解析和执行，App 持有界面状态并通过明确回调响应命令。
 提交任务后由异步 worker 驱动 Runtime，输入框暂时禁用，避免两个前台任务争用同一个运行状态。
 日志订阅 `EvidenceStore` 的事件，因此界面显示与执行记录来自同一条事件流。
 

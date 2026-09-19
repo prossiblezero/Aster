@@ -75,10 +75,8 @@ class WorkspaceTools:
 
     async def execute(self, call: ToolCall) -> Outcome:
         from .registry import validate_arguments
-        args = validate_arguments(call)
+        args = validate_arguments(call, direct=True)
         if isinstance(args, Outcome):
-            if args.reason == "unknown_tool":
-                args.content = f"unknown tool {call.name}"
             return args
         return await self.execute_validated(call, args)
 

@@ -29,11 +29,11 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 | 能力 | 当前已实现的行为 | 源码与检查入口 |
 | --- | --- | --- |
 | 独立 episode | `AsterEnv.reset()` 按工作区规则复制种子仓库到临时目录；上一轮改动不会变成下一轮起点 | [rl.py：AsterEnv.reset](../src/aster/rl.py)、[test_runtime_repairs.py](../tests/test_runtime_repairs.py) |
-| 统一执行与观察 | 外部动作复用 `Runtime.step()`；`model_input` 与工具定义来自自主运行同样使用的 `prepare_request()` | [rl.py：_step / _observation](../src/aster/rl.py)、[runtime.py：prepare_request](../src/aster/runtime.py)、[test_context_policy_input.py](../tests/test_context_policy_input.py) |
+| 统一执行与观察 | 外部动作复用 `Runtime.step()`；`model_input` 与工具定义来自自主运行同样使用的 `prepare_request()` | [rl.py：_step / _observation](../src/aster/rl.py)、[runtime.py：prepare_request](../src/aster/core/runtime.py)、[test_context_policy_input.py](../tests/test_context_policy_input.py) |
 | 有界交互与终态 | 工具动作和 Final 消耗预算；达到上限仍评分最后候选；终态拒绝重复 step，评分前等待 Worker 停止 | [rl.py：_step / _terminal_reward](../src/aster/rl.py)、[test_rl_contract.py](../tests/test_rl_contract.py) |
 | 独立奖励入口 | 完成要求检查与外部 verifier 分开；没有独立 verifier 不给成功奖励，仓库测试结果只是观察 | [rl.py：_terminal_reward](../src/aster/rl.py)、[schema.py：VerifierResult](../src/aster/schema.py) |
-| 轨迹与输入证据 | 保存实际请求 payload、上下文策略版本、工具结果归档、调用历史、checkpoint 和代码差异；检查工具调用与结果配对 | [runtime.py：prepare_request / checkpoint](../src/aster/runtime.py)、[provider.py：history_groups](../src/aster/provider.py)、[evidence.py](../src/aster/evidence.py) |
-| 失败与恢复边界 | 生成尝试有界、分类诊断与已报告用量累加；schema错误形成配对的失败观察；本任务及已启动子任务有未结在途调用时拒绝恢复 | [provider.py](../src/aster/provider.py)、[runtime.py：_execute_batch](../src/aster/runtime.py)、[session.py：assert_settled_tools](../src/aster/session.py) |
+| 轨迹与输入证据 | 保存实际请求 payload、上下文策略版本、工具结果归档、调用历史、checkpoint 和代码差异；检查工具调用与结果配对 | [runtime.py：prepare_request / checkpoint](../src/aster/core/runtime.py)、[messages.py：history_groups](../src/aster/messages.py)、[evidence.py](../src/aster/evidence.py) |
+| 失败与恢复边界 | 生成尝试有界、分类诊断与已报告用量累加；schema错误形成配对的失败观察；本任务及已启动子任务有未结在途调用时拒绝恢复 | [provider.py](../src/aster/providers/client.py)、[runtime.py：_execute_batch](../src/aster/core/runtime.py)、[session.py：assert_settled_tools](../src/aster/sessions/checkpoint.py) |
 | 任务与评分组织 | 任务有初始 fixture、预算、参考动作和独立检查；真实模型与脚本回放分开统计，保留失败尝试 | [datasets/README.md](../datasets/README.md)、[benchmark_support.py](../scripts/benchmark_support.py)、[benchmark.md](benchmark.md) |
 
 这些基础足以开始定义“在什么任务上采样、模型看到什么、动作如何执行、最终如何评分”。它们不证明某套训练方法已经有效，也不等同于训练数据已经准备好。
@@ -66,7 +66,7 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 
 GRPO 方案需要定义同题多次采样的分组、组内奖励与优势计算，并由训练侧获取或可重算行为策略的逐 token logprobs。还应记录 actor/reference 权重版本、token IDs、采样参数、输出终止原因及训练 mask，保证计算概率时使用的观察与采样时一致。
 
-当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v7`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/provider.py)、[context.py：ContextReport](../src/aster/context.py)。
+当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v7`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/providers/client.py)、[context.py：ContextReport](../src/aster/context/budget.py)。
 
 ### 4. 明确奖励可信范围与异常处理
 

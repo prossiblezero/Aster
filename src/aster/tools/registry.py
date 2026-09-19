@@ -11,9 +11,10 @@ from .workflow import WorkflowTools
 from .workspace import WorkspaceTools
 
 
-def validate_arguments(call: ToolCall) -> Record | Outcome:
+def validate_arguments(call: ToolCall, *, direct: bool = False) -> Record | Outcome:
     if call.name not in SCHEMAS:
-        return Outcome(status="blocked", reason="unknown_tool")
+        return Outcome(status="blocked", reason="unknown_tool",
+                       content=f"unknown tool {call.name}" if direct else "")
     try:
         return SCHEMAS[call.name][0].model_validate(call.arguments)
     except ValueError as exc:
@@ -38,7 +39,7 @@ class ToolRegistry:
 
     async def execute(self, call: ToolCall) -> Outcome:
         args = (self._validated[1] if self._validated and call == self._validated[0]
-                else validate_arguments(call))
+                else validate_arguments(call, direct=True))
         if isinstance(args, Outcome):
             return args
         try:

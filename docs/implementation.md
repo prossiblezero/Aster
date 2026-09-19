@@ -4,24 +4,20 @@ Aster 是独立重构的轻量 Coding Agent，不导入 pico/nexa 包。保留�
 
 ## 工程结构
 
-Python 3.12、conda `aster`、`src/aster` 包布局。Pydantic 校验边界数据，标准库管理状态与文件，httpx 请求模型，Textual 展示界面，tiktoken 估算输入长度。CLI、TUI、自主运行和外部策略动作均进入同一个 Runtime，避免每种入口各自实现权限与验证逻辑。
+Python 3.12、conda `aster`、`src/aster` 包布局。当前目录与验证记录见 [源码重构结果](src-refactor-results.md)。Pydantic 校验边界数据，标准库管理状态与文件，httpx 请求模型，Textual 展示界面，tiktoken 估算输入长度。CLI、TUI、自主运行和外部策略动作均进入同一个 Runtime，避免每种入口各自实现权限与验证逻辑。
 
-```text
-CLI / TUI / AsterEnv.step
-           |
-           v
-        Runtime -------- ContextBuilder ---- ModelClient
-        |  |  |                |                 |
-        |  |  +---- Memory     +-- request_payload
-        |  +------- Hooks
-        v
-   ToolRegistry
-     |         |
- 工作区工具   工作流状态 / Worker
-     |
- 权限检查 + SandboxRunner + Workspace
-           |
-   trace / checkpoint / report
+```mermaid
+flowchart TD
+    UI[CLI / ui / AsterEnv] --> R[core.Runtime]
+    R --> S[sessions: 候选状态与检查点]
+    R --> C[context: 计算与成功提交]
+    R --> P[providers: ModelClient / HTTP / SSE]
+    R --> T[审批 / Hooks / tools]
+    S --> C
+    C --> Codec[providers.codec: 纯协议转换]
+    P --> Codec
+    Codec --> M[messages / schema]
+    T --> W[Workspace / SandboxRunner / 功能服务]
 ```
 
 运行事件与模型历史分开保存：前者用于审计，后者保留调用协议所需的配对和元数据。记忆的短期状态只属于 `RunState`，跨运行条目单独持久化。`.aster` 等控制目录不向模型工具开放直接写入。

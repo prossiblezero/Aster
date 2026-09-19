@@ -30,7 +30,7 @@ flowchart TD
 
 ## 先认识一份工具契约
 
-打开 [tools.py](../../src/aster/tools/schemas.py)，先看 `ReadFile`，再看 `SCHEMAS`、`definitions()`。
+打开 [tools/schemas.py](../../src/aster/tools/schemas.py)，先看 `ReadFile`，再看 `SCHEMAS`、`definitions()`。
 下面是 `ReadFile` 的字段部分，范围校验留在源码中：
 
 ```python
