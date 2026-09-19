@@ -49,5 +49,8 @@ def completion_feedback(state: RunState) -> str:
     if task.require_edit and not state.changed_paths:
         missing.append("make the requested edit")
     if task.require_verification and state.verification.state != "passed":
-        missing.append("run a successful verification command")
+        missing.append(
+            "run a successful verification command via run_tests "
+            "(run_shell checks do not update formal verification)"
+        )
     return "Completion requirements missing: " + ", ".join(missing) if missing else ""
