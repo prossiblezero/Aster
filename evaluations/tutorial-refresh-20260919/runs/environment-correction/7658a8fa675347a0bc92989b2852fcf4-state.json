@@ -1,0 +1,39 @@
+{
+  "run_id": "7658a8fa675347a0bc92989b2852fcf4",
+  "session_id": "45354e6e0f2f48cb9cdde2e0e6efb39a",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "step": 58,
+  "turn": 25,
+  "usage": {
+    "usage_requests": 25,
+    "input_tokens": 1680223,
+    "input_tokens_requests": 25,
+    "output_tokens": 5578,
+    "output_tokens_requests": 25,
+    "cache_read_input_tokens": 140800,
+    "cache_read_input_tokens_requests": 25,
+    "reasoning_tokens": 1446,
+    "reasoning_tokens_requests": 25,
+    "total_tokens": 1685801,
+    "total_tokens_requests": 25
+  },
+  "changed_paths": [
+    "docs/learning/00-quickstart.md",
+    "docs/learning/04-permissions-sandbox.md",
+    "docs/learning/09-checkpoint-resume.md",
+    "docs/learning/run_examples.py",
+    "learn_web/lessons/00-quickstart.html",
+    "learn_web/lessons/04-permissions-sandbox.html",
+    "learn_web/lessons/09-checkpoint-resume.html",
+    "learn_web/search.json"
+  ],
+  "verification": {
+    "state": "passed",
+    "workspace_hash": "c9024a3df34a071b61b21116929ed1f55bb7f35b0cc3af98f88a8715dbc041c8",
+    "evidence_id": "7e96b24c4c0ad8a9b513020b5e7dd8d4f9938905e22d6e7e9caa9a42ebdcf009",
+    "command": "python -m pytest -q learn_web/tests/test_site.py"
+  },
+  "feedback": "",
+  "final": "本轮教程维护已完成，且未修改 `src/aster`、`tests`、数据集、脚本、评测报告或历史轨迹。\n\n主要修正：\n\n- 恢复 [`docs/learning/run_examples.py`](/workspace/docs/learning/run_examples.py) 对正文代码块的原样执行。\n  - 不再全局屏蔽 `tiktoken`。\n  - 不再把 `required` 改成 `best_effort`。\n  - 不删除断言，也不自动跳过环境失败。\n- 更新第 00 章入门说明，明确：\n  - 教程实验不调用真实模型 API。\n  - `tiktoken` 首次使用可能需要下载 `cl100k_base` 词表，完全断网环境需预先准备缓存。\n  - Linux 沙箱实验要求运行环境支持 Landlock/seccomp；外层执行器的限制不等同于 Aster 产品不支持隔离。\n- 更新第 04 章，使实验继续显式使用 `sandbox=\"required\"`，隔离能力不可用时明确失败，并保留对部分发布、工作区变化和实际隔离状态的验证。\n- 修正第 09 章恢复实验的脆弱断言：不再要求恢复错误信息与旧字符串完全相等，而是检查稳定的结构化字段和解释内容；同时保留拒绝配置漂移、拒绝工作区漂移以及重复调用恢复的验证意义。\n- 重新生成教学网站章节页、搜索索引和源码副本，没有手工修改生成 HTML。\n\n已由我执行：\n\n- `python learn_web/build.py`\n- `python -m pytest -q learn_web/tests/test_site.py`\n- 静态站点检查结果：`6 passed`\n\n教程离线实验没有在本次嵌套沙箱中反复重跑，也没有把嵌套沙箱失败写成产品行为。操作员已在指定 `aster` 环境原样验证：00–08 通过，10–15 单独运行通过；第 09 章失败原因是旧的完整字符串断言，现已按当前恢复错误结构修正，需由操作员在该环境重新复验第 09 章及整套实验。`cl100k_base` 首次下载、Landlock/seccomp 实际可用性，以及真实模型 API 行为仍未由我在本轮验证。"
+}

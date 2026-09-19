@@ -1,0 +1,16 @@
+本次总目标仍是“对照当前实现审查全部16章并更新教程MD和网站”。环境纠偏只是其中一步，不能把总任务缩成修第09章断言与添加环境说明。当前候选尚未完成内容验收，以下独立审查发现请逐项回到源码核实并修订。准确内容无需重写，但不能保留互相矛盾的旧正文，也不能只追加更新日志。
+
+1. 第01章仍声称同轮工具全部串行。核对Runtime._execute_batch：read_parallelism>1时纯read_file/search/list_files批次可并行，默认1、混合批次串行、预检和结果提交有序。第03章可简述patch_file.edits及整批参数验证的边界。
+2. 第02章标作真实源码的请求仍用settings.output_tokens，当前用effective_output_tokens。补目前provider/profile、显式模型切换与可移植历史的关系；Responses流式实际走streaming.complete_responses，默认关闭且目前仅Responses支持，delta是临时预览，完整成功响应前不执行工具。故障诊断、尝试与未知usage、空响应及传输有限重试需讲清，而非暗示任意provider都实现流式或内部模型身份已认证。第05章状态/证据部分交叉引用实际diagnostics即可。
+3. 第04章预期输出仍写“否则degraded”，与required断言矛盾，必须删掉该错误分支。补依赖/进程生命周期的实际边界：默认无跨命令依赖，复用只在required及同进程中保留受控依赖，失败可丢失，不能恢复后台进程，用.tmp/TMPDIR。正文环境说明应面向普通读者，不写本次操作员纠偏经历。
+4. 第06章预期输出还说当前v5，实际v7。第06/07章区分命令捕获上限4MiB、8192字符预览、上下文预算裁剪；超过捕获上限的内容不能凭归档恢复。第07章多处“只限当前run”过时，续聊可读取经授权的同session祖先观察ID，仍非任意跨run读取。
+5. 第08章明确run_shell成功不更新正式验证，run_tests证据与外部产品验收分开。
+6. 第09章“真实入口节选”和图已过时：Runtime.resume委托session.load_checkpoint。讲清allow_model_change/adopt_workspace显式路径、安全配置不能因此变化、checkpoint版本及inflight不确定副作用禁止重放。区分resume加载保留计数与continue_task/prepare_continuation建立新run重置step/turn/usage；受控依赖不跨进程恢复，旧正式验证不能直接沿用。更新代码节选和实验预期，不止修断言。新的错误断言须继续验证对应拒绝原因。
+7. 第10章明确Memory默认关闭，工作记忆不受影响；观察采集在_collect_step，入库来源认证在memory.store_excerpt，修正过时归属。保留原文摘录、read_file来源与失效规则。第11章主体准确，保留粗粒度反馈/Dream不生成知识不训练模型的限制；只开auto_dream而Memory/evolution关闭不会有效维护。
+8. 第12章“不是name/SKILL.md”和“每轮重新读取活动Skill正文”均错误。当前支持旧单文件+SKILL.md包、资源和含description等的目录；选中正文保存skill_snapshots，文件变化不自动更新，refresh=True才刷新。resource只读当前资源不激活正文，不能与refresh并用。更新真实代码节选、图和正文，实验应至少实际演示固定快照与显式刷新，不把Skills写成可执行插件。
+9. 第13章应覆盖公开TUI的/model别名、/new、/continue、/resume及显式adopt/allow标志，按实际命令核对；模型切换是配置profile+空闲边界+历史转换/预算检查，不是任意输入型号即可接通。Worker默认关闭、独立预算并非全团队总预算，持久Memory召回也关闭。保留流式预览不等于已执行动作的说明。
+10. 第14章链接当前evaluations/v0.2-release与lab-followup报告，讲清评分器本身需反例验收、首次与返修/人工干预分开、缓存率不等于效率、未知usage不按0、开发题不能冒充未见测试。尽量引用报告，不在教程复制一堆成绩。
+11. 第15章context_policy示例还为v4；说明training.py已实现任务来源/许可/划分、实际请求和回复匹配导出、assistant mask及GRPO版本/预算/分组校验。继续明确没有真实tokenizer对齐、采样训练器或优化器，不等于已训练。区分环境演示奖励与训练合同：取消、基础设施/评分器失败保持reward=None，不直接变成模型负例。学习README结尾“训练文档留待以后补充”也应与现有post-training-design/readiness一致。
+12. learn_web/docs/website-task.md是可复用约定，仍写当前无持续多轮聊天且只允许改learn_web，需改为当前维护情境或明确历史条款；真正历史运行报告与轨迹不改。
+
+恢复run_examples.py原有单行subprocess.run格式，去掉本次撤回后留下的无意义格式改动。不要引入tokenizer屏蔽、required降级、测试跳过或额外依赖。全部标记实验由操作员在aster环境独立执行；你负责真实源码核对、修改、构建和正式静态站点检查。不要修改核心来迎合旧文档，不声称未执行的验证已通过。最终交付请覆盖整个原目标。

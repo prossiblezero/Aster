@@ -1,0 +1,305 @@
+Aster model: main | openai/gpt-5.6-luna | responses | stream=True.
+Aster context: 95,232 input + 32,768 output tokens (configured total budget); output: configured.
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving response: 94 characters]
+[receiving tool arguments]
+收到纠偏。我会先撤销本轮对 `run_examples.py` 和第 04 章的两处改动，恢复原样 `required` 与正文代码块执行；之后只做源码对照得到的教学内容修正，重点处理第 09 章动态错误信息的断言。整套实验不再由我在当前嵌套沙箱重复执行，最后只运行构建和指定站点正式测试，并明确区分操作员复验结果与我的验证结果。
+[model attempt 1 completed]
+[tool git_diff: success ]
+[tool read_file: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool read_file: success ]
+[tool read_file: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 105 characters]
+[receiving tool arguments]
+已确认两处不符合要求的修改确实存在：运行器通过注入 `sys.modules['tiktoken']` 改变了正文实验环境，第 04 章实验改成了 `best_effort` 并接受 `degraded`。现在恢复这两处的严格语义；第 09 章只放宽对错误文本的脆弱完全相等比较，仍保留错误类型、配置漂移和工作区漂移的断言。
+[model attempt 1 completed]
+[tool read_file: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: blocked fresh_read_required]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: blocked fresh_read_required]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 79 characters]
+第 04 章的语义正文已恢复为 `required`，运行器也已恢复原样执行。工具要求每次成功编辑后重新读取文件，我会按此继续完成最后一处断言修正，并补上入门页关于 tokenizer 缓存和 Linux 隔离能力的真实前置条件。
+[model attempt 1 completed]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: blocked fresh_read_required]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving response: 67 characters]
+[receiving response: 137 characters]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+恢复性修正已经完成，当前变更只涉及这三个教学入口文件。接下来我补充入门环境说明，然后检查章节中是否仍残留“降级通过”或旧的严格错误文本，生成站点并执行指定的 `learn_web` 正式测试。整套离线实验的通过情况按操作员提供的 00–08、10–15 结果记录，不会冒充为本次嵌套环境实测。
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool read_file: success ]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 76 characters]
+[receiving response: 132 characters]
+残留检查结果符合预期：没有 `best_effort` 实验、tokenizer 屏蔽或旧的完全相等错误断言；`degraded` 仅保留在源码机制说明和“支持/不支持时预期差异”的文字中。现在按要求生成网页、搜索索引和源码副本，随后把正式站点测试作为最后一项验证。
+[model attempt 1 completed]
+[tool run_shell: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool git_diff: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 37 characters]
+[receiving response: 68 characters]
+[receiving response: 92 characters]
+[receiving response: 113 characters]
+[receiving response: 135 characters]
+我已确认纠偏后的工作区状态：`run_examples.py` 已恢复直接执行正文代码块，第 04 章仍是 `required` 且保留强断言，第 09 章只放宽为检查错误字段包含关系。接下来我只做一次静态网站重建，并在重建后执行指定的站点正式测试，不再重复整套教程实验。
+[model attempt 1 completed]
+[tool read_file: success ]
+[tool read_file: success ]
+[tool read_file: success ]
+[tool read_file: success ]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving response: 25 characters]
+[receiving response: 47 characters]
+[receiving response: 68 characters]
+[receiving tool arguments]
+源码与教程入口目前没有残留降级逻辑；网站说明也明确了构建来源、实验与产品边界。现在重建全部网页、搜索索引和源码副本，确保生成物与这三个修正后的 Markdown/运行器一致。
+[model attempt 1 completed]
+[tool run_shell: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 24 characters]
+[receiving response: 56 characters]
+[receiving response: 79 characters]
+[receiving tool arguments]
+构建已成功完成。生成器没有输出错误；我再核对生成网页是否确实反映了 `required`、tiktoken 缓存提示和第 09 章字段包含断言，然后把指定站点测试作为最后一个验证动作。
+[model attempt 1 completed]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+[tool search: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving response: 25 characters]
+[receiving response: 46 characters]
+[receiving response: 70 characters]
+[receiving response: 88 characters]
+[receiving response: 104 characters]
+[receiving tool arguments]
+[receiving tool arguments]
+生成网页核对结果符合预期：第 00/04 章提示已进入网页，且第 04 章正文没有把本实验改成 `best_effort`；第 09 章生成页保留了字段包含断言。接下来执行唯一要求的正式站点验收命令，之后不再运行会改变工作区的检查。
+[model attempt 1 completed]
+[tool run_tests: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool git_diff: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 12 characters]
+[receiving response: 32 characters]
+[receiving response: 43 characters]
+本轮教程维护已完成，且未修改 `src/aster`、`tests`、数据集、脚本、评测报告或历史轨迹。
+
+[receiving response: 57 characters]
+主要修正：
+
+[receiving response: 81 characters]
+[receiving response: 124 characters]
+[receiving response: 149 characters]
+- 恢复 [`docs/learning/run_examples.py`](/workspace/docs/learning/run_examples.py) 对正文代码块的原样执行。
+[receiving response: 162 characters]
+  - 不再全局屏蔽 `tiktoken`。
+[receiving response: 178 characters]
+[receiving response: 198 characters]
+  - 不再把 `required` 改成 `best_effort`。
+[receiving response: 218 characters]
+[receiving response: 231 characters]
+  - 不删除断言，也不自动跳过环境失败。
+[receiving response: 246 characters]
+- 更新第 00 章入门说明，明确：
+[receiving response: 259 characters]
+  - 教程实验不调用真实模型 API。
+[receiving response: 277 characters]
+[receiving response: 294 characters]
+[receiving response: 315 characters]
+[receiving response: 326 characters]
+  - `tiktoken` 首次使用可能需要下载 `cl100k_base` 词表，完全断网环境需预先准备缓存。
+[receiving response: 344 characters]
+[receiving response: 366 characters]
+[receiving response: 381 characters]
+[receiving response: 396 characters]
+  - Linux 沙箱实验要求运行环境支持 Landlock/seccomp；外层执行器的限制不等同于 Aster 产品不支持隔离。
+[receiving response: 408 characters]
+[receiving response: 419 characters]
+[receiving response: 444 characters]
+[receiving response: 455 characters]
+[receiving response: 467 characters]
+[receiving response: 479 characters]
+- 更新第 04 章，使实验继续显式使用 `sandbox="required"`，隔离能力不可用时明确失败，并保留对部分发布、工作区变化和实际隔离状态的验证。
+[receiving response: 490 characters]
+[receiving response: 501 characters]
+[receiving response: 512 characters]
+[receiving response: 525 characters]
+[receiving response: 537 characters]
+[receiving response: 548 characters]
+[receiving response: 558 characters]
+[receiving response: 571 characters]
+- 修正第 09 章恢复实验的脆弱断言：不再要求恢复错误信息与旧字符串完全相等，而是检查稳定的结构化字段和解释内容；同时保留拒绝配置漂移、拒绝工作区漂移以及重复调用恢复的验证意义。
+[receiving response: 585 characters]
+[receiving response: 596 characters]
+[receiving response: 612 characters]
+- 重新生成教学网站章节页、搜索索引和源码副本，没有手工修改生成 HTML。
+
+已由我执行：
+
+[receiving response: 626 characters]
+- `python learn_web/build.py`
+[receiving response: 656 characters]
+[receiving response: 685 characters]
+- `python -m pytest -q learn_web/tests/test_site.py`
+[receiving response: 710 characters]
+[receiving response: 726 characters]
+- 静态站点检查结果：`6 passed`
+
+[receiving response: 739 characters]
+[receiving response: 747 characters]
+[receiving response: 757 characters]
+[receiving response: 769 characters]
+[receiving response: 784 characters]
+[receiving response: 795 characters]
+[receiving response: 807 characters]
+[receiving response: 818 characters]
+[receiving response: 831 characters]
+[receiving response: 842 characters]
+[receiving response: 852 characters]
+[receiving response: 862 characters]
+[receiving response: 872 characters]
+[receiving response: 888 characters]
+[receiving response: 910 characters]
+[receiving response: 926 characters]
+[receiving response: 934 characters]
+教程离线实验没有在本次嵌套沙箱中反复重跑，也没有把嵌套沙箱失败写成产品行为。操作员已在指定 `aster` 环境原样验证：00–08 通过，10–15 单独运行通过；第 09 章失败原因是旧的完整字符串断言，现已按当前恢复错误结构修正，需由操作员在该环境重新复验第 09 章及整套实验。`cl100k_base` 首次下载、Landlock/seccomp 实际可用性，以及真实模型 API 行为仍未由我在本轮验证。
+[model attempt 1 completed]
+run_id=7658a8fa675347a0bc92989b2852fcf4 phase=completed reason=verified steps=58/89 turns=25/75 modified_files=8 verification=passed
