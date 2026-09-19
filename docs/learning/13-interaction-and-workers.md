@@ -58,14 +58,15 @@ return Outcome(status="success", content=str(answer))
 批准框默认聚焦 `Deny`；Escape 取消当前问题，Ctrl+C 取消任务，Ctrl+Q 退出界面。
 取消会传播到正在运行的协程和工具清理路径，不只是把屏幕上的状态改成“取消”。
 
-想手动体验时，在项目根目录、已激活的 `aster` 环境运行：
+想手动体验时，在已激活的 `aster` 环境和交互终端中直接运行 `aster` 即可。它默认以当前目录为工作区，并自动读取当前目录的 `.env`。也可以从项目根目录指定练习工作区：
 
 ```bash
-aster --tui --cwd /tmp/aster-tui-practice --env-file .env --approval ask
+aster --cwd /tmp/aster-tui-practice
 ```
 
-目录不存在时会创建。启动界面本身不请求模型，提交任务后使用 `.env` 配置的真实 API 并产生费用。
+目录不存在时会创建，`.env` 仍从启动命令所在目录读取。大多数参数可以省略，默认审批策略为 `ask`。启动界面本身不请求模型，提交任务后使用 `.env` 配置的真实 API 并产生费用。
 可以输入“列出当前目录，不要修改文件”，观察日志和状态；再尝试创建一个文件，查看批准框。
+`aster '任务内容'` 则只执行一次任务；`aster --tui`、`aster-tui` 保留显式 TUI 入口。非交互输入下无任务会报错，`--resume` 与 `--rl-smoke` 继续使用专用执行路径。
 本节后面的自动实验完全离线，不依赖人工操作这个界面。
 
 ## worker 复制运行边界，不复制一个独立仓库

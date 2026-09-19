@@ -22,6 +22,27 @@ def test_terminal_null_input_is_unavailable(monkeypatch):
         assert asyncio.run(Terminal(Settings()).question("Task?")) is None
 
 
+def test_bare_cli_opens_tui_with_current_directory_env(tmp_path, monkeypatch):
+    from aster import cli
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("ASTER_MODEL=startup-test-model\n")
+    monkeypatch.delenv("ASTER_MODEL", raising=False)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    seen = []
+
+    class FakeTui:
+        def __init__(self, root, settings, **limits):
+            seen.append((root.resolve(), settings.model, limits))
+
+        def run(self):
+            seen.append("started")
+
+    monkeypatch.setattr(cli, "AsterTui", FakeTui)
+    assert cli.main([]) == 0
+    assert seen == [(tmp_path, "startup-test-model", {}), "started"]
+
+
 def test_installed_cli_smoke(tmp_path):
     from pathlib import Path
 
@@ -35,6 +56,18 @@ def test_installed_cli_smoke(tmp_path):
         )
         assert completed.returncode == 0, completed.stderr
         assert "--cwd" in completed.stdout
+
+    completed = subprocess.run(
+        [str(Path(sys.prefix) / "bin" / "aster")],
+        cwd=tmp_path,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert completed.returncode == 2
+    assert not completed.stdout
+    assert "interactive terminal" in completed.stderr
 
 
 def test_cli_stream_previews_before_completion_without_polluting_stdout(
@@ -104,7 +137,8 @@ def test_cli_failure_prints_saved_run_and_resume_instructions_to_stderr(
     assert "--resume" in output.err and "--config/--profile/--env-file" in output.err
 
 
-def test_cli_forwards_budgets_to_tui_and_rejects_invalid_values(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mode", [[], ["--tui"]])
+def test_cli_forwards_budgets_to_tui_and_rejects_invalid_values(tmp_path, monkeypatch, mode):
     from aster import cli
 
     seen = []
@@ -117,15 +151,38 @@ def test_cli_forwards_budgets_to_tui_and_rejects_invalid_values(tmp_path, monkey
             pass
 
     monkeypatch.setattr(cli, "AsterTui", FakeTui)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(cli, "load_settings", lambda *_a, **_k: Settings())
     assert (
-        cli.main(["--cwd", str(tmp_path), "--tui", "--max-steps", "70", "--max-turns", "40"]) == 0
+        cli.main(["--cwd", str(tmp_path), *mode, "--max-steps", "70", "--max-turns", "40"]) == 0
     )
     assert seen == [(tmp_path, {"max_steps": 70, "max_turns": 40})]
     for flag, value in (("--max-steps", "0"), ("--max-turns", "501")):
         with pytest.raises(SystemExit) as caught:
-            cli.main(["--tui", flag, value])
+            cli.main([*mode, flag, value])
         assert caught.value.code == 2
+
+
+def test_tui_rejects_prompt_instead_of_ignoring_it(monkeypatch, capsys):
+    from aster import cli
+
+    monkeypatch.setattr(cli, "load_settings", lambda *_a, **_k: pytest.fail("loaded settings"))
+    with pytest.raises(SystemExit) as caught:
+        cli.main(["--tui", "Implement this task"])
+    assert caught.value.code == 2
+    assert "--tui does not accept a prompt" in capsys.readouterr().err
+
+
+def test_rl_smoke_without_prompt_keeps_default_task(tmp_path, monkeypatch):
+    from aster import cli
+
+    async def smoke(root, settings, prompt):
+        assert root == tmp_path and prompt == "inspect the workspace"
+        return 0
+
+    monkeypatch.setattr(cli, "load_settings", lambda *_a, **_k: Settings())
+    monkeypatch.setattr(cli, "_rl_smoke", smoke)
+    assert cli.main(["--cwd", str(tmp_path), "--rl-smoke"]) == 0
 
 
 def test_terminal_question_uses_stderr_not_final_answer_stream(tmp_path, monkeypatch, capsys):

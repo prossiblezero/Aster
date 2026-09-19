@@ -124,17 +124,19 @@ ASTER_API_KEY=填写自己的密钥
 
 `protocol` 表示接口的消息格式，`base_url` 是接口前缀，`model` 是服务接受的模型名。兼容网关可能需要不同的地址，但不应把完整 `/responses` 路径重复写进前缀。
 
-下面会发送真实请求并产生费用。准备一个新的演示目录后，再启动 CLI 或 TUI：
+配置好以后，在交互终端运行 `aster` 就会打开 TUI；输入任务后才发送真实请求并产生费用。大多数参数可以省略。下面用一个新目录演示单次任务和交互启动：
 
 ```bash
 mkdir -p /tmp/aster-learning-demo
 printf 'Hello, Aster!\n' > /tmp/aster-learning-demo/hello.txt
 aster --cwd /tmp/aster-learning-demo --read-only '查看 hello.txt 并说明内容'
-# 终端交互界面：
-aster --tui --cwd /tmp/aster-learning-demo
+# 不传任务文本，默认进入终端交互界面：
+aster --cwd /tmp/aster-learning-demo
 ```
 
 `.env` 默认从**启动命令时的当前目录**读取，`--cwd` 决定 Agent 的工作区，两者不同。这里从项目根启动，因而会用项目的 `.env`。也可以通过 `--env-file` 显式指定。
+
+`aster '任务内容'` 执行一次任务后退出；`aster --tui`、`aster-tui` 仍可显式启动 TUI。非交互输入下需要提供任务文本，避免程序等待输入；`--resume` 与 `--rl-smoke` 保持专用执行路径。
 
 CLI 启动时会打印输入预算及来源。通常让 Aster 根据模型配置自动选择；学习实验里的小预算只用来制造上下文压力，详见 [第 06 章](06-context-budget.md)。
 

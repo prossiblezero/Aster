@@ -1,6 +1,8 @@
 # 配置与字段说明
 
-从项目根目录运行 `conda activate aster`。CLI 用 `--config aster.toml` 读取 TOML，用 `--env-file .env` 指定模型连接配置；没有指定后者时读取**启动命令所在目录**的 `.env`，并非 `--cwd` 指向的任务仓库。
+激活 `aster` 环境并配置好模型后，在交互终端中直接运行 `aster` 即可进入 TUI；`aster '任务内容'` 执行一次任务后退出。工作区默认为当前目录，也可用 `aster --cwd /path/to/project` 指定。`aster --tui`、`aster-tui` 仍可显式启动 TUI，任务需在界面中输入，不能同时传入命令行任务文本。`--resume`、`--rl-smoke` 保留各自的执行方式。非交互输入下裸启动会报错，避免等待无法提供的输入。
+
+大多数命令行参数是可选覆盖项。CLI 自动读取**启动命令所在目录**的 `.env`，并非 `--cwd` 指向的任务仓库；需要其他配置文件时，用 `--env-file /path/to/.env` 指定模型连接配置，或用 `--config aster.toml` 读取 TOML。
 
 配置优先级是：显式 CLI 参数 > 进程环境变量 > `.env` > TOML > [Settings 默认值](../src/aster/config.py)。当前只读取四个 `ASTER_*` 环境变量：`ASTER_PROTOCOL`、`ASTER_MODEL`、`ASTER_BASE_URL`、`ASTER_API_KEY`。其余设置通过 TOML 或 Python 的 `Settings(...)` 传入；没有 `ASTER_MAX_WORKERS` 之类的隐含开关。
 
@@ -51,7 +53,7 @@ profile 不接受权限字段或明文凭证，切换不改审批、沙箱、联
 
 流式总时限不会因为收到增量而重置，和等待下一块网络数据的读取空闲超时不同。长代码响应即使没有达到 `output_tokens`，也可能被这个时限中断；按实际服务延迟可显式调大 `request_timeout`（最高300），但这不保证服务成功。非流式当前仅使用HTTPX阶段超时，尚未统一两种模式的总截止语义。
 
-CLI 可直接覆盖预算及单次任务轮数，不必编辑 TOML。例如 `aster --context-tokens 128000 --output-tokens 32768 --max-steps 80 --max-turns 60 '完成任务'` 使用 95,232 输入预算与 32,768 输出预留。`--max-steps`、`--max-turns` 只适用于单次 CLI 任务，与 `--tui`、`--rl-smoke` 同时使用会明确拒绝。TUI 仍使用 TaskSpec 的默认任务上限。
+CLI 可直接覆盖预算及每次任务轮数，不必编辑 TOML。例如 `aster --context-tokens 128000 --output-tokens 32768 --max-steps 80 --max-turns 60 '完成任务'` 使用 95,232 输入预算与 32,768 输出预留。`--max-steps`、`--max-turns` 同时适用于单次 CLI 任务和 TUI 内的各次任务，取值范围为 1–500，默认均为 40；例如 `aster --max-steps 80 --max-turns 60` 会以这些任务上限启动 TUI。这两个参数与 `--rl-smoke` 同时使用会明确拒绝。
 
 当前内置规格只有精确名称 `gpt-5.6-luna`；不是从任意兼容接口自动发现窗口。未知名称回退到总额 24,000，并在 CLI / TUI 明示。接入网关若有更小限制，可显式配置 `context_tokens`；已知模型超过官方输入、输出或总窗口上限会报错。显式值不会再次扣除 5%，便于准确复现实验。恢复检查绑定最终生效额度，而不是 `None`。
 

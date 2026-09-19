@@ -1,4 +1,4 @@
-"""Minimal CLI: one-shot runs, RL smoke checks, and evidence inspection."""
+"""CLI: interactive sessions by default, one-shot tasks, and RL smoke checks."""
 
 from __future__ import annotations
 
@@ -25,8 +25,11 @@ except ImportError:  # pragma: no cover
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="aster")
-    parser.add_argument("prompt", nargs="?")
+    parser = argparse.ArgumentParser(
+        prog="aster",
+        description="Run aster to chat interactively, or aster 'task' for a one-shot task.",
+    )
+    parser.add_argument("prompt", nargs="?", help="One-shot task; omit to open the interactive TUI")
     parser.add_argument("--cwd", default=".")
     parser.add_argument("--env-file", type=Path, default=None)
     parser.add_argument("--config", type=Path, default=None)
@@ -59,12 +62,17 @@ def main(argv=None):
     parser.add_argument("--approval", choices=["ask", "auto", "never"])
     parser.add_argument("--read-only", action="store_true")
     parser.add_argument("--rl-smoke", action="store_true")
-    parser.add_argument("--tui", action="store_true")
+    parser.add_argument("--tui", action="store_true", help="Open the TUI (default without a task)")
     args = parser.parse_args(argv)
     if (args.allow_model_change or args.adopt_workspace) and not args.resume:
         parser.error("--allow-model-change and --adopt-workspace require --resume")
     if args.resume and (args.tui or args.rl_smoke):
         parser.error("--resume is a one-shot option; use /resume inside TUI")
+    if args.tui and args.prompt is not None:
+        parser.error("--tui does not accept a prompt; run aster 'task' or enter the task in the TUI")
+    default_tui = args.prompt is None and not args.resume and not args.rl_smoke
+    if default_tui and not args.tui and not (sys.stdin and sys.stdin.isatty()):
+        parser.error("aster needs an interactive terminal; for scripts, use aster 'task'")
     task_limits = {
         name: value
         for name, value in {"max_steps": args.max_steps, "max_turns": args.max_turns}.items()
@@ -115,7 +123,7 @@ def main(argv=None):
         f"+ {output:,} output tokens ({context_source}); output: {output_source}.",
         file=sys.stderr,
     )
-    if args.tui:
+    if args.tui or default_tui:
         if AsterTui is None:
             parser.error("TUI requires textual")
         app = AsterTui(Path(args.cwd), settings, **task_limits)

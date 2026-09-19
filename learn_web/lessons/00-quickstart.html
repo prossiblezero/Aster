@@ -97,15 +97,16 @@ ASTER_BASE_URL=https://api.openai.com/v1
 ASTER_API_KEY=填写自己的密钥
 </code></pre></div>
 <p><code>protocol</code> 表示接口的消息格式，<code>base_url</code> 是接口前缀，<code>model</code> 是服务接受的模型名。兼容网关可能需要不同的地址，但不应把完整 <code>/responses</code> 路径重复写进前缀。</p>
-<p>下面会发送真实请求并产生费用。准备一个新的演示目录后，再启动 CLI 或 TUI：</p>
+<p>配置好以后，在交互终端运行 <code>aster</code> 就会打开 TUI；输入任务后才发送真实请求并产生费用。大多数参数可以省略。下面用一个新目录演示单次任务和交互启动：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/aster-learning-demo
 <span class="nb">printf</span><span class="w"> </span><span class="s1">'Hello, Aster!\n'</span><span class="w"> </span>&gt;<span class="w"> </span>/tmp/aster-learning-demo/hello.txt
 aster<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-demo<span class="w"> </span>--read-only<span class="w"> </span><span class="s1">'查看 hello.txt 并说明内容'</span>
-<span class="c1"># 终端交互界面：</span>
-aster<span class="w"> </span>--tui<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-demo
+<span class="c1"># 不传任务文本，默认进入终端交互界面：</span>
+aster<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-demo
 </pre></div>
 </div>
 <p><code>.env</code> 默认从<strong>启动命令时的当前目录</strong>读取，<code>--cwd</code> 决定 Agent 的工作区，两者不同。这里从项目根启动，因而会用项目的 <code>.env</code>。也可以通过 <code>--env-file</code> 显式指定。</p>
+<p><code>aster '任务内容'</code> 执行一次任务后退出；<code>aster --tui</code>、<code>aster-tui</code> 仍可显式启动 TUI。非交互输入下需要提供任务文本，避免程序等待输入；<code>--resume</code> 与 <code>--rl-smoke</code> 保持专用执行路径。</p>
 <p>CLI 启动时会打印输入预算及来源。通常让 Aster 根据模型配置自动选择；学习实验里的小预算只用来制造上下文压力，详见 <a href="06-context-budget.html">第 06 章</a>。</p>
 <h2 id="源码怎么读">源码怎么读</h2>
 <table>

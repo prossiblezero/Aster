@@ -69,22 +69,25 @@ ASTER_API_KEY=your-api-key
 
 ### 3. 启动任务
 
-以下命令从 Aster 仓库根目录执行，`/path/to/project` 替换为目标项目目录：
+配置好模型后，在交互终端中运行 `aster` 即可打开持续会话界面。大多数参数都是可选项：
 
 ```bash
-# 先以只读方式了解项目
-aster --env-file .env --cwd /path/to/project --read-only \
-  '阅读项目，说明主要模块、启动方式和测试入口'
+# 在当前目录启动交互界面，随后输入任务
+aster
 
-# 修改代码并验证结果
-aster --env-file .env --cwd /path/to/project \
-  '定位测试失败的原因，修复问题并运行相关测试'
+# 在指定项目中启动交互界面
+aster --cwd /path/to/project
 
-# 启动交互界面
-aster --tui --env-file .env --cwd /path/to/project
+# 直接传入任务，执行完成后退出
+aster '阅读项目，说明主要模块、启动方式和测试入口'
+
+# 可选：限定工作区并以只读方式运行
+aster --cwd /path/to/project --read-only '说明主要模块和测试入口'
 ```
 
-`--cwd` 决定 Agent 工作区，`--env-file` 决定模型凭证来源；省略后者时读取启动命令所在目录的 `.env`。默认审批策略为 `ask`，需要批准的动作会先询问用户。真实模型任务会调用所配置的服务。
+工作区默认为当前目录；`--cwd` 可指定其他项目，`/path/to/project` 替换为实际路径。Aster 自动读取**启动命令所在目录**的 `.env`，需要使用其他文件时再传 `--env-file`。默认审批策略为 `ask`，需要批准的动作会先询问用户；提交任务后会调用所配置的模型服务。
+
+`aster --tui` 和 `aster-tui` 仍可显式启动交互界面。非交互输入下没有任务时会给出简短错误；脚本中应传入任务文本。`--resume`、`--rl-smoke` 保持各自的执行方式。
 
 ## 使用指南
 
@@ -104,7 +107,7 @@ aster --tui --env-file .env --cwd /path/to/project
 CLI 可使用运行结束时显示的 `run_id` 续接：
 
 ```bash
-aster --env-file .env --cwd /path/to/project --resume RUN_ID \
+aster --cwd /path/to/project --resume RUN_ID \
   '继续处理尚未完成的测试，并总结修改结果'
 ```
 
@@ -138,8 +141,7 @@ output_tokens = 2048
 将 `MY_MODEL_KEY` 放入 `.env` 或进程环境后启动：
 
 ```bash
-aster --tui --config aster.toml --env-file .env \
-  --profile remote --cwd /path/to/project
+aster --config aster.toml --profile remote --cwd /path/to/project
 ```
 
 随后可通过 `/model local` 请求切换到已经启动的本地服务。profile 选择会校验新预算并转换可移植的文本与工具历史；服务专有的推理状态不能无损迁移，历史中的图片、引用或阶段信息无法转换时会拒绝切换。当前流式响应仅支持 Responses，工具调用在完整响应确认后才执行。其他协议已有离线契约测试，已归档的真实服务验证主要使用 Responses。
