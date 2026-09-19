@@ -237,7 +237,7 @@ SCHEMAS = {
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m unittest, or node --test with structured results. Tests should exercise the actual implementation or public entry point and assert requested behavior, including relevant boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these are separate from formal test evidence.",
+        "Run pytest, python -m pytest/unittest, or node --test with structured results. Use these command names without a .venv/bin/ path or environment-variable prefix. With reuse_environment enabled, the trusted Python test runner automatically exposes installed project .venv dependencies; keep them installed until verification finishes. Tests should exercise the actual implementation or public entry point and assert requested behavior, including boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these do not update formal test evidence.",
         "process",
     ),
     "observation_read": (

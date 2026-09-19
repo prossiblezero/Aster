@@ -63,7 +63,13 @@ async def run_tests(
         return Outcome(
             status="blocked",
             reason="test_command_not_supported",
-            content="Use pytest, python -m pytest/unittest, or node --test; run_shell for other commands.",
+            content=(
+                "Use pytest, python -m pytest/unittest, or node --test without a .venv/bin/ "
+                "path or environment-variable prefix. With reuse_environment enabled, installed "
+                "project .venv dependencies are exposed automatically; keep them installed until "
+                "verification finishes. Other commands belong in run_shell, which does not "
+                "update formal test evidence."
+            ),
         )
     if sandbox.settings.sandbox == "off":
         return Outcome(status="blocked", reason="isolation_required_for_scope")
