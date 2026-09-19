@@ -1,0 +1,47 @@
+{
+  "note": "Earlier all-chapter run passed00–08 and stopped at09. This checks09–15 independently without altering examples.",
+  "checks": [
+    {
+      "chapter": "09",
+      "returncode": 1,
+      "stdout": "\n>>> 09-checkpoint-resume.md / 1\n恢复步数: 2\n待办: 解释 ANSWER 的用途\n重复调用: duplicate_call_id\n",
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 44, in main\n  File \"/home/dzh/Aster/src/aster/runtime.py\", line 352, in resume\n    saved = load_checkpoint(\n            ^^^^^^^^^^^^^^^^\n  File \"/home/dzh/Aster/src/aster/session.py\", line 215, in load_checkpoint\n    raise ValueError(\nValueError: runtime_identity_mismatch: max_recovery. Restore these explicit settings from the saved checkpoint; --allow-model-change permits only model settings, not safety or capability changes.\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"<string>\", line 60, in <module>\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/runners.py\", line 195, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/base_events.py\", line 691, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"<string>\", line 46, in main\nAssertionError\nTraceback (most recent call last):\n  File \"/home/dzh/Aster/docs/learning/run_examples.py\", line 40, in <module>\n    main()\n  File \"/home/dzh/Aster/docs/learning/run_examples.py\", line 35, in main\n    subprocess.run([sys.executable, \"-c\", source], cwd=ROOT, check=True, timeout=240)\n  File \"/home/dzh/.conda/envs/aster/lib/python3.12/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['/home/dzh/.conda/envs/aster/bin/python', '-c', '# 可运行实验\\nimport asyncio\\nimport json\\nfrom pathlib import Path\\nfrom tempfile import TemporaryDirectory\\n\\nfrom aster.config import Settings\\nfrom aster.runtime import Runtime\\nfrom aster.schema import TaskSpec, ToolCall\\n\\nasync def main():\\n    with TemporaryDirectory(prefix=\"aster-resume-\") as directory:\\n        root = Path(directory)\\n        path = root / \"app.py\"\\n        path.write_text(\"ANSWER = 42\\\\n\")\\n        settings = Settings(memory_enabled=False, approval=\"auto\")\\n        first = Runtime(root, settings)\\n        first.start(TaskSpec(prompt=\"读取 app.py，记住之后还要解释 ANSWER。\"))\\n        call = ToolCall(name=\"read_file\", arguments={\"path\": \"app.py\"})\\n        assert (await first.step(call)).status == \"success\"\\n        assert (await first.step(ToolCall(\\n            name=\"todo_add\", arguments={\"content\": \"解释 ANSWER 的用途\"},\\n        ))).status == \"success\"\\n        first.checkpoint()\\n        run_id = first.state.run_id\\n        checkpoint = first.evidence.path(\"runs\", run_id, \"checkpoint.json\")\\n        saved = json.loads(checkpoint.read_text())\\n\\n        # 新对象代表重启后的进程，不共享 first.state。\\n        second = Runtime(root, settings)\\n        restored = second.resume(run_id)\\n        assert restored.step == 2 and restored.todos[0][\"status\"] == \"pending\"\\n        assert \"app.py\" in restored.working_memory\\n        assert second._structured_history == saved[\"structured_history\"]\\n        duplicate = await second.step(call)\\n        assert duplicate.reason == \"duplicate_call_id\"\\n        assert restored.step == 2\\n        print(\"恢复步数:\", restored.step)\\n        print(\"待办:\", restored.todos[0][\"content\"])\\n        print(\"重复调用:\", duplicate.reason)\\n\\n        changed_settings = Settings(memory_enabled=False, approval=\"auto\", max_recovery=2)\\n        try:\\n            Runtime(root, changed_settings).resume(run_id)\\n        except ValueError as error:\\n            assert str(error) == \"runtime_identity_mismatch\"\\n            print(\"配置变化:\", error)\\n        else:\\n            raise AssertionError(\"应拒绝不同运行边界\")\\n\\n        path.write_text(\"ANSWER = 99\\\\n\")\\n        try:\\n            Runtime(root, settings).resume(run_id)\\n        except ValueError as error:\\n            assert str(error) == \"workspace_mismatch\"\\n            print(\"文件变化:\", error)\\n        else:\\n            raise AssertionError(\"应拒绝旧工作区快照\")\\n\\nasyncio.run(main())\\n']' returned non-zero exit status 1.\n"
+    },
+    {
+      "chapter": "10",
+      "returncode": 0,
+      "stdout": "\n>>> 10-layered-memory.md / 1\n第一次运行：短期摘录 = 1，长期记忆 = 1\n第二次运行：短期摘录 = 0，长期召回 = 1\n来源文件变化后：长期召回 = 0\n关闭长期记忆后：短期摘录仍然存在\n\n1 examples passed.\n",
+      "stderr": ""
+    },
+    {
+      "chapter": "11",
+      "returncode": 0,
+      "stdout": "\n>>> 11-memory-evolution.md / 1\n一次反馈后：优先召回 python -m pytest\n第二次失败后：停用 1 条，原记录仍然保留\n回滚后：恢复 2 条，失败计数恢复为 0\n来源变化后：即使回滚，也不会召回旧事实\n\n1 examples passed.\n",
+      "stderr": ""
+    },
+    {
+      "chapter": "12",
+      "returncode": 0,
+      "stdout": "\n>>> 12-plans-and-skills.md / 1\n规划期间写入: plan_mode\n分页还原完整正文: True\n活动技能: ['python-check']\n待办状态: done\n退出后模式: work\n请求批准的动作: ['plan_exit']\n\n1 examples passed.\n",
+      "stderr": ""
+    },
+    {
+      "chapter": "13",
+      "returncode": 0,
+      "stdout": "\n>>> 13-interaction-and-workers.md / 1\n人工回答: success JSON\n首轮进行中: queued 已看见补充: False\n子运行只读 / 可派生数: True 0\n第二轮看见补充: True\n子任务状态: completed\n结束后发消息: worker_finished\n\n1 examples passed.\n",
+      "stderr": ""
+    },
+    {
+      "chapter": "14",
+      "returncode": 0,
+      "stdout": "\n>>> 14-evaluation.md / 1\ngrader debug-and-fix: baseline_target_fails=True, regression_passes=True\n1/1 debug-and-fix core #1: PASS \nReport: /tmp/aster-eval-lesson-9e_bh7x5/report.md\n\n参考动作通过: True 模型用量: None\n\n>>> 14-evaluation.md / 2\nPass@1 = 66.67%\nPass@3 = 100.00%\n\n2 examples passed.\n",
+      "stderr": ""
+    },
+    {
+      "chapter": "15",
+      "returncode": 0,
+      "stdout": "\n>>> 15-rl-interface.md / 1\n正确交付：reward=1，terminated=True，种子仓库未修改\n预算截断：reward=1，truncated=True，最后产物仍被评分\n没有独立评分器：正常结束，但不给成功奖励\n\n1 examples passed.\n",
+      "stderr": ""
+    }
+  ]
+}
