@@ -333,6 +333,8 @@ def main():
     parser.add_argument("--name", required=True)
     parser.add_argument("--prompt", type=Path)
     parser.add_argument("--resume", help="Prior run ID; pass the remaining budgets explicitly")
+    parser.add_argument("--allow-source-change", action="store_true",
+                        help="Explicit diagnostic revision only: resume with a newly frozen source")
     parser.add_argument("--profile-config", type=Path, default=ROOT / ".aster/v02-release.toml")
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--profile", default="main")
@@ -342,6 +344,8 @@ def main():
     parser.add_argument("--probe-only", action="store_true")
     parser.add_argument("--forbid-path", type=Path, action="append", default=[])
     args = parser.parse_args()
+    if args.allow_source_change and not args.resume:
+        parser.error("--allow-source-change requires --resume")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}", args.name):
         parser.error("--name must be a simple result-directory name")
     if not 1 <= args.steps <= 500 or not 1 <= args.turns <= 500 or args.seconds <= 0:
@@ -366,10 +370,12 @@ def main():
                           if any(run.get("run_id") == args.resume
                                  for run in json.loads(path.read_text()).get("runs", []))), None)
             if prior is None or any(prior.get(key) != value for key, value in {
-                "workspace": str(workspace), "source_sha256": before["sha256"],
+                "workspace": str(workspace),
                 "profile_config_sha256": sha(args.profile_config.read_bytes()), "profile": args.profile,
             }.items()):
-                parser.error("resume requires a recorded run with the same workspace, source and profile config")
+                parser.error("resume requires a recorded run with the same workspace and profile config")
+            if prior["source_sha256"] != before["sha256"] and not args.allow_source_change:
+                parser.error("resume source changed; use --allow-source-change only for a recorded diagnostic revision")
         prompt = args.prompt.read_bytes().decode("utf-8") if args.prompt else ""
         workspace.mkdir(parents=True, exist_ok=True)
         initial_runs = {path.name for path in (workspace / ".aster/runs").glob("*")}
@@ -404,7 +410,9 @@ def main():
               "budget": {"steps": args.steps, "turns": args.turns, "seconds": args.seconds},
               "answer_policy": {"default": ANSWER, "max_clarifications": MAX_CLARIFICATIONS},
               "initial_workspace_empty": not any(workspace.iterdir()),
-              "resume": args.resume, "excluded_prior_run_ids": sorted(initial_runs)}
+              "resume": args.resume, "excluded_prior_run_ids": sorted(initial_runs),
+              "allow_source_change": args.allow_source_change,
+              "previous_source_sha256": prior["source_sha256"] if args.resume else None}
     write_json(result / "launch.json", launch, redactor)
     command = [str(PYTHON), str(PYTHON.parent / "aster"), "--cwd", str(workspace),
                "--env-file", str(args.env_file.resolve()), "--config", str(args.profile_config.resolve()),

@@ -2,6 +2,7 @@
 import importlib.util
 import json
 import shutil
+import sys
 from pathlib import Path
 
 import pytest
@@ -93,3 +94,53 @@ def test_boundary_probe_denies_external_file_and_preserves_product_workspace(tmp
     assert probe["passed"], probe
     assert sentinel.read_text() == "external"
     assert list(tmp_path.iterdir()) == [sentinel]
+
+
+@pytest.mark.parametrize("allow_source_change,other_drift", [
+    (False, None), (True, None), (True, "profile_config_sha256"), (True, "workspace"),
+])
+def test_resume_source_override_does_not_relax_other_boundaries(
+    tmp_path, monkeypatch, source_snapshot, allow_source_change, other_drift
+):
+    results, workspace = tmp_path / "runs", tmp_path / "workspace"
+    (results / "previous").mkdir(parents=True)
+    checkpoint = workspace / ".aster/runs/previous/checkpoint.json"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_text(json.dumps({"runtime_identity": {"sandbox": "required"}}))
+    config, credentials = tmp_path / "settings.toml", tmp_path / "credentials.env"
+    config.write_text("# offline configuration\n")
+    credentials.write_text("")
+    previous = {"runs": [{"run_id": "previous"}], "workspace": str(workspace),
+                "profile_config_sha256": driver.sha(config.read_bytes()), "profile": "main",
+                "source_sha256": "0" * 64}
+    if other_drift:
+        previous[other_drift] = "different"
+    (results / "previous/summary.json").write_text(json.dumps(previous))
+    argv = ["run_pair.py", "--source", str(source_snapshot), "--workspace", str(workspace),
+            "--name", "resumed", "--resume", "previous", "--profile-config", str(config),
+            "--env-file", str(credentials)]
+    if allow_source_change:
+        argv.append("--allow-source-change")
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(driver, "RESULTS", results)
+    monkeypatch.setattr(driver, "capture_json", lambda *_: {"settings": {"sandbox": "required"}})
+
+    class ReachedCLI(Exception):
+        pass
+
+    def stop_before_launch(*_):
+        raise ReachedCLI
+
+    monkeypatch.setattr(driver, "drive", stop_before_launch)
+    if allow_source_change and other_drift is None:
+        with pytest.raises(ReachedCLI):
+            driver.main()
+        launch = json.loads((results / "resumed/launch.json").read_text())
+        assert launch["previous_source_sha256"] == previous["source_sha256"]
+        assert launch["source_sha256"] != launch["previous_source_sha256"]
+        assert launch["allow_source_change"] is True
+    else:
+        with pytest.raises(SystemExit) as caught:
+            driver.main()
+        assert caught.value.code == 2
+        assert not (results / "resumed/launch.json").exists()
