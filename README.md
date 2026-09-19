@@ -208,9 +208,9 @@ flowchart LR
 |---|---|---|
 | 运行与交互 | `core/runtime.py`、`cli.py`、`tui.py`、`schema.py` | 组织任务循环、交互事件及统一数据结构 |
 | 模型与协议 | `config.py`、`providers/`、`messages.py` | 解析配置，构造请求，处理流式、错误诊断与历史转换 |
-| 上下文 | `context.py` | 预算估算、历史压缩和动态状态组织 |
+| 上下文 | `context/` | 预算估算、历史压缩和动态状态组织 |
 | 工具与安全 | `tools/`、`workspace.py`、`safety/` | 工具分发、文件边界、审批、沙箱执行与修改回写 |
-| 证据与会话 | `evidence.py`、`session.py` | 事件轨迹、观察归档、检查点校验和会话续接 |
+| 证据与会话 | `evidence.py`、`sessions/` | 事件轨迹、观察归档、检查点校验和会话续接 |
 | 验证与恢复 | `tools/testing.py`、`verifier.py`、`recovery.py`、`hooks.py` | 正式测试、完成条件、停滞反馈及生命周期钩子 |
 | 可选协作能力 | `skills.py`、`memory.py`、`workers.py` | 加载项目说明、保存有来源的记忆、管理子任务 |
 | 研究接口 | `rl.py`、`training.py` | 外部策略 rollout、SFT 数据导出与 GRPO 数据契约校验 |

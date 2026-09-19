@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from ..evidence import EvidenceStore
 from ..memory import Memory, store_excerpt
 from ..schema import Outcome, RunState, SkillSnapshot
-from ..session import read_session_observation, redact_skill_snapshots
+from ..sessions.checkpoint import redact_skill_snapshots
+from ..sessions.lifecycle import read_session_observation
 from ..skills import Skills
 from ..workspace import Workspace
 from .schemas import SCHEMAS

@@ -101,7 +101,7 @@ def test_compacted_archive_page_cursor_covers_exactly_the_visible_text():
         },
         ensure_ascii=False,
     )
-    clipped = json.loads(builder._clip_tool_output(envelope, token_limit=128))
+    clipped = json.loads(builder.calculator._clip_tool_output(envelope, token_limit=128))
     page = json.loads(clipped["content"])
     assert page["content"] and source.startswith(page["content"])
     assert page["next_offset"] == 7 + len(page["content"]) < original["next_offset"]

@@ -59,7 +59,7 @@ working_memory = self.memory.working_section(state.working_memory)
 
 `_refresh_observations()` 检查文件证据是否过期；例如用户在外部修改了文件，
 旧文件摘要就不能继续当作现状使用。
-随后 `ContextBuilder.build()` 组装请求，返回 `prompt` 和 `ContextReport`。
+随后 [ContextBuilder.build()](../../src/aster/context/builder.py) 委托 `BudgetCalculator.calculate()` 计算候选请求和裁剪结果，成功后统一更新历史与消息，返回 `prompt` 和 `ContextReport`。策略正文与区段顺序位于 [context/prompt.py](../../src/aster/context/prompt.py)。
 
 ## 预算不需要用户每次手算
 
@@ -92,7 +92,7 @@ working_memory = self.memory.working_section(state.working_memory)
 
 ## 超预算后，具体先动哪里
 
-[ContextBuilder.build()](../../src/aster/context.py) 每收缩一次就重新构造请求并计数。
+[BudgetCalculator.calculate()](../../src/aster/context/budget.py) 每收缩一次就重新构造请求并计数。
 能装下就立即停，不会为了追求漂亮压缩率继续删。
 
 1. **先做准备。** 校验原生工具历史，给可归档的文本结果落盘；不超预算就保留完整正文。
@@ -258,7 +258,7 @@ token 数会略有变化；重要的是断言一直成立。
 旧结果正文移出窗口之后，模型能否发现需要回读、是否读到关键证据，
 仍属于任务层面的能力；下一章会把“可以找回”这条路径跑通。
 
-源码继续读：[context.py](../../src/aster/context.py)、[providers/codec.py](../../src/aster/providers/codec.py)。
+源码继续读：[context/budget.py](../../src/aster/context/budget.py)、[providers/codec.py](../../src/aster/providers/codec.py)。
 对应合同检查见 [test_context_archives.py](../../tests/test_context_archives.py)
 和 [test_protocol_pairing.py](../../tests/test_protocol_pairing.py)。
 本章借鉴 learn-claude-code 的“问题 → 机制 → 实验”组织；Aster 的压缩顺序与无 LLM 策略以自己的源码为准。

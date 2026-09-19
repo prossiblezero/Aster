@@ -139,3 +139,24 @@ async def test_checkpoint_restores_plan_todos_and_skill_body_to_next_model_reque
     assert "Read deployment config before editing." in rendered
     assert "Check deployment settings" in rendered
     assert "Check AST compatibility before editing." in rendered
+
+
+def test_calculation_leaves_inputs_untouched_until_builder_commit():
+    from copy import deepcopy
+
+    from aster.context.budget import BudgetCalculator
+
+    state = RunState(task=TaskSpec(prompt="inspect"))
+    state.messages = [{"role": "tool", "content": "old " * 4000, "native": False}]
+    history = [{"role": "assistant", "content": "hello"}]
+    before_state, before_history = state.model_dump(), deepcopy(history)
+    result = BudgetCalculator().calculate(
+        state, state.task.prompt, structured_history=history, budget=1500, output_reserve=128,
+    )
+    assert result.report.compacted
+    assert state.model_dump() == before_state and history == before_history
+    prompt, report = ContextBuilder(1500, 128).build(
+        state, state.task.prompt, structured_history=history,
+    )
+    assert (prompt, report) == (result.prompt, result.report)
+    assert state.messages == result.messages and history == result.history

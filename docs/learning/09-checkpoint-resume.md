@@ -32,7 +32,7 @@ flowchart TD
     E --> F[校验工具配对与原生不透明字段；安装恢复状态]
 ```
 
-`Runtime.resume()` 委托 [session.load_checkpoint()](../../src/aster/session.py)。真实入口首先加载并验证 checkpoint：
+`Runtime.resume()` 委托 [sessions.checkpoint.load_checkpoint()](../../src/aster/sessions/checkpoint.py)。真实入口首先加载并验证 checkpoint：
 
 ```python
 saved = load_checkpoint(
@@ -45,7 +45,7 @@ saved = load_checkpoint(
 )
 ```
 
-这是入口节选，不是完整恢复函数。`load_checkpoint` 返回后，`Runtime.resume` 会在检测到模型身份变化时对已保存历史执行 `canonicalize`，再运行 `_preview_context` 做新预算的上下文预检，并归档原生历史；通过这些校验后才安装转换后的历史和恢复状态。它还会完成工具配对、归档来源、skill 脱敏和工作区等检查。这里先验证再安装状态，避免失败时安装一半状态。
+这是入口节选，不是完整恢复函数。`load_checkpoint` 返回后，`Runtime.resume` 会在检测到模型身份变化时委托 [prepare_model_history](../../src/aster/sessions/lifecycle.py) 对已保存历史执行 `canonicalize`，再运行 `_preview_context` 做新预算的上下文预检，并归档原生历史；通过这些校验后才安装转换后的历史和恢复状态。它还会完成工具配对、归档来源、skill 脱敏和工作区等检查。这里先验证再安装状态，避免失败时安装一半状态。
 `allow_model_change=True` 只允许显式模型/协议转换：模型上下文预算和输出预算可以随新模型配置改变，但随后必须通过新预算的上下文预检；任务的 `steps`/`turns` 计数不会因此重置，安全/能力设置（以及该集合之外的运行设置）不能借此改变。`adopt_workspace=True` 才接受外部编辑，并要求重新读取/验证；它也不能绕过 inflight 工具副作用检查。两个标志都必须由调用者显式传入，不能靠更换 profile 偷换安全边界。
 另外，当前 Runtime 若正在执行操作、有运行中的 worker，或者已有未结束任务，
 不能直接覆盖成另一个运行；教学实验会使用一个新 Runtime 对象代表进程重启。

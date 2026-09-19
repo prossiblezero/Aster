@@ -116,7 +116,7 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 整次请求超预算后，如果模型最终只看见前 200 个字符，
 下一页必须从 300 开始。若仍写 900，中间 600 个字符就被悄悄跳过了。
 
-[ContextBuilder._clip_tool_output()](../../src/aster/context.py) 的分页分支节选：
+[BudgetCalculator._clip_tool_output()](../../src/aster/context/budget.py) 的分页分支节选：
 
 ```python
 elif len(page.get("content", "")) > 1:

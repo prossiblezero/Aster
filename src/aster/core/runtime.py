@@ -17,7 +17,7 @@ from ..context import ContextBudgetError, ContextBuilder, ContextHistoryError
 from ..evidence import EvidenceStore, Redactor
 from ..hooks import Hooks
 from ..memory import Memory
-from ..messages import canonicalize, history_groups
+from ..messages import history_groups
 from ..providers.client import ModelClient
 from ..providers.codec import request_payload
 from ..providers.errors import ProviderError
@@ -32,13 +32,18 @@ from ..schema import (
     Verification,
     VerifierResult,
 )
-from ..session import (
-    archive_native_history,
+from ..sessions.checkpoint import (
     load_checkpoint,
-    prepare_continuation,
-    preview_context,
     redact_skill_snapshots,
     safety_identity,
+    save_checkpoint,
+)
+from ..sessions.lifecycle import (
+    archive_native_history,
+    continuation_sources,
+    prepare_continuation,
+    prepare_model_history,
+    preview_context,
 )
 from ..skills import Skills
 from ..tools import (
@@ -155,20 +160,9 @@ class Runtime:
                     raise ValueError(
                         "workspace_mismatch: adopt external edits before switching models"
                     )
-                self.evidence.validate_native_history(history)
-                converted = canonicalize(
-                    history,
-                    provider=self.settings.provider,
-                    protocol=self.settings.protocol,
-                    model=self.settings.model,
-                )
-                state = state.model_copy(deep=True)
-                self._redact_skill_snapshots(state)
-                state.messages = redactor.value(state.messages, mask_fields=False)
-                history = self.evidence.redact_history(converted.messages)
-                report = self._preview_context(state, history, settings, self._archive_sources)
-                origin = self._archive_native_history(
-                    state.run_id, self._structured_history, converted, self._history_origins
+                state, history, report, origin = prepare_model_history(
+                    self.evidence, state, history, previous, settings,
+                    self._archive_sources, self._history_origins, self._preview_context,
                 )
         finally:
             self.evidence.redactor = old_redactor
@@ -194,14 +188,7 @@ class Runtime:
         return archive_native_history(self.evidence, run_id, history, converted, origins)
 
     def _preview_context(self, state, history, settings, sources):
-        # Tool availability depends on the proposed run; publish it only for this
-        # synchronous lookup, then restore the live state before budget preflight.
-        previous = self.state
-        try:
-            self.state = state
-            tools = self._request_tool_definitions(settings)
-        finally:
-            self.state = previous
+        tools = self._request_tool_definitions(settings, state=state)
         return preview_context(
             self.evidence, state, history, settings, sources, tools,
             environment=self.sandbox.capabilities(), skills_available=bool(self.skills.catalog()),
@@ -249,11 +236,7 @@ class Runtime:
             max_steps=max_steps,
             max_turns=max_turns,
         )
-        sources = dict(self._archive_sources)
-        directory = self.evidence.path("runs", previous.run_id, "observations")
-        for path in directory.glob("*.json"):
-            self.evidence.read_observation(previous.run_id, path.stem, limit=1)
-            sources[path.stem] = previous.run_id
+        sources = continuation_sources(self.evidence, previous.run_id, self._archive_sources)
         self._preview_context(state, history, self.settings, sources)
         initial_text = (
             self.workspace.text_snapshot() if feedback is not None or drift else self._initial_text
@@ -324,24 +307,13 @@ class Runtime:
         self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
         workspace = self.workspace.snapshot()
-        self.evidence.save(
-            ("runs", self.state.run_id, "checkpoint.json"),
-            {
-                "checkpoint_version": 2,
-                "state": self.state.model_dump(mode="json"),
-                "workspace_hash": self.workspace.fingerprint(),
-                "workspace": workspace,
-                "runtime_identity": self.settings.identity(),
-                "structured_history": self._structured_history,
-                "initial_text": self._initial_text,
-                "initial_modes": self._initial_modes,
-                "recovery_used": self._recovery_used,
-                "stall_items": list(self.stall.items),
-                "archive_sources": self._archive_sources,
-                "history_origins": self._history_origins,
-                "continued_from": self._continued_from,
-            },
-            preserve_native_history=True,
+        save_checkpoint(
+            self.evidence, self.state, workspace_hash=self.workspace.fingerprint(),
+            workspace_snapshot=workspace, runtime_identity=self.settings.identity(),
+            structured_history=self._structured_history, initial_text=self._initial_text,
+            initial_modes=self._initial_modes, recovery_used=self._recovery_used,
+            stall_items=self.stall.items, archive_sources=self._archive_sources,
+            history_origins=self._history_origins, continued_from=self._continued_from,
         )
         self._checkpoint_workspace = workspace
 
@@ -364,19 +336,11 @@ class Runtime:
         saved_identity, model_changed = saved.saved_identity, saved.model_changed
         current_identity = self.settings.identity()
         if model_changed:
-            converted = canonicalize(
-                history,
-                provider=saved_identity["provider"],
-                protocol=saved_identity["protocol"],
-                model=saved_identity["model"],
+            state, history, _, origin = prepare_model_history(
+                self.evidence, state, history, saved_identity, self.settings,
+                sources, origins, self._preview_context,
             )
-            history = self.evidence.redact_history(converted.messages)
-            self._preview_context(state, history, self.settings, sources)
-            origins.append(
-                self._archive_native_history(
-                    state.run_id, data.get("structured_history", []), converted, origins
-                )
-            )
+            origins.append(origin)
         self.sandbox.close()
         self._environment_generation = self.sandbox.environment_generation
         if self.settings.reuse_environment:
@@ -1299,7 +1263,8 @@ class Runtime:
             f"- {x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
         )
 
-    def _unavailable_reason(self, name):
+    def _unavailable_reason(self, name, *, state=None):
+        state = self.state if state is None else state
         if self.settings.sandbox == "off" and (
             name == "run_tests"
             or (
@@ -1307,7 +1272,7 @@ class Runtime:
                 and (
                     self.settings.read_only
                     or self.settings.write_scope is not None
-                    or (self.state and self.state.mode == "plan")
+                    or (state and state.mode == "plan")
                 )
             )
         ):
@@ -1315,7 +1280,7 @@ class Runtime:
         if name in {"write_file", "patch_file"}:
             if self.settings.read_only:
                 return "read_only"
-            if self.state and self.state.mode == "plan":
+            if state and state.mode == "plan":
                 return "plan_mode"
             if self.settings.write_scope == []:
                 return "write_scope"
@@ -1332,13 +1297,14 @@ class Runtime:
         )
         if no_approval and (
             name in {"write_file", "patch_file", "plan_exit"}
-            or (name in {"run_shell", "run_tests"} and not self._has_allowed_command(name))
+            or (name in {"run_shell", "run_tests"} and not self._has_allowed_command(name, state=state))
         ):
             return "approval_unavailable"
         return ""
 
-    def _has_allowed_command(self, name):
+    def _has_allowed_command(self, name, *, state=None):
         """An allow rule must apply to this tool and survive higher-priority denials."""
+        state = self.state if state is None else state
         for rule in self.settings.rules:
             if rule.decision != "allow":
                 continue
@@ -1354,26 +1320,27 @@ class Runtime:
                     "process",
                     {"command": shlex.join(candidate)},
                     self.settings,
-                    self.state.mode if self.state else "work",
+                    state.mode if state else "work",
                 )
                 if decision.action == "allow":
                     return True
         return False
 
-    def _tool_names(self):
+    def _tool_names(self, *, state=None):
+        state = self.state if state is None else state
         selected = (
             SCHEMAS
             if self.settings.tool_profile == "all"
-            else (set(CORE_TOOLS) | set(self.state.loaded_tools if self.state else []))
+            else (set(CORE_TOOLS) | set(state.loaded_tools if state else []))
         )
-        return sorted(name for name in selected if not self._unavailable_reason(name))
+        return sorted(name for name in selected if not self._unavailable_reason(name, state=state))
 
-    def tool_definitions(self):
-        available = [name for name in SCHEMAS if not self._unavailable_reason(name)]
-        return definitions(self._tool_names(), available=available)
+    def tool_definitions(self, *, state=None):
+        available = [name for name in SCHEMAS if not self._unavailable_reason(name, state=state)]
+        return definitions(self._tool_names(state=state), available=available)
 
-    def _request_tool_definitions(self, settings):
-        tools = self.tool_definitions()
+    def _request_tool_definitions(self, settings, *, state=None):
+        tools = self.tool_definitions(state=state)
         if self.evidence.redactor.value(tools, mask_fields=False) != tools:
             raise ContextHistoryError("tool_definitions_contain_credential")
         if self.evidence.redactor.text(settings.model) != settings.model:

@@ -45,7 +45,7 @@
 </div>
 <p><code>_refresh_observations()</code> 检查文件证据是否过期；例如用户在外部修改了文件，
 旧文件摘要就不能继续当作现状使用。
-随后 <code>ContextBuilder.build()</code> 组装请求，返回 <code>prompt</code> 和 <code>ContextReport</code>。</p>
+随后 <a href="../source/src/aster/context/builder.py.html">ContextBuilder.build()</a> 委托 <code>BudgetCalculator.calculate()</code> 计算候选请求和裁剪结果，成功后统一更新历史与消息，返回 <code>prompt</code> 和 <code>ContextReport</code>。策略正文与区段顺序位于 <a href="../source/src/aster/context/prompt.py.html">context/prompt.py</a>。</p>
 <h2 id="预算不需要用户每次手算">预算不需要用户每次手算</h2>
 <p><a href="../source/src/aster/config.py.html">Settings</a> 中最容易混淆的几个字段如下。</p>
 <table>
@@ -102,7 +102,7 @@
 这不是每一种模型的精确 tokenizer，因此不能把本地数直接叫作 API 计费 token。
 也不要把本章为了触发压力而设置的几千 token 当作日常推荐上限。</p>
 <h2 id="超预算后具体先动哪里">超预算后，具体先动哪里</h2>
-<p><a href="../source/src/aster/context.py.html">ContextBuilder.build()</a> 每收缩一次就重新构造请求并计数。
+<p><a href="../source/src/aster/context/budget.py.html">BudgetCalculator.calculate()</a> 每收缩一次就重新构造请求并计数。
 能装下就立即停，不会为了追求漂亮压缩率继续删。</p>
 <ol>
 <li><strong>先做准备。</strong> 校验原生工具历史，给可归档的文本结果落盘；不超预算就保留完整正文。</li>
@@ -239,7 +239,7 @@ token 数会略有变化；重要的是断言一直成立。
 <p>这里证明的是预算控制和协议完整性，不是有损压缩后的语义无损。
 旧结果正文移出窗口之后，模型能否发现需要回读、是否读到关键证据，
 仍属于任务层面的能力；下一章会把“可以找回”这条路径跑通。</p>
-<p>源码继续读：<a href="../source/src/aster/context.py.html">context.py</a>、<a href="../source/src/aster/providers/codec.py.html">providers/codec.py</a>。
+<p>源码继续读：<a href="../source/src/aster/context/budget.py.html">context/budget.py</a>、<a href="../source/src/aster/providers/codec.py.html">providers/codec.py</a>。
 对应合同检查见 <a href="../source/tests/test_context_archives.py.html">test_context_archives.py</a>
 和 <a href="../source/tests/test_protocol_pairing.py.html">test_protocol_pairing.py</a>。
 本章借鉴 learn-claude-code 的“问题 → 机制 → 实验”组织；Aster 的压缩顺序与无 LLM 策略以自己的源码为准。</p>

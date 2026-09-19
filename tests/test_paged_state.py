@@ -19,7 +19,7 @@ def test_character_pages_cover_chinese_text_without_skipping_clipped_characters(
         page = text_page(source, offset, 512)
         assert page.status == "success"
         envelope = json.dumps({"page": "text", "content": page.content})
-        page.content = json.loads(context._clip_tool_output(envelope, token_limit=64))["content"]
+        page.content = json.loads(context.calculator._clip_tool_output(envelope, token_limit=64))["content"]
         assert context.count(page.content) <= 64
         header, body = page.content.split("\n", 1)
         metadata = json.loads(header)
@@ -135,7 +135,7 @@ async def test_page_offsets_follow_redacted_source_even_after_compaction(tmp_pat
         result = await runtime.workflow_tool(tool, args)
         runtime._append_output(ToolCall(name=tool, arguments=args), result)
         output = runtime._structured_history[-1]["output"]
-        clipped = json.loads(runtime.context._clip_tool_output(output, token_limit=64))
+        clipped = json.loads(runtime.context.calculator._clip_tool_output(output, token_limit=64))
         header, fragment = clipped["content"].split("\n", 1)
         metadata = json.loads(header)
         assert metadata["total"] == len(expected)
