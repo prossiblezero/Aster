@@ -14,25 +14,29 @@
 如果还拿旧测试结果证明新代码正确，就把恢复做成了误信旧状态。
 Aster 因而把任务状态、原生协议历史、运行配置和工作区指纹绑定在一个检查点里。</p>
 <h2 id="一次恢复的检查顺序">一次恢复的检查顺序</h2>
-<figure class="diagram" data-edge-count="7"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">读取 checkpoint.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">有效配置相同?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">有效配置相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">有效配置相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="C">工作区指纹相同?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">工作区指纹相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">工作区指纹相同?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="D">校验 RunState 和差异基线</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">校验 RunState 和差异基线</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">校验工具配对与原生不透明字段</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">校验工具配对与原生不透明字段</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">安装恢复状态，重建运行管理对象</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 读取 checkpoint.json</span><span class="diagram-key"><code>B</code> 有效配置相同?</span><span class="diagram-key"><code>X</code> 拒绝恢复</span><span class="diagram-key"><code>C</code> 工作区指纹相同?</span><span class="diagram-key"><code>D</code> 校验 RunState 和差异基线</span><span class="diagram-key"><code>E</code> 校验工具配对与原生不透明字段</span><span class="diagram-key"><code>F</code> 安装恢复状态，重建运行管理对象</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
-    A[读取 checkpoint.json] --&gt; B{有效配置相同?}
+<figure class="diagram" data-edge-count="8"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">读取 checkpoint.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">版本与 inflight 已收束?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">版本与 inflight 已收束?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">版本与 inflight 已收束?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="C">配置允许?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">配置允许?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">配置允许?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="D">工作区指纹相同或显式 adopt?</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">工作区指纹相同或显式 adopt?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">否</span><span class="diagram-node" data-node="X">拒绝恢复</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">工作区指纹相同或显式 adopt?</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="E">校验 RunState 和差异基线</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">校验 RunState 和差异基线</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">校验工具配对与原生不透明字段；安装恢复状态</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 读取 checkpoint.json</span><span class="diagram-key"><code>B</code> 版本与 inflight 已收束?</span><span class="diagram-key"><code>X</code> 拒绝恢复</span><span class="diagram-key"><code>C</code> 配置允许?</span><span class="diagram-key"><code>D</code> 工作区指纹相同或显式 adopt?</span><span class="diagram-key"><code>E</code> 校验 RunState 和差异基线</span><span class="diagram-key"><code>F</code> 校验工具配对与原生不透明字段；安装恢复状态</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+    A[读取 checkpoint.json] --&gt; B{版本与 inflight 已收束?}
     B --&gt;|否| X[拒绝恢复]
-    B --&gt;|是| C{工作区指纹相同?}
+    B --&gt;|是| C{配置允许?}
     C --&gt;|否| X
-    C --&gt;|是| D[校验 RunState 和差异基线]
-    D --&gt; E[校验工具配对与原生不透明字段]
-    E --&gt; F[安装恢复状态，重建运行管理对象]
+    C --&gt;|是| D{工作区指纹相同或显式 adopt?}
+    D --&gt;|否| X
+    D --&gt;|是| E[校验 RunState 和差异基线]
+    E --&gt; F[校验工具配对与原生不透明字段；安装恢复状态]
 </code></pre></details></figure>
-<p><a href="../source/src/aster/runtime.py.html">Runtime.resume()</a> 的真实入口节选：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="s2">"runs"</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="s2">"checkpoint.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
-<span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">"runtime_identity"</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">identity</span><span class="p">():</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"runtime_identity_mismatch"</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">"workspace_hash"</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">fingerprint</span><span class="p">():</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"workspace_mismatch"</span><span class="p">)</span>
-<span class="n">state</span> <span class="o">=</span> <span class="n">RunState</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"state"</span><span class="p">])</span>
+<p><code>Runtime.resume()</code> 委托 <a href="../source/src/aster/session.py.html">session.load_checkpoint()</a>。真实入口首先加载并验证 checkpoint：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">saved</span> <span class="o">=</span> <span class="n">load_checkpoint</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">evidence</span><span class="p">,</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="p">,</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="p">,</span>
+    <span class="n">run_id</span><span class="p">,</span>
+    <span class="n">allow_model_change</span><span class="o">=</span><span class="n">allow_model_change</span><span class="p">,</span>
+    <span class="n">adopt_workspace</span><span class="o">=</span><span class="n">adopt_workspace</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
-<p>这里先验证再给 <code>self.state</code> 赋值，避免失败时安装一半状态。
+<p>这是入口节选，不是完整恢复函数。<code>load_checkpoint</code> 返回后，<code>Runtime.resume</code> 会在检测到模型身份变化时对已保存历史执行 <code>canonicalize</code>，再运行 <code>_preview_context</code> 做新预算的上下文预检，并归档原生历史；通过这些校验后才安装转换后的历史和恢复状态。它还会完成工具配对、归档来源、skill 脱敏和工作区等检查。这里先验证再安装状态，避免失败时安装一半状态。
+<code>allow_model_change=True</code> 只允许显式模型/协议转换：模型上下文预算和输出预算可以随新模型配置改变，但随后必须通过新预算的上下文预检；任务的 <code>steps</code>/<code>turns</code> 计数不会因此重置，安全/能力设置（以及该集合之外的运行设置）不能借此改变。<code>adopt_workspace=True</code> 才接受外部编辑，并要求重新读取/验证；它也不能绕过 inflight 工具副作用检查。两个标志都必须由调用者显式传入，不能靠更换 profile 偷换安全边界。
 另外，当前 Runtime 若正在执行操作、有运行中的 worker，或者已有未结束任务，
 不能直接覆盖成另一个运行；教学实验会使用一个新 Runtime 对象代表进程重启。</p>
 <h2 id="检查点里的每组字段负责什么">检查点里的每组字段负责什么</h2>
@@ -95,7 +99,7 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 <tbody>
 <tr>
 <td><code>step</code> / <code>turn</code></td>
-<td>已执行工具步骤数 / 决策轮数；自主运行数模型请求，外部策略接口数策略动作；恢复后不清零</td>
+<td>已执行工具步骤数 / 决策轮数；自主运行数模型请求，外部策略接口数策略动作；<code>resume</code> 加载后保留，不清零；<code>continue_task</code>/<code>prepare_continuation</code> 建立新 run 时从新边界重新计数</td>
 </tr>
 <tr>
 <td><code>working_memory</code></td>
@@ -130,7 +134,7 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 所以仅仅新增 trace 行不会导致下一次恢复失败，环境变量和系统服务状态也不在检查范围内。</p>
 <p>配置指纹也有类似边界。<code>Settings.identity()</code> 排除了 <code>api_key</code>、<code>base_url</code>，
 并把自动预算解析成有效值；更换密钥不等于任务语义变化。
-但模型、协议、权限、沙箱或有效预算等配置变化会触发拒绝。
+默认情况下模型、协议、权限、沙箱或运行设置变化会触发拒绝；显式 <code>allow_model_change=True</code> 只为模型相关变化开启可移植历史转换。模型上下文预算和输出预算属于模型身份的一部分，可以随显式模型切换改变，但恢复会用新预算重新进行上下文预检；任务的 <code>steps</code>/<code>turns</code> 计数与安全/能力设置不会因此被重置或放宽。工作区漂移默认拒绝，只有显式 <code>adopt_workspace=True</code> 才能采用外部修改，并要求重新读取和验证；这不是自动合并。
 Base URL 不参与一致性比较，因此恢复检查不是服务提供商身份认证。</p>
 <h2 id="什么时候写完整交互的边界">什么时候写：完整交互的边界</h2>
 <p>不能在“调用已经写进历史，结果还没回来”的瞬间保存可恢复检查点。
@@ -192,7 +196,7 @@ Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是
 </pre></div>
 </div>
 <p>实验只用本地读取与待办工具。两个 Runtime 对象不共享 <code>state</code>，
-第二个必须从 JSON 恢复；最后在临时目录改配置、改文件，验证拒绝分支。</p>
+第二个必须从 JSON 恢复；最后在临时目录改配置、改文件，验证默认拒绝分支；代码注释还会说明 <code>allow_model_change</code> 与 <code>adopt_workspace</code> 是显式入口，接受后仍必须做历史转换或 fresh read/验证。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
@@ -238,16 +242,17 @@ Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是
         <span class="k">try</span><span class="p">:</span>
             <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">changed_settings</span><span class="p">)</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"runtime_identity_mismatch"</span>
+            <span class="k">assert</span> <span class="s2">"runtime_identity_mismatch"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"配置变化:"</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"应拒绝不同运行边界"</span><span class="p">)</span>
 
         <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"ANSWER = 99</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+        <span class="c1"># 默认拒绝工作区漂移；adopt_workspace=True 不是跳过 inflight 或验证。</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span><span class="o">.</span><span class="n">resume</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"workspace_mismatch"</span>
+            <span class="k">assert</span> <span class="s2">"workspace_mismatch"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">"文件变化:"</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">"应拒绝旧工作区快照"</span><span class="p">)</span>
@@ -259,8 +264,10 @@ Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>恢复步数: 2
 待办: 解释 ANSWER 的用途
 重复调用: duplicate_call_id
-配置变化: runtime_identity_mismatch
+配置变化: runtime_identity_mismatch: &lt;列出不一致的有效配置字段&gt;
 文件变化: workspace_mismatch
+
+`allow_model_change=True` 只可用于模型相关的显式可移植转换；`adopt_workspace=True` 只接受外部编辑并要求重新读取/测试，不能重放未收束工具或 worker。
 </pre></div>
 </div>
 <p>为什么重复调用检查要放在恢复之后？因为只在内存里维护“见过哪些 ID”不够，
@@ -279,8 +286,8 @@ Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是
 <code>resume()</code> 重建 <code>WorkerManager</code>，不会让已失去进程上下文的工作自动复活。
 后续是否启动新工作应由恢复后的策略和当前证据决定。</p>
 <h2 id="本章的边界">本章的边界</h2>
-<p>目前恢复对工作区漂移采取明确拒绝，没有自动合并外部修改，也不自动回滚文件。
-硬退出恰好发生在外部副作用之后、检查点之前，仍需根据证据人工或另起任务核查。
+<p>目前恢复对工作区漂移默认拒绝；显式 <code>adopt_workspace</code> 只接受外部编辑，不自动合并或回滚，并会要求后续重新读取/验证。inflight 工具、包括 worker 的未收束状态具有不确定副作用，不能用 adopt 绕过 <code>assert_settled_tools</code>。
+硬退出恰好发生在外部副作用之后、检查点之前，仍需根据证据人工或另起任务核查。受控依赖环境不跨进程恢复；若恢复导致 <code>reuse_environment</code> 环境重新创建，相关正式验证会失效并需重跑。
 归档引用在下一次准备模型请求时继续检查可用性；检查点文件存在不代表所有关联工件永远可读。</p>
 <p>对应合同检查见 <a href="../source/tests/test_context_state.py.html">test_context_state.py</a>、
 <a href="../source/tests/test_provider_events.py.html">test_provider_events.py</a> 和

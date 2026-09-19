@@ -33,7 +33,7 @@ conda activate aster
 python -m pip install -e '.[dev]'
 ```
 
-`-e` 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。`[dev]` 加装 pytest 等开发工具。项目依赖见 [pyproject.toml](../../pyproject.toml)：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。
+`-e` 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。`[dev]` 加装 pytest 等开发工具。项目依赖见 [pyproject.toml](../../pyproject.toml)：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。课程实验不调用模型 API，但 tiktoken 首次使用可能需要下载词表；完全断网前请准备好本地缓存。第 04 章的 Linux 沙箱实验要求运行环境支持 Landlock/seccomp；不支持时应看到 `required` 的明确失败，而不是把外层沙箱限制写成产品不支持隔离。
 
 ```bash
 conda activate aster

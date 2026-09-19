@@ -66,7 +66,7 @@ usage: dict[str, int] = Field(default_factory=dict)
 
 `_model_turn` 的处理顺序很关键：先保存模型原始回复，再逐个执行调用，最后为每个调用追加结果。即使中途取消，也会为未完成调用补上带 `turn_interrupted` 原因的取消结果。这个结果表示“未能确认完成”，不表示副作用被自动撤销。
 
-当前实现按顺序执行一轮里的工具调用。Worker 是另一条显式的并发机制，见 [第 13 章](13-interaction-and-workers.md)；不要把模型一次返回多个调用误认为自动并行。
+默认配置按顺序执行一轮里的工具调用，但这不是无条件的串行保证：当 `read_parallelism > 1` 时，`_execute_batch` 可并行执行只含 `read_file`、`search`、`list_files` 的纯读取批次；预检、结果提交仍按顺序进行。混合批次以及默认 `read_parallelism=1` 仍串行。Worker 是另一条显式的并发机制，见 [第 13 章](13-interaction-and-workers.md)。
 
 ## 实验：两次工具调用只占一轮模型决策
 

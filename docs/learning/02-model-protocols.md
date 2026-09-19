@@ -52,7 +52,7 @@ HTTPX 是这里实际使用的 HTTP 客户端。代码没有依赖 OpenAI 或 An
 
 ## 核心代码：请求构造只有一个入口
 
-下面是 `ModelClient.complete()` 的实际节选：
+下面是 `ModelClient.complete()` 的实际节选（字段名按当前实现）：
 
 ```python
 payload = request_payload(
@@ -60,13 +60,19 @@ payload = request_payload(
     tools,
     protocol=protocol,
     model=self.settings.model,
-    output_tokens=self.settings.output_tokens,
+    output_tokens=self.settings.effective_output_tokens,
 )
 ```
 
 上下文预算也使用同一个 `request_payload()` 估算长度。这样计数时看到的不仅是消息正文，还包括工具定义和协议包装，减少“本地说能放下，实际发出的 JSON 却更大”的错位。
 
-`output_tokens` 在不同协议里写成 `max_output_tokens` 或 `max_tokens`。它是允许模型生成的上限，不能和服务最终报告的 `usage.output_tokens` 混淆。
+`output_tokens` 在不同协议里写成 `max_output_tokens` 或 `max_tokens`。它是允许模型生成的上限，不能和服务最终报告的 `usage.output_tokens` 混淆。`effective_output_tokens` 是经过 profile、显式设置和默认值解析后的实际上限；代码节选不能用原始 `settings.output_tokens` 代替它。
+
+## Provider、profile 与模型切换
+
+`Settings.provider` 是身份与连接配置元数据，实际适配分支由 `protocol` 选择（当前代码在 `provider.py` 中按 `responses`、`chat`、`anthropic` 分支处理）。profile 提供可移植的模型窗口、输入/输出预算和默认协议；显式 `model` 切换会重新解析有效预算。默认恢复会检查保存的身份，配置不一致时拒绝；显式 `allow_model_change=True` 才能走受限的模型转换路径。它可以把可移植的文本/工具历史 canonicalize 到另一协议，但不能迁移服务特定的原生推理状态，也不能改变安全或能力设置。`provider_model` 只是服务响应报告的身份字段，不能证明网关真的使用了所请求的内部模型。
+
+Responses 的流式路径目前由 `streaming.complete_responses` 实现，默认关闭，且不能据此推断 Chat 或 Anthropic 也支持流式。delta 事件是临时预览；只有完整成功响应和调用配对确认后才执行工具。空响应最多只额外重试一次，且非流式 `_post` 与 Responses streaming 都受总尝试最多 3 次的边界约束。空响应、协议解析失败、未知 usage 和传输错误都会进入诊断；unknown usage 不是 0，也不能从诊断中的尝试数推导成功。流式预览本身不是已执行动作的证据。
 
 ## 实验：同一段历史转换成三种协议
 
@@ -118,7 +124,7 @@ else:
 
 ## 出错时怎样处理
 
-`ModelClient._post()` 最多尝试 3 次请求。网络超时及部分暂时性 HTTP 错误会短暂退避后重试；例如认证被拒绝不会靠反复发送相同请求解决。最终错误用 `ProviderError` 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏。
+`ModelClient._post()` 最多尝试 3 次请求；空响应最多触发其中一次额外尝试。Responses streaming 也遵守同一逻辑请求上限。网络超时及部分暂时性 HTTP 错误会短暂退避后重试；例如认证被拒绝不会靠反复发送相同请求解决。最终错误用 `ProviderError` 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏；诊断还会区分空响应、失败尝试和未知 usage。诊断中的“尝试过”不等于成功，unknown usage 不按 0 计，也不认证服务端内部模型身份。
 
 | 层次 | 例子 | 当前行为 |
 |---|---|---|
@@ -134,7 +140,7 @@ else:
 
 把实验中的 `call_id` 改成空字符串，或再追加一次相同结果，分别会触发 `invalid_tool_id` 或 `duplicate_tool_output`。这些错误应该在向服务发请求前暴露。
 
-思考：能不能把 Responses 的加密推理字段翻译为 Anthropic 的签名？不能。它们是服务特定的原生状态；当前恢复要求协议和有效配置一致，不能把换模型供应商理解成无损迁移一个正在进行的会话。
+思考：能不能把 Responses 的加密推理字段翻译为 Anthropic 的签名？不能。它们是服务特定的原生状态；默认恢复要求身份和有效配置一致，显式模型变更只允许转换可移植文本/工具历史，仍不能把换模型供应商理解成无损迁移一个正在进行的原生会话。
 
 这三种适配都有本地协议测试，但项目已归档的真实模型评测走的是 Responses。阅读 [test_provider_events.py](../../tests/test_provider_events.py) 和 [test_protocol_pairing.py](../../tests/test_protocol_pairing.py) 能看到本地契约；不要把契约测试写成三个服务都完成了同等规模的线上验证。
 

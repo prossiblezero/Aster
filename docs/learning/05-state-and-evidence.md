@@ -74,7 +74,7 @@ model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 某些目录要等对应动作发生后才出现。主评测脚本还会把运行记录和候选代码复制到指定结果目录，并生成 `patch.diff`；不要以为每次普通 Runtime 运行都会自动在 `.aster/runs` 下生成这份评测 diff。
 
-`trace` 是事件日志，适合回答“先发生了什么”；`checkpoint` 是状态快照，适合恢复；`report` 是运行总结，适合汇总；`requests` 回答“这一轮送给模型的输入长什么样”。它们的日志副本经过脱敏，并非包含认证信息的网络抓包。
+`trace` 是事件日志，适合回答“先发生了什么”；`checkpoint` 是状态快照，适合恢复；`report` 是运行总结，适合汇总；`requests` 回答“这一轮送给模型的输入长什么样”。模型请求的 `ModelReply.diagnostics` 会携带有界诊断，包括请求 `attempt`、故障类别和未知 usage 标记；它不是成功证明。它们的日志副本经过脱敏，并非包含认证信息的网络抓包。
 
 ## 代码走读：追加日志与原子快照
 

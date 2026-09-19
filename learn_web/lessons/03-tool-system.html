@@ -93,6 +93,7 @@
 <p><code>Record</code> 在 <a href="../source/src/aster/schema.py.html">schema.py</a> 中禁止未知字段。
 工具实现因而不必到处写 <code>args.get(&quot;path&quot;)</code>，也不会悄悄吞掉模型拼错的参数名。</p>
 <p><code>run_shell</code> 依据实际退出状态报告结果。组合命令应通过 <code>&amp;&amp;</code> 或显式传递退出码保留关键步骤的失败，不能让最后成功的清理命令掩盖前面的错误。<code>run_tests</code> 则要求有效的结构化测试结果；它不会自动判断测试是否覆盖完整需求，测试仍应调用真实实现或公开入口。</p>
+<p>写入工具的参数也按整批边界验证。例如 <code>patch_file</code> 的 <code>edits</code> 是一组不重叠、各自唯一匹配的 <code>{old_text, new_text}</code>；任一项缺失、不唯一或重叠时整批拒绝，不会先应用前几项。还要区分两种“整批”：<code>patch_file</code> 是同一文件内的原子参数/匹配校验；模型同轮返回多个工具调用时，Runtime 会先对整个调用批次做 schema 预检，只要一个调用参数无效，整个批次都不执行。先读后改和成功后的新鲜证据因此仍是调用者责任。</p>
 <p>启用 <code>reuse_environment</code> 后，正式 Python 测试使用可信测试运行器，并自动加入受控 <code>.venv</code> 的依赖路径；直接调用 <code>python -m unittest</code> 或 <code>python -m pytest</code>，不要增加 <code>.venv/bin/</code> 或环境变量前缀，也不要在正式验证前删除依赖。失败的可写 Shell 若丢弃了复用环境，结果会带 <code>environment_discarded=true</code> 和重装提示。Shell 中自测成功不会更新正式验证状态，完成反馈会明确要求调用 <code>run_tests</code>。</p>
 <h2 id="两种分类不要交叉理解">两种分类，不要交叉理解</h2>
 <p><code>CORE_TOOLS</code> 是<strong>展示策略</strong>：默认包含文件列表、读取、搜索、写入、补丁、命令、测试、差异和 <code>tool_load</code>，最多 9 项。

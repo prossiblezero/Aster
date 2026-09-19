@@ -1,0 +1,34 @@
+{
+  "run_id": "509133a0f037435790465584840319d2",
+  "session_id": "45354e6e0f2f48cb9cdde2e0e6efb39a",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "step": 10,
+  "turn": 7,
+  "usage": {
+    "usage_requests": 7,
+    "input_tokens": 134011,
+    "input_tokens_requests": 7,
+    "output_tokens": 1999,
+    "output_tokens_requests": 7,
+    "cache_read_input_tokens": 91648,
+    "cache_read_input_tokens_requests": 7,
+    "reasoning_tokens": 230,
+    "reasoning_tokens_requests": 7,
+    "total_tokens": 136010,
+    "total_tokens_requests": 7
+  },
+  "changed_paths": [
+    "docs/learning/09-checkpoint-resume.md",
+    "learn_web/lessons/09-checkpoint-resume.html",
+    "learn_web/search.json"
+  ],
+  "verification": {
+    "state": "passed",
+    "workspace_hash": "be236d3581444d7cd557b53d05cea6d2312fdfc19e79cb0b9e83eadccf0dd570",
+    "evidence_id": "8c8154a76b23a9dc62d8f82e399ff821cc970824eec048d45eef4685f93cc3c6",
+    "command": "python -m pytest -q learn_web/tests/test_site.py"
+  },
+  "feedback": "",
+  "final": "第 09 章两处事实问题已修正，未扩大修改范围：\n\n- `allow_model_change=True` 现在明确允许模型上下文预算和输出预算随新模型配置变化，并说明恢复会执行新预算的上下文预检；`steps`/`turns` 计数以及安全、能力和其他非模型设置不会因此重置或放宽。\n- 入口代码节选改为真实的 `load_checkpoint(...)` 调用，不再把直接安装 `checkpoint.history` 称为核心路径。正文补充了后续 `canonicalize`、预算预检、原生历史归档、工具/归档/脱敏/工作区校验及最终安装顺序，并明确这是节选。\n\n已重新生成：\n\n- `learn_web/lessons/09-checkpoint-resume.html`\n- `learn_web/search.json`\n\n当前工作区正式验证已通过：\n\n```text\npython -m pytest -q learn_web/tests/test_site.py\n6 passed in 0.92s\n```\n\n课程实验未在本轮重复执行。"
+}

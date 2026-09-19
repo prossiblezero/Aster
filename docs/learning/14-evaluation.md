@@ -167,7 +167,9 @@ assert pass_at_k(rows, 3) == 1
 
 ## 当前报告从哪里读
 
-任务分类和数量以 [datasets/README.md](../../datasets/README.md) 为入口，方法总览见 [评测说明](../benchmark.md)，当前上下文结论见 [上下文结果](../context-results.md)。最新上下文报告同时保留：主任务确认、同预算退步、一次性证据控制失败、代码版本和全部尝试清单。
+任务分类和数量以 [datasets/README.md](../../datasets/README.md) 为入口，方法总览见 [评测说明](../benchmark.md)，当前上下文结论见 [上下文结果](../context-results.md)。工程验收与实验边界以 [evaluations/v0.2-release 报告](../../evaluations/v0.2-release/REPORT.md) 和 [lab follow-up 报告](../../evaluations/lab-followup-20260919/REPORT.md) 为准。报告保留首次失败、人工反馈、返修和未知 usage；教程不把返修结果改写为首次自主成功。
+
+评分器自身也需要反例验收：通过一个评分器不自动证明它能识别错误候选。缓存率只是复用数据的比例，不是效率或质量收益；未知 usage 不能按 0 计费。开发题和练习题只能说明开发诊断，不能冒充未见测试或通用成功率。
 
 这些题包含公开 HumanEval 的函数改造及自建仓库任务。仓库验收借鉴 SWE-bench 的思路，不代表跑过 SWE-bench 官方全集；选定的 HumanEval 子集也不能写成完整榜单成绩。来源与许可证见 [SOURCES.md](../../datasets/SOURCES.md)。
 

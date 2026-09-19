@@ -31,7 +31,7 @@ flowchart LR
 | `memory_evolution` | `False` | 开启使用反馈更新、反馈排序和 Dream 维护 |
 | `auto_dream` | `False` | 运行完成或停止时，自动尝试一次 Dream |
 
-关闭 `auto_dream` 不会关闭反馈计数，仍可显式调用 `Memory.dream()`。关闭 `memory_evolution` 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。
+关闭 `auto_dream` 不会关闭反馈计数，仍可显式调用 `Memory.dream()`；但如果 `auto_dream=True` 而 `memory_enabled` 或 `memory_evolution` 关闭，Dream 会返回 `skipped`，不会进行维护。关闭 `memory_evolution` 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。
 
 这些开关适合做模块对照：保持任务和模型相同，只改变目标机制。它们不意味着每个用户都需要在运行前手工配置。
 

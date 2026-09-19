@@ -104,8 +104,10 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <a href="../source/src/aster/safety/linux.py.html">linux.py</a> 使用 Landlock 限制文件系统访问，使用 seccomp 限制相关系统调用。
 命令只获得精简的环境变量，模型 API key 不会随父进程环境直接传入。</p>
 <p>执行后会检查只读约束、写入范围、危险文件类型和外部并发修改，再发布合法改动。
-<code>required</code> 表示隔离不可用就拒绝；<code>best_effort</code> 只在没有只读或写入范围约束时允许降级，并记录 <code>degraded=True</code>。
-<code>off</code> 显式关闭隔离，不能拿来承诺只读或限定写入范围。</p>
+<code>required</code> 表示隔离不可用就拒绝；本章实验因此只能在支持 Landlock/seccomp 的 Linux 环境中成功。
+<code>off</code> 明确关闭隔离；遇到只读或写入范围约束时会直接 <code>blocked</code>，不能继续执行。<code>best_effort</code> 只有在没有这两类约束时，才允许隔离不可用后降级并记录结果；存在约束时仍拒绝。两者都不是本实验 <code>required</code> 的降级路径。</p>
+<h3 id="依赖与进程边界">依赖与进程边界</h3>
+<p>默认情况下，一条命令安装的依赖不会进入下一条命令。<code>reuse_environment</code> 只在 <code>required</code> 且同一进程中复用受控 <code>.venv</code>/<code>node_modules</code>；可写命令失败时环境可能被丢弃，需要按结果提示重新安装。它不会跨进程恢复。每次工具调用拥有自己的进程，后台服务不会存活到下一次调用；临时文件放在工作区 <code>.tmp/</code> 或 <code>TMPDIR</code>，网络关闭时也包括本机 TCP。</p>
 <table>
 <thead>
 <tr>
@@ -136,7 +138,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 这是需要保留在状态和审计中的事实，而不是通过一个“安全”标签抹掉的边界。</p>
 <h2 id="离线实验批准了也不能根据过期读取修改">离线实验：批准了，也不能根据过期读取修改</h2>
 <p>激活 <code>aster</code> 环境，把下面代码保存到 <code>/tmp/aster_lesson04.py</code>，在项目根运行 <code>python /tmp/aster_lesson04.py</code>。
-本实验不使用模型 API，实际补丁会经过 Linux 沙箱；沙箱不可用时会明确失败，不会偷偷关闭隔离。</p>
+本实验不使用模型 API，并显式要求 <code>sandbox=&quot;required&quot;</code>：当前环境不支持 Landlock/seccomp 时应明确失败，而不是降级后继续。请在支持这两项隔离能力的 Linux 环境运行；这不是把外层运行环境的限制解释成 Aster 产品不支持隔离。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
@@ -154,6 +156,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
         <span class="n">target</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"old"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
         <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">Settings</span><span class="p">(</span>
             <span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
+            <span class="n">sandbox</span><span class="o">=</span><span class="s2">"required"</span><span class="p">,</span>
             <span class="n">rules</span><span class="o">=</span><span class="p">[</span><span class="n">ExecRule</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="p">[</span><span class="s2">"rm"</span><span class="p">],</span> <span class="n">decision</span><span class="o">=</span><span class="s2">"deny"</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"no_delete"</span><span class="p">)],</span>
         <span class="p">))</span>
         <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"将 value.txt 改成 new"</span><span class="p">))</span>
@@ -179,6 +182,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
         <span class="k">assert</span> <span class="n">changed</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span><span class="p">,</span> <span class="p">(</span><span class="n">changed</span><span class="o">.</span><span class="n">reason</span><span class="p">,</span> <span class="n">changed</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"new"</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"执行隔离:"</span><span class="p">,</span> <span class="n">changed</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"isolation"</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">changed</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"isolation"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"landlock+seccomp"</span>
 
         <span class="n">denied</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
             <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"run_shell"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"command"</span><span class="p">:</span> <span class="s2">"rm value.txt"</span><span class="p">})</span>
@@ -195,7 +199,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>没有读过: fresh_read_required
 读取后发生外部修改: fresh_read_required
 重新读取后: success ['value.txt']
-执行隔离: landlock+seccomp
+执行隔离: landlock+seccomp  # 支持隔离的 Linux；required 不支持时明确失败
 auto 遇到明确拒绝: blocked no_delete
 </pre></div>
 </div>
@@ -216,4 +220,4 @@ auto 遇到明确拒绝: blocked no_delete
 <p>继续阅读 <a href="../source/tests/test_fresh_read.py.html">test_fresh_read.py</a>、<a href="../source/tests/test_safety.py.html">test_safety.py</a> 和 <a href="../source/tests/test_workspace_execution.py.html">test_workspace_execution.py</a>，可以看到各层边界分别如何被验证。
 这些机制限制工具副作用，并不能保证模型对任意不可信文字都判断正确。
 下一章把这里产生的动作、结果和文件变化串成一条可复盘的运行记录。</p>
-<nav class="chapter-nav"><a href="03-tool-system.html">← 03 · 工具系统：先知道有什么，再拿到调用说明</a><a href="05-state-and-evidence.html">05｜状态、历史和证据分别放在哪里 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么一句只在项目里操作不够">为什么一句“只在项目里操作”不够</a><a href="#第一层把授权变成可执行规则">第一层：把授权变成可执行规则</a><a href="#第二层文件路径也必须过边界">第二层：文件路径也必须过边界</a><a href="#第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</a><a href="#第四层在副本执行检查后写回">第四层：在副本执行，检查后写回</a><a href="#离线实验批准了也不能根据过期读取修改">离线实验：批准了，也不能根据过期读取修改</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="03-tool-system.html">← 03 · 工具系统：先知道有什么，再拿到调用说明</a><a href="05-state-and-evidence.html">05｜状态、历史和证据分别放在哪里 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么一句只在项目里操作不够">为什么一句“只在项目里操作”不够</a><a href="#第一层把授权变成可执行规则">第一层：把授权变成可执行规则</a><a href="#第二层文件路径也必须过边界">第二层：文件路径也必须过边界</a><a href="#第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</a><a href="#第四层在副本执行检查后写回">第四层：在副本执行，检查后写回</a><a href="#依赖与进程边界">依赖与进程边界</a><a href="#离线实验批准了也不能根据过期读取修改">离线实验：批准了，也不能根据过期读取修改</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

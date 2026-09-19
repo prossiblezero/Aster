@@ -22,27 +22,31 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 
 ```mermaid
 flowchart TD
-    A[读取 checkpoint.json] --> B{有效配置相同?}
+    A[读取 checkpoint.json] --> B{版本与 inflight 已收束?}
     B -->|否| X[拒绝恢复]
-    B -->|是| C{工作区指纹相同?}
+    B -->|是| C{配置允许?}
     C -->|否| X
-    C -->|是| D[校验 RunState 和差异基线]
-    D --> E[校验工具配对与原生不透明字段]
-    E --> F[安装恢复状态，重建运行管理对象]
+    C -->|是| D{工作区指纹相同或显式 adopt?}
+    D -->|否| X
+    D -->|是| E[校验 RunState 和差异基线]
+    E --> F[校验工具配对与原生不透明字段；安装恢复状态]
 ```
 
-[Runtime.resume()](../../src/aster/runtime.py) 的真实入口节选：
+`Runtime.resume()` 委托 [session.load_checkpoint()](../../src/aster/session.py)。真实入口首先加载并验证 checkpoint：
 
 ```python
-data = json.loads(self.evidence.path("runs", run_id, "checkpoint.json").read_text())
-if data["runtime_identity"] != self.settings.identity():
-    raise ValueError("runtime_identity_mismatch")
-if data["workspace_hash"] != self.workspace.fingerprint():
-    raise ValueError("workspace_mismatch")
-state = RunState.model_validate(data["state"])
+saved = load_checkpoint(
+    self.evidence,
+    self.workspace,
+    self.settings,
+    run_id,
+    allow_model_change=allow_model_change,
+    adopt_workspace=adopt_workspace,
+)
 ```
 
-这里先验证再给 `self.state` 赋值，避免失败时安装一半状态。
+这是入口节选，不是完整恢复函数。`load_checkpoint` 返回后，`Runtime.resume` 会在检测到模型身份变化时对已保存历史执行 `canonicalize`，再运行 `_preview_context` 做新预算的上下文预检，并归档原生历史；通过这些校验后才安装转换后的历史和恢复状态。它还会完成工具配对、归档来源、skill 脱敏和工作区等检查。这里先验证再安装状态，避免失败时安装一半状态。
+`allow_model_change=True` 只允许显式模型/协议转换：模型上下文预算和输出预算可以随新模型配置改变，但随后必须通过新预算的上下文预检；任务的 `steps`/`turns` 计数不会因此重置，安全/能力设置（以及该集合之外的运行设置）不能借此改变。`adopt_workspace=True` 才接受外部编辑，并要求重新读取/验证；它也不能绕过 inflight 工具副作用检查。两个标志都必须由调用者显式传入，不能靠更换 profile 偷换安全边界。
 另外，当前 Runtime 若正在执行操作、有运行中的 worker，或者已有未结束任务，
 不能直接覆盖成另一个运行；教学实验会使用一个新 Runtime 对象代表进程重启。
 
@@ -65,7 +69,7 @@ state = RunState.model_validate(data["state"])
 
 | `RunState` 字段 | 含义 |
 |---|---|
-| `step` / `turn` | 已执行工具步骤数 / 决策轮数；自主运行数模型请求，外部策略接口数策略动作；恢复后不清零 |
+| `step` / `turn` | 已执行工具步骤数 / 决策轮数；自主运行数模型请求，外部策略接口数策略动作；`resume` 加载后保留，不清零；`continue_task`/`prepare_continuation` 建立新 run 时从新边界重新计数 |
 | `working_memory` | 本次运行的短期记忆，包括已读文件的简要信息 |
 | `read_evidence` | 路径对应最近读取内容的指纹，用于新鲜度判断 |
 | `used_call_ids` | 已经执行的调用标识，阻止相同 ID 被再次执行 |
@@ -87,7 +91,7 @@ state = RunState.model_validate(data["state"])
 
 配置指纹也有类似边界。`Settings.identity()` 排除了 `api_key`、`base_url`，
 并把自动预算解析成有效值；更换密钥不等于任务语义变化。
-但模型、协议、权限、沙箱或有效预算等配置变化会触发拒绝。
+默认情况下模型、协议、权限、沙箱或运行设置变化会触发拒绝；显式 `allow_model_change=True` 只为模型相关变化开启可移植历史转换。模型上下文预算和输出预算属于模型身份的一部分，可以随显式模型切换改变，但恢复会用新预算重新进行上下文预检；任务的 `steps`/`turns` 计数与安全/能力设置不会因此被重置或放宽。工作区漂移默认拒绝，只有显式 `adopt_workspace=True` 才能采用外部修改，并要求重新读取和验证；这不是自动合并。
 Base URL 不参与一致性比较，因此恢复检查不是服务提供商身份认证。
 
 ## 什么时候写：完整交互的边界
@@ -143,7 +147,7 @@ conda run --no-capture-output -n aster python /tmp/aster-checkpoint-lesson.py
 ```
 
 实验只用本地读取与待办工具。两个 Runtime 对象不共享 `state`，
-第二个必须从 JSON 恢复；最后在临时目录改配置、改文件，验证拒绝分支。
+第二个必须从 JSON 恢复；最后在临时目录改配置、改文件，验证默认拒绝分支；代码注释还会说明 `allow_model_change` 与 `adopt_workspace` 是显式入口，接受后仍必须做历史转换或 fresh read/验证。
 
 ```python
 # 可运行实验
@@ -191,16 +195,17 @@ async def main():
         try:
             Runtime(root, changed_settings).resume(run_id)
         except ValueError as error:
-            assert str(error) == "runtime_identity_mismatch"
+            assert "runtime_identity_mismatch" in str(error)
             print("配置变化:", error)
         else:
             raise AssertionError("应拒绝不同运行边界")
 
         path.write_text("ANSWER = 99\n")
+        # 默认拒绝工作区漂移；adopt_workspace=True 不是跳过 inflight 或验证。
         try:
             Runtime(root, settings).resume(run_id)
         except ValueError as error:
-            assert str(error) == "workspace_mismatch"
+            assert "workspace_mismatch" in str(error)
             print("文件变化:", error)
         else:
             raise AssertionError("应拒绝旧工作区快照")
@@ -214,8 +219,10 @@ asyncio.run(main())
 恢复步数: 2
 待办: 解释 ANSWER 的用途
 重复调用: duplicate_call_id
-配置变化: runtime_identity_mismatch
+配置变化: runtime_identity_mismatch: <列出不一致的有效配置字段>
 文件变化: workspace_mismatch
+
+`allow_model_change=True` 只可用于模型相关的显式可移植转换；`adopt_workspace=True` 只接受外部编辑并要求重新读取/测试，不能重放未收束工具或 worker。
 ```
 
 为什么重复调用检查要放在恢复之后？因为只在内存里维护“见过哪些 ID”不够，
@@ -243,8 +250,8 @@ asyncio.run(main())
 
 ## 本章的边界
 
-目前恢复对工作区漂移采取明确拒绝，没有自动合并外部修改，也不自动回滚文件。
-硬退出恰好发生在外部副作用之后、检查点之前，仍需根据证据人工或另起任务核查。
+目前恢复对工作区漂移默认拒绝；显式 `adopt_workspace` 只接受外部编辑，不自动合并或回滚，并会要求后续重新读取/验证。inflight 工具、包括 worker 的未收束状态具有不确定副作用，不能用 adopt 绕过 `assert_settled_tools`。
+硬退出恰好发生在外部副作用之后、检查点之前，仍需根据证据人工或另起任务核查。受控依赖环境不跨进程恢复；若恢复导致 `reuse_environment` 环境重新创建，相关正式验证会失效并需重跑。
 归档引用在下一次准备模型请求时继续检查可用性；检查点文件存在不代表所有关联工件永远可读。
 
 对应合同检查见 [test_context_state.py](../../tests/test_context_state.py)、

@@ -1,0 +1,113 @@
+
+>>> 00-quickstart.md / 1
+文件内容：Hello, Aster!
+phase=completed, turn=2, step=1
+checkpoint: True
+
+>>> 01-agent-loop.md / 1
+start: running 0 0
+turn 1: running 1 2
+turn 2: completed 2 2
+
+>>> 02-model-protocols.md / 1
+responses 消息条目: 4 完整组: 3
+chat 消息条目: 4 完整组: 3
+anthropic 消息条目: 3 完整组: 2
+损坏历史被拒绝: orphan_tool_output
+
+>>> 03-tool-system.md / 1
+初始完整工具数: 9
+加载结果: success
+新增工具: ['todo_add']
+待办状态: pending
+all 暴露 memory_store: False
+直接调用关闭的能力: blocked memory_disabled
+错误行号: invalid_arguments
+
+>>> 04-permissions-sandbox.md / 1
+没有读过: fresh_read_required
+读取后发生外部修改: fresh_read_required
+重新读取后: success ['value.txt']
+执行隔离: landlock+seccomp
+auto 遇到明确拒绝: blocked no_delete
+
+>>> 05-state-and-evidence.md / 1
+证据事件: tool_decision read_file
+状态: completed 观察: True
+工作记忆: ['settings.txt']
+检查点步骤: 1
+
+>>> 06-context-budget.md / 1
+压缩前本地估算: 10499
+压缩后本地估算: 2847 / 3584
+移除旧消息: 1
+调用和结果仍然成组: 2
+策略版本: deterministic-v7
+
+>>> 07-context-archives.md / 1
+归档命中数: 1
+历史证据: ONE-TIME-729: payment retry exhausted
+本页字符数: 80
+最新文件: current diagnosis: service recovered
+
+>>> 08-hooks-and-completion.md / 1
+提前收尾: running 1
+局部规则: blocked lesson_private_file
+观察后收尾: completed stop 次数: 1
+首次重复: running True
+再次重复: stall_recovery_exhausted
+
+>>> 09-checkpoint-resume.md / 1
+恢复步数: 2
+待办: 解释 ANSWER 的用途
+重复调用: duplicate_call_id
+配置变化: runtime_identity_mismatch: max_recovery. Restore these explicit settings from the saved checkpoint; --allow-model-change permits only model settings, not safety or capability changes.
+文件变化: workspace_mismatch
+
+>>> 10-layered-memory.md / 1
+第一次运行：短期摘录 = 1，长期记忆 = 1
+第二次运行：短期摘录 = 0，长期召回 = 1
+来源文件变化后：长期召回 = 0
+关闭长期记忆后：短期摘录仍然存在
+
+>>> 11-memory-evolution.md / 1
+一次反馈后：优先召回 python -m pytest
+第二次失败后：停用 1 条，原记录仍然保留
+回滚后：恢复 2 条，失败计数恢复为 0
+来源变化后：即使回滚，也不会召回旧事实
+
+>>> 12-plans-and-skills.md / 1
+规划期间写入: plan_mode
+分页还原完整正文: True
+活动技能: ['python-check']
+固定快照后显式刷新: 通过
+包资源只读加载: 通过
+待办状态: done
+退出后模式: work
+请求批准的动作: ['plan_exit']
+
+>>> 13-interaction-and-workers.md / 1
+人工回答: success JSON
+首轮进行中: queued 已看见补充: False
+子运行只读 / 可派生数: True 0
+第二轮看见补充: True
+子任务状态: completed
+结束后发消息: worker_finished
+
+>>> 14-evaluation.md / 1
+grader debug-and-fix: baseline_target_fails=True, regression_passes=True
+1/1 debug-and-fix core #1: PASS 
+Report: /tmp/aster-eval-lesson-36panp7q/report.md
+
+参考动作通过: True 模型用量: None
+
+>>> 14-evaluation.md / 2
+Pass@1 = 66.67%
+Pass@3 = 100.00%
+
+>>> 15-rl-interface.md / 1
+正确交付：reward=1，terminated=True，种子仓库未修改
+预算截断：reward=1，truncated=True，最后产物仍被评分
+没有独立评分器：正常结束，但不给成功奖励
+
+17 examples passed.

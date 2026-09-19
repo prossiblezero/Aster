@@ -1,0 +1,26 @@
+已完成本轮教程维护，并按当前源码核对了 16 章相关内容。
+
+主要修订包括：
+
+- 更新工具批次执行、`patch_file.edits` 原子校验和同轮工具调用的整批预检边界。
+- 修正 provider/profile、protocol、显式模型切换、Responses 流式、空响应重试、诊断信息与未知 usage 的说明。
+- 修正 `required`、`best_effort`、`off` 的沙箱语义，以及依赖复用、进程生命周期、临时目录和禁网边界。
+- 统一上下文预算、命令捕获上限、预览长度和归档可读范围的说明。
+- 更新 checkpoint/resume：`Runtime.resume` 委托 `session.load_checkpoint`，明确 `allow_model_change`、`adopt_workspace`、历史转换、inflight 不确定副作用、计数保留和新 run 的区别。
+- 修正 Memory、Dream、Skills 包、固定快照与显式 `refresh=True` 的实现归属和行为。
+- 更新 TUI 命令 `/model`、`/new`、`/continue`、`/resume` 及 Worker、持久 Memory 和流式预览限制。
+- 更新评测章节，区分首次失败、返修、人工反馈、未知 usage、缓存率和真实效率。
+- 更新 post-training 接口说明，区分 SFT/GRPO 数据合同、AsterEnv 教学奖励和实际训练器；明确取消、基础设施错误和评分器错误不会转换为负例。
+- 删除网站构建器中已经过时的“每次新任务、不支持持续聊天”注释。
+- 恢复 `docs/learning/run_examples.py` 的原始执行方式，没有屏蔽 `tiktoken`、降低 `required`、跳过断言或增加依赖。
+- 保留操作员独立实验验证的边界，没有把嵌套沙箱限制写成产品能力限制，也没有修改 `src`、根测试、数据集或历史报告。
+
+**我实际执行的验证**
+
+- 单独运行 `python learn_web/build.py`：成功，重新生成网站、搜索索引和源码副本。
+- 正式运行 `python -m pytest -q learn_web/tests/test_site.py`：`6 passed`。
+- 未在当前嵌套环境重复运行整套课程实验，也没有把该环境中的 tokenizer 下载或沙箱系统调用限制记为教程实验失败。
+
+**操作员独立验证结果**
+
+已知操作员在指定 `aster` 环境中验证：第 00–08 章及第 10–15 章通过；第 09 章原先因恢复错误信息增加字段而触发旧的完全相等断言，现已改为核对具体拒绝原因，同时保留配置拒绝和工作区漂移验证。本轮不把未由我执行的整套课程实验宣称为我的测试结果。

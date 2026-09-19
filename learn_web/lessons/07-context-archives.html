@@ -11,7 +11,7 @@
 但诊断命令的输出可能只出现一次：临时文件已删除、测试环境已清理，
 或者再次执行命令就会产生新的副作用。
 因此“反正能重跑”不能作为所有工具结果的压缩方案。</p>
-<p>Aster 在缩短正文之前，把已经捕获的文本结果存入当前运行的归档目录。
+<p>Aster 在缩短正文之前，把已经捕获的文本结果存入当前运行的归档目录；命令输出先受 <code>run_shell</code> 的 4 MiB 捕获上限，模型可见预览还受 8192 字符上限约束。超过捕获上限的内容从未进入观察归档，不能靠归档恢复。
 模型请求只保留有界摘录与引用；即使整组旧交互后来被移除，
 仍可用 <code>observation_read</code> 搜索这个运行留下的归档。
 这里的 observation 就是“工具当时返回的一份观察结果”。</p>
@@ -36,7 +36,7 @@
 </div>
 <p>这三个存储目的不同：<code>trace.jsonl</code> 用于复盘发生过什么，
 <code>checkpoint.json</code> 用于恢复运行状态，<code>observations</code> 用于让模型找回历史工具正文。
-归档工具不会任意搜索检查点、完整 trace 或其他运行的文件。</p>
+归档工具不会任意搜索检查点、完整 trace 或其他运行的文件。续聊时，经授权的同一 session 祖先观察 ID 可以被读取；这仍不是任意跨 run 读取，权限和 session 关系必须由 Runtime 检查。</p>
 <h2 id="先归档再替换正文">先归档，再替换正文</h2>
 <p><a href="../source/src/aster/evidence.py.html">EvidenceStore.archive_observation()</a> 的关键代码节选：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redactor</span><span class="o">.</span><span class="n">value</span><span class="p">(</span>
@@ -82,7 +82,7 @@
 <tbody>
 <tr>
 <td><code>query</code></td>
-<td>对当前运行归档做字面文本搜索；空串表示列举</td>
+<td>对当前 run 归档做字面文本搜索；续聊时也可读取经授权的同 session 祖先观察；空串表示列举</td>
 <td>从 <code>offset</code> 开始查找字面文本；空串表示直接取页</td>
 </tr>
 <tr>
@@ -110,7 +110,7 @@
 <p>这里按<strong>字符</strong>分页，不按 token 分页；<code>offset</code> 不是字节位置。
 数据先按清晰的字符边界取页，准备模型请求时再由整次请求预算控制。
 中文一个字符和它的 UTF-8 字节数、token 数可能不同，不要混用单位。</p>
-<p>搜索没有引入向量数据库；当前轻量实现按字面字符串扫描当前运行归档。
+<p>搜索没有引入向量数据库；当前轻量实现按字面字符串扫描当前 run 归档，或扫描 Runtime 显式授权的同 session 祖先观察。它不是任意历史 run 的搜索。
 搜索结果有 <code>match_offset</code>，指明命中位置，模型可以直接从那里取页。
 底层存储接口还返回 <code>sha256</code>、<code>tool</code>、<code>call_id</code>；
 Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍在归档和 trace 中。</p>
@@ -213,7 +213,7 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 </pre></div>
 </div>
 <p>第一条断言先确认完整关键句已不在压缩后的请求中，
-随后从当前运行的归档找回它；否则“回读成功”可能只是再次看到从未被裁掉的内容。
+随后从当前 run（或经授权的同 session 祖先）的归档找回它；否则“回读成功”可能只是再次看到从未被裁掉的内容。
 最后更改磁盘文件，展示历史证据和当前事实可以同时成立。</p>
 <h2 id="归档不等于新鲜读取也不等于-memory">归档不等于新鲜读取，也不等于 Memory</h2>
 <table>
@@ -233,7 +233,7 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <tr>
 <td><code>observation_read</code></td>
 <td>当时某次工具具体返回了什么？</td>
-<td>当前运行的历史观察；不能据此声称文件仍未变化</td>
+<td>当前 run 的历史观察，或经授权的同 session 祖先观察；不能据此声称文件仍未变化</td>
 </tr>
 <tr>
 <td>工作记忆</td>

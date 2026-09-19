@@ -238,8 +238,6 @@ def main() -> None:
         note = ""
         if i == 4:
             note = '<aside class="course-note"><strong>实现核对</strong>read_file 记录规范化文本哈希；Runtime 在审批前固定原始字节哈希（新文件记为不存在），并在审批等待结束后的执行前、隔离复制后、best_effort 降级前复核。沙箱写回前还会对照执行前快照检查并发漂移。Git 仓库的常规扫描、快照和输入复制排除被忽略的未跟踪产物；显式路径仍可读，但写入与写回会拒绝。无 .git 副本和非 Git 工作区都不解析 Git ignore；命令新生成的 ignored 路径会在原仓库发布检查时整批拒绝。这些保护不是跨进程事务。</aside>'
-        elif i == 13:
-            note = '<aside class="course-note"><strong>实现核对</strong>当前 CLI 和 TUI 每次提交都会调用 Runtime 启动一个新任务；checkpoint 只恢复某一次运行的状态，不等于持续聊天会话。Memory 与 Dream 是确定性的证据维护和排序规则，不是训练或自主学习模型。</aside>'
         prev_link = (
             f'<a href="{NAMES[i - 1]}.html">← {html.escape(TITLES[i - 1])}</a>'
             if i

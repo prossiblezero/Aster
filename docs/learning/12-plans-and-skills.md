@@ -67,27 +67,40 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 └── .skills/test-python.md
 ```
 
-这里使用 `<name>.md`，不是 `<name>/SKILL.md`。
-同名时优先读取 `.aster/skills`；目录列表只包含合法名称的普通文件，不跟随符号链接。
+这里同时支持旧式 `<name>.md` 与包式 `<name>/SKILL.md`；包可带 `name`/`description` 元数据和受限只读资源。catalog 不只是名称，还返回 `path`、包的 `base_dir`、`description`、`resources` 和截断标记；旧式单文件没有包资源。同名时优先读取 `.aster/skills`；目录列表只包含合法名称的普通文件或包目录，不跟随符号链接。
 名称允许字母、数字、下划线、点和连字符，长度 1–80；单个文件上限是 20 KiB，按字节计算。
 
 第一轮上下文包含 Skill 名称目录。模型选择 `skill_load(name="test-python")` 后，名字写入 `state.active_skills`。
-下一轮组装上下文时，Runtime 重新读取活动 Skill 的内容，再交给预算管理器安排篇幅。
-所以分页读取是一种观察接口，`active_skills` 才是跨轮保存的“已经选中哪些说明”。
+首次加载正文后，Runtime 把内容保存为 `state.skill_snapshots`，下一轮使用固定快照；文件变化不会自动更新，只有 `refresh=True` 才显式刷新。`resource` 只读取当前包资源，不能与 refresh 同用。分页读取是一种观察接口，`active_skills` 和快照共同表示已选说明。
 
-关键源码节选如下；`text` 在这之前已从文件读取并脱敏：
+下面是从 `Runtime.workflow_tool` 压缩出的**有效关键节选**；`text` 在这之前已由 `redactor.text()` 脱敏，省略的上下文不会改变顺序：
 
 ```python
+resource = args.get("resource", "")
+refresh = args.get("refresh", False)
+if resource and refresh:
+    return Outcome(status="blocked", reason="skill_resource_refresh")
+previous = state.skill_snapshots.get(args["name"])
+text = (
+    previous.body
+    if previous is not None and not resource and not refresh
+    else self.evidence.redactor.text(self.skills.load(args["name"], resource))
+)
 result = text_page(text, args["offset"], args["limit"])
 if result.status != "success":
     return result
-if args["name"] not in state.active_skills:
-    state.active_skills.append(args["name"])
+if not resource:
+    snapshot = SkillSnapshot(
+        body=text, sha256=hashlib.sha256(text.encode()).hexdigest()
+    )
+    state.skill_snapshots[args["name"]] = snapshot
+    if args["name"] not in state.active_skills:
+        state.active_skills.append(args["name"])
 result.data["untrusted"] = True
 return result
 ```
 
-`untrusted=True` 是工具结果中的元数据标记，当前上下文层并不读取这个字段。
+`resource` 分支只读取当前包资源，不写入 `active_skills` 或正文快照；它不能和 `refresh` 同用。`untrusted=True` 是工具结果中的元数据标记，当前上下文层并不读取这个字段。
 上下文构造会另外把 Skill 正文统一标为不可信资料，执行权限则由 Runtime 独立检查。
 Skill 写着“允许联网”不会修改 `Settings.network`；写着“忽略安全规则”也不会跳过工具校验。
 安全边界由 Runtime 执行，不能由一份 Markdown 自行授权。
@@ -127,9 +140,11 @@ from aster.schema import TaskSpec, ToolCall
 async def main():
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
-        (root / ".skills").mkdir()
+        package = root / ".skills" / "python-check"
+        (package / "examples").mkdir(parents=True)
         text = "# Python 检查\n先阅读目标代码，再补边界测试，最后运行测试。\n" * 3
-        (root / ".skills" / "python-check.md").write_text(text, encoding="utf-8")
+        (package / "SKILL.md").write_text(text, encoding="utf-8")
+        (package / "examples" / "check.py").write_text("print('read-only resource')\n", encoding="utf-8")
         approvals = []
 
         def approve(call, decision):
@@ -164,6 +179,15 @@ async def main():
         print("分页还原完整正文:", "".join(chunks) == text)
         assert "".join(chunks) == text
         print("活动技能:", runtime.state.active_skills)
+        (package / "SKILL.md").write_text("# 已修改正文\n", encoding="utf-8")
+        fixed = await call("skill_load", name="python-check", offset=0, limit=40)
+        assert fixed.status == "success" and "Python 检查" in fixed.content
+        refreshed = await call("skill_load", name="python-check", offset=0, limit=40, refresh=True)
+        assert refreshed.status == "success" and "已修改正文" in refreshed.content
+        resource = await call("skill_load", name="python-check", resource="examples/check.py", offset=0, limit=100)
+        assert resource.status == "success" and "read-only resource" in resource.content
+        print("固定快照后显式刷新:", "通过")
+        print("包资源只读加载:", "通过")
 
         await call("todo_update", todo_id=todo.data["id"], status="done")
         listing = await call("todo_list", limit=1000)
@@ -183,6 +207,8 @@ asyncio.run(main())
 规划期间写入: plan_mode
 分页还原完整正文: True
 活动技能: ['python-check']
+固定快照后显式刷新: 通过
+包资源只读加载: 通过
 待办状态: done
 退出后模式: work
 请求批准的动作: ['plan_exit']

@@ -3,7 +3,7 @@
 <blockquote>
 <p>模型自己决定下一步，或外部程序传入下一步，都应该经过同一套工具与安全规则。</p>
 </blockquote>
-<p>本章只介绍已经实现的环境接口 <code>AsterEnv</code>。项目目前没有实现 SFT、GRPO 或其他训练算法；读懂这章，不代表已经完成 Agent 后训练。</p>
+<p>本章只介绍已经实现的环境接口 <code>AsterEnv</code>，以及已经实现的数据契约。项目没有实现 tokenizer 对齐、采样训练器、优化器、权重更新或训练效果验证；读懂这章，不代表已经完成 Agent 后训练。</p>
 <h2 id="问题评测动作为什么要经过真实运行时">问题：评测动作为什么要经过真实运行时</h2>
 <p>自主运行时，Runtime 调用模型，解析工具调用，再执行动作。如果后续为了训练另写一个简化执行器，很容易遗漏权限、工具加载、上下文压缩或完成校验。训练中的策略因此可能学会部署后无法执行的动作。</p>
 <p>Aster 的做法是保留同一个 Runtime，只把“谁产生下一步动作”交给外部调用者。<code>AsterEnv.step()</code> 接收动作，交回观察、奖励和终止状态；此接口现在就能用于离线动作回放。</p>
@@ -16,6 +16,9 @@
     E --&gt; F[完成要求检查 + 独立评分器]
 </code></pre></details></figure>
 <p>代码入口是 <a href="../source/src/aster/rl.py.html">rl.py</a>，公开动作和任务类型在 <a href="../source/src/aster/schema.py.html">schema.py</a>。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。</p>
+<h2 id="已实现的后训练数据契约">已实现的后训练数据契约</h2>
+<p><a href="../source/src/aster/training.py.html"><code>training.py</code></a> 已实现 <code>TaskRecord</code> 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；<code>prepare_sft()</code> 会把真实保存的 request artifact 与匹配的 <code>model_reply</code> 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。<code>TokenizedDecision</code> 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。<code>GRPORollout</code>/<code>validate_group()</code> 还校验版本、采样参数、预算、分组数量和 reward 可用性。</p>
+<p>这些是数据质量合同，不是训练器：没有真实 tokenizer 对齐、采样循环、反向传播或优化器，也没有因此产生权重或证明模型变强。<code>AsterEnv</code> 的教学奖励和 <code>GRPORollout</code> 的训练合同也要分开：环境演示可以返回奖励，但 rollout 的 <code>cancelled</code>、<code>infrastructure_error</code>、<code>verifier_error</code> 必须保持 <code>reward=None</code>，不能直接当成模型负例训练。</p>
 <h2 id="reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</h2>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">observation</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
 </pre></div>
@@ -83,7 +86,7 @@
 </tr>
 <tr>
 <td><code>context_policy</code></td>
-<td>上下文策略版本，例如 <code>deterministic-v4</code></td>
+<td>上下文策略版本，例如 <code>deterministic-v7</code></td>
 </tr>
 <tr>
 <td><code>phase</code>、<code>turn</code>、<code>step</code></td>
@@ -201,6 +204,6 @@
 </ol>
 </details>
 <p>相关契约测试见 <a href="../source/tests/test_rl_contract.py.html">test_rl_contract.py</a>。它们检查接口语义、奖励边界与并发限制，不证明策略经过训练后会变强。</p>
-<p>到这里，你应能把 Aster 画成一个共享运行时：不同入口提供动作，相同工具、安全、上下文、记忆与恢复机制负责执行；评测单独判断执行结果。后续 SFT/GRPO 的数据组织、训练目标和算法实现，应在真实开展后另写课程。</p>
+<p>到这里，你应能把 Aster 画成一个共享运行时：不同入口提供动作，相同工具、安全、上下文、记忆与恢复机制负责执行；评测单独判断执行结果。SFT/GRPO 的数据组织与校验合同已经在 <a href="../source/docs/post-training-design.md"><code>docs/post-training-design.md</code>（Markdown 原文下载）</a> 和本章接口中说明；训练目标、采样训练器和优化器仍未实现。</p>
 <p><a href="14-evaluation.html">上一章：评测</a> · <a href="../index.html">目录</a></p>
-<nav class="chapter-nav"><a href="14-evaluation.html">← 14｜从“能跑”到“证明有用”</a><a href="../index.html">回到课程首页 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题评测动作为什么要经过真实运行时">问题：评测动作为什么要经过真实运行时</a><a href="#reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</a><a href="#step一个动作一次状态转换">step：一个动作，一次状态转换</a><a href="#外部策略实际看到什么">外部策略实际看到什么</a><a href="#两种验证各自回答不同问题">两种验证，各自回答不同问题</a><a href="#离线实验正确完成无评分器预算截断">离线实验：正确完成、无评分器、预算截断</a><a href="#练习与参考答案">练习与参考答案</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="14-evaluation.html">← 14｜从“能跑”到“证明有用”</a><a href="../index.html">回到课程首页 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题评测动作为什么要经过真实运行时">问题：评测动作为什么要经过真实运行时</a><a href="#已实现的后训练数据契约">已实现的后训练数据契约</a><a href="#reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</a><a href="#step一个动作一次状态转换">step：一个动作，一次状态转换</a><a href="#外部策略实际看到什么">外部策略实际看到什么</a><a href="#两种验证各自回答不同问题">两种验证，各自回答不同问题</a><a href="#离线实验正确完成无评分器预算截断">离线实验：正确完成、无评分器、预算截断</a><a href="#练习与参考答案">练习与参考答案</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

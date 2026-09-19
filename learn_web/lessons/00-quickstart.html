@@ -24,7 +24,7 @@ conda<span class="w"> </span>activate<span class="w"> </span>aster
 python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s1">'.[dev]'</span>
 </pre></div>
 </div>
-<p><code>-e</code> 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。<code>[dev]</code> 加装 pytest 等开发工具。项目依赖见 <a href="../source/pyproject.toml">pyproject.toml</a>：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。</p>
+<p><code>-e</code> 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。<code>[dev]</code> 加装 pytest 等开发工具。项目依赖见 <a href="../source/pyproject.toml">pyproject.toml</a>：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。课程实验不调用模型 API，但 tiktoken 首次使用可能需要下载词表；完全断网前请准备好本地缓存。第 04 章的 Linux 沙箱实验要求运行环境支持 Landlock/seccomp；不支持时应看到 <code>required</code> 的明确失败，而不是把外层沙箱限制写成产品不支持隔离。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>aster
 python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import sys, aster; print(sys.executable); print(aster.__file__)"</span>
 </pre></div>

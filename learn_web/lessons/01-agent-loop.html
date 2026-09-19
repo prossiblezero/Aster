@@ -85,7 +85,7 @@
 </div>
 <p><code>text</code> 是回复正文，<code>calls</code> 是本轮提出的工具动作，<code>usage</code> 是服务返回的 token 使用量。列表里的每个 <code>ToolCall</code> 有名称、参数和 <code>call_id</code>；编号把请求与对应结果连起来。</p>
 <p><code>_model_turn</code> 的处理顺序很关键：先保存模型原始回复，再逐个执行调用，最后为每个调用追加结果。即使中途取消，也会为未完成调用补上带 <code>turn_interrupted</code> 原因的取消结果。这个结果表示“未能确认完成”，不表示副作用被自动撤销。</p>
-<p>当前实现按顺序执行一轮里的工具调用。Worker 是另一条显式的并发机制，见 <a href="13-interaction-and-workers.html">第 13 章</a>；不要把模型一次返回多个调用误认为自动并行。</p>
+<p>默认配置按顺序执行一轮里的工具调用，但这不是无条件的串行保证：当 <code>read_parallelism &gt; 1</code> 时，<code>_execute_batch</code> 可并行执行只含 <code>read_file</code>、<code>search</code>、<code>list_files</code> 的纯读取批次；预检、结果提交仍按顺序进行。混合批次以及默认 <code>read_parallelism=1</code> 仍串行。Worker 是另一条显式的并发机制，见 <a href="13-interaction-and-workers.html">第 13 章</a>。</p>
 <h2 id="实验两次工具调用只占一轮模型决策">实验：两次工具调用只占一轮模型决策</h2>
 <p>按 <a href="00-quickstart.html">第 00 章</a> 的方法保存并运行。模型替身第一轮读两个文件，第二轮回答。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>

@@ -1,0 +1,18 @@
+第 09 章两处事实问题已修正，未扩大修改范围：
+
+- `allow_model_change=True` 现在明确允许模型上下文预算和输出预算随新模型配置变化，并说明恢复会执行新预算的上下文预检；`steps`/`turns` 计数以及安全、能力和其他非模型设置不会因此重置或放宽。
+- 入口代码节选改为真实的 `load_checkpoint(...)` 调用，不再把直接安装 `checkpoint.history` 称为核心路径。正文补充了后续 `canonicalize`、预算预检、原生历史归档、工具/归档/脱敏/工作区校验及最终安装顺序，并明确这是节选。
+
+已重新生成：
+
+- `learn_web/lessons/09-checkpoint-resume.html`
+- `learn_web/search.json`
+
+当前工作区正式验证已通过：
+
+```text
+python -m pytest -q learn_web/tests/test_site.py
+6 passed in 0.92s
+```
+
+课程实验未在本轮重复执行。

@@ -1,0 +1,85 @@
+Aster model: main | openai/gpt-5.6-luna | responses | stream=True.
+Aster context: 95,232 input + 32,768 output tokens (configured total budget); output: configured.
+
+[Aster model attempt 1; provisional output]
+
+[Model attempt incomplete; preview abandoned. No tools executed from this response.]
+
+[Aster model attempt 2; provisional output]
+[receiving response: 1 characters]
+[receiving response: 93 characters]
+[receiving tool arguments]
+我只处理第 09 章指定的两处内容：先读取当前章节并核对 `session.py` 的相关实现，再一次性修改该 Markdown，随后按要求分别构建网站和运行正式站点测试。不会重查或改动其他章节。
+[model attempt 2 completed]
+[tool read_file: success ]
+[tool search: success ]
+[tool search: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool read_file: success ]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving response: 141 characters]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+[receiving tool arguments]
+源码确认了两点：`safety_identity` 将 `context_tokens` 与 `output_tokens` 排除在安全身份比较之外，因此允许模型切换时它们可以随新配置变化；而 `Runtime.resume` 先调用 `load_checkpoint`，只有检测到模型身份变化后才做 `canonicalize`、上下文预检和原生历史归档，最后才安装状态。我将据此替换两段误导性文字。
+[model attempt 1 completed]
+[tool patch_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+[receiving response: 75 characters]
+[receiving tool arguments]
+两处已按源码修正：入口节选现在只展示真实的 `load_checkpoint` 调用，并说明后续转换/预检/归档/安装顺序；预算表述也改为允许模型切换调整上下文与输出预算，同时保留 steps/turns 和安全能力设置的限制。接下来开始网站重建。
+[model attempt 1 completed]
+[tool read_file: success ]
+[tool read_file: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving tool arguments]
+[model attempt 1 completed]
+[tool run_shell: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 2 characters]
+[receiving tool arguments]
+网站已根据第 09 章更新重新生成，变更了该章页面和搜索索引。现在执行本轮唯一要求的正式站点测试；这是当前工作区的首次本轮验证。
+[model attempt 1 completed]
+[tool run_tests: success ]
+
+[Aster model attempt 1; provisional output]
+[receiving response: 1 characters]
+第 09 章两处事实问题已修正，未扩大修改范围：
+
+[receiving response: 107 characters]
+- `allow_model_change=True` 现在明确允许模型上下文预算和输出预算随新模型配置变化，并说明恢复会执行新预算的上下文预检；`steps`/`turns` 计数以及安全、能力和其他非模型设置不会因此重置或放宽。
+[receiving response: 222 characters]
+- 入口代码节选改为真实的 `load_checkpoint(...)` 调用，不再把直接安装 `checkpoint.history` 称为核心路径。正文补充了后续 `canonicalize`、预算预检、原生历史归档、工具/归档/脱敏/工作区校验及最终安装顺序，并明确这是节选。
+
+已重新生成：
+
+[receiving response: 317 characters]
+- `learn_web/lessons/09-checkpoint-resume.html`
+- `learn_web/search.json`
+
+当前工作区正式验证已通过：
+
+```text
+python -m pytest -q learn_web/tests/test_site.py
+6 passed in 0.92s
+```
+
+[receiving response: 476 characters]
+课程实验未在本轮重复执行。
+[model attempt 1 completed]
+run_id=509133a0f037435790465584840319d2 phase=completed reason=verified steps=10/45 turns=7/24 modified_files=3 verification=passed

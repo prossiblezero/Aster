@@ -4,7 +4,7 @@
 
 > 当前任务需要一张工作便笺；下一次任务需要有出处、仍然有效的项目知识。
 
-读完本章，你应该能回答：`messages` 已经记录了工具结果，为什么还需要 `working_memory`？关闭长期记忆会不会让 Agent 失去短期记忆？哪些内容允许跨运行保存？
+读完本章，你应该能回答：`messages` 已经记录了工具结果，为什么还需要 `working_memory`？关闭长期记忆会不会让 Agent 失去短期记忆？不会；`memory_enabled=False` 关闭的是持久 Memory 工具与召回，`_collect_step` 仍维护本次 RunState 的工作记忆。哪些内容允许跨运行保存？
 
 ## 问题：记住所有聊天，不等于用好记忆
 
@@ -16,8 +16,8 @@
 flowchart TD
     A[read_file 成功] --> B[messages：记录本次工具输出]
     A --> C[RunState.working_memory：短期摘录]
-    A --> D[trace：来源证据与文件指纹]
-    D --> E[memory_store 提交候选摘录]
+    A --> D[_collect_step：观察与来源指纹]
+    D --> E[memory_store / store_excerpt：认证候选摘录]
     E --> F{来源真实、内容合规、文件未变？}
     F -->|是| G[.aster/memory/state.json]
     G --> H[后续任务按关键词召回]
@@ -33,13 +33,13 @@ flowchart TD
 | `RunState.working_memory` | 按路径保存近期读文件、搜索、测试的简短结果 | 当前运行；通过检查点恢复 | 不保存完整原文，不等于消息协议历史 |
 | `Memory.state["lessons"]` | 保存经过校验的跨运行项目摘录 | 工作区的 `.aster/memory/state.json` | 不替代任务状态或检查点 |
 
-`RunState` 是运行状态对象。`working_memory` 的唯一所有者就是它，`Memory` 类没有第二份持久化的 working memory。`Memory.remember_file()` 接受外部传入的字典，只负责向那张工作便笺写入内容。
+`RunState` 是运行状态对象。`working_memory` 的唯一所有者就是它，`Memory` 类没有第二份持久化的 working memory。`Memory.remember_file()` 只负责向那张工作便笺写入内容；模块级 `store_excerpt()` 才负责跨运行来源认证。
 
 当前调用模型所需的原生工具历史由 Runtime 单独维护；`messages` 不能简单拿来替代完整的调用/结果协议。有关这部分，回看[模型协议](02-model-protocols.md)与[上下文归档](07-context-archives.md)。
 
 ## 顺着一次 read_file 读源码
 
-从 [Runtime._step](../../src/aster/runtime.py) 搜索下面这段实际代码：
+从 [Runtime._collect_step](../../src/aster/runtime.py) 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 `memory.py` 的 `store_excerpt` 中完成：
 
 ```python
 if outcome.status == "success" and call.name == "read_file":
@@ -48,7 +48,7 @@ if outcome.status == "success" and call.name == "read_file":
     state.read_evidence[path] = outcome.data["source_sha256"]
 ```
 
-这里的 `outcome` 是工具结果。`content` 是展示给模型的文本，`data` 是程序消费的结构化信息；`source_sha256` 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。
+这里的 `outcome` 是工具结果。`_collect_step` 负责把本次观察写入运行状态；长期入库时再由 `memory.store_excerpt` 认证原文摘录、证据和来源指纹。`content` 是展示给模型的文本，`data` 是程序消费的结构化信息；`source_sha256` 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。
 
 继续到 [Memory.remember_file](../../src/aster/memory.py)：
 
@@ -78,9 +78,9 @@ def remember_file(self, path: str, summary: str, working: dict | None = None):
 | `evidence_id` | 当前运行中一次成功读取的证据标识 | `read_file` 返回的 `Outcome.evidence_id` |
 | `tags` | 便于关键词召回的标签，可省略 | `["service", "port"]` |
 
-Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`workflow_tool()` 会在当前运行的 trace 里找到对应的成功 `read_file`，取出当时观察到的文本与来源指纹，再调用 `Memory.record()`。
+Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`workflow_tool()` 委托 `memory.py` 模块级的 `store_excerpt`：它在本 run 中找到对应的成功 `read_file`，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。
 
-`Memory.record()` 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。
+`store_excerpt` 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。
 
 通过检查后的记录包含：
 
@@ -218,7 +218,7 @@ asyncio.run(main())
 
 能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 [test_memory_evolution.py](../../tests/test_memory_evolution.py) 与 [test_runtime_repairs.py](../../tests/test_runtime_repairs.py)，重点搜索 `disabled_durable_memory` 和 `memory_cannot_launder`。
 
-实验验证的是存储、隔离和失效机制，没有测模型任务成功率。跨运行记忆的收益应使用同题的开关对照，观察重复读取、额外调用和正确率；参见[评测章节](14-evaluation.md)。
+实验验证的是存储、隔离和失效机制，没有测模型任务成功率；`Settings.memory_enabled` 默认是 `False`，关闭它不影响本 run 的 `working_memory`，自动召回只在显式开启并满足未重复召回等条件时发生。跨运行记忆的收益应使用同题的开关对照，观察重复读取、额外调用和正确率；参见[评测章节](14-evaluation.md)。
 
 下一章继续处理另一种老化：文件没变，某条建议却连续使用失败。Aster 如何调整它的排序，何时停用，以及停错了如何恢复？
 

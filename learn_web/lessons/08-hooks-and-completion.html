@@ -121,7 +121,7 @@ Hooks 用于注入局部规则，<code>StallDetector</code> 识别重复无进�
 <p><code>max_final_revisions</code> 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
 <code>completion=&quot;strict&quot;</code> 在最终检查不通过时停止；<code>warn</code> 和 <code>soft</code> 当前走相同的宽松分支，重试后可带警告结束。
 <code>off</code> 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。</p>
-<p>运行完成检查也不等同于隐藏测试。它证明满足了当前任务的运行要求，功能正确性仍应由独立测试验证。</p>
+<p><code>run_shell</code> 成功只表示这条命令返回成功，不会更新正式验证证据；需要通过 <code>run_tests</code> 生成结构化、绑定当前工作区的正式检查。正式检查通过也不等于教程语义已经正确，更不等于隐藏测试或外部产品验收通过。运行完成检查也不等同于隐藏测试：它只证明当前任务的运行要求。</p>
 <h2 id="离线实验三个机制分别做了什么">离线实验：三个机制分别做了什么</h2>
 <p>激活 <code>aster</code> 环境，将代码保存为 <code>/tmp/aster_lesson08.py</code>，运行 <code>python /tmp/aster_lesson08.py</code>。
 本实验直接提交动作，目的是看见确定的控制行为，没有模拟“模型自主发现问题”的成绩。</p>

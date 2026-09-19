@@ -87,8 +87,12 @@ if state.read_evidence.get(path) != fingerprint:
 命令只获得精简的环境变量，模型 API key 不会随父进程环境直接传入。
 
 执行后会检查只读约束、写入范围、危险文件类型和外部并发修改，再发布合法改动。
-`required` 表示隔离不可用就拒绝；`best_effort` 只在没有只读或写入范围约束时允许降级，并记录 `degraded=True`。
-`off` 显式关闭隔离，不能拿来承诺只读或限定写入范围。
+`required` 表示隔离不可用就拒绝；本章实验因此只能在支持 Landlock/seccomp 的 Linux 环境中成功。
+`off` 明确关闭隔离；遇到只读或写入范围约束时会直接 `blocked`，不能继续执行。`best_effort` 只有在没有这两类约束时，才允许隔离不可用后降级并记录结果；存在约束时仍拒绝。两者都不是本实验 `required` 的降级路径。
+
+### 依赖与进程边界
+
+默认情况下，一条命令安装的依赖不会进入下一条命令。`reuse_environment` 只在 `required` 且同一进程中复用受控 `.venv`/`node_modules`；可写命令失败时环境可能被丢弃，需要按结果提示重新安装。它不会跨进程恢复。每次工具调用拥有自己的进程，后台服务不会存活到下一次调用；临时文件放在工作区 `.tmp/` 或 `TMPDIR`，网络关闭时也包括本机 TCP。
 
 | 结果字段 | 为什么需要它 |
 |---|---|
@@ -103,7 +107,7 @@ if state.read_evidence.get(path) != fingerprint:
 ## 离线实验：批准了，也不能根据过期读取修改
 
 激活 `aster` 环境，把下面代码保存到 `/tmp/aster_lesson04.py`，在项目根运行 `python /tmp/aster_lesson04.py`。
-本实验不使用模型 API，实际补丁会经过 Linux 沙箱；沙箱不可用时会明确失败，不会偷偷关闭隔离。
+本实验不使用模型 API，并显式要求 `sandbox="required"`：当前环境不支持 Landlock/seccomp 时应明确失败，而不是降级后继续。请在支持这两项隔离能力的 Linux 环境运行；这不是把外层运行环境的限制解释成 Aster 产品不支持隔离。
 
 ```python
 # 可运行实验
@@ -123,6 +127,7 @@ async def main():
         target.write_text("old", encoding="utf-8")
         runtime = Runtime(root, Settings(
             approval="auto",
+            sandbox="required",
             rules=[ExecRule(prefix=["rm"], decision="deny", reason="no_delete")],
         ))
         runtime.start(TaskSpec(prompt="将 value.txt 改成 new"))
@@ -148,6 +153,7 @@ async def main():
         assert changed.status == "success", (changed.reason, changed.content)
         assert target.read_text() == "new"
         print("执行隔离:", changed.data["isolation"])
+        assert changed.data["isolation"] == "landlock+seccomp"
 
         denied = await runtime.step(
             ToolCall(name="run_shell", arguments={"command": "rm value.txt"})
@@ -166,7 +172,7 @@ asyncio.run(main())
 没有读过: fresh_read_required
 读取后发生外部修改: fresh_read_required
 重新读取后: success ['value.txt']
-执行隔离: landlock+seccomp
+执行隔离: landlock+seccomp  # 支持隔离的 Linux；required 不支持时明确失败
 auto 遇到明确拒绝: blocked no_delete
 ```
 

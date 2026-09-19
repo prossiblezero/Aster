@@ -4,7 +4,7 @@
 
 > 模型自己决定下一步，或外部程序传入下一步，都应该经过同一套工具与安全规则。
 
-本章只介绍已经实现的环境接口 `AsterEnv`。项目目前没有实现 SFT、GRPO 或其他训练算法；读懂这章，不代表已经完成 Agent 后训练。
+本章只介绍已经实现的环境接口 `AsterEnv`，以及已经实现的数据契约。项目没有实现 tokenizer 对齐、采样训练器、优化器、权重更新或训练效果验证；读懂这章，不代表已经完成 Agent 后训练。
 
 ## 问题：评测动作为什么要经过真实运行时
 
@@ -23,6 +23,12 @@ flowchart TD
 ```
 
 代码入口是 [rl.py](../../src/aster/rl.py)，公开动作和任务类型在 [schema.py](../../src/aster/schema.py)。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。
+
+## 已实现的后训练数据契约
+
+[`training.py`](../../src/aster/training.py) 已实现 `TaskRecord` 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；`prepare_sft()` 会把真实保存的 request artifact 与匹配的 `model_reply` 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。`TokenizedDecision` 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。`GRPORollout`/`validate_group()` 还校验版本、采样参数、预算、分组数量和 reward 可用性。
+
+这些是数据质量合同，不是训练器：没有真实 tokenizer 对齐、采样循环、反向传播或优化器，也没有因此产生权重或证明模型变强。`AsterEnv` 的教学奖励和 `GRPORollout` 的训练合同也要分开：环境演示可以返回奖励，但 rollout 的 `cancelled`、`infrastructure_error`、`verifier_error` 必须保持 `reward=None`，不能直接当成模型负例训练。
 
 ## reset：一轮试验一个临时工作区
 
@@ -63,7 +69,7 @@ observation, reward, terminated, truncated, info = await env.step(action)
 | `model_input` | 已经经过当前上下文策略构建的模型输入 |
 | `tools` | 当前可见且可用的工具定义 |
 | `context_tokens` | 本地估算的模型输入 token 数 |
-| `context_policy` | 上下文策略版本，例如 `deterministic-v4` |
+| `context_policy` | 上下文策略版本，例如 `deterministic-v7` |
 | `phase`、`turn`、`step` | 当前运行阶段和已消耗预算 |
 | `working_memory`、`plan`、`todos` | 短期信息、计划和任务清单 |
 | `feedback`、`verification` | Runtime 的纠偏提示与内部验证状态 |
@@ -187,6 +193,6 @@ asyncio.run(main())
 
 相关契约测试见 [test_rl_contract.py](../../tests/test_rl_contract.py)。它们检查接口语义、奖励边界与并发限制，不证明策略经过训练后会变强。
 
-到这里，你应能把 Aster 画成一个共享运行时：不同入口提供动作，相同工具、安全、上下文、记忆与恢复机制负责执行；评测单独判断执行结果。后续 SFT/GRPO 的数据组织、训练目标和算法实现，应在真实开展后另写课程。
+到这里，你应能把 Aster 画成一个共享运行时：不同入口提供动作，相同工具、安全、上下文、记忆与恢复机制负责执行；评测单独判断执行结果。SFT/GRPO 的数据组织与校验合同已经在 [`docs/post-training-design.md`](../post-training-design.md) 和本章接口中说明；训练目标、采样训练器和优化器仍未实现。
 
 [上一章：评测](14-evaluation.md) · [目录](README.md)

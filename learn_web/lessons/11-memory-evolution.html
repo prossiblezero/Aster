@@ -43,7 +43,7 @@
 </tr>
 </tbody>
 </table>
-<p>关闭 <code>auto_dream</code> 不会关闭反馈计数，仍可显式调用 <code>Memory.dream()</code>。关闭 <code>memory_evolution</code> 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。</p>
+<p>关闭 <code>auto_dream</code> 不会关闭反馈计数，仍可显式调用 <code>Memory.dream()</code>；但如果 <code>auto_dream=True</code> 而 <code>memory_enabled</code> 或 <code>memory_evolution</code> 关闭，Dream 会返回 <code>skipped</code>，不会进行维护。关闭 <code>memory_evolution</code> 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。</p>
 <p>这些开关适合做模块对照：保持任务和模型相同，只改变目标机制。它们不意味着每个用户都需要在运行前手工配置。</p>
 <h2 id="反馈来自哪里被召回不等于被正确使用">反馈来自哪里：被召回不等于被正确使用</h2>
 <p>在 <a href="../source/src/aster/runtime.py.html">Runtime._memory_text</a> 和 <code>memory_retrieve</code> 分支中，召回条目的 ID 会进入 <code>state.recalled_ids</code>。<code>recalled_ids</code> 是“待关联后续测试结果的条目集合”，不是“已证明有帮助的条目集合”。</p>

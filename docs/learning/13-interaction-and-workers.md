@@ -11,7 +11,7 @@ Agent 需要同时调查测试入口与模块结构：这可以交给一个只�
 两者都会暂停部分工作，但权限和返回结果很不一样，不能都塞进一个没有明确语义的“消息工具”。
 
 Aster 将人工问题接到回调，将子任务接到 `WorkerManager`。
-CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点和权限逻辑。
+CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点和权限逻辑。公开 CLI 支持 `--model`/profile 配置；TUI 命令的实际形式是 `/model [alias]`、`/new`、`/continue [--adopt-workspace]`、`/resume RUN_ID [--allow-model-change] [--adopt-workspace]`，恢复时的标志必须显式确认。模型切换不是任意输入型号即可接通：它要经过 profile 配置、空闲边界、历史转换和预算检查。
 
 ```mermaid
 flowchart TD
@@ -83,7 +83,7 @@ aster --tui --cwd /tmp/aster-tui-practice --env-file .env --approval ask
 | `future` | Python 的异步任务句柄，供调度器等待和取消 |
 | `inbox` | 尚未投递给子运行的补充要求 |
 
-子运行固定最多 12 次模型轮次、12 次工具调用，`max_workers=0` 禁止继续派生。
+Worker 默认关闭；启用后每个 worker 有独立的轮次、工具和上下文预算，不是把所有 worker 合并成一个“全团队总预算”。子运行固定最多 12 次模型轮次、12 次工具调用，`max_workers=0` 禁止继续派生；持久 Memory 召回与演化也关闭。流式预览只表示暂时收到的 delta，不表示动作已经执行。
 它保留自己的短期工作记忆，但关闭跨运行记忆写入与演化，由父任务负责长期经验维护。
 如果两个活跃写入 worker 的范围重叠，启动会返回 `worker_scope_busy`。
 这并不禁止用户的编辑器或另一个 Aster 进程修改文件，所以第 04 章的并发变更检查仍然必要。

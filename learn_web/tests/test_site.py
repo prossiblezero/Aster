@@ -235,7 +235,7 @@ def test_each_mermaid_diagram_preserves_nodes_edges_labels_and_order():
             actual.append((nodes, edges, diagram["raw"]))
     assert len(expected) == len(actual) == 11
     assert sum(len(nodes) for nodes, _, _ in expected) == 100
-    assert sum(len(edges) for _, edges, _ in expected) == 97
+    assert sum(len(edges) for _, edges, _ in expected) == 98
     assert actual == expected
 
 
