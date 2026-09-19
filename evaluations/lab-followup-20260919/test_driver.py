@@ -23,8 +23,10 @@ def source_snapshot(tmp_path_factory):
 def test_frozen_imports_match_manifest_and_have_no_inherited_credentials(tmp_path, monkeypatch, source_snapshot):
     source = source_snapshot
     monkeypatch.setenv("ASTER_API_KEY", "must-not-inherit")
+    monkeypatch.setenv("HTTPS_PROXY", "http://transport-proxy.invalid:8080")
     env = driver.child_environment(source.resolve())
     assert "ASTER_API_KEY" not in env
+    assert env["HTTPS_PROXY"] == "http://transport-proxy.invalid:8080"
     assert env["PYTHONDONTWRITEBYTECODE"] == "1"
     frozen = driver.manifest(source.resolve())
     imports = driver.capture_json(driver.IMPORT_PROBE, [str(source.resolve())], tmp_path, env, driver.Redactor())
@@ -34,7 +36,8 @@ def test_frozen_imports_match_manifest_and_have_no_inherited_credentials(tmp_pat
     assert not list(tmp_path.iterdir())
 
 
-def test_redaction_and_bounded_operator_answers(tmp_path):
+def test_redaction_and_bounded_operator_answers(tmp_path, monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://transport-proxy.invalid:8080")
     credentials = tmp_path / "credentials.env"
     credentials.write_text("CUSTOM_API_KEY='synthetic-secret-value'\n")
     config = tmp_path / "settings.toml"
@@ -44,6 +47,7 @@ def test_redaction_and_bounded_operator_answers(tmp_path):
                              "base_url": "https://private-gateway.invalid/v1/responses"})
     assert "synthetic-secret-value" not in json.dumps(result)
     assert "private-gateway.invalid" not in json.dumps(result)
+    assert "transport-proxy.invalid" not in redactor.text("via transport-proxy.invalid:8080")
     event = {"event": "permission_decision", "decision": "ask", "call": {"name": "ask_user"}}
     assert driver.responses(event, 0) == ([("approval", "y"), ("clarification", driver.ANSWER)], 1, False)
     assert driver.responses(event, 2) == ([], 3, True)

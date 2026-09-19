@@ -24,6 +24,8 @@ RESULTS = Path(__file__).resolve().parent / "runs"
 PYTHON = Path("/home/dzh/.conda/envs/aster/bin/python")
 ANSWER = "按已经提供的需求和合理默认实现，不扩展范围。"
 MAX_CLARIFICATIONS = 2
+PROXY_VARIABLES = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+                   "http_proxy", "https_proxy", "all_proxy", "no_proxy")
 STATE_FIELDS = ("run_id", "session_id", "phase", "stop_reason", "step", "turn", "usage",
                 "changed_paths", "verification", "feedback", "final")
 EVENTS = {"provider_attempt", "provider_error", "permission_decision", "tool_result",
@@ -52,7 +54,7 @@ def manifest(source: Path) -> dict:
 def child_environment(source: Path) -> dict:
     # Credentials/configuration come only from the explicitly selected files.
     env = {key: os.environ[key] for key in
-           ("HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TERM")
+           ("HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TERM", *PROXY_VARIABLES)
            if key in os.environ}
     env.update(PATH=f"{PYTHON.parent}:/usr/local/bin:/usr/bin:/bin",
                PYTHONPATH=str(source / "src"), PYTHONNOUSERSITE="1",
@@ -64,7 +66,7 @@ class Redactor:
     """Keep explicit credential values and endpoint hosts out of exported evidence."""
 
     def __init__(self, env_file: Path | None = None, config: Path | None = None):
-        values = []
+        values = [os.environ[name] for name in PROXY_VARIABLES if os.environ.get(name)]
         env_values = {}
         if env_file:
             for line in env_file.read_text().splitlines():
