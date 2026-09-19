@@ -1,0 +1,84 @@
+{
+  "source_manifest_sha256": "9a104a9e3502402ff673b86bb64bc1a922c260c4b5aee82d1ea52434841e2518",
+  "candidate_edited": false,
+  "python": "/home/dzh/.conda/envs/aster/bin/python",
+  "checks": [
+    {
+      "name": "create_clean_venv",
+      "command": [
+        "/home/dzh/.conda/envs/aster/bin/python",
+        "-m",
+        "venv",
+        ".venv"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "readme_install",
+      "command": [
+        "<clean-temp>/product/.venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "-q",
+        "-r",
+        "requirements.txt"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: /tmp/aster-lab-delivery-jiumphvo/product/.venv/bin/python -m pip install --upgrade pip\n"
+    },
+    {
+      "name": "readme_self_tests",
+      "command": [
+        "<clean-temp>/product/.venv/bin/python",
+        "-m",
+        "unittest",
+        "-v"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_cli_preserves_missing_spaces_and_formula_text_in_derived_sheets (test_lab_data.LabDataCliTests.test_cli_preserves_missing_spaces_and_formula_text_in_derived_sheets) ... ok\ntest_generates_three_sheets_and_preserves_text_and_statistics (test_lab_data.LabDataCliTests.test_generates_three_sheets_and_preserves_text_and_statistics) ... ok\ntest_input_cannot_be_output_and_no_valid_values_are_blank (test_lab_data.LabDataCliTests.test_input_cannot_be_output_and_no_valid_values_are_blank) ... ok\ntest_interactive_mode_matches_cli_and_existing_output_is_not_overwritten (test_lab_data.LabDataCliTests.test_interactive_mode_matches_cli_and_existing_output_is_not_overwritten) ... ok\ntest_structural_errors_do_not_create_output (test_lab_data.LabDataCliTests.test_structural_errors_do_not_create_output) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.700s\n\nOK\n"
+    },
+    {
+      "name": "readme_cli",
+      "command": [
+        "<clean-temp>/product/.venv/bin/python",
+        "lab_data.py",
+        "sample_lab.csv",
+        "--columns",
+        "temp,ph",
+        "--output",
+        "sample_report.xlsx"
+      ],
+      "returncode": 0,
+      "stdout": "已生成 Excel: sample_report.xlsx\n",
+      "stderr": ""
+    },
+    {
+      "name": "interactive_demo",
+      "command": [
+        "<clean-temp>/product/.venv/bin/python",
+        "lab_data.py"
+      ],
+      "returncode": 0,
+      "stdout": "输入 CSV 路径: 数值列名（逗号分隔）: 输出 Excel 路径: 已生成 Excel: interactive_report.xlsx\n",
+      "stderr": ""
+    },
+    {
+      "name": "inspect_both_workbooks",
+      "command": [
+        "<clean-temp>/product/.venv/bin/python",
+        "-c",
+        "from openpyxl import load_workbook; import json; out=[]\nfor p in ['sample_report.xlsx','interactive_report.xlsx']:\n w=load_workbook(p,data_only=False); assert w.sheetnames==['原始','汇总','异常']; assert w['汇总']['B2'].value==3; assert w['原始']['D6'].data_type=='s'; out.append({'file':p,'sheets':w.sheetnames,'temp_count':w['汇总']['B2'].value})\nprint(json.dumps(out,ensure_ascii=False))"
+      ],
+      "returncode": 0,
+      "stdout": "[{\"file\": \"sample_report.xlsx\", \"sheets\": [\"原始\", \"汇总\", \"异常\"], \"temp_count\": 3}, {\"file\": \"interactive_report.xlsx\", \"sheets\": [\"原始\", \"汇总\", \"异常\"], \"temp_count\": 3}]\n",
+      "stderr": ""
+    }
+  ],
+  "source_files_unchanged": true,
+  "passed": true
+}

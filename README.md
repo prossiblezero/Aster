@@ -8,6 +8,8 @@
 
 [v0.2 工程收尾与真实任务验收](evaluations/v0.2-release/REPORT.md)：补齐模型响应诊断、有界重试、CLI 流式进度、安全恢复和执行环境契约。新会话默认单 Agent，Memory、自动维护及 Worker 默认关闭，可显式开启；九个核心工具不变。真实任务的首测失败、修复、独立验收和剩余门槛均保留，不把可选机制存在等同于收益。
 
+[实验数据工具修复复测](evaluations/lab-followup-20260919/REPORT.md)：补齐依赖丢失和正式测试入口的反馈。隔离首测失败及有限返修全部保留；最终[可交互CSV→Excel产品](exam_project/lab_data/README.md)通过24项独立验收和5项正式自测，不能解释为首次自主成功。
+
 教学网站、专用运行脚本、测试和历史证据集中在 `learn_web/`；可运行的小项目统一放在 [exam_project/](exam_project/README.md)，评测协议、驱动、报告与历史证据放在 [evaluations/](evaluations/README.md)。课程正文仍以 `docs/learning/` 为来源。
 
 独立实测：[流式](evaluations/archive/stream_comparison/report.md) · [只读并行](evaluations/archive/parallel_comparison/report.md) · [缓存](evaluations/archive/cache_comparison/report.md) · [Memory](evaluations/archive/memory_followup/report.md) · [Skills](evaluations/archive/skills_comparison/report.md) · [会话恢复](evaluations/archive/session_recovery/report.md)。后训练仅完成[方案与数据契约](docs/post-training-design.md)，尚无训练器或训练效果。

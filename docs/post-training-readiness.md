@@ -12,6 +12,8 @@
 
 ## 本轮工程收尾后的状态
 
+**2026-09-19 补充：** [实验工具同题诊断](../evaluations/lab-followup-20260919/REPORT.md)补齐依赖丢弃和正式测试入口说明，最终核心与网站959项离线回归通过。两组首测均未完整交付（22/24与20/24）；补齐反馈的新版本另经一次明确缺陷返修，独立产品24/24、正式真实CLI自测5/5及干净安装/交互运行检查通过。该结果证明此失败产物可在有限反馈下修复，不证明首次自主交付或机制普遍收益。保留首次失败、服务中断、操作员错误和追加成本；本题仍属开发诊断，不转作未见测试。方案设计可以继续，批量采集/开训条件不因此自动放行。以下v0.2记录保持其历史语境。
+
 Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示、checkpoint/inflight不确定副作用拒绝续跑、工具schema错误反馈、只读MIME元数据和受控pip临时缓存均已落地。核心回归954项通过。三个真实产品场景尚未全部通过：数据整理器原16/16遗漏公式样式异常单元格和文档正文读取缺口；维护产品32/32及取消恢复通过，首次模型切换失败，经`7adc9e1`修复及单次真实TUI补验后成功；原失败保留。lab两项剩余门槛未因此放行，整体验收不是全部通过。
 
 [复习安排器](../evaluations/v0.2-release/study-delivery.json)初评8/9，唯一产品返修修复空课程重排，并让Node自测实际执行`app.js`及DOM删除/生成/重新加载路径；最终独立验收9/9，自测2项通过，候选字节已交付。累计42步、36轮、1196.469秒，保留最初框架schema故障、3次传输超时与返修，未报告的超时usage仍未知。这证明该任务在明确澄清和有限返修下能交付，不证明一次自主成功、通用能力或Aster自主浏览器验证；其题目与轨迹仍只作开发诊断。
@@ -64,7 +66,7 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 
 GRPO 方案需要定义同题多次采样的分组、组内奖励与优势计算，并由训练侧获取或可重算行为策略的逐 token logprobs。还应记录 actor/reference 权重版本、token IDs、采样参数、输出终止原因及训练 mask，保证计算概率时使用的观察与采样时一致。
 
-当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v6`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/provider.py)、[context.py：ContextReport](../src/aster/context.py)。
+当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v7`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/provider.py)、[context.py：ContextReport](../src/aster/context.py)。
 
 ### 4. 明确奖励可信范围与异常处理
 

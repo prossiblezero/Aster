@@ -65,6 +65,10 @@ class ReadFile(Record):
 `Record` 在 [schema.py](../../src/aster/schema.py) 中禁止未知字段。
 工具实现因而不必到处写 `args.get("path")`，也不会悄悄吞掉模型拼错的参数名。
 
+`run_shell` 依据实际退出状态报告结果。组合命令应通过 `&&` 或显式传递退出码保留关键步骤的失败，不能让最后成功的清理命令掩盖前面的错误。`run_tests` 则要求有效的结构化测试结果；它不会自动判断测试是否覆盖完整需求，测试仍应调用真实实现或公开入口。
+
+启用 `reuse_environment` 后，正式 Python 测试使用可信测试运行器，并自动加入受控 `.venv` 的依赖路径；直接调用 `python -m unittest` 或 `python -m pytest`，不要增加 `.venv/bin/` 或环境变量前缀，也不要在正式验证前删除依赖。失败的可写 Shell 若丢弃了复用环境，结果会带 `environment_discarded=true` 和重装提示。Shell 中自测成功不会更新正式验证状态，完成反馈会明确要求调用 `run_tests`。
+
 ## 两种分类，不要交叉理解
 
 `CORE_TOOLS` 是**展示策略**：默认包含文件列表、读取、搜索、写入、补丁、命令、测试、差异和 `tool_load`，最多 9 项。

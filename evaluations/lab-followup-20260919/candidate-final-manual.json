@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "reviewed_at_utc": "2026-09-19T03:37:28.675480+00:00",
+  "arm": "B",
+  "run_id": "d83916698b9443f5871666a119e0a79c",
+  "candidate": "evaluations/lab-followup-20260919/candidates/candidate",
+  "reviewed_snapshot": "/home/dzh/Aster/evaluations/lab-followup-20260919/candidates/candidate-final-snapshot",
+  "classification": "Read-only review of a known-task development repair and final frozen delivery; not an unseen evaluation or a general coding-capability estimate.",
+  "reviewer_actions": {
+    "python": "/home/dzh/.conda/envs/aster/bin/python",
+    "candidate_executed": false,
+    "candidate_imported": false,
+    "model_called": false,
+    "candidate_modified": false,
+    "feedback_sent_to_running_agent": false,
+    "written_files": [
+      "evaluations/lab-followup-20260919/candidate-final-manual.json"
+    ]
+  },
+  "initial_process_evidence_reference": {
+    "path": "evaluations/lab-followup-20260919/candidate-initial-manual.json",
+    "sha256": "99b026ed8b289ff38d9d21aeae92d817a8a11742a98883841c6d7cf61674bdc8",
+    "run_id": "1c030d3893cc49068adf263fe1f8bb23"
+  },
+  "source_identity": {
+    "aster_commit": "2c8741d8dcc1d6c561eac15d6fd2d806283e2521",
+    "loaded_source_manifest_sha256": "9e8442257a7a9940d18cdd30f3f89c08993fe9de9f585afb1e34facb54d7d1bd",
+    "source_manifest_file_sha256": "8f225494cb044cf07bddc9ee7c4cea0b091fca3405bf4d6cb3c07d3d22ed8610",
+    "source_unchanged_during_run": true,
+    "source_file_hashes_rechecked": true,
+    "manifest_sha256": "9a104a9e3502402ff673b86bb64bc1a922c260c4b5aee82d1ea52434841e2518",
+    "candidate_hashes_rechecked": true,
+    "successful_trace_patches_replayed_in_memory_match_final_files": true,
+    "checkpoint_file_and_permission_hashes_match_frozen_snapshot": true,
+    "recomputed_workspace_hash": "f3594310d33af2bedeae81b35d894943b0e87099be07d6dc2c2b06a6c200f996",
+    "operator_candidate_edits": false,
+    "candidate_file_names": [
+      ".gitignore",
+      "README.md",
+      "lab_data.py",
+      "requirements.txt",
+      "sample_lab.csv",
+      "test_lab_data.py"
+    ],
+    "candidate_manifest_path": "evaluations/lab-followup-20260919/candidate-final-source.json"
+  },
+  "evidence_identity": {
+    "trace_sha256": "c09300ef2421347bb319e47558f21a120d098669e883bd16897c0f800e30a3b3",
+    "trace_events": 2058,
+    "hash_chain_checked": true,
+    "checkpoint_sha256": "8a09d00e98dad806028d34c0bc1555c21ae31b2ea7979bd2a1f042e58bbb86cb",
+    "driver_summary_sha256": "1f0fe9ebd3a61ed11709bef88e77ffb494c3c793b982c8f4b0093062ea47193c"
+  },
+  "run_outcome": {
+    "phase": "completed",
+    "stop_reason": "verified",
+    "driver_stop_reason": null,
+    "driver_exit_code": 0,
+    "tools": 10,
+    "turns": 10,
+    "elapsed_seconds": 121.451,
+    "budget": {
+      "steps": 24,
+      "turns": 12,
+      "seconds": 600.0
+    },
+    "operator_inputs": [
+      {
+        "run_id": "d83916698b9443f5871666a119e0a79c",
+        "call_id": "call_Ju1V2MpgZD6YqJDlqeLep8XU",
+        "tool": "run_shell",
+        "kind": "approval",
+        "response": "y",
+        "elapsed_seconds": 54.228
+      },
+      {
+        "run_id": "d83916698b9443f5871666a119e0a79c",
+        "call_id": "call_KR5IcRLYhTXza7teWZPN8Ga4",
+        "tool": "run_shell",
+        "kind": "approval",
+        "response": "y",
+        "elapsed_seconds": 78.785
+      },
+      {
+        "run_id": "d83916698b9443f5871666a119e0a79c",
+        "call_id": "call_wTI2OJM4CoRgbcNgI95aNXVQ",
+        "tool": "run_shell",
+        "kind": "approval",
+        "response": "y",
+        "elapsed_seconds": 100.051
+      }
+    ],
+    "final_revisions": 1,
+    "formal_verification": {
+      "state": "passed",
+      "workspace_hash": "f3594310d33af2bedeae81b35d894943b0e87099be07d6dc2c2b06a6c200f996",
+      "evidence_id": "8f0ea8967a354c79898bd0346814bcd8fa7201ad749ba4bb917b16208ca668be",
+      "command": "python -m unittest -v"
+    },
+    "final_answer_present": true
+  },
+  "independent_product_result": {
+    "path": "evaluations/lab-followup-20260919/candidate-final-product.json",
+    "sha256": "6aeb102a6f112211d07d13cb98c1e600bd4e97576dcd488214074b170c6ed17f",
+    "executed_by": "parent evaluation process, not this manual reviewer",
+    "clean_rebuild": true,
+    "passed": true,
+    "passed_checks": 24,
+    "total_checks": 24,
+    "grader_sha256": "4eda8b67fca7ef58134c25f19dae79206afea413556f0b5e4dff45ed536a7e03",
+    "original_grader_sha256": "ca09228d1ab81db69e23d2adb5367490edb1fca18d5b1752880a618200fc928f",
+    "limitation": "The manual_gates list in the product JSON names separate process checks; it does not itself prove those gates. Product checks do not replace Aster formal verification."
+  },
+  "manual_gates": {
+    "official_docs_read_in_model_visible_tool_output": {
+      "passed": true,
+      "initial_evidence_reference": {
+        "report": "evaluations/lab-followup-20260919/candidate-initial-manual.json",
+        "pointer": "/manual_gates/official_docs_read_in_model_visible_tool_output"
+      },
+      "limit": "The relevant official tutorial excerpt was observed in an actual initial-run model request; the whole tutorial was not read. Its byte/hash evidence is retained in the initial report."
+    },
+    "dependency_install_success_trace": {
+      "passed": true,
+      "initial_evidence_reference": {
+        "report": "evaluations/lab-followup-20260919/candidate-initial-manual.json",
+        "pointer": "/manual_gates/dependency_install_success_trace"
+      },
+      "repair_evidence": {
+        "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+        "line": 1647,
+        "seq": 1647,
+        "event_sha256": "d0b673a9a76c8d51b532207c88404030307f799fd103f05bc716661a86a00e96",
+        "event": "tool_result",
+        "step": 8,
+        "tool": "run_shell",
+        "call_id": "call_KR5IcRLYhTXza7teWZPN8Ga4",
+        "status": "success",
+        "reason": "",
+        "exit_code": 0,
+        "evidence_id": "cb983b55d622bbca15575bcbefa4a932a8a2912b72c19fd4bce610035d34490a",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "environment_generation": 5,
+          "environment_reused": true
+        }
+      },
+      "explanation": "Step8 successfully creates the supported .venv and installs requirements with -q, then actually imports openpyxl in CLI tests and workbook checks. Step7 .verify-venv was blocked and is not counted as accepted installation evidence."
+    },
+    "cross_command_dependency_use": {
+      "passed": true,
+      "initial_evidence_reference": {
+        "report": "evaluations/lab-followup-20260919/candidate-initial-manual.json",
+        "pointer": "/manual_gates/cross_command_dependency_use"
+      },
+      "repair_evidence": {
+        "pointer": "/formal_verification/formal_tool_result",
+        "seq": 1965,
+        "event_sha256": "81b22c6163731adeae469f6f115fbe7688e8dd45fcbb416bd7c9cdd6613f3004"
+      },
+      "explanation": "The later, separate run_tests call loads openpyxl in the test parent and real CLI subprocesses after the successful step8 installation; step9 is a separate intervening command."
+    },
+    "readme_commands_review": {
+      "passed": true,
+      "initial_evidence_reference": {
+        "report": "evaluations/lab-followup-20260919/candidate-initial-manual.json",
+        "pointer": "/manual_gates/readme_commands_review"
+      },
+      "readme_unchanged_from_initial": true,
+      "current_clean_delivery_smoke": {
+        "path": "evaluations/lab-followup-20260919/candidate-delivery-smoke.json",
+        "sha256": "c112d6faa2b848f5c45f486f3e6650cb01507f574f4c24f82a9af58b4280abe5",
+        "executed_by": "parent evaluation process, not this manual reviewer",
+        "source_manifest_sha256": "9a104a9e3502402ff673b86bb64bc1a922c260c4b5aee82d1ea52434841e2518",
+        "passed": true,
+        "checks": [
+          "create_clean_venv",
+          "readme_install",
+          "readme_self_tests",
+          "readme_cli",
+          "interactive_demo",
+          "inspect_both_workbooks"
+        ],
+        "source_files_unchanged": true
+      },
+      "static_readme_references": {
+        "install_line": 8,
+        "cli_line": 20,
+        "interactive_line": 28,
+        "self_tests_line": 53,
+        "error_and_no_overwrite_line": 46
+      },
+      "limit": "The clean smoke used the declared Python3.12 interpreter directly and a different output name for the subsequent interactive demo so it did not intentionally trigger the documented no-overwrite rule."
+    },
+    "aster_self_tests": {
+      "passed": true,
+      "current_final_suite_validated": true,
+      "formal_evidence": {
+        "pointer": "/formal_verification/formal_tool_result",
+        "seq": 1965,
+        "event_sha256": "81b22c6163731adeae469f6f115fbe7688e8dd45fcbb416bd7c9cdd6613f3004"
+      },
+      "passed_tests": 5,
+      "real_cli": {
+        "path": "/home/dzh/Aster/evaluations/lab-followup-20260919/candidates/candidate-final-snapshot/test_lab_data.py",
+        "line": 16,
+        "behavior": "subprocess.run invokes sys.executable and the actual lab_data.py; assertions require exit0 and read real generated XLSX files."
+      },
+      "no_mocked_cli_or_prebuilt_workbook": true
+    }
+  },
+  "formal_verification": {
+    "passed": true,
+    "state": {
+      "state": "passed",
+      "workspace_hash": "f3594310d33af2bedeae81b35d894943b0e87099be07d6dc2c2b06a6c200f996",
+      "evidence_id": "8f0ea8967a354c79898bd0346814bcd8fa7201ad749ba4bb917b16208ca668be",
+      "command": "python -m unittest -v"
+    },
+    "formal_tool_result": {
+      "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+      "line": 1965,
+      "seq": 1965,
+      "event_sha256": "81b22c6163731adeae469f6f115fbe7688e8dd45fcbb416bd7c9cdd6613f3004",
+      "event": "tool_result",
+      "step": 10,
+      "tool": "run_tests",
+      "call_id": "call_e7pqeBRNxyS5vkUwRoLmyYTi",
+      "status": "success",
+      "reason": "",
+      "exit_code": 0,
+      "evidence_id": "8f0ea8967a354c79898bd0346814bcd8fa7201ad749ba4bb917b16208ca668be",
+      "data": {
+        "isolation": "landlock+seccomp",
+        "environment_generation": 6,
+        "environment_reused": true,
+        "tested_workspace_hash": "f3594310d33af2bedeae81b35d894943b0e87099be07d6dc2c2b06a6c200f996",
+        "tested_environment_generation": 6,
+        "passed_tests": 5,
+        "is_verification": true,
+        "command": "python -m unittest -v"
+      },
+      "command": "python -m unittest -v"
+    },
+    "tool_decision_evidence": {
+      "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+      "line": 1964,
+      "seq": 1964,
+      "event_sha256": "8f0ea8967a354c79898bd0346814bcd8fa7201ad749ba4bb917b16208ca668be",
+      "event": "tool_decision"
+    },
+    "evidence_id_matches_tool_decision": true,
+    "tested_workspace_hash_matches_checkpoint_and_frozen_files": true,
+    "no_tools_or_edits_after_formal_pass": true,
+    "actual_non_skipped_cases": 5,
+    "completion_revision": {
+      "evidence": {
+        "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+        "line": 1900,
+        "seq": 1900,
+        "event_sha256": "854342851ff3120e5c135995adc9cac1b710b8f0ea1bb1f62e4f178443f9a66a",
+        "event": "completion_revision"
+      },
+      "feedback": "Completion requirements missing: run a successful verification command via run_tests (run_shell checks do not update formal verification)",
+      "explanation": "A shell-only completion attempt was rejected. Explicit feedback required run_tests; the next model tool call used the formal entrypoint and passed."
+    },
+    "verifier_result": {
+      "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+      "line": 2056,
+      "seq": 2056,
+      "event_sha256": "20a77dc6c92f396078a2ad87f9b2a99c3784dfe23eb4c43c2bf5fd5180093010",
+      "event": "verifier_result"
+    },
+    "completion": {
+      "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+      "line": 2057,
+      "seq": 2057,
+      "event_sha256": "3ae08e31a7833db9e820bd81d4e97a709769ec71d4e9cf59f272fce1cd12cd3b",
+      "event": "run_completed"
+    },
+    "limits": "Formal verification proves these five current tests passed, not exhaustive product correctness. Independent product grading supplies the separate 24-case public-contract check."
+  },
+  "retained_failed_attempts": [
+    {
+      "evidence": {
+        "trace": "evaluations/lab-followup-20260919/candidates/candidate/.aster/runs/d83916698b9443f5871666a119e0a79c/trace.jsonl",
+        "line": 1378,
+        "seq": 1378,
+        "event_sha256": "a5d68538c479fc9acace7912a5184f03b7df4d2cb1598e59a8b668aa66585492",
+        "event": "tool_result",
+        "step": 7,
+        "tool": "run_shell",
+        "call_id": "call_Ju1V2MpgZD6YqJDlqeLep8XU",
+        "status": "blocked",
+        "reason": "sandbox_protected_output",
+        "exit_code": 0,
+        "evidence_id": "4fa9fe129c02accd24d6763ecbcce3319eeb7168b7c4bfe910562df2d1541ae9",
+        "data": {
+          "isolation": "landlock+seccomp",
+          "environment_generation": 4,
+          "environment_reused": true,
+          "rejected_paths": [
+            ".verify-venv/lib64",
+            ".verify-venv/bin/python3",
+            ".verify-venv/bin/python3.12",
+            ".verify-venv/bin/python",
+            ".verify-venv/lib/python3.12/site-packages/pip/_vendor/certifi/cacert.pem"
+          ],
+          "environment_discarded": true
+        }
+      },
+      "classification": "sandbox output policy rejected an unsupported temporary venv path",
+      "accepted_formal_verification": false,
+      "test_stdout_says_five_passed": true,
+      "explanation": "The .verify-venv shell command printed real five-test and workbook success, but protected symlink/certificate outputs made its tool status blocked and caused environment_discarded=true. Count neither this command nor its printed OK as formal completion. A supported .venv reinstall and final run_tests subsequently passed."
+    }
+  ],
+  "product_changes": {
+    "only_changed_delivery_files": [
+      "lab_data.py",
+      "test_lab_data.py"
+    ],
+    "source_fixes": [
+      {
+        "path": "/home/dzh/Aster/evaluations/lab-followup-20260919/candidates/candidate-final-snapshot/lab_data.py",
+        "line": 88,
+        "behavior": "Keep raw whitespace-only anomaly values instead of converting them to None."
+      },
+      {
+        "path": "/home/dzh/Aster/evaluations/lab-followup-20260919/candidates/candidate-final-snapshot/lab_data.py",
+        "line": 134,
+        "behavior": "Use the existing explicit text-cell writer for strings in summary and anomaly sheets, preserving dynamic formula-looking column names and values."
+      }
+    ],
+    "new_regression_test": {
+      "path": "/home/dzh/Aster/evaluations/lab-followup-20260919/candidates/candidate-final-snapshot/test_lab_data.py",
+      "line": 63,
+      "meaningful": true,
+      "uses_public_cli": true,
+      "reads_actual_xlsx_with_data_only_false": true,
+      "assertions": [
+        "Formula-looking selected column =formula survives in summary A2 and anomaly B2 with data_type s.",
+        "Whitespace-only original value remains exactly three spaces in anomaly C2 with missing reason.",
+        "=1+1 remains exact string in anomaly C3 with data_type s and invalid reason.",
+        "Summary records count0, missing1, invalid1."
+      ],
+      "old_source_would_violate_assertions_by_static_diff": true,
+      "old_source_with_new_test_executed_by_reviewer": false,
+      "passed_in_successful_shell_and_formal_runs": true
+    },
+    "existing_tests_retained": 4,
+    "test_bootstrap_auto_install_added": false,
+    "test_suite_is_complete_product_spec": false
+  },
+  "disposition": {
+    "product_contract_passed": true,
+    "all_five_manual_process_gates_passed": true,
+    "formal_verification_passed_on_final_files": true,
+    "clean_readme_delivery_smoke_passed": true,
+    "accepted_under_agreed_task_contract": true,
+    "task_completed": true,
+    "scope": "This final known-task revision of the CSV-to-Excel delivery, including the retained initial process evidence and one reviewed repair.",
+    "not_claimed": [
+      "First-try success: initial run and first repair shell attempt failed their completion gates.",
+      "A clean randomized comparison: this revision adopted framework commit2c8741d and follows prior diagnostics/feedback.",
+      "General coding competence, unseen-task success rate, or a causal performance gain from one feature."
+    ],
+    "operator_role": "Three recorded approval responses authorized tool execution; no clarification answers or operator edits supplied the product implementation in this repair.",
+    "remaining_blockers_for_this_agreed_contract": []
+  }
+}

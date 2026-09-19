@@ -1,0 +1,785 @@
+{
+  "audit_version": 1,
+  "created_at_utc": "2026-09-19T03:35:45.351105+00:00",
+  "scope": "五次真实CLI运行的资源用量审计；原配对与追加诊断返修分别核算。",
+  "accounting": {
+    "token_authority": "每个唯一run_id最终state.usage只累加一次；provider_attempt逐attempt用量仅作交叉核对，不再次叠加到总计。",
+    "resume": "baseline、candidate与修订源码的session.prepare_continuation创建新run_id，并将step/turn/usage清零；驱动排除旧run事件。全部五次state用量与本run请求用量之和一致。",
+    "attempts": "每条provider_attempt是一次HTTP尝试的终态诊断；已与原始model_stream begin数量核对。attempt>1计为额外自动重试；CLI恢复/反馈返修单列为run。",
+    "unknown_usage": "仅usage_observed=true视为已报告。缺失usage不视作零费用、零tokens或零缓存；报告用量不是完整账单。",
+    "cache": "缓存比例=sum(cache_read_input_tokens)/sum(input_tokens)，仅针对两字段均报告的尝试；所有已报告用量尝试均具备这两个字段。不平均逐请求百分比，也不把未知尝试当作miss。",
+    "wall_time": "求和各次公开CLI驱动elapsed_seconds，含模型重试、工具、审批等待、进程退出；不包含会话之间操作员阅读/评分/工程修改时间，因此不是整段人工项目工时。",
+    "operator_inputs": "operator_stdin_input_count统计驱动实际送入CLI的批准/澄清，不等于人工点击次数；初始需求、反馈启动和中断另列。",
+    "model_identity": "请求与返回标签用于诊断；gpt-5.6-luna是网关报告标签，未独立认证服务内部模型身份。",
+    "money": null,
+    "money_reason": "未取得服务实际计费单价与未知尝试账单，不换算货币。",
+    "comparison_limit": "B首轮驱动代理故障和其耗时保留；单对带操作干预的同题开发回归、以及另给预算的新版本返修，不能证明通用性能或提示改动的稳定因果收益。"
+  },
+  "runs": [
+    {
+      "name": "candidate-initial",
+      "scope": "candidate_original_pair",
+      "note": "首次驱动误删代理，两个连接超时后第三次尝试由操作员取消；耗时和未知usage均计入原B预算。",
+      "run_id": "626883ff2c7e40b29af24f5fae4d1299",
+      "session_id": "3d84fbfe2ab440e3ab72d4e810da16b8",
+      "source_commit": "aee437bde6a956db1aa8ab00c6e71563944c6077",
+      "source_sha256": "5ae52f73c2a39f6df456ab75f5df3471f1a98ca0bee96196023ee53fbb04c553",
+      "resume_from_run_id": null,
+      "allow_source_change": false,
+      "previous_source_sha256": null,
+      "prompt_sha256": "445c238e073859773bf41f87a4e470aa67a7702d85194ca6b6ba7374640e0ee8",
+      "nonempty_launch_prompt": true,
+      "allocated_remaining_budget": {
+        "steps": 80,
+        "turns": 45,
+        "seconds": 1500.0
+      },
+      "elapsed_seconds": 313.832,
+      "tool_steps": 0,
+      "model_turns": 1,
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "driver_stop_reason": "operator_cancelled",
+      "verification_state": "missing",
+      "reported_usage": {},
+      "http_attempts": 3,
+      "automatic_retry_attempts": 2,
+      "attempt_classifications": {
+        "transport": 2,
+        "cancelled": 1
+      },
+      "attempts_with_reported_usage": 0,
+      "attempts_with_unknown_usage": 3,
+      "unknown_usage_attempts": [
+        {
+          "event_seq": 4,
+          "attempt_in_model_turn": 1,
+          "classification": "transport",
+          "elapsed_seconds": 120.099342
+        },
+        {
+          "event_seq": 7,
+          "attempt_in_model_turn": 2,
+          "classification": "transport",
+          "elapsed_seconds": 120.054609
+        },
+        {
+          "event_seq": 10,
+          "attempt_in_model_turn": 3,
+          "classification": "cancelled",
+          "elapsed_seconds": 72.349911
+        }
+      ],
+      "requested_model_labels": {
+        "gpt-5.6-luna": 3
+      },
+      "returned_model_labels": {
+        "(unreported)": 3
+      },
+      "diagnostic_flags": {},
+      "cache_read_fraction_of_reported_input": null,
+      "attempts_reporting_input_and_cache": 0,
+      "attempts_reporting_positive_cache_read": 0,
+      "operator_stdin_input_count": 0,
+      "operator_stdin_input_kinds": {},
+      "clarification_count": 0,
+      "evidence": {
+        "summary": "runs/candidate-initial/summary.json",
+        "summary_sha256": "c46f345a5af608a826cfda88f5604c7a15055c3a44b8236770b5738e3ebb0da3",
+        "state": "runs/candidate-initial/626883ff2c7e40b29af24f5fae4d1299-state.json",
+        "state_sha256": "55fc5baf2b6c8fae262a10c6ef18edf74bed4711a34b33c242696a4c2ac21326",
+        "events": "runs/candidate-initial/626883ff2c7e40b29af24f5fae4d1299-events.jsonl",
+        "events_sha256": "14321330d5fabc70f8a5c9e612b696649929554e955f38a34885de9cd74c69a7",
+        "raw_checkpoint_sha256": "7fc2c0553fa390bec030c734abb3d215fcdd026a641fc669b5505003de8213ba",
+        "raw_trace_sha256": "51cac68ca1d0e5b400984ec25d94be843e55d1127ae25b974dd8bc789c30f8fa"
+      },
+      "consistency_checks": {
+        "summary_matches_exported_state": true,
+        "exported_state_matches_raw_checkpoint": true,
+        "state_usage_matches_sum_of_attempt_usage": true,
+        "turns_match_first_attempt_count": true,
+        "attempts_match_stream_begin_count": true,
+        "steps_match_tool_result_count": true,
+        "events_belong_only_to_this_run": true,
+        "event_sequence_numbers_unique": true,
+        "approval_inputs_match_permission_asks": true,
+        "source_manifest_matches_launch": true,
+        "source_unchanged_during_run": true,
+        "raw_checkpoint_hash_matches_summary": true,
+        "raw_trace_hash_matches_summary": true
+      }
+    },
+    {
+      "name": "candidate-recovery",
+      "scope": "candidate_original_pair",
+      "note": "修正驱动代理传递后沿用冻结B源码恢复；原B剩余墙钟预算耗尽。",
+      "run_id": "1c030d3893cc49068adf263fe1f8bb23",
+      "session_id": "3d84fbfe2ab440e3ab72d4e810da16b8",
+      "source_commit": "aee437bde6a956db1aa8ab00c6e71563944c6077",
+      "source_sha256": "5ae52f73c2a39f6df456ab75f5df3471f1a98ca0bee96196023ee53fbb04c553",
+      "resume_from_run_id": "626883ff2c7e40b29af24f5fae4d1299",
+      "allow_source_change": false,
+      "previous_source_sha256": null,
+      "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "nonempty_launch_prompt": false,
+      "allocated_remaining_budget": {
+        "steps": 80,
+        "turns": 44,
+        "seconds": 1186.168
+      },
+      "elapsed_seconds": 1186.649,
+      "tool_steps": 44,
+      "model_turns": 29,
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "driver_stop_reason": "wall_time_limit",
+      "verification_state": "missing",
+      "reported_usage": {
+        "usage_requests": 28,
+        "input_tokens": 779649,
+        "input_tokens_requests": 28,
+        "output_tokens": 12462,
+        "output_tokens_requests": 28,
+        "cache_read_input_tokens": 680960,
+        "cache_read_input_tokens_requests": 28,
+        "reasoning_tokens": 3155,
+        "reasoning_tokens_requests": 28,
+        "total_tokens": 792111,
+        "total_tokens_requests": 28
+      },
+      "http_attempts": 30,
+      "automatic_retry_attempts": 1,
+      "attempt_classifications": {
+        "success": 28,
+        "transport": 1,
+        "cancelled": 1
+      },
+      "attempts_with_reported_usage": 28,
+      "attempts_with_unknown_usage": 2,
+      "unknown_usage_attempts": [
+        {
+          "event_seq": 871,
+          "attempt_in_model_turn": 1,
+          "classification": "transport",
+          "elapsed_seconds": 120.007415
+        },
+        {
+          "event_seq": 4320,
+          "attempt_in_model_turn": 1,
+          "classification": "cancelled",
+          "elapsed_seconds": 1.951108
+        }
+      ],
+      "requested_model_labels": {
+        "gpt-5.6-luna": 30
+      },
+      "returned_model_labels": {
+        "gpt-5.6-luna": 28,
+        "(unreported)": 2
+      },
+      "diagnostic_flags": {},
+      "cache_read_fraction_of_reported_input": 0.87341868,
+      "attempts_reporting_input_and_cache": 28,
+      "attempts_reporting_positive_cache_read": 26,
+      "operator_stdin_input_count": 16,
+      "operator_stdin_input_kinds": {
+        "approval": 16
+      },
+      "clarification_count": 0,
+      "evidence": {
+        "summary": "runs/candidate-recovery/summary.json",
+        "summary_sha256": "ad1dd74c6d8e598d62d8996302cd973c47cc6268cab3e25e859041277efc47ed",
+        "state": "runs/candidate-recovery/1c030d3893cc49068adf263fe1f8bb23-state.json",
+        "state_sha256": "b5b2ef3ce5e1be471a22e1afb9fed1a35a21d778d5b6cf751b7a7276fa54a8c6",
+        "events": "runs/candidate-recovery/1c030d3893cc49068adf263fe1f8bb23-events.jsonl",
+        "events_sha256": "f7b0b5697a7077540f87777f87777a5a93dee034229a2e6653b874adcc85d050",
+        "raw_checkpoint_sha256": "c7a84769c3c62417ea3a074d1354846f37a53f235faa32cbd66105fd75199add",
+        "raw_trace_sha256": "e74beddd48e38c5a88b71f169bf77bdbf3f60821f92f242296c14c6a8ac5c62e"
+      },
+      "consistency_checks": {
+        "summary_matches_exported_state": true,
+        "exported_state_matches_raw_checkpoint": true,
+        "state_usage_matches_sum_of_attempt_usage": true,
+        "turns_match_first_attempt_count": true,
+        "attempts_match_stream_begin_count": true,
+        "steps_match_tool_result_count": true,
+        "events_belong_only_to_this_run": true,
+        "event_sequence_numbers_unique": true,
+        "approval_inputs_match_permission_asks": true,
+        "source_manifest_matches_launch": true,
+        "source_unchanged_during_run": true,
+        "raw_checkpoint_hash_matches_summary": true,
+        "raw_trace_hash_matches_summary": true
+      }
+    },
+    {
+      "name": "baseline-initial",
+      "scope": "baseline_original_pair",
+      "note": "冻结A首次生成止于provider_error；该失败请求usage未知。",
+      "run_id": "8b51e77d3ed44e7db06075b7b017ebd9",
+      "session_id": "e3b47559014e4840a6d871851d5fd2d6",
+      "source_commit": "e5215dc67ee5b0ec6c3c932a2dd9ba0e17967c20",
+      "source_sha256": "10a39850aab0aa5641906538bdb455eabf2cebb145c98367668c340aebe2f092",
+      "resume_from_run_id": null,
+      "allow_source_change": false,
+      "previous_source_sha256": null,
+      "prompt_sha256": "445c238e073859773bf41f87a4e470aa67a7702d85194ca6b6ba7374640e0ee8",
+      "nonempty_launch_prompt": true,
+      "allocated_remaining_budget": {
+        "steps": 80,
+        "turns": 45,
+        "seconds": 1500.0
+      },
+      "elapsed_seconds": 492.396,
+      "tool_steps": 43,
+      "model_turns": 27,
+      "phase": "failed",
+      "stop_reason": "provider_error",
+      "driver_stop_reason": null,
+      "verification_state": "missing",
+      "reported_usage": {
+        "usage_requests": 26,
+        "input_tokens": 1037439,
+        "input_tokens_requests": 26,
+        "output_tokens": 12818,
+        "output_tokens_requests": 26,
+        "cache_read_input_tokens": 761856,
+        "cache_read_input_tokens_requests": 26,
+        "reasoning_tokens": 3787,
+        "reasoning_tokens_requests": 26,
+        "total_tokens": 1050257,
+        "total_tokens_requests": 26
+      },
+      "http_attempts": 27,
+      "automatic_retry_attempts": 0,
+      "attempt_classifications": {
+        "success": 26,
+        "provider_error": 1
+      },
+      "attempts_with_reported_usage": 26,
+      "attempts_with_unknown_usage": 1,
+      "unknown_usage_attempts": [
+        {
+          "event_seq": 3576,
+          "attempt_in_model_turn": 1,
+          "classification": "provider_error",
+          "elapsed_seconds": 5.235625
+        }
+      ],
+      "requested_model_labels": {
+        "gpt-5.6-luna": 27
+      },
+      "returned_model_labels": {
+        "gpt-5.6-luna": 26,
+        "(unreported)": 1
+      },
+      "diagnostic_flags": {},
+      "cache_read_fraction_of_reported_input": 0.73436221,
+      "attempts_reporting_input_and_cache": 26,
+      "attempts_reporting_positive_cache_read": 22,
+      "operator_stdin_input_count": 15,
+      "operator_stdin_input_kinds": {
+        "approval": 15
+      },
+      "clarification_count": 0,
+      "evidence": {
+        "summary": "runs/baseline-initial/summary.json",
+        "summary_sha256": "c7b4930c4631f2a7ffd1fb71b7bc8332c88030b9fd9d46f5d3ed508e3a35d8a8",
+        "state": "runs/baseline-initial/8b51e77d3ed44e7db06075b7b017ebd9-state.json",
+        "state_sha256": "a79bf5894055ee2054eb5bc14deb9dad3d13149b24a3fb8dfb25eb5b832ed743",
+        "events": "runs/baseline-initial/8b51e77d3ed44e7db06075b7b017ebd9-events.jsonl",
+        "events_sha256": "32fbcc5bb139d6aa07cabec5ba6877517c4726b20ecd66151b009ef7385bd240",
+        "raw_checkpoint_sha256": "ae7bf27c41f975215adb6e5a75ab90eee5bfcccaeb6c952cffafe9b2d9810baa",
+        "raw_trace_sha256": "a6429ddef26694a03584e5d74df27c37591fd2efd4e865285097aeada82a9390"
+      },
+      "consistency_checks": {
+        "summary_matches_exported_state": true,
+        "exported_state_matches_raw_checkpoint": true,
+        "state_usage_matches_sum_of_attempt_usage": true,
+        "turns_match_first_attempt_count": true,
+        "attempts_match_stream_begin_count": true,
+        "steps_match_tool_result_count": true,
+        "events_belong_only_to_this_run": true,
+        "event_sequence_numbers_unique": true,
+        "approval_inputs_match_permission_asks": true,
+        "source_manifest_matches_launch": true,
+        "source_unchanged_during_run": true,
+        "raw_checkpoint_hash_matches_summary": true,
+        "raw_trace_hash_matches_summary": true
+      }
+    },
+    {
+      "name": "baseline-repair",
+      "scope": "baseline_original_pair",
+      "note": "冻结A同题反馈返修，使用原A剩余额度；累计模型轮数达到45，正式验证仍缺失。",
+      "run_id": "cdd3c23a3abe4d79a40cdbb4db998266",
+      "session_id": "e3b47559014e4840a6d871851d5fd2d6",
+      "source_commit": "e5215dc67ee5b0ec6c3c932a2dd9ba0e17967c20",
+      "source_sha256": "10a39850aab0aa5641906538bdb455eabf2cebb145c98367668c340aebe2f092",
+      "resume_from_run_id": "8b51e77d3ed44e7db06075b7b017ebd9",
+      "allow_source_change": false,
+      "previous_source_sha256": "10a39850aab0aa5641906538bdb455eabf2cebb145c98367668c340aebe2f092",
+      "prompt_sha256": "54536cc51f09a566cf36d8090064cc38278b72f29ea8297d4b5b331432ac3799",
+      "nonempty_launch_prompt": true,
+      "allocated_remaining_budget": {
+        "steps": 37,
+        "turns": 18,
+        "seconds": 1007.604
+      },
+      "elapsed_seconds": 214.64,
+      "tool_steps": 21,
+      "model_turns": 18,
+      "phase": "stopped",
+      "stop_reason": "turn_limit",
+      "driver_stop_reason": null,
+      "verification_state": "missing",
+      "reported_usage": {
+        "usage_requests": 18,
+        "input_tokens": 670159,
+        "input_tokens_requests": 18,
+        "output_tokens": 5796,
+        "output_tokens_requests": 18,
+        "cache_read_input_tokens": 141312,
+        "cache_read_input_tokens_requests": 18,
+        "reasoning_tokens": 2729,
+        "reasoning_tokens_requests": 18,
+        "total_tokens": 675955,
+        "total_tokens_requests": 18
+      },
+      "http_attempts": 18,
+      "automatic_retry_attempts": 0,
+      "attempt_classifications": {
+        "success": 18
+      },
+      "attempts_with_reported_usage": 18,
+      "attempts_with_unknown_usage": 0,
+      "unknown_usage_attempts": [],
+      "requested_model_labels": {
+        "gpt-5.6-luna": 18
+      },
+      "returned_model_labels": {
+        "gpt-5.6-luna": 18
+      },
+      "diagnostic_flags": {},
+      "cache_read_fraction_of_reported_input": 0.21086339,
+      "attempts_reporting_input_and_cache": 18,
+      "attempts_reporting_positive_cache_read": 18,
+      "operator_stdin_input_count": 0,
+      "operator_stdin_input_kinds": {},
+      "clarification_count": 0,
+      "evidence": {
+        "summary": "runs/baseline-repair/summary.json",
+        "summary_sha256": "1b5c8c28df751d7b9aa13bcaea1ad032f34be379f88d4b036a935c0d07b14810",
+        "state": "runs/baseline-repair/cdd3c23a3abe4d79a40cdbb4db998266-state.json",
+        "state_sha256": "26355d0148e8521610c966d48d4e80a20f52c306f82d77f32f943c2d5c3150bf",
+        "events": "runs/baseline-repair/cdd3c23a3abe4d79a40cdbb4db998266-events.jsonl",
+        "events_sha256": "15866750b4ee6ee9481b21c82f50f5d650bc611ad7a8a12fb5273650d12fd679",
+        "raw_checkpoint_sha256": "db861ecfa3da72c078cf8874b3200b5898226db4f1fc65af0627f6c1f60829e6",
+        "raw_trace_sha256": "8de6ebf669d95ef513b0fff3616e1c479bcb4c0105a9760481521668bce8b52a"
+      },
+      "consistency_checks": {
+        "summary_matches_exported_state": true,
+        "exported_state_matches_raw_checkpoint": true,
+        "state_usage_matches_sum_of_attempt_usage": true,
+        "turns_match_first_attempt_count": true,
+        "attempts_match_stream_begin_count": true,
+        "steps_match_tool_result_count": true,
+        "events_belong_only_to_this_run": true,
+        "event_sequence_numbers_unique": true,
+        "approval_inputs_match_permission_asks": true,
+        "source_manifest_matches_launch": true,
+        "source_unchanged_during_run": true,
+        "raw_checkpoint_hash_matches_summary": true,
+        "raw_trace_hash_matches_summary": true
+      }
+    },
+    {
+      "name": "candidate-revision",
+      "scope": "candidate_additional_revision",
+      "note": "额外600秒/24步/12轮的新版本诊断返修，显式允许源码改变；不得回计为原B配对成功。",
+      "run_id": "d83916698b9443f5871666a119e0a79c",
+      "session_id": "3d84fbfe2ab440e3ab72d4e810da16b8",
+      "source_commit": "2c8741d8dcc1d6c561eac15d6fd2d806283e2521",
+      "source_sha256": "9e8442257a7a9940d18cdd30f3f89c08993fe9de9f585afb1e34facb54d7d1bd",
+      "resume_from_run_id": "1c030d3893cc49068adf263fe1f8bb23",
+      "allow_source_change": true,
+      "previous_source_sha256": "5ae52f73c2a39f6df456ab75f5df3471f1a98ca0bee96196023ee53fbb04c553",
+      "prompt_sha256": "18b9358ef90d1ceba8b7404a900306afa85a026742aa1786bb9644be568251de",
+      "nonempty_launch_prompt": true,
+      "allocated_remaining_budget": {
+        "steps": 24,
+        "turns": 12,
+        "seconds": 600.0
+      },
+      "elapsed_seconds": 121.451,
+      "tool_steps": 10,
+      "model_turns": 10,
+      "phase": "completed",
+      "stop_reason": "verified",
+      "driver_stop_reason": null,
+      "verification_state": "passed",
+      "reported_usage": {
+        "usage_requests": 10,
+        "input_tokens": 392709,
+        "input_tokens_requests": 10,
+        "output_tokens": 3489,
+        "output_tokens_requests": 10,
+        "cache_read_input_tokens": 107520,
+        "cache_read_input_tokens_requests": 10,
+        "reasoning_tokens": 1266,
+        "reasoning_tokens_requests": 10,
+        "total_tokens": 396198,
+        "total_tokens_requests": 10
+      },
+      "http_attempts": 10,
+      "automatic_retry_attempts": 0,
+      "attempt_classifications": {
+        "success": 10
+      },
+      "attempts_with_reported_usage": 10,
+      "attempts_with_unknown_usage": 0,
+      "unknown_usage_attempts": [],
+      "requested_model_labels": {
+        "gpt-5.6-luna": 10
+      },
+      "returned_model_labels": {
+        "gpt-5.6-luna": 10
+      },
+      "diagnostic_flags": {},
+      "cache_read_fraction_of_reported_input": 0.27379052,
+      "attempts_reporting_input_and_cache": 10,
+      "attempts_reporting_positive_cache_read": 8,
+      "operator_stdin_input_count": 3,
+      "operator_stdin_input_kinds": {
+        "approval": 3
+      },
+      "clarification_count": 0,
+      "evidence": {
+        "summary": "runs/candidate-revision/summary.json",
+        "summary_sha256": "1f0fe9ebd3a61ed11709bef88e77ffb494c3c793b982c8f4b0093062ea47193c",
+        "state": "runs/candidate-revision/d83916698b9443f5871666a119e0a79c-state.json",
+        "state_sha256": "2ad328cf634036955ee6d223f3c2dd4f8cca7b225392817af3a72d795c294fee",
+        "events": "runs/candidate-revision/d83916698b9443f5871666a119e0a79c-events.jsonl",
+        "events_sha256": "1ee2a7dc843e2bb77b17cbad6b89ff163d3171e0258388ac809fa32a50a75aa9",
+        "raw_checkpoint_sha256": "8a09d00e98dad806028d34c0bc1555c21ae31b2ea7979bd2a1f042e58bbb86cb",
+        "raw_trace_sha256": "c09300ef2421347bb319e47558f21a120d098669e883bd16897c0f800e30a3b3"
+      },
+      "consistency_checks": {
+        "summary_matches_exported_state": true,
+        "exported_state_matches_raw_checkpoint": true,
+        "state_usage_matches_sum_of_attempt_usage": true,
+        "turns_match_first_attempt_count": true,
+        "attempts_match_stream_begin_count": true,
+        "steps_match_tool_result_count": true,
+        "events_belong_only_to_this_run": true,
+        "event_sequence_numbers_unique": true,
+        "approval_inputs_match_permission_asks": true,
+        "source_manifest_matches_launch": true,
+        "source_unchanged_during_run": true,
+        "raw_checkpoint_hash_matches_summary": true,
+        "raw_trace_hash_matches_summary": true
+      }
+    }
+  ],
+  "groups": {
+    "baseline_original_pair": {
+      "runs": [
+        "baseline-initial",
+        "baseline-repair"
+      ],
+      "elapsed_seconds": 707.036,
+      "tool_steps": 64,
+      "model_turns": 45,
+      "reported_usage": {
+        "usage_requests": 44,
+        "input_tokens": 1707598,
+        "input_tokens_requests": 44,
+        "output_tokens": 18614,
+        "output_tokens_requests": 44,
+        "cache_read_input_tokens": 903168,
+        "cache_read_input_tokens_requests": 44,
+        "reasoning_tokens": 6516,
+        "reasoning_tokens_requests": 44,
+        "total_tokens": 1726212,
+        "total_tokens_requests": 44
+      },
+      "http_attempts": 45,
+      "automatic_retry_attempts": 0,
+      "attempt_classifications": {
+        "success": 44,
+        "provider_error": 1
+      },
+      "attempts_with_reported_usage": 44,
+      "attempts_with_unknown_usage": 1,
+      "cache_read_fraction_of_reported_input": 0.52891137,
+      "returned_model_labels": {
+        "gpt-5.6-luna": 44,
+        "(unreported)": 1
+      },
+      "operator_stdin_input_count": 15,
+      "operator_stdin_input_kinds": {
+        "approval": 15
+      },
+      "clarification_count": 0,
+      "budget": {
+        "steps": 80,
+        "turns": 45,
+        "seconds": 1500
+      },
+      "remaining_budget": {
+        "steps": 16,
+        "turns": 0,
+        "seconds": 792.964
+      }
+    },
+    "candidate_original_pair": {
+      "runs": [
+        "candidate-initial",
+        "candidate-recovery"
+      ],
+      "elapsed_seconds": 1500.481,
+      "tool_steps": 44,
+      "model_turns": 30,
+      "reported_usage": {
+        "usage_requests": 28,
+        "input_tokens": 779649,
+        "input_tokens_requests": 28,
+        "output_tokens": 12462,
+        "output_tokens_requests": 28,
+        "cache_read_input_tokens": 680960,
+        "cache_read_input_tokens_requests": 28,
+        "reasoning_tokens": 3155,
+        "reasoning_tokens_requests": 28,
+        "total_tokens": 792111,
+        "total_tokens_requests": 28
+      },
+      "http_attempts": 33,
+      "automatic_retry_attempts": 3,
+      "attempt_classifications": {
+        "transport": 3,
+        "cancelled": 2,
+        "success": 28
+      },
+      "attempts_with_reported_usage": 28,
+      "attempts_with_unknown_usage": 5,
+      "cache_read_fraction_of_reported_input": 0.87341868,
+      "returned_model_labels": {
+        "(unreported)": 5,
+        "gpt-5.6-luna": 28
+      },
+      "operator_stdin_input_count": 16,
+      "operator_stdin_input_kinds": {
+        "approval": 16
+      },
+      "clarification_count": 0,
+      "budget": {
+        "steps": 80,
+        "turns": 45,
+        "seconds": 1500
+      },
+      "remaining_budget": {
+        "steps": 36,
+        "turns": 15,
+        "seconds": -0.481
+      }
+    },
+    "candidate_additional_revision": {
+      "runs": [
+        "candidate-revision"
+      ],
+      "elapsed_seconds": 121.451,
+      "tool_steps": 10,
+      "model_turns": 10,
+      "reported_usage": {
+        "usage_requests": 10,
+        "input_tokens": 392709,
+        "input_tokens_requests": 10,
+        "output_tokens": 3489,
+        "output_tokens_requests": 10,
+        "cache_read_input_tokens": 107520,
+        "cache_read_input_tokens_requests": 10,
+        "reasoning_tokens": 1266,
+        "reasoning_tokens_requests": 10,
+        "total_tokens": 396198,
+        "total_tokens_requests": 10
+      },
+      "http_attempts": 10,
+      "automatic_retry_attempts": 0,
+      "attempt_classifications": {
+        "success": 10
+      },
+      "attempts_with_reported_usage": 10,
+      "attempts_with_unknown_usage": 0,
+      "cache_read_fraction_of_reported_input": 0.27379052,
+      "returned_model_labels": {
+        "gpt-5.6-luna": 10
+      },
+      "operator_stdin_input_count": 3,
+      "operator_stdin_input_kinds": {
+        "approval": 3
+      },
+      "clarification_count": 0,
+      "budget": {
+        "steps": 24,
+        "turns": 12,
+        "seconds": 600
+      },
+      "remaining_budget": {
+        "steps": 14,
+        "turns": 2,
+        "seconds": 478.549
+      }
+    },
+    "candidate_all_stages": {
+      "runs": [
+        "candidate-initial",
+        "candidate-recovery",
+        "candidate-revision"
+      ],
+      "elapsed_seconds": 1621.932,
+      "tool_steps": 54,
+      "model_turns": 40,
+      "reported_usage": {
+        "usage_requests": 38,
+        "input_tokens": 1172358,
+        "input_tokens_requests": 38,
+        "output_tokens": 15951,
+        "output_tokens_requests": 38,
+        "cache_read_input_tokens": 788480,
+        "cache_read_input_tokens_requests": 38,
+        "reasoning_tokens": 4421,
+        "reasoning_tokens_requests": 38,
+        "total_tokens": 1188309,
+        "total_tokens_requests": 38
+      },
+      "http_attempts": 43,
+      "automatic_retry_attempts": 3,
+      "attempt_classifications": {
+        "transport": 3,
+        "cancelled": 2,
+        "success": 38
+      },
+      "attempts_with_reported_usage": 38,
+      "attempts_with_unknown_usage": 5,
+      "cache_read_fraction_of_reported_input": 0.67255906,
+      "returned_model_labels": {
+        "(unreported)": 5,
+        "gpt-5.6-luna": 38
+      },
+      "operator_stdin_input_count": 19,
+      "operator_stdin_input_kinds": {
+        "approval": 19
+      },
+      "clarification_count": 0
+    },
+    "original_pair_total": {
+      "runs": [
+        "candidate-initial",
+        "candidate-recovery",
+        "baseline-initial",
+        "baseline-repair"
+      ],
+      "elapsed_seconds": 2207.517,
+      "tool_steps": 108,
+      "model_turns": 75,
+      "reported_usage": {
+        "usage_requests": 72,
+        "input_tokens": 2487247,
+        "input_tokens_requests": 72,
+        "output_tokens": 31076,
+        "output_tokens_requests": 72,
+        "cache_read_input_tokens": 1584128,
+        "cache_read_input_tokens_requests": 72,
+        "reasoning_tokens": 9671,
+        "reasoning_tokens_requests": 72,
+        "total_tokens": 2518323,
+        "total_tokens_requests": 72
+      },
+      "http_attempts": 78,
+      "automatic_retry_attempts": 3,
+      "attempt_classifications": {
+        "transport": 3,
+        "cancelled": 2,
+        "success": 72,
+        "provider_error": 1
+      },
+      "attempts_with_reported_usage": 72,
+      "attempts_with_unknown_usage": 6,
+      "cache_read_fraction_of_reported_input": 0.63690016,
+      "returned_model_labels": {
+        "(unreported)": 6,
+        "gpt-5.6-luna": 72
+      },
+      "operator_stdin_input_count": 31,
+      "operator_stdin_input_kinds": {
+        "approval": 31
+      },
+      "clarification_count": 0
+    },
+    "all_runs_total": {
+      "runs": [
+        "candidate-initial",
+        "candidate-recovery",
+        "baseline-initial",
+        "baseline-repair",
+        "candidate-revision"
+      ],
+      "elapsed_seconds": 2328.968,
+      "tool_steps": 118,
+      "model_turns": 85,
+      "reported_usage": {
+        "usage_requests": 82,
+        "input_tokens": 2879956,
+        "input_tokens_requests": 82,
+        "output_tokens": 34565,
+        "output_tokens_requests": 82,
+        "cache_read_input_tokens": 1691648,
+        "cache_read_input_tokens_requests": 82,
+        "reasoning_tokens": 10937,
+        "reasoning_tokens_requests": 82,
+        "total_tokens": 2914521,
+        "total_tokens_requests": 82
+      },
+      "http_attempts": 88,
+      "automatic_retry_attempts": 3,
+      "attempt_classifications": {
+        "transport": 3,
+        "cancelled": 2,
+        "success": 82,
+        "provider_error": 1
+      },
+      "attempts_with_reported_usage": 82,
+      "attempts_with_unknown_usage": 6,
+      "cache_read_fraction_of_reported_input": 0.58738675,
+      "returned_model_labels": {
+        "(unreported)": 6,
+        "gpt-5.6-luna": 82
+      },
+      "operator_stdin_input_count": 34,
+      "operator_stdin_input_kinds": {
+        "approval": 34
+      },
+      "clarification_count": 0
+    }
+  },
+  "operator_interventions": {
+    "initial_task_launches": 2,
+    "same_source_resume_without_new_prompt": 1,
+    "targeted_feedback_launches": 2,
+    "source_changed_feedback_launches": 1,
+    "operator_cancelled_runs": [
+      "candidate-initial"
+    ],
+    "wall_time_cancelled_runs": [
+      "candidate-recovery"
+    ],
+    "details": "baseline-repair使用原A剩余预算和冻结源码；candidate-revision使用单独新增预算及新源码。34次stdin输入均为预授权的y批准，未追加澄清需求。"
+  },
+  "findings": [
+    "所有summary、导出state、原始checkpoint与trace哈希一致；独立run间没有发现重复累计usage。",
+    "原A累计64步/45轮，707.036秒，最终turn_limit且正式验证缺失；不得仅依据剩余墙钟预算继续追加原A模型轮。",
+    "原B累计44步/30轮，1500.481秒；超出1500秒0.481秒来自终止与收尾，按实际耗时如实记录。首次代理故障313.832秒及3次未知usage尝试没有扣除。",
+    "B新版本追加返修121.451秒、10步/10轮，verified且正式测试passed；结果与资源独立列出，不覆盖原B失败。",
+    "五run合计88次HTTP尝试，其中82次报告usage、6次未知，包含3次额外自动重试；所有82个已返回模型标签均为gpt-5.6-luna，未见diagnostic flags。"
+  ]
+}
