@@ -56,8 +56,12 @@ class SandboxRunner:
             + f" Sandbox={self.settings.sandbox}; network={'allowed' if self.settings.network else 'blocked'}"
             + " (including local TCP servers when blocked). Required isolation fails closed. "
             + ("Project pip dependencies and node_modules persist between commands in this process only. "
+               "Failed writable commands may discard this dependency environment; reinstall dependencies "
+               "when the tool result reports environment_discarded. "
                if self.settings.reuse_environment else "Dependencies installed by a command do not persist to the next command. ")
-            + "Use .tmp/ or TMPDIR for temporary files. Each command owns its processes; "
+            + ("Global /tmp is outside the writable workspace; use .tmp/ or TMPDIR. "
+               if self.settings.sandbox == "required" else "Use .tmp/ or TMPDIR for temporary files. ")
+            + "Each command owns its processes; "
             "background servers do not survive tool calls. Start server, checks and cleanup "
             "in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior."
         )
@@ -179,16 +183,37 @@ class SandboxRunner:
             raise RuntimeError("execution_environment_busy")
         for owner in owners:
             owner._busy = True
+        environment = self._source or self
+        generation = self.environment_generation
         try:
-            result = await self._run(workspace, command, timeout, readonly=readonly, expected_files=expected_files)
+            try:
+                result = await self._run(workspace, command, timeout, readonly=readonly, expected_files=expected_files)
+            except BoundaryError as exc:
+                environment._drop_environment()
+                result = Outcome(status="blocked", reason=str(exc), data={
+                    "environment_generation": self.environment_generation
+                })
+            except Exception as exc:
+                if not (self.settings.reuse_environment and environment._environment is None
+                        and self.environment_generation != generation):
+                    raise
+                # Match the tool registry's error conversion while preserving the
+                # environment loss caused by cleanup after a launch/publication error.
+                result = Outcome(status="error", reason=type(exc).__name__, content=str(exc))
             if self.settings.reuse_environment:
                 result.data["environment_generation"] = self.environment_generation
+                if (result.status != "success" and environment._environment is None
+                        and self.environment_generation != generation):
+                    result.data["environment_discarded"] = True
+                    # Prefix it so the model sees the recovery step even if stdout
+                    # is later clipped to a bounded preview.
+                    result.content = (
+                        "[Aster discarded the reusable dependency environment after this failure. "
+                        "Previously installed pip packages and node_modules are no longer available. "
+                        "Reinstall project dependencies before commands or tests that need them.]\n"
+                        + result.content
+                    )
             return result
-        except BoundaryError as exc:
-            (self._source or self)._drop_environment()
-            return Outcome(status="blocked", reason=str(exc), data={
-                "environment_generation": self.environment_generation
-            })
         finally:
             for owner in owners:
                 owner._busy = False

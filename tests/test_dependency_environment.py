@@ -26,6 +26,9 @@ def test_model_sees_execution_constraints_and_current_capabilities(tmp_path):
     assert "network=blocked" in policy and "Sandbox=required" in policy
     assert "in this process only" in policy and "background servers do not survive" in policy
     assert "TMPDIR" in policy
+    assert "environment_discarded" in policy and "reinstall dependencies" in policy
+    assert "Global /tmp is outside the writable workspace" in policy
+    assert "Global /tmp" not in SandboxRunner(Settings(sandbox="off")).capabilities()
     runtime.settings.network = True
     assert "network=allowed" in runtime.prepare_request()[0][0]["content"]
 
@@ -51,6 +54,7 @@ async def test_reuse_keeps_dependencies_and_refreshes_only_managed_source(tmp_pa
     (tmp_path / "source.txt").write_text("original")
     result = await runner.run(workspace, INSTALL_FIXTURE)
     assert result.status == "success", result.model_dump()
+    assert not result.data.get("environment_discarded")
     assert not (tmp_path / ".venv").exists() and not (tmp_path / "node_modules").exists()
     (tmp_path / "source.txt").write_text("external edit")
     result = await runner.run(
@@ -79,6 +83,7 @@ async def test_default_environment_does_not_reuse_dependencies(tmp_path):
     assert (await runner.run(workspace, "mkdir -p node_modules/probe")).status == "success"
     result = await runner.run(workspace, "test -d node_modules/probe")
     assert result.status == "error" and runner.environment_generation == 0
+    assert not result.data.get("environment_discarded")
 
 
 @pytest.mark.parametrize("reuse", [False, True])
@@ -145,10 +150,12 @@ async def test_readonly_and_scoped_commands_borrow_dependencies_without_writes(t
         readonly=True,
     )
     assert result.status == "error" and "PermissionError" in result.content
+    assert not result.data.get("environment_discarded")
     assert runner.environment_generation == generation
     runner.settings = runner.settings.model_copy(update={"write_scope": ["allowed.txt"]})
     result = await runner.run(workspace, check + " && printf wrong > forbidden.txt")
     assert result.status == "blocked" and result.reason == "write_scope"
+    assert not result.data.get("environment_discarded")
     assert not (tmp_path / "forbidden.txt").exists()
     assert runner.environment_generation == generation
     runner.close()
@@ -186,10 +193,65 @@ async def test_dependency_escape_or_protected_output_discards_environment(tmp_pa
     old_root = Path(runner._environment.name)
     result = await runner.run(workspace, "printf 'captured evidence'; printf unpublished > source.txt; " + command)
     assert result.status == "blocked" and result.reason == reason, result.model_dump()
-    assert result.content == "captured evidence"
+    assert result.content.startswith("[Aster discarded the reusable dependency environment")
+    assert result.content.endswith("captured evidence")
+    assert result.data["environment_discarded"] is True
     assert result.data["environment_generation"] == runner.environment_generation
     assert not old_root.exists() and runner._environment is None
     assert not (tmp_path / "source.txt").exists() and not (tmp_path / ".aster").exists()
+
+
+@pytest.mark.parametrize("failure", ["outside_write", "timeout", "launch_error", "invalid_dependency"])
+async def test_failed_command_reports_dependency_loss_and_reinstallation_recovers(
+    tmp_path, monkeypatch, failure
+):
+    runner = SandboxRunner(Settings(reuse_environment=True))
+    workspace = Workspace(tmp_path)
+    assert (await runner.run(workspace, INSTALL_FIXTURE)).status == "success"
+    generation = runner.environment_generation
+    command = python("from pathlib import Path; Path('/tmp/aster-forbidden-output').write_text('blocked')")
+    timeout = 5
+    with monkeypatch.context() as patch:
+        if failure == "timeout":
+            command, timeout = "sleep 5", 0.1
+        elif failure == "launch_error":
+            async def unavailable(*_args, **_kwargs):
+                raise OSError("synthetic process launch failure")
+            patch.setattr(runner, "_process", unavailable)
+        elif failure == "invalid_dependency":
+            (Path(runner._environment.name) / "node_modules/escape").symlink_to(tmp_path)
+        result = await runner.run(workspace, command, timeout)
+    assert result.status == {"outside_write": "error", "timeout": "timeout",
+                             "launch_error": "error", "invalid_dependency": "blocked"}[failure]
+    assert result.data["environment_discarded"] is True
+    assert result.data["environment_generation"] > generation
+    assert result.content.startswith("[Aster discarded the reusable dependency environment")
+    assert "Reinstall project dependencies" in result.content
+    if failure == "outside_write":
+        assert "PermissionError" in result.content
+    assert runner._environment is None
+    missing = await runner.run(workspace, python("import aster_dependency_probe"), readonly=True)
+    assert missing.status == "error" and "ModuleNotFoundError" in missing.content
+    assert not missing.data.get("environment_discarded")
+    assert (await runner.run(workspace, INSTALL_FIXTURE)).status == "success"
+    recovered = await runner.run(workspace, python("import aster_dependency_probe; print(aster_dependency_probe.VALUE)"))
+    assert recovered.status == "success" and recovered.content == "42\n"
+    assert not recovered.data.get("environment_discarded")
+    runner.close()
+
+
+async def test_pre_execution_freshness_failure_preserves_dependencies_without_discard_notice(tmp_path):
+    runner = SandboxRunner(Settings(reuse_environment=True))
+    workspace = Workspace(tmp_path)
+    (tmp_path / "source.txt").write_text("existing")
+    assert (await runner.run(workspace, INSTALL_FIXTURE)).status == "success"
+    generation = runner.environment_generation
+    result = await runner.run(workspace, "true", expected_files={"source.txt": None})
+    assert result.status == "blocked" and result.reason == "fresh_read_required"
+    assert not result.data.get("environment_discarded")
+    assert runner.environment_generation == generation
+    assert (await runner.run(workspace, python("import aster_dependency_probe"))).status == "success"
+    runner.close()
 
 
 async def test_venv_default_symlinks_and_node_bin_links_stay_inside_owned_environment(tmp_path):
