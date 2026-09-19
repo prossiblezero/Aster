@@ -39,7 +39,7 @@ flowchart TD
 
 ## 顺着一次 read_file 读源码
 
-从 [Runtime._collect_step](../../src/aster/runtime.py) 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 `memory.py` 的 `store_excerpt` 中完成：
+从 [Runtime._collect_step](../../src/aster/core/runtime.py) 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 `memory.py` 的 `store_excerpt` 中完成：
 
 ```python
 if outcome.status == "success" and call.name == "read_file":
@@ -78,7 +78,7 @@ def remember_file(self, path: str, summary: str, working: dict | None = None):
 | `evidence_id` | 当前运行中一次成功读取的证据标识 | `read_file` 返回的 `Outcome.evidence_id` |
 | `tags` | 便于关键词召回的标签，可省略 | `["service", "port"]` |
 
-Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`workflow_tool()` 委托 `memory.py` 模块级的 `store_excerpt`：它在本 run 中找到对应的成功 `read_file`，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。
+Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`WorkflowTools.execute()` 委托 `memory.py` 模块级的 `store_excerpt`：它在本 run 中找到对应的成功 `read_file`，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。
 
 `store_excerpt` 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。
 

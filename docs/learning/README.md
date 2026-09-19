@@ -76,7 +76,7 @@ flowchart TD
     RL[外部策略 AsterEnv] --> R
 ```
 
-读 [runtime.py](../../src/aster/runtime.py) 时，不必一次消化所有分支。每章会指定入口，例如研究上下文先跟 `prepare_request`，研究动作先跟 `_execute`，研究结束先跟 `finalize`。这比把文件从第一行逐字读到最后一行更容易形成结构。
+读 [runtime.py](../../src/aster/core/runtime.py) 时，不必一次消化所有分支。每章会指定入口，例如研究上下文先跟 `prepare_request`，研究动作先跟 `_execute`，研究结束先跟 `finalize`。这比把文件从第一行逐字读到最后一行更容易形成结构。
 
 | 目录 | 职责 |
 |---|---|

@@ -30,7 +30,7 @@ flowchart TD
 
 ## 先认识一份工具契约
 
-打开 [tools.py](../../src/aster/tools.py)，先看 `ReadFile`，再看 `SCHEMAS`、`definitions()`。
+打开 [tools.py](../../src/aster/tools/schemas.py)，先看 `ReadFile`，再看 `SCHEMAS`、`definitions()`。
 下面是 `ReadFile` 的字段部分，范围校验留在源码中：
 
 ```python
@@ -90,7 +90,7 @@ async def execute(self, call: ToolCall) -> Outcome:
     return await self.workspace.execute(call)
 ```
 
-真正的外部入口是 [Runtime.step()](../../src/aster/runtime.py)。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
+真正的外部入口是 [Runtime.step()](../../src/aster/core/runtime.py)。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
 业务集成应调用 `Runtime.step()`；直接实例化某个工具处理器会绕开这一层治理。
 
 ## 按需加载到底加载了什么

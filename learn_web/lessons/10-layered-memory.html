@@ -52,7 +52,7 @@
 <p><code>RunState</code> 是运行状态对象。<code>working_memory</code> 的唯一所有者就是它，<code>Memory</code> 类没有第二份持久化的 working memory。<code>Memory.remember_file()</code> 只负责向那张工作便笺写入内容；模块级 <code>store_excerpt()</code> 才负责跨运行来源认证。</p>
 <p>当前调用模型所需的原生工具历史由 Runtime 单独维护；<code>messages</code> 不能简单拿来替代完整的调用/结果协议。有关这部分，回看<a href="02-model-protocols.html">模型协议</a>与<a href="07-context-archives.html">上下文归档</a>。</p>
 <h2 id="顺着一次-read_file-读源码">顺着一次 read_file 读源码</h2>
-<p>从 <a href="../source/src/aster/runtime.py.html">Runtime._collect_step</a> 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 <code>memory.py</code> 的 <code>store_excerpt</code> 中完成：</p>
+<p>从 <a href="../source/src/aster/core/runtime.py.html">Runtime._collect_step</a> 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 <code>memory.py</code> 的 <code>store_excerpt</code> 中完成：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">outcome</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"read_file"</span><span class="p">:</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">call</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">"path"</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">remember_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">outcome</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">working_memory</span><span class="p">)</span>
@@ -99,7 +99,7 @@
 </tr>
 </tbody>
 </table>
-<p>Runtime 不会因为模型写了一个 <code>evidence_id</code> 就相信它。<code>workflow_tool()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>：它在本 run 中找到对应的成功 <code>read_file</code>，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。</p>
+<p>Runtime 不会因为模型写了一个 <code>evidence_id</code> 就相信它。<code>WorkflowTools.execute()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>：它在本 run 中找到对应的成功 <code>read_file</code>，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。</p>
 <p><code>store_excerpt</code> 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。</p>
 <p>通过检查后的记录包含：</p>
 <table>

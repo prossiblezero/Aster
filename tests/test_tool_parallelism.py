@@ -116,7 +116,7 @@ async def test_preflight_permissions_and_failure_preserve_other_results(
             else Decision("allow", "test")
         )
 
-    monkeypatch.setattr("aster.runtime.permission", permission)
+    monkeypatch.setattr("aster.core.runtime.permission", permission)
     await runtime.turn()
     observed = results(runtime)
     assert [row["status"] for row in observed] == ["success", "blocked", "error"]
@@ -138,7 +138,7 @@ async def test_all_three_read_tools_use_detached_execution(tmp_path, monkeypatch
 
     async def execute(self, call):
         assert threading.get_ident() != main_thread
-        assert self.workspace.context.runtime is None
+        assert self.workspace.context.workflow is None
         barrier.wait(3)
         return await original(self, call)
 

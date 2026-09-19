@@ -34,7 +34,7 @@
 <p>注意最后参与计数的不是只有聊天消息。
 工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
 工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。</p>
-<p><a href="../source/src/aster/runtime.py.html">Runtime.prepare_request()</a> 的入口如下，节选：</p>
+<p><a href="../source/src/aster/core/runtime.py.html">Runtime.prepare_request()</a> 的入口如下，节选：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">budget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">effective_context_tokens</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">output_reserve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">effective_output_tokens</span>

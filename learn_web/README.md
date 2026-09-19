@@ -47,4 +47,4 @@ python -m pytest -q learn_web/tests
 
 工作流仅需要读取仓库内容以及写入 Pages 和 OIDC token 的权限。模板在 `main` 和 `master` 分支推送时触发，不需要改站点 `base`。发布目录不包含操作脚本、测试、运行报告或历史证据；不要直接上传整个 `learn_web/`。
 
-源码页显示原始仓库相对路径，例如 `src/aster/runtime.py`，并为每行提供可链接的 `#L<number>` 锚点。它们是构建生成的教学副本；源码修改应在仓库原文件中完成，再重新构建站点。网页不执行真实 Agent，教程中的 Python 实验仍需在 Aster 环境运行。
+源码页显示原始仓库相对路径，例如 `src/aster/core/runtime.py`，并为每行提供可链接的 `#L<number>` 锚点。它们是构建生成的教学副本；源码修改应在仓库原文件中完成，再重新构建站点。网页不执行真实 Agent，教程中的 Python 实验仍需在 Aster 环境运行。

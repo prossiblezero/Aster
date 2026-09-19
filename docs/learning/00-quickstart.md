@@ -146,7 +146,7 @@ aster --cwd /tmp/aster-learning-demo
 |---|---|
 | [cli.py](../../src/aster/cli.py) 的 `main` | 解析命令行，装配 Runtime |
 | [schema.py](../../src/aster/schema.py) 的 `TaskSpec` / `ModelReply` | 用户任务和模型回复的数据结构 |
-| [runtime.py](../../src/aster/runtime.py) 的 `run` / `_run` | 模型与工具为何可以反复交互 |
+| [runtime.py](../../src/aster/core/runtime.py) 的 `run` / `_run` | 模型与工具为何可以反复交互 |
 | [config.py](../../src/aster/config.py) 的 `load_settings` | TOML、环境变量和显式参数如何合并 |
 
 不用立刻把 `runtime.py` 从头读到尾。先找到实验中调用的 `run`，只跟着它进入 `_run` 和 `turn`；暂时把上下文、权限、记忆当作已经装配好的组件。

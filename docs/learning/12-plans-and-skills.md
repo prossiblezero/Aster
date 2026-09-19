@@ -27,7 +27,7 @@ flowchart LR
 
 ## 计划和待办到底存了什么
 
-看 [schema.py](../../src/aster/schema.py) 的 `RunState`，再看 [Runtime.workflow_tool()](../../src/aster/runtime.py) 的 `todo_*` 和 `plan_*` 分支。
+看 [schema.py](../../src/aster/schema.py) 的 `RunState`，再看 [WorkflowTools.execute()](../../src/aster/tools/workflow.py) 的 `todo_*` 和 `plan_*` 分支。
 它们的状态很直接，没有隐藏的工作流 DAG，也没有另起一个规划模型。
 
 | 字段或工具 | 含义 | 不自动提供什么 |
@@ -73,7 +73,7 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 第一轮上下文包含 Skill 名称目录。模型选择 `skill_load(name="test-python")` 后，名字写入 `state.active_skills`。
 首次加载正文后，Runtime 把内容保存为 `state.skill_snapshots`，下一轮使用固定快照；文件变化不会自动更新，只有 `refresh=True` 才显式刷新。`resource` 只读取当前包资源，不能与 refresh 同用。分页读取是一种观察接口，`active_skills` 和快照共同表示已选说明。
 
-下面是从 `Runtime.workflow_tool` 压缩出的**有效关键节选**；`text` 在这之前已由 `redactor.text()` 脱敏，省略的上下文不会改变顺序：
+下面是从 `WorkflowTools.execute` 压缩出的**有效关键节选**；`text` 在这之前已由 `redactor.text()` 脱敏，省略的上下文不会改变顺序：
 
 ```python
 resource = args.get("resource", "")
@@ -107,7 +107,7 @@ Skill 写着“允许联网”不会修改 `Settings.network`；写着“忽略�
 
 ## 分页字段应该怎么读
 
-`skill_load` 和 `todo_list` 共用 [text_page()](../../src/aster/tools.py)。先对完整文本脱敏，再按字符切页。
+`skill_load` 和 `todo_list` 共用 [text_page()](../../src/aster/tools/workspace.py)。先对完整文本脱敏，再按字符切页。
 这样敏感内容不会因为恰好被切成两页而逃过脱敏。
 
 | 字段 | 含义 |

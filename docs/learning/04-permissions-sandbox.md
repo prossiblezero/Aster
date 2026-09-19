@@ -64,7 +64,7 @@ Shell 复合命令不能简单用第一个单词判断：`echo ok; rm data.txt` 
 
 `read_file` 成功时，结果包含整个源文件的 `source_sha256`，Runtime 将它记入 `state.read_evidence[path]`。
 写入已有文件之前，Runtime 再计算当前文件摘要。
-下面是 [Runtime._execute()](../../src/aster/runtime.py) 中这一检查的关键部分：
+下面是 [Runtime._prepare_tool()](../../src/aster/core/runtime.py) 中这一检查的关键部分：
 
 ```python
 fingerprint = hashlib.sha256(current.encode()).hexdigest()

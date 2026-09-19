@@ -40,7 +40,7 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 另外，当前 Runtime 若正在执行操作、有运行中的 worker，或者已有未结束任务，
 不能直接覆盖成另一个运行；教学实验会使用一个新 Runtime 对象代表进程重启。</p>
 <h2 id="检查点里的每组字段负责什么">检查点里的每组字段负责什么</h2>
-<p>完整结构在 <a href="../source/src/aster/runtime.py.html">Runtime.checkpoint()</a>，
+<p>完整结构在 <a href="../source/src/aster/core/runtime.py.html">Runtime.checkpoint()</a>，
 本章把容易混淆的字段按用途展开：</p>
 <table>
 <thead>
@@ -138,7 +138,7 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 Base URL 不参与一致性比较，因此恢复检查不是服务提供商身份认证。</p>
 <h2 id="什么时候写完整交互的边界">什么时候写：完整交互的边界</h2>
 <p>不能在“调用已经写进历史，结果还没回来”的瞬间保存可恢复检查点。
-<a href="../source/src/aster/runtime.py.html">Runtime.checkpoint()</a> 开头有两个关键保护：</p>
+<a href="../source/src/aster/core/runtime.py.html">Runtime.checkpoint()</a> 开头有两个关键保护：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_turn</span><span class="p">:</span>
     <span class="k">return</span>
 <span class="n">history_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">)</span>

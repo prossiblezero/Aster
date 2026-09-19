@@ -23,7 +23,7 @@
     J --&gt; K[Outcome + 执行记录]
 </code></pre></details></figure>
 <h2 id="先认识一份工具契约">先认识一份工具契约</h2>
-<p>打开 <a href="../source/src/aster/tools.py.html">tools.py</a>，先看 <code>ReadFile</code>，再看 <code>SCHEMAS</code>、<code>definitions()</code>。
+<p>打开 <a href="../source/src/aster/tools/schemas.py.html">tools.py</a>，先看 <code>ReadFile</code>，再看 <code>SCHEMAS</code>、<code>definitions()</code>。
 下面是 <code>ReadFile</code> 的字段部分，范围校验留在源码中：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ReadFile</span><span class="p">(</span><span class="n">Record</span><span class="p">):</span>
     <span class="n">path</span><span class="p">:</span> <span class="nb">str</span>
@@ -109,7 +109,7 @@
     <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>真正的外部入口是 <a href="../source/src/aster/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
+<p>真正的外部入口是 <a href="../source/src/aster/core/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
 业务集成应调用 <code>Runtime.step()</code>；直接实例化某个工具处理器会绕开这一层治理。</p>
 <h2 id="按需加载到底加载了什么">按需加载到底加载了什么</h2>
 <p>模型起初能看到 <code>tool_load</code> 的参数，其中 <code>names</code> 的枚举列出了当前可加载的名称。

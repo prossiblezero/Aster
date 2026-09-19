@@ -22,7 +22,7 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
     H --&gt;|worker_status| A
 </code></pre></details></figure>
 <h2 id="ask_user-是真正的等待不是占位返回"><code>ask_user</code> 是真正的等待，不是占位返回</h2>
-<p>在 <a href="../source/src/aster/runtime.py.html">Runtime.workflow_tool()</a> 中，人工提问的执行路径如下：</p>
+<p>在 <a href="../source/src/aster/tools/workflow.py.html">WorkflowTools.execute()</a> 中，人工提问的执行路径如下：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">answer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">question_callback</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">"question"</span><span class="p">])</span>
 <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isawaitable</span><span class="p">(</span><span class="n">answer</span><span class="p">):</span>
     <span class="n">answer</span> <span class="o">=</span> <span class="k">await</span> <span class="n">answer</span>

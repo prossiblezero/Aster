@@ -46,7 +46,7 @@ flowchart TD
 工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
 工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。
 
-[Runtime.prepare_request()](../../src/aster/runtime.py) 的入口如下，节选：
+[Runtime.prepare_request()](../../src/aster/core/runtime.py) 的入口如下，节选：
 
 ```python
 # 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。

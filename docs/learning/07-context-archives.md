@@ -264,7 +264,7 @@ asyncio.run(main())
 Aster 没有把“有磁盘归档”宣传成无限上下文或所有内容永久无损。
 
 继续读 [EvidenceStore](../../src/aster/evidence.py)、
-[Runtime.workflow_tool()](../../src/aster/runtime.py) 和
+[WorkflowTools.execute()](../../src/aster/tools/workflow.py) 和
 [归档合同测试](../../tests/test_context_archives.py)。
 更大的真实任务结果见[上下文评测](../context-results.md)。
 

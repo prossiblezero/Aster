@@ -52,7 +52,7 @@ saved = load_checkpoint(
 
 ## 检查点里的每组字段负责什么
 
-完整结构在 [Runtime.checkpoint()](../../src/aster/runtime.py)，
+完整结构在 [Runtime.checkpoint()](../../src/aster/core/runtime.py)，
 本章把容易混淆的字段按用途展开：
 
 | 字段 | 保存的内容 | 少了它会怎样 |
@@ -97,7 +97,7 @@ Base URL 不参与一致性比较，因此恢复检查不是服务提供商身�
 ## 什么时候写：完整交互的边界
 
 不能在“调用已经写进历史，结果还没回来”的瞬间保存可恢复检查点。
-[Runtime.checkpoint()](../../src/aster/runtime.py) 开头有两个关键保护：
+[Runtime.checkpoint()](../../src/aster/core/runtime.py) 开头有两个关键保护：
 
 ```python
 if not self.state or self._in_turn:

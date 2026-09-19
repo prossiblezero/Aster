@@ -25,7 +25,7 @@ run(task)
 
 ## 第一站：看循环的退出条件
 
-[runtime.py](../../src/aster/runtime.py) 的 `_run` 中有下面这段实际代码：
+[runtime.py](../../src/aster/core/runtime.py) 的 `_run` 中有下面这段实际代码：
 
 ```python
 while (

@@ -37,7 +37,7 @@ flowchart LR
 
 ## 反馈来自哪里：被召回不等于被正确使用
 
-在 [Runtime._memory_text](../../src/aster/runtime.py) 和 `memory_retrieve` 分支中，召回条目的 ID 会进入 `state.recalled_ids`。`recalled_ids` 是“待关联后续测试结果的条目集合”，不是“已证明有帮助的条目集合”。
+在 [Runtime._memory_text](../../src/aster/core/runtime.py) 和 `_collect_step` 对 `memory_retrieve` 的结果归集中，召回条目的 ID 会进入 `state.recalled_ids`。`recalled_ids` 是“待关联后续测试结果的条目集合”，不是“已证明有帮助的条目集合”。
 
 Runtime 的实际反馈条件是：
 

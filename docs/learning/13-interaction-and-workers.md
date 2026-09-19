@@ -29,7 +29,7 @@ flowchart TD
 
 ## `ask_user` 是真正的等待，不是占位返回
 
-在 [Runtime.workflow_tool()](../../src/aster/runtime.py) 中，人工提问的执行路径如下：
+在 [WorkflowTools.execute()](../../src/aster/tools/workflow.py) 中，人工提问的执行路径如下：
 
 ```python
 answer = self.question_callback(args["question"])

@@ -86,7 +86,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <h2 id="第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</h2>
 <p><code>read_file</code> 成功时，结果包含整个源文件的 <code>source_sha256</code>，Runtime 将它记入 <code>state.read_evidence[path]</code>。
 写入已有文件之前，Runtime 再计算当前文件摘要。
-下面是 <a href="../source/src/aster/runtime.py.html">Runtime._execute()</a> 中这一检查的关键部分：</p>
+下面是 <a href="../source/src/aster/core/runtime.py.html">Runtime._prepare_tool()</a> 中这一检查的关键部分：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">fingerprint</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">read_evidence</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">!=</span> <span class="n">fingerprint</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">Outcome</span><span class="p">(</span>

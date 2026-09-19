@@ -214,3 +214,32 @@ async def test_simple_python_command_runs_but_readonly_still_cannot_publish(tmp_
     )
     assert result.reason == "read_only"
     assert (tmp_path / "input.txt").read_text() == "original"
+
+
+async def test_preflight_validates_once_and_direct_registry_still_validates(tmp_path, monkeypatch):
+    from aster.schema import ModelReply
+    from aster.tools import ReadFile, ToolContext, ToolRegistry
+
+    (tmp_path / "a.txt").write_text("hello")
+    validations = []
+    original = ReadFile.model_validate
+
+    def validate(value, **kwargs):
+        validations.append(value)
+        return original(value, **kwargs)
+
+    monkeypatch.setattr(ReadFile, "model_validate", validate)
+
+    class Model:
+        async def complete(self, messages, tools):
+            if not validations:
+                return ModelReply(calls=[ToolCall(name="read_file", arguments={"path": "a.txt"})])
+            return ModelReply(text="done")
+
+    runtime = Runtime(tmp_path, Settings(approval="auto", completion="off"), model=Model())
+    await runtime.run(TaskSpec(prompt="read"))
+    assert len(validations) == 1
+    registry = ToolRegistry(ToolContext(runtime.workspace, runtime.sandbox, runtime.state.run_id))
+    result = await registry.execute(ToolCall(name="read_file", arguments={}))
+    assert result.reason == "invalid_arguments"
+    assert len(validations) == 2
