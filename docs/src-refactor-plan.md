@@ -1,6 +1,6 @@
 # Aster 源码瘦身与解耦实施方案
 
-制定日期：2026-09-19。用途：交给新会话执行的结构重构方案。
+制定日期：2026-09-19；同日更新为已提交基线。用途：交给新会话执行的结构重构方案。
 
 ## 1. 目标与完成标准
 
@@ -19,33 +19,42 @@
 
 不规定“必须砍掉多少行”或“每个文件不得超过多少行”。文件数可能增加；重点是依赖、状态归属和维护成本。最终解释新增文件各自承担什么职责，若总行数增长则说明增长来自兼容出口、测试还是新抽象。
 
-## 2. 已核对的基线与工作区保护
+## 2. 已保存的基线与工作区保护
 
-制定时 Git HEAD 为 `068f1a6`，分支为 `master`。这不是完整功能基线：工作区还有以下未提交修改：
+当前功能已保存为代码提交 **`f85cb1c7d5d4f6717602244c602e53ec9430935a`**（简称 `f85cb1c`）。它包含原先未提交的中文 TUI、命令补全/历史/状态查询、取消与退出、交互流式默认值、思考摘要、相关测试，以及同步后的 README、教程和网站。`tests/test_tui_commands.py` 已纳入版本管理。
 
-```text
-README.md
-src/aster/cli.py
-src/aster/config.py
-src/aster/streaming.py
-src/aster/tui.py
-tests/test_interaction_workers.py
-tests/test_model_context_config.py
-tests/test_model_profiles.py
-tests/test_tui_streaming.py
-tests/test_tui_commands.py                 # 当时尚未跟踪
-```
+完整交接版本使用本地附注标签 **`pre-src-refactor-20260919`**，标签指向包含上述代码和本方案修订的提交。新会话以这个标签作为起点与对照，**不再从 `068f1a6` 或 `8235374` 开始，不再重新搬运或提交之前的工作区快照**。标签创建后不移动、不覆盖。
 
-上述改动包含新的 TUI 命令、交互配置和展示行为。执行时重新读取 Git 状态和完整 diff，以最新实际内容为准，不能把它们恢复成 `068f1a6` 的实现。制定时 `src/aster` 共 27 个 Python 文件、9,350 个物理行，含空行、注释和上述工作区修改；Runtime 1,613 行，Provider 939 行，TUI 854 行，Context 458 行。
+该代码基线的 `src/aster` 共 27 个 Python 文件、9,350 个物理行（含空行、注释）；Runtime 1,613 行，Provider 939 行，TUI 854 行，Context 458 行。2026-09-19 在 `aster` 环境完成以下检查：
 
-开始实施前完成以下版本准备；这是执行前置检查，不是一个“调研后再决定方向”的开发阶段：
+| 检查 | 实际结果 |
+| --- | --- |
+| `python -m ruff check src tests scripts learn_web/scripts learn_web/tests` | 通过 |
+| `python -m pytest -q` | 982 项通过，57.74 秒 |
+| `python learn_web/build.py` | 成功重建 |
+| 重建后 `python -m pytest -q learn_web/tests` | 25 项通过；属于重建后复核，不与上面的 982 项累加 |
+| 已安装命令的 PTY 验收 | 临时工作区中裸启动、`/context`、`quit` 成功，退出码 0；未调用模型 API |
+| 代码提交后的工作区 | 干净 |
 
-1. 读取本文件、当前项目指令、`pyproject.toml`、Git 状态和相关 diff。重新记录源码文件数、行数、长函数与导入依赖，以及基线检查结果。
-2. 若工作区已干净，在新分支实施。若仍有上面的工作区修改，优先创建独立 worktree，将明确列出的受影响源码、文档和测试快照带入；不能只从 HEAD 开工而遗漏新功能。不得复制 `.env`、私有 `.aster`、凭证或原始运行记录。
-3. 在隔离分支用单独的基线提交保留带入的修改，提交说明标明“现有工作区快照”，不得将它们记为本次重构成果。记录原 HEAD、带入文件及验证结果；基线失败单列，不通过删断言或关功能制造全绿。
-4. 原工作区的未提交内容保持原状。若其他会话还在修改同一目录，使用冻结快照独立推进，避免两个会话同时移动同一批文件。
+这些结果是重构前对照，不替代新会话的导入位置检查和各批回归，也不代表真实任务能力或机制收益评测。
+
+开始实施前完成以下版本准备：
+
+1. 读取本文件、当前项目指令、`pyproject.toml`；运行 Git 状态、日志和标签检查，确认基线存在。检查标签后的新增提交或修改，不能将其悄悄丢弃。
+2. 正常情况下，仓库干净且 HEAD 就是交接版本，直接从标签创建 `refactor/src-layout` 分支。无需再造基线快照。命令见下方；若分支已存在，核对历史后继续，不使用强制重建覆盖。
+3. 只有确有并行工作、或出现新的未提交内容时才使用独立 worktree，保留原工作区；以标签与最新修改的关系决定纳入范围并记录，不能在未核对时覆盖或遗漏新功能。不要复制 `.env`、私有 `.aster`、凭证和原始运行记录。
+4. 重新确认实际加载的源码位置，记录基线指标与验证结果；环境差异或基线失败单列，不通过删断言或关功能制造全绿。
 5. 每批使用显式路径暂存并提交，提交前复核 HEAD、暂存 diff 和未跟踪文件；不使用 `git add .`、`git reset --hard` 或批量删除恢复干净。用户已要求及时使用 Git 保存版本，不需要每批再次征求提交许可。
 6. 最终交接写明分支、worktree、各批提交和验证状态。原工作区干净且可安全合入时完成本地整合；存在更新的并行修改时保留结果分支，列明合入差异，不覆盖他人修改。没有推送或发布授权，不添加远程、不推送。
+
+在已经确认没有额外修改的仓库根目录执行：
+
+```bash
+git status --short --branch
+git log -3 --oneline
+git show --no-patch pre-src-refactor-20260919
+git switch -c refactor/src-layout pre-src-refactor-20260919
+```
 
 旧的 [v0.2 收尾计划](lightweight-agent-v0.2-plan.md) 曾冻结当轮拆分范围。本文件对应用户后来明确提出的新结构整理任务；旧验收报告和证据继续保留，不改写成此次重构的成绩。
 
@@ -188,7 +197,7 @@ flowchart TD
 涉及当前 `tui.py`、`cli.py`，落到 `ui/`；CLI 命令入口继续是 `aster.cli:main` / `aster.cli:tui_main`。
 
 - 提取输入和批准框组件、命令解析/执行；App 保留界面状态、渲染与 Textual 事件。使用普通函数或明确服务依赖，不使用共享整个 App 私有字段的 mixin 拆法。
-- 保留带入基线中的中文界面、快捷键、补全、输入历史、忙时命令、退出/取消和流式/思考摘要行为。以当前工作区代码和测试为准，不退回旧提交的 TUI。
+- 保留已保存基线中的中文界面、快捷键、补全、输入历史、忙时命令、退出/取消和流式/思考摘要行为。以基线代码和测试为准，不退回旧提交的 TUI。
 - 保持 `aster` 裸启动、带任务的单次执行、`aster-tui`、显式配置、`--cwd`、恢复和 smoke 行为。配置默认值与优先级保持一致，不顺手实现用户级全局配置。
 - 逐条修正当前 README、`docs/learning`、配置/接口文档中的真实源码位置和方法归属；教程链接指向实现，不仅指向薄兼容出口。重建网站，核对新路径与删除的旧源码镜像。现有构建器已清理 `learn_web/source`，无需另造清理器。
 - 运行最终整体回归、课程实验、实际 wheel 安装和终端验收，提交最终结构与验证说明。
@@ -255,7 +264,7 @@ python -m pytest -q
 | 工具/调度 | `test_tool_contracts.py`、`test_tool_parallelism.py`、`test_protocol_pairing.py`、`test_batch_patch_output.py`、`test_fresh_read.py`、`test_write_approval_race.py`、`test_node_verification.py`、`test_runtime_lifecycle.py` |
 | Provider/历史 | `test_context_provider.py`、`test_provider_events.py`、`test_streaming.py`、`test_usage_budget.py`、`test_history_conversion.py`、`test_history_phase.py`、`test_history_gateway_metadata.py`、`test_model_profiles.py`、`test_profile_redaction.py` |
 | 会话/Context | `test_session_continuation.py`、`test_session_ui.py`、`test_context_state.py`、`test_context_archives.py`、`test_context_policy_input.py`、`test_stable_prefix.py`、`test_skill_snapshots.py`、`test_observation_archive.py`、`test_rl_contract.py`、`test_training_contract.py` |
-| UI/安装 | `test_cli_contract.py`、`test_tui_streaming.py`、`test_tui_commands.py`（若仍在最新基线）、`test_interaction_workers.py`、`test_model_context_config.py`、`test_sandbox_packaging.py` |
+| UI/安装 | `test_cli_contract.py`、`test_tui_streaming.py`、`test_tui_commands.py`、`test_interaction_workers.py`、`test_model_context_config.py`、`test_sandbox_packaging.py` |
 
 必须区分公开导入和内部 monkeypatch。测试应补丁到实际使用依赖的模块，保留原有行为断言；不能因为旧补丁失效就删断言、宽化预期或放任真实网络请求。
 
@@ -292,8 +301,8 @@ cd "$aster_refactor_tmp"
 
 ## 7. 提交、回退与最终报告
 
-- 每批功能可运行并通过对应回归后提交。提交主题可使用 `refactor(tools)`、`refactor(providers)`、`refactor(session)`、`refactor(ui)`；现有 WIP 快照使用独立提交，文档/生成物随对应批次同步。
-- 不修改持久化格式、不批量迁移用户 `.aster`，因此回退本轮代码无需改写用户数据。共享分支回退使用针对本轮提交的 revert，避免把原有 WIP 一并回退。
+- 每批功能可运行并通过对应回归后提交。提交主题可使用 `refactor(tools)`、`refactor(providers)`、`refactor(session)`、`refactor(ui)`；文档/生成物随对应批次同步，既有功能基线不计为重构成果。
+- 不修改持久化格式、不批量迁移用户 `.aster`，因此回退本轮代码无需改写用户数据。保留 `pre-src-refactor-20260919` 作为对照与恢复依据；共享分支回退使用针对重构提交的 revert，避免把基线功能一并回退。
 - 最终记录实际改动映射、Runtime/Provider/TUI/Context 的前后长度、最长函数、模块数、确认减少的重复代码，以及仍保留的复杂边界。指标用当前源码计算，不沿用本计划的快照数字。
 - 报告新增依赖数和新用户命令数，应均为 0；兼容出口只做导出的证据；工具不持有 Runtime、协议不导入 UI、Context 不创建 HTTP 客户端的核查结果。
 - 报告每个验证命令的退出状态、通过/失败/跳过原因、wheel 实际导入位置、终端验收和文档/网站状态。重构通过不等于真实任务成功率、缓存、Memory 或 Skills 收益提升。
@@ -309,3 +318,19 @@ pi 参考仓库是 <https://github.com/earendil-works/pi>，本次核对版本�
 - [会话管理](https://github.com/earendil-works/pi/blob/36b60d2e8985899743c4cf5bd5f8929832a3f05d/packages/coding-agent/src/core/session-manager.ts)：下一轮会话树的参考，不作为本轮格式迁移要求。
 
 pi 同样有较长的 `agent-session.ts`，并非完美解耦模板。本方案采用与 Aster 当前 Python、Textual、沙箱和证据体系相容的局部重构，不追求源码目录的一比一复刻。
+
+## 9. 新会话请求
+
+```text
+请阅读并直接实施 /home/dzh/Aster/docs/src-refactor-plan.md。
+
+重构前版本已保存：代码基线 f85cb1c，完整交接标签 pre-src-refactor-20260919。它已包含此前未提交的 TUI、配置、流式和测试改动，无需重新保存旧 WIP。
+
+先检查 Git 状态、日志和标签；在干净仓库从该标签创建 refactor/src-layout 分支。有新的并行修改时先保护并核对，必要时使用独立 worktree，不覆盖用户工作。
+
+按方案四批实施源码瘦身、解耦和包内目录整理，保持现有功能、公开接口与持久化/训练契约。保留 src/aster 命名空间，本轮不实现会话树或其他新功能。
+
+使用 Conda aster 或由其派生的临时验证环境，绝不使用 base。验证实际导入位置，避免 editable 安装误测原仓库。复用离线回归，完成 wheel 安装、终端和恢复验收，同步 README、教程与 learn_web；不要在 exam_project 放评测壳。
+
+每批验证后及时 Git 提交，持续执行到方案完成，不要只重新分析或重复请求已授权的操作。最终报告各批提交、前后结构与代码指标、确认删除的重复逻辑、验证结果和遗留问题。
+```
