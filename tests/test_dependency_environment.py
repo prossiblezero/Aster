@@ -11,7 +11,7 @@ import pytest
 from pydantic import ValidationError
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import TaskSpec, ToolCall
 from aster.storage.workspace import Workspace

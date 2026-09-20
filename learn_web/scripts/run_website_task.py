@@ -13,7 +13,7 @@ from pathlib import Path
 from website_stream_transport import ResponsesStreamingClient
 
 from aster.config import load_settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec
 
 

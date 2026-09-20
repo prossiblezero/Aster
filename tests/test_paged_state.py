@@ -6,7 +6,7 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBuilder
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 from aster.tools import text_page
 

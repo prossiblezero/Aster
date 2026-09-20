@@ -3,9 +3,9 @@ import json
 from textual.widgets import Input
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec
-from aster.tui import AsterTui
+from aster.ui.app import AsterTui
 
 
 class Conversation:

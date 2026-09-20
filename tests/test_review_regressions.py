@@ -8,8 +8,8 @@ import pytest
 from aster.config import Settings
 from aster.context import ContextBuilder, history_groups
 from aster.core.hooks import HookResult, Hooks
+from aster.core.runtime import Runtime
 from aster.core.workers import Worker
-from aster.runtime import Runtime
 from aster.schema import Final, ModelReply, TaskSpec, ToolCall, VerifierResult
 from aster.training.env import AsterEnv
 

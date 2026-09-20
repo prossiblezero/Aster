@@ -15,9 +15,9 @@
     C --&gt; E[运行结束或预算耗尽]
     E --&gt; F[完成要求检查 + 独立评分器]
 </code></pre></details></figure>
-<p>代码入口是 <a href="../source/src/aster/training/env.py.html">rl.py</a>，公开动作和任务类型在 <a href="../source/src/aster/schema.py.html">schema.py</a>。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。</p>
+<p>代码入口是 <a href="../source/src/aster/training/env.py.html">training/env.py</a>，公开动作和任务类型在 <a href="../source/src/aster/schema.py.html">schema.py</a>。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。</p>
 <h2 id="已实现的后训练数据契约">已实现的后训练数据契约</h2>
-<p><a href="../source/src/aster/training/contracts.py.html"><code>training.py</code></a> 已实现 <code>TaskRecord</code> 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；<code>prepare_sft()</code> 会把真实保存的 request artifact 与匹配的 <code>model_reply</code> 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。<code>TokenizedDecision</code> 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。<code>GRPORollout</code>/<code>validate_group()</code> 还校验版本、采样参数、预算、分组数量和 reward 可用性。</p>
+<p><a href="../source/src/aster/training/contracts.py.html"><code>training/contracts.py</code></a> 已实现 <code>TaskRecord</code> 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；<code>prepare_sft()</code> 会把真实保存的 request artifact 与匹配的 <code>model_reply</code> 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。<code>TokenizedDecision</code> 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。<code>GRPORollout</code>/<code>validate_group()</code> 还校验版本、采样参数、预算、分组数量和 reward 可用性。</p>
 <p>这些是数据质量合同，不是训练器：没有真实 tokenizer 对齐、采样循环、反向传播或优化器，也没有因此产生权重或证明模型变强。<code>AsterEnv</code> 的教学奖励和 <code>GRPORollout</code> 的训练合同也要分开：环境演示可以返回奖励，但 rollout 的 <code>cancelled</code>、<code>infrastructure_error</code>、<code>verifier_error</code> 必须保持 <code>reward=None</code>，不能直接当成模型负例训练。</p>
 <h2 id="reset一轮试验一个临时工作区">reset：一轮试验一个临时工作区</h2>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">observation</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>

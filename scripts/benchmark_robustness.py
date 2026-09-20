@@ -37,8 +37,9 @@ from benchmark_support import (
 
 from aster.config import load_settings
 from aster.context import ContextBuilder
-from aster.provider import ModelClient, request_payload
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.providers.client import ModelClient
+from aster.providers.codec import request_payload
 from aster.safety.redaction import Redactor
 from aster.tools import SCHEMAS
 

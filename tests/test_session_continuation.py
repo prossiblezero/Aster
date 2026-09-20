@@ -8,8 +8,10 @@ import pytest
 
 from aster.config import ModelProfile, Settings
 from aster.context import ContextBudgetError
-from aster.provider import ModelClient, ProviderError, request_payload
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.providers.client import ModelClient
+from aster.providers.codec import request_payload
+from aster.providers.errors import ProviderError
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
 
@@ -18,7 +20,7 @@ def test_process_death_after_write_refuses_uncertain_resume(tmp_path):
 import asyncio, os, sys
 from pathlib import Path
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 r = Runtime(Path(sys.argv[1]), Settings(approval="auto"))
 r.start(TaskSpec(prompt="Write once"))
@@ -47,7 +49,7 @@ def test_parent_resume_does_not_ignore_a_crashed_worker(tmp_path):
 import asyncio, os, sys
 from pathlib import Path
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 class Writer:
     async def complete(self, *args):

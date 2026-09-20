@@ -1,7 +1,7 @@
 import pytest
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 
 

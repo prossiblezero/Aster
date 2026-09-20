@@ -8,8 +8,9 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBudgetError, ContextBuilder, ContextHistoryError, history_groups
-from aster.provider import ModelClient, ProviderError, request_payload
-from aster.providers.codec import anthropic_reply, chat_reply
+from aster.providers.client import ModelClient
+from aster.providers.codec import anthropic_reply, chat_reply, request_payload
+from aster.providers.errors import ProviderError
 from aster.schema import RunState, TaskSpec
 from aster.tools import CORE_TOOLS, definitions
 

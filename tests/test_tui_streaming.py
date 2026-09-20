@@ -5,9 +5,9 @@ import asyncio
 import pytest
 
 from aster.config import Settings
-from aster.provider import ModelClient
+from aster.providers.client import ModelClient
 from aster.schema import ModelReply
-from aster.tui import AsterTui
+from aster.ui.app import AsterTui
 
 
 class PausedStream(ModelClient):

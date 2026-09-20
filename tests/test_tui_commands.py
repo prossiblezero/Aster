@@ -6,7 +6,7 @@ import pytest
 
 from aster.config import load_settings
 from aster.schema import ModelReply
-from aster.tui import ASTER_MARK, AsterTui
+from aster.ui.app import ASTER_MARK, AsterTui
 
 
 class WaitingModel:

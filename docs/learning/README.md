@@ -116,3 +116,5 @@ flowchart TD
 当前课程覆盖已实现的 Harness、选读环境接口以及已经落地的数据契约。SFT/GRPO 的任务来源、许可、划分、真实请求/回复匹配、assistant mask 和 GRPO 版本/预算/分组校验已在第 15 章说明；tokenizer 对齐、采样训练器、优化器、权重更新和训练效果仍未实现。最新成绩从 [评测说明](../benchmark.md)、[v0.2 验收报告](../../evaluations/v0.2-release/REPORT.md) 和 [lab follow-up](../../evaluations/lab-followup-20260919/REPORT.md) 查询，教程不另外维护一套成果数字。
 
 本次重写借鉴三个教学项目的章节组织、代码走读和实验方式；实际阅读的章节、版本与差异记录在 [教学参考](references.md)。
+
+当前包结构及 Python 导入路径见 [模块整理说明](../module-layout.md)；课程示例直接导入实现所在模块。

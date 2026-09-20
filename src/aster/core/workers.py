@@ -9,11 +9,11 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 from ..config import Settings
-from ..provider import ModelClient
+from ..providers.client import ModelClient
 from ..schema import TaskSpec
 
 if TYPE_CHECKING:
-    from ..runtime import Runtime
+    from .runtime import Runtime
 
 
 def _within(path: str, directory: str) -> bool:
@@ -90,7 +90,7 @@ class WorkerManager:
                 "auto_dream": False,
             }
         )
-        from ..runtime import Runtime
+        from .runtime import Runtime
 
         model = (
             ModelClient(settings) if type(self.parent.model) is ModelClient else self.parent.model

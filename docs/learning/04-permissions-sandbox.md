@@ -116,7 +116,7 @@ import tempfile
 from pathlib import Path
 
 from aster.config import ExecRule, Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 
 

@@ -28,12 +28,12 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 
 | 能力 | 当前已实现的行为 | 源码与检查入口 |
 | --- | --- | --- |
-| 独立 episode | `AsterEnv.reset()` 按工作区规则复制种子仓库到临时目录；上一轮改动不会变成下一轮起点 | [rl.py：AsterEnv.reset](../src/aster/training/env.py)、[test_runtime_repairs.py](../tests/test_runtime_repairs.py) |
-| 统一执行与观察 | 外部动作复用 `Runtime.step()`；`model_input` 与工具定义来自自主运行同样使用的 `prepare_request()` | [rl.py：_step / _observation](../src/aster/training/env.py)、[runtime.py：prepare_request](../src/aster/core/runtime.py)、[test_context_policy_input.py](../tests/test_context_policy_input.py) |
-| 有界交互与终态 | 工具动作和 Final 消耗预算；达到上限仍评分最后候选；终态拒绝重复 step，评分前等待 Worker 停止 | [rl.py：_step / _terminal_reward](../src/aster/training/env.py)、[test_rl_contract.py](../tests/test_rl_contract.py) |
-| 独立奖励入口 | 完成要求检查与外部 verifier 分开；没有独立 verifier 不给成功奖励，仓库测试结果只是观察 | [rl.py：_terminal_reward](../src/aster/training/env.py)、[schema.py：VerifierResult](../src/aster/schema.py) |
+| 独立 episode | `AsterEnv.reset()` 按工作区规则复制种子仓库到临时目录；上一轮改动不会变成下一轮起点 | [training/env.py：AsterEnv.reset](../src/aster/training/env.py)、[test_runtime_repairs.py](../tests/test_runtime_repairs.py) |
+| 统一执行与观察 | 外部动作复用 `Runtime.step()`；`model_input` 与工具定义来自自主运行同样使用的 `prepare_request()` | [training/env.py：_step / _observation](../src/aster/training/env.py)、[runtime.py：prepare_request](../src/aster/core/runtime.py)、[test_context_policy_input.py](../tests/test_context_policy_input.py) |
+| 有界交互与终态 | 工具动作和 Final 消耗预算；达到上限仍评分最后候选；终态拒绝重复 step，评分前等待 Worker 停止 | [training/env.py：_step / _terminal_reward](../src/aster/training/env.py)、[test_rl_contract.py](../tests/test_rl_contract.py) |
+| 独立奖励入口 | 完成要求检查与外部 verifier 分开；没有独立 verifier 不给成功奖励，仓库测试结果只是观察 | [training/env.py：_terminal_reward](../src/aster/training/env.py)、[schema.py：VerifierResult](../src/aster/schema.py) |
 | 轨迹与输入证据 | 保存实际请求 payload、上下文策略版本、工具结果归档、调用历史、checkpoint 和代码差异；检查工具调用与结果配对 | [runtime.py：prepare_request / checkpoint](../src/aster/core/runtime.py)、[messages.py：history_groups](../src/aster/messages.py)、[evidence.py](../src/aster/storage/evidence.py) |
-| 失败与恢复边界 | 生成尝试有界、分类诊断与已报告用量累加；schema错误形成配对的失败观察；本任务及已启动子任务有未结在途调用时拒绝恢复 | [provider.py](../src/aster/providers/client.py)、[runtime.py：_execute_batch](../src/aster/core/runtime.py)、[session.py：assert_settled_tools](../src/aster/sessions/checkpoint.py) |
+| 失败与恢复边界 | 生成尝试有界、分类诊断与已报告用量累加；schema错误形成配对的失败观察；本任务及已启动子任务有未结在途调用时拒绝恢复 | [providers/client.py](../src/aster/providers/client.py)、[runtime.py：_execute_batch](../src/aster/core/runtime.py)、[sessions/checkpoint.py：assert_settled_tools](../src/aster/sessions/checkpoint.py) |
 | 任务与评分组织 | 任务有初始 fixture、预算、参考动作和独立检查；真实模型与脚本回放分开统计，保留失败尝试 | [datasets/README.md](../datasets/README.md)、[benchmark_support.py](../scripts/benchmark_support.py)、[benchmark.md](benchmark.md) |
 
 这些基础足以开始定义“在什么任务上采样、模型看到什么、动作如何执行、最终如何评分”。它们不证明某套训练方法已经有效，也不等同于训练数据已经准备好。
@@ -52,7 +52,7 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 
 ### 2. 将审计工件转换成可校验的 SFT 样本
 
-`scripts/benchmark_support.py::archive()` 复制运行工件和候选文件；它不是训练样本导出器。新增 `training.py` 已有实际请求投影和 assistant-only mask 的校验契约，尚无真实 tokenizer/template 对齐、轨迹筛选及训练数据流水线。
+`scripts/benchmark_support.py::archive()` 复制运行工件和候选文件；它不是训练样本导出器。新增 `training/contracts.py` 已有实际请求投影和 assistant-only mask 的校验契约，尚无真实 tokenizer/template 对齐、轨迹筛选及训练数据流水线。
 
 导出应以每次模型请求的实际可见输入与对应 assistant 输出为单位。上下文裁剪和归档回读会改变观察，不能仅用最终 checkpoint 重建所有历史时刻，也不能直接把 `state.messages` 当成完整模型输入。`Runtime.prepare_request()` 保存的请求工件和完整执行历史应分别保留，前者用于训练输入对齐，后者用于审计与协议检查。
 
@@ -66,7 +66,7 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 
 GRPO 方案需要定义同题多次采样的分组、组内奖励与优势计算，并由训练侧获取或可重算行为策略的逐 token logprobs。还应记录 actor/reference 权重版本、token IDs、采样参数、输出终止原因及训练 mask，保证计算概率时使用的观察与采样时一致。
 
-当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v7`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[provider.py：ModelClient](../src/aster/providers/client.py)、[context.py：ContextReport](../src/aster/context/budget.py)。
+当前请求工件中的 `policy_version` 来自 `ContextReport`，表示上下文构建规则，当前为 `deterministic-v7`；它不是行为模型的权重版本。此次宿主能力指引变化已更新该版本，采样和训练输入应保留各自实际版本，不把旧工件事后改写成新prompt。模型名称也不能替代不可变的训练检查点标识。相关契约见 [schema.py：ModelReply](../src/aster/schema.py)、[providers/client.py：ModelClient](../src/aster/providers/client.py)、[context/budget.py：ContextReport](../src/aster/context/budget.py)。
 
 ### 4. 明确奖励可信范围与异常处理
 
@@ -82,7 +82,7 @@ GRPO 方案需要定义同题多次采样的分组、组内奖励与优势计算
 
 `reset(seed=...)` 目前只把 seed 返回到 info，没有设置模型采样或依赖库的随机状态。可复现实验仍需训练器控制采样种子，固定任务、模型、工具与上下文版本，并记录环境差异。
 
-Worker默认关闭；显式开启后各有12步、12轮预算，`max_workers`限制同时存活数量，仍没有整个父子任务共享的token、耗时和动作成本上限。本轮补充子任务在途检查不代表已经实现Worker恢复或训练信用分配。首版SFT/GRPO维持关闭Worker，先验证单Agent学习闭环。需要训练委派策略时，再加入整个任务的预算、父子轨迹关联和奖励归因，不能只统计父运行成本。真实任务验收控制器的累计账本也不是已实现的训练侧共享预算。依据见 [rl.py：reset / _step](../src/aster/training/env.py)、[workers.py：WorkerManager.start](../src/aster/core/workers.py)。
+Worker默认关闭；显式开启后各有12步、12轮预算，`max_workers`限制同时存活数量，仍没有整个父子任务共享的token、耗时和动作成本上限。本轮补充子任务在途检查不代表已经实现Worker恢复或训练信用分配。首版SFT/GRPO维持关闭Worker，先验证单Agent学习闭环。需要训练委派策略时，再加入整个任务的预算、父子轨迹关联和奖励归因，不能只统计父运行成本。真实任务验收控制器的累计账本也不是已实现的训练侧共享预算。依据见 [training/env.py：reset / _step](../src/aster/training/env.py)、[workers.py：WorkerManager.start](../src/aster/core/workers.py)。
 
 上述事项是从推理 Harness 接入训练的工作，不应写成现有功能已违反契约的 bug。
 

@@ -4,7 +4,7 @@ import json
 
 from aster.config import Settings
 from aster.context import ContextBuilder
-from aster.provider import history_groups
+from aster.messages import history_groups
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 from aster.training.env import AsterEnv
 

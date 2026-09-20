@@ -22,11 +22,11 @@ flowchart TD
     E --> F[完成要求检查 + 独立评分器]
 ```
 
-代码入口是 [rl.py](../../src/aster/training/env.py)，公开动作和任务类型在 [schema.py](../../src/aster/schema.py)。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。
+代码入口是 [training/env.py](../../src/aster/training/env.py)，公开动作和任务类型在 [schema.py](../../src/aster/schema.py)。它采用常见环境接口的五元组形式，但没有依赖 Gym，也不是训练框架本身。
 
 ## 已实现的后训练数据契约
 
-[`training.py`](../../src/aster/training/contracts.py) 已实现 `TaskRecord` 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；`prepare_sft()` 会把真实保存的 request artifact 与匹配的 `model_reply` 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。`TokenizedDecision` 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。`GRPORollout`/`validate_group()` 还校验版本、采样参数、预算、分组数量和 reward 可用性。
+[`training/contracts.py`](../../src/aster/training/contracts.py) 已实现 `TaskRecord` 的任务来源、许可证、revision、fixture/verifier 哈希和 train/dev/test/audit 划分校验；`prepare_sft()` 会把真实保存的 request artifact 与匹配的 `model_reply` 事件连接起来，导出 assistant target，并记录省略的 prompt reasoning 数量，不导出被省略的推理内容。`TokenizedDecision` 只规定 token、prompt 长度和 assistant mask 的一致性，未提供 tokenizer。`GRPORollout`/`validate_group()` 还校验版本、采样参数、预算、分组数量和 reward 可用性。
 
 这些是数据质量合同，不是训练器：没有真实 tokenizer 对齐、采样循环、反向传播或优化器，也没有因此产生权重或证明模型变强。`AsterEnv` 的教学奖励和 `GRPORollout` 的训练合同也要分开：环境演示可以返回奖励，但 rollout 的 `cancelled`、`infrastructure_error`、`verifier_error` 必须保持 `reward=None`，不能直接当成模型负例训练。
 

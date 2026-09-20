@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..config import Settings
 from ..context import ContextBudgetError, ContextHistoryError
-from ..runtime import Runtime
+from ..core.runtime import Runtime
 from ..schema import ACTION, Action, Final, TaskSpec, VerifierResult
 from ..storage.workspace import Workspace
 

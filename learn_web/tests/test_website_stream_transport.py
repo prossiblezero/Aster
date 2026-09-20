@@ -8,9 +8,10 @@ import pytest
 from website_stream_transport import ResponsesStreamingClient
 
 from aster.config import Settings
-from aster.provider import ModelClient, ProviderError
+from aster.core.runtime import Runtime
 from aster.providers import codec
-from aster.runtime import Runtime
+from aster.providers.client import ModelClient
+from aster.providers.errors import ProviderError
 from aster.schema import TaskSpec
 
 

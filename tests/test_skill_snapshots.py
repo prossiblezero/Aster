@@ -7,7 +7,7 @@ from copy import deepcopy
 import pytest
 
 from aster.config import ModelProfile, Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
 

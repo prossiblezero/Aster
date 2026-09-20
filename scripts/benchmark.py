@@ -31,7 +31,7 @@ from benchmark_support import (
 
 from aster.config import load_settings
 from aster.context import ContextBuilder
-from aster.provider import request_payload
+from aster.providers.codec import request_payload
 from aster.schema import RunState, TaskSpec
 from aster.tools import CORE_TOOLS, definitions
 

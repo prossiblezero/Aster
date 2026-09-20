@@ -6,9 +6,9 @@ from copy import deepcopy
 import pytest
 
 from aster.config import ModelProfile, Settings
-from aster.history import canonicalize
-from aster.provider import ContextHistoryError, request_payload
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.messages import ContextHistoryError, canonicalize
+from aster.providers.codec import request_payload
 from aster.schema import TaskSpec
 
 

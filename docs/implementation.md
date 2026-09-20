@@ -4,7 +4,7 @@ Aster 是独立重构的轻量 Coding Agent，不导入 pico/nexa 包。保留�
 
 ## 工程结构
 
-Python 3.12、conda `aster`、`src/aster` 包布局。当前目录与验证记录见 [源码重构结果](src-refactor-results.md)。Pydantic 校验边界数据，标准库管理状态与文件，httpx 请求模型，Textual 展示界面，tiktoken 估算输入长度。CLI、TUI、自主运行和外部策略动作均进入同一个 Runtime，避免每种入口各自实现权限与验证逻辑。
+Python 3.12、conda `aster`、`src/aster` 包布局。当前目录与导入规则见 [模块整理说明](module-layout.md)，前一轮验证记录见 [源码重构结果](src-refactor-results.md)。Pydantic 校验边界数据，标准库管理状态与文件，httpx 请求模型，Textual 展示界面，tiktoken 估算输入长度。CLI、TUI、自主运行和外部策略动作均进入同一个 Runtime，避免每种入口各自实现权限与验证逻辑。
 
 ```mermaid
 flowchart TD

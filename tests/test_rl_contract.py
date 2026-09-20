@@ -4,8 +4,8 @@ import pytest
 
 from aster.config import Settings
 from aster.core.hooks import HookResult, Hooks
+from aster.core.runtime import Runtime
 from aster.core.workers import Worker
-from aster.runtime import Runtime
 from aster.schema import ACTION, Final, TaskSpec, ToolCall, VerifierResult
 from aster.training.env import AsterEnv
 

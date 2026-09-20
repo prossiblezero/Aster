@@ -145,7 +145,7 @@ async def test_symlink_output_rejects_the_entire_batch(tmp_path):
 
 
 async def test_partial_publication_updates_runtime_state(tmp_path, monkeypatch):
-    from aster.runtime import Runtime
+    from aster.core.runtime import Runtime
     from aster.schema import TaskSpec, ToolCall
 
     for name in ("a.txt", "b.txt"):

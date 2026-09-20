@@ -90,6 +90,8 @@ async def execute(self, call: ToolCall) -> Outcome:
     return await self.workspace.execute(call)
 ```
 
+工具可用性统一由 [tools/availability.py](../../src/aster/tools/availability.py) 判断，供工具展示、`tool_load` 和直接执行预检共用；执行时仍要另过具体参数的权限与审批检查。
+
 真正的外部入口是 [Runtime.step()](../../src/aster/core/runtime.py)。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
 业务集成应调用 `Runtime.step()`；直接实例化某个工具处理器会绕开这一层治理。
 
@@ -119,7 +121,7 @@ import tempfile
 from pathlib import Path
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 
 

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from aster.config import ModelProfile, load_settings
 from aster.schema import ModelReply
-from aster.tui import AsterTui
+from aster.ui.app import AsterTui
 
 PROFILES = """
 approval = "never"

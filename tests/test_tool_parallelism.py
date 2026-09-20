@@ -8,7 +8,7 @@ import pytest
 
 from aster.config import Settings
 from aster.core.hooks import HookResult, Hooks
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.safety.policy import Decision
 from aster.schema import ModelReply, Outcome, TaskSpec, ToolCall
 from aster.tools import ToolRegistry

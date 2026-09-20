@@ -58,7 +58,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
 

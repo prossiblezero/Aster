@@ -6,8 +6,8 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBudgetError, ContextBuilder
-from aster.provider import request_payload
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.providers.codec import request_payload
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 
 

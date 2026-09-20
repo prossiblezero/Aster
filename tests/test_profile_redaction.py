@@ -6,8 +6,9 @@ import httpx
 import pytest
 
 from aster.config import ModelProfile, Settings
-from aster.provider import ModelClient, ProviderError
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.providers.client import ModelClient
+from aster.providers.errors import ProviderError
 from aster.schema import ModelReply, TaskSpec
 
 OLD_KEY = "old-synthetic-profile-secret"

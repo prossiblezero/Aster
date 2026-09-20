@@ -13,13 +13,13 @@ import time
 from pathlib import Path
 
 from .config import load_settings
-from .runtime import Runtime
+from .core.runtime import Runtime
 from .safety.redaction import Redactor
 from .schema import TaskSpec
 from .training.env import AsterEnv
 
 try:
-    from .tui import AsterTui
+    from .ui.app import AsterTui
 except ImportError:  # pragma: no cover
     AsterTui = None
 

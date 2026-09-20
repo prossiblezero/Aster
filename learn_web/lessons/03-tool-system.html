@@ -109,6 +109,7 @@
     <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>工具可用性统一由 <a href="../source/src/aster/tools/availability.py.html">tools/availability.py</a> 判断，供工具展示、<code>tool_load</code> 和直接执行预检共用；执行时仍要另过具体参数的权限与审批检查。</p>
 <p>真正的外部入口是 <a href="../source/src/aster/core/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
 业务集成应调用 <code>Runtime.step()</code>；直接实例化某个工具处理器会绕开这一层治理。</p>
 <h2 id="按需加载到底加载了什么">按需加载到底加载了什么</h2>
@@ -130,7 +131,7 @@ Python 调用者通过 <code>Runtime.step()</code> 提交一个已注册、当�
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.core.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
 
 

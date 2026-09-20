@@ -74,8 +74,8 @@ def test_cli_stream_previews_before_completion_without_polluting_stdout(
     tmp_path, monkeypatch, capsys
 ):
     from aster import cli
-    from aster.provider import ModelClient
-    from aster.runtime import Runtime
+    from aster.core.runtime import Runtime
+    from aster.providers.client import ModelClient
     from aster.schema import ModelReply
 
     secret = "private-stream-credential"
@@ -115,7 +115,7 @@ def test_cli_failure_prints_saved_run_and_resume_instructions_to_stderr(
     tmp_path, monkeypatch, capsys
 ):
     from aster import cli
-    from aster.runtime import Runtime
+    from aster.core.runtime import Runtime
     from aster.schema import ModelReply, ToolCall
 
     settings = Settings(completion="off", memory_enabled=False)

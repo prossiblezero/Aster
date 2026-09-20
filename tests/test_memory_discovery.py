@@ -3,8 +3,8 @@ import json
 import pytest
 
 from aster.config import Settings
+from aster.core.runtime import Runtime
 from aster.knowledge.memory import Memory
-from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 from aster.storage.workspace import digest
 

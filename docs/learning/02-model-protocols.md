@@ -83,7 +83,8 @@ Responses 的流式路径目前由 `streaming.complete_responses` 实现，默�
 import copy
 import json
 
-from aster.provider import ContextHistoryError, history_groups, request_payload
+from aster.messages import ContextHistoryError, history_groups
+from aster.providers.codec import request_payload
 from aster.tools import definitions
 
 history = [

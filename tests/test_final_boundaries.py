@@ -5,7 +5,7 @@ import subprocess
 import pytest
 
 from aster.config import ExecRule, Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.safety.policy import command_rule, shell_argv
 from aster.schema import ModelReply, TaskSpec, ToolCall
 

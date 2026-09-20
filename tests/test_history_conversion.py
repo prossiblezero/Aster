@@ -4,8 +4,8 @@ from itertools import permutations
 
 import pytest
 
-from aster.history import canonicalize
-from aster.provider import ContextHistoryError, history_groups, request_payload
+from aster.messages import ContextHistoryError, canonicalize, history_groups
+from aster.providers.codec import request_payload
 
 
 def transcript(protocol):

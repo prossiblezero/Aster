@@ -14,7 +14,8 @@ from pathlib import Path
 
 import httpx
 
-from aster.provider import ModelClient, ProviderError
+from aster.providers.client import ModelClient
+from aster.providers.errors import ProviderError
 from aster.safety.redaction import Redactor
 
 

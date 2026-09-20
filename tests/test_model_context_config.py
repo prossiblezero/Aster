@@ -92,8 +92,8 @@ def test_a_profile_update_changes_checkpoint_identity_without_recreating_setting
 
 
 def test_runtime_request_tracks_the_current_model_and_output_reserve(tmp_path):
-    from aster.provider import request_payload
-    from aster.runtime import Runtime
+    from aster.core.runtime import Runtime
+    from aster.providers.codec import request_payload
     from aster.schema import TaskSpec
 
     settings = Settings()
@@ -160,7 +160,7 @@ def test_removed_single_tool_token_cap_is_rejected_instead_of_silently_ignored(t
     ],
 )
 async def test_tui_displays_effective_budget_and_unknown_model_fallback(tmp_path, model, expected):
-    from aster.tui import AsterTui
+    from aster.ui.app import AsterTui
 
     app = AsterTui(tmp_path, Settings(model=model))
     async with app.run_test(size=(120, 40)) as pilot:

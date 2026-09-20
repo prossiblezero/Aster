@@ -227,13 +227,15 @@ Aster/
 │   ├── storage/        # 工作区边界与证据存储
 │   ├── knowledge/      # 项目记忆与技能资料
 │   ├── training/       # 外部策略环境与训练数据契约
-│   ├── runtime.py      # Runtime 兼容导出
+│   ├── __init__.py     # 包标识
 │   ├── cli.py          # 命令行入口
+│   ├── config.py       # 配置契约
+│   ├── schema.py       # 共享数据模型
+│   ├── messages.py     # 消息与历史校验
 │   ├── providers/      # 协议转换、传输与请求记账
 │   ├── context/        # 策略、预算计算与成功提交
 │   ├── sessions/       # 检查点与会话候选准备
 │   ├── ui/             # 中文终端界面、命令和输入组件
-│   ├── tui.py          # AsterTui 兼容导出
 │   └── safety/         # 权限策略与 Linux 沙箱
 ├── tests/              # 工程契约与回归测试
 ├── docs/               # 配置、设计与研究文档
@@ -250,7 +252,7 @@ Aster/
 └── NOTICE.md           # 设计参考与第三方来源说明
 ```
 
-源码布局的迁移、前后指标和安装验收见 [源码重构结果](docs/src-refactor-results.md)。
+当前布局与 Python 导入迁移见 [模块整理说明](docs/module-layout.md)。前一轮重构的历史记录见 [源码重构结果](docs/src-refactor-results.md)。
 
 运行产生的检查点、轨迹与持久记忆位于目标工作区的 `.aster/`。示例产品、教学网站与评测材料分别维护，便于独立使用和审查。
 

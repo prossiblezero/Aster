@@ -10,7 +10,7 @@ from compare_benchmarks import metrics as comparison_metrics
 from compare_benchmarks import paired
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import TaskSpec
 
 

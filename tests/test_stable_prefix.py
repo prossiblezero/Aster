@@ -8,8 +8,9 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBuilder
-from aster.provider import history_groups, request_payload
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
+from aster.messages import history_groups
+from aster.providers.codec import request_payload
 from aster.schema import RunState, TaskSpec, ToolCall, Verification
 from aster.tools import definitions
 

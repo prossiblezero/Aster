@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from aster.config import Settings
-from aster.runtime import Runtime
+from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec
 from aster.storage.workspace import digest
 from aster.training.contracts import (

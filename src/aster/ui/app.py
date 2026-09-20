@@ -9,7 +9,7 @@ from contextlib import suppress
 from pathlib import Path
 
 from ..config import Settings
-from ..runtime import Runtime
+from ..core.runtime import Runtime
 from ..schema import TaskSpec
 from .commands import (
     COMMANDS,
