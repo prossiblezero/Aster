@@ -69,7 +69,9 @@ async def test_context_treatment_changes_only_budget_and_preserves_archived_evid
         await runtime.workers.close()
 
 
-async def test_silent_continuation_suppresses_only_feedback_and_preserves_seed(tmp_path):
+async def test_silent_continuation_suppresses_only_feedback_and_preserves_seed(tmp_path, monkeypatch):
+    # Compare the arms at the same logical time, independent of wall-clock second boundaries.
+    monkeypatch.setattr("aster.knowledge.memory.now", lambda: "2026-09-20T00:00:00+00:00")
     protocol = read_data("robustness_protocol.json")
     case = load_cases("recovery")[0]
     states = []

@@ -43,6 +43,8 @@ class SessionTree:
         try:
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("PRAGMA foreign_keys=ON")
+            if db.execute("PRAGMA user_version").fetchone()[0] not in {0, 1}:
+                raise ValueError("unsupported_session_database_version")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     id TEXT PRIMARY KEY, title TEXT NOT NULL, head TEXT, updated REAL NOT NULL
@@ -58,6 +60,7 @@ class SessionTree:
                 CREATE TABLE IF NOT EXISTS snapshots (
                     entry_id TEXT PRIMARY KEY REFERENCES entries(id), data BLOB NOT NULL
                 );
+                PRAGMA user_version=1;
             """)
             with db:
                 yield db

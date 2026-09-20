@@ -52,6 +52,10 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
         old_run = state.run_id
         state.run_id = uuid4().hex
         state.phase, state.stop_reason = "stopped", "branch_selected"
+        # Selecting history is not another billed execution of the ancestor.
+        state.step = state.turn = state.final_revisions = 0
+        state.usage = {}
+        state.final = state.feedback = ""
         state.verification = Verification()
         state.read_evidence = {}
         sources = {**saved.sources, **data.get("session_observations", {})}

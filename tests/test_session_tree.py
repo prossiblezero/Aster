@@ -201,3 +201,16 @@ async def test_all_persisted_session_text_is_redacted(tmp_path):
     assert secret not in json.dumps(entries)
     assert secret not in json.dumps(r.session_tree.sessions())
     assert secret not in json.dumps(r.session_tree.restore(r.session_tree.cursor))
+
+
+async def test_selection_preserves_transcript_without_double_counting_usage(tmp_path):
+    r = make(tmp_path)
+    r.start(TaskSpec(prompt="request"))
+    r.state.usage = {"total_tokens": 345}
+    r.state.turn = 3
+    r.state.step = 2
+    r.finish("done")
+    old = r.session_tree.cursor
+    r.checkout(old)
+    assert r.state.usage == {} and r.state.turn == r.state.step == 0
+    assert r.session_tree.restore(old)["state"]["usage"] == {"total_tokens": 345}
