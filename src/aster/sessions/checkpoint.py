@@ -60,9 +60,11 @@ def load_checkpoint(
     *,
     allow_model_change: bool,
     adopt_workspace: bool,
+    data: dict | None = None,
 ) -> SessionCheckpoint:
     """Validate persisted identity, history and archive ownership before runtime mutation."""
-    data = json.loads(evidence.path("runs", run_id, "checkpoint.json").read_text())
+    if data is None:
+        data = json.loads(evidence.path("runs", run_id, "checkpoint.json").read_text())
     if data.get("checkpoint_version", 1) not in {1, 2}:
         raise ValueError("unsupported_checkpoint_version: use the Aster version that saved this run")
     assert_settled_tools(evidence, run_id, data)
@@ -153,10 +155,8 @@ def assert_settled_tools(evidence: EvidenceStore, run_id: str, data: dict) -> No
 
 def save_checkpoint(evidence, state, *, workspace_hash, workspace_snapshot, runtime_identity,
                     structured_history, initial_text, initial_modes, recovery_used, stall_items,
-                    archive_sources, history_origins, continued_from):
-    evidence.save(
-        ("runs", state.run_id, "checkpoint.json"),
-        {
+                    archive_sources, history_origins, continued_from, commit=None):
+    data = {
             "checkpoint_version": 2,
             "state": state.model_dump(mode="json"),
             "workspace_hash": workspace_hash,
@@ -170,6 +170,8 @@ def save_checkpoint(evidence, state, *, workspace_hash, workspace_snapshot, runt
             "archive_sources": archive_sources,
             "history_origins": history_origins,
             "continued_from": continued_from,
-        },
-        preserve_native_history=True,
-    )
+        }
+    if commit is not None:
+        data = commit(data)
+    evidence.save(("runs", state.run_id, "checkpoint.json"), data, preserve_native_history=True)
+    return data

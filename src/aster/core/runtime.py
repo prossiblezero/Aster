@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import fcntl
 import hashlib
 import inspect
 import json
@@ -43,6 +44,7 @@ from ..sessions.lifecycle import (
     prepare_model_history,
     preview_context,
 )
+from ..sessions.tree import SessionTree
 from ..storage.evidence import EvidenceStore
 from ..storage.workspace import Workspace
 from ..tools import (
@@ -76,10 +78,12 @@ class Runtime:
     ):
         self.workspace = Workspace(root)
         self.settings = settings
+        self._initial_settings = settings.model_copy(deep=True)
         self.approval_callback = approval_callback
         self.question_callback = question_callback
         secrets = [settings.api_key.get_secret_value()]
         self.evidence = EvidenceStore(self.workspace.root, Redactor(secrets))
+        self.session_tree = SessionTree(self.evidence)
         self.memory = Memory(
             self.workspace.root, settings.memory_enabled, settings.memory_evolution, secrets=secrets
         )
@@ -116,7 +120,17 @@ class Runtime:
         if self._operation_task is not None and self._operation_task is not task:
             raise RuntimeError("runtime_busy: await the current operation")
         owner = self._operation_task is None
+        lease = None
         if owner:
+            # Independent sessions must use separate workspaces while running.
+            # Explicit subordinate workers remain governed by WorkerManager scopes.
+            if self.state is None or self.state.parent_run_id is None:
+                lease = self.evidence.path("workspace.lock").open("a")
+                try:
+                    fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    lease.close()
+                    raise RuntimeError("workspace_busy: use a separate directory or worktree") from None
             self._operation_task = task
         try:
             yield
@@ -126,12 +140,15 @@ class Runtime:
         finally:
             if owner:
                 self._operation_task = None
-                if self.state and self.state.phase in {"stopped", "failed"}:
-                    # External abort may report before the model/command has
-                    # settled. Refresh totals without re-running hooks or events.
-                    self.report(VerifierResult(passed=False, reason=self.state.stop_reason))
-                else:
-                    self.checkpoint()
+                try:
+                    if self.state and self.state.phase in {"stopped", "failed"}:
+                        # Refresh final usage after cancellation settles.
+                        self.report(VerifierResult(passed=False, reason=self.state.stop_reason))
+                    else:
+                        self.checkpoint()
+                finally:
+                    if lease is not None:
+                        lease.close()
 
     def _ensure_idle(self):
         if self._operation_task or any(not w.future.done() for w in self.workers.workers.values()):
@@ -205,6 +222,7 @@ class Runtime:
         self.sandbox.close()
         self._environment_generation = self.sandbox.environment_generation
         self.state = None
+        self.session_tree.reset()
         self._structured_history, self._pending_messages = [], []
         self._archive_sources, self._history_origins = {}, []
 
@@ -246,6 +264,11 @@ class Runtime:
         )
         self.state, self._structured_history, self._archive_sources = state, history, sources
         self._continued_from = previous.run_id
+        if feedback is not None:
+            self.session_tree.turn_id = state.run_id
+        self.session_tree.pending.append(("turn_start" if feedback is not None else "run_continued", {
+            "prompt": feedback, "continued_from": previous.run_id,
+        }))
         self._initial_text, self._initial_modes = initial_text, initial_modes
         self._pending_messages = []
         self.workers = WorkerManager(self)
@@ -277,6 +300,9 @@ class Runtime:
             if key not in task.model_fields_set:
                 setattr(task, key, value)
         self.state = RunState(task=task, phase="running")
+        self.session_tree.reset()
+        self.session_tree.turn_id = self.state.run_id
+        self.session_tree.pending.append(("turn_start", {"prompt": task.prompt}))
         self.workers = WorkerManager(self)
         self._initial_text = self.workspace.text_snapshot()
         self._initial_modes = self.workspace.mode_snapshot()
@@ -314,8 +340,23 @@ class Runtime:
             initial_modes=self._initial_modes, recovery_used=self._recovery_used,
             stall_items=self.stall.items, archive_sources=self._archive_sources,
             history_origins=self._history_origins, continued_from=self._continued_from,
+            commit=self._commit_session,
         )
         self._checkpoint_workspace = workspace
+
+    def _commit_session(self, data):
+        # Freeze the observation allowlist now; later observations on a sibling run
+        # must not become readable when an earlier boundary is selected.
+        data["session_observations"] = {
+            path.stem: self.state.run_id
+            for path in self.evidence.path("runs", self.state.run_id, "observations").glob("*.json")
+        }
+        return self.session_tree.commit(data)
+
+    def checkout(self, entry_id: str, *, summary=False, adopt_workspace=False):
+        """Select a settled historical boundary, restoring model settings but never files."""
+        from ..sessions.navigation import checkout
+        return checkout(self, entry_id, summary=summary, adopt_workspace=adopt_workspace)
 
     def resume(
         self, run_id: str, *, allow_model_change: bool = False, adopt_workspace: bool = False
@@ -341,6 +382,7 @@ class Runtime:
                 sources, origins, self._preview_context,
             )
             origins.append(origin)
+        self.session_tree.attach(data)
         self.sandbox.close()
         self._environment_generation = self.sandbox.environment_generation
         if self.settings.reuse_environment:
@@ -484,6 +526,7 @@ class Runtime:
             validate_archive=validate_archive,
             redact_history=self.evidence.redact_history,
         )
+        self.checkpoint()
         payload = request_payload(
             prompt,
             tool_defs,
@@ -604,7 +647,9 @@ class Runtime:
                 for c in reply.calls
             )
         if reply.text:
-            self.add_message("assistant", reply.text, important=True, native=bool(reply.raw))
+            if not reply.raw:
+                self._structured_history.append({"role": "assistant", "content": reply.text})
+            self.add_message("assistant", reply.text, important=True, native=True)
         self.evidence.emit(
             state.run_id,
             "model_reply",

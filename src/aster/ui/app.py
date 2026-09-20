@@ -31,6 +31,7 @@ try:
     from textual.widgets import Input, RichLog, Static
     from textual.worker import WorkerCancelled, WorkerFailed
 
+    from .sessions import SessionViews
     from .widgets import HumanPrompt, PromptInput
 except ImportError:  # pragma: no cover
     App = None
@@ -57,7 +58,7 @@ ASTER_MARK = "\n".join(
 
 if App is not None:
 
-    class AsterTui(App):
+    class AsterTui(SessionViews, App):
         TITLE = "Aster"
         ENABLE_COMMAND_PALETTE = False
         CSS = """
@@ -119,6 +120,11 @@ if App is not None:
             self._draft = ""
             self._suggestions = []
             self._suggestion_index = 0
+            self._sessions_closing = False
+            self._init_views()
+
+        def _main_query(self, selector, expect_type=None):
+            return self.screen_stack[0].query_one(selector, expect_type)
 
         @property
         def busy(self) -> bool:
@@ -142,19 +148,18 @@ if App is not None:
                 )
 
         def on_mount(self) -> None:
-            self.runtime.evidence.listeners.append(self._event)
-            self._progress = self.query_one("#progress", Static)
+            self._progress = self._main_query("#progress", Static)
             for name in ("model-output", "reasoning", "suggestions"):
-                self.query_one(f"#{name}").display = False
+                self._main_query(f"#{name}").display = False
             self._refresh_model()
             self._tick()
             self.set_interval(0.2, self._tick)
-            self.query_one("#prompt", Input).focus()
+            self._main_query("#prompt", Input).focus()
 
         def _refresh_model(self) -> None:
             settings = self.settings
             self.sub_title = f"{settings.profile or '默认'} · {settings.model}"
-            self.query_one("#brand", Static).update(
+            self._main_query("#brand", Static).update(
                 Text(f"✦ Aster   /   {self.sub_title}", style="bold #b7b0ff")
             )
             mark = (
@@ -176,7 +181,7 @@ if App is not None:
                 f"目录  {self.root_path}\n权限  {approval}    /help 查看帮助 · quit 退出",
                 style="#9ca7be",
             )
-            self.query_one("#welcome", Static).update(welcome)
+            self._main_query("#welcome", Static).update(welcome)
 
         def _budget_text(self) -> str:
             settings = self.settings
@@ -194,13 +199,16 @@ if App is not None:
             if self.is_mounted:
                 self.screen.set_class(self.size.height < 32, "compact")
                 # Keep the input reachable in short terminals.
-                self.query_one("#welcome").display = self.size.height >= 20 and not self._history
+                self._main_query("#welcome").display = self.size.height >= 20 and not self._history
                 self._refresh_model()
 
         def _write(self, text: str, *, style: str = "") -> None:
-            self.query_one("#log", RichLog).write(
-                Text(self.runtime.evidence.redactor.text(text), style=style)
-            )
+            text = self.runtime.evidence.redactor.text(text)
+            view = self._view()
+            view["log"].append((text, style))
+            view["log"] = view["log"][-6000:]
+            if not self._sessions_closing:
+                self._main_query("#log", RichLog).write(Markdown(text) if style == "markdown" else Text(text, style=style))
 
         def _tick(self) -> None:
             if self._progress is None or not self._progress.is_mounted:
@@ -216,12 +224,14 @@ if App is not None:
             mode = state.mode if state else self._mode
             detail = f"{'规划' if mode == 'plan' else '执行'} · 轮次 {state.turn if state else 0}/{task.max_turns} · 工具 {state.step if state else 0}/{task.max_steps}"
             if state:
-                detail += f" · 验证 {VERIFICATION[state.verification.state]}"
+                detail += f" · 验证 {VERIFICATION[state.verification.state]} · 会话 {state.session_id[:8]} · 位置 {(self.runtime.session_tree.cursor or '')[:8]}"
             self._progress.update(
                 f"{lead}  │  {detail}" + (f"\n{self._stream_status}" if self._stream_status else "")
             )
 
         def _event(self, row: dict) -> None:
+            if self._sessions_closing:
+                return
             event = row["event"]
             if event == "model_stream":
                 self._stream_event(row)
@@ -248,9 +258,7 @@ if App is not None:
             elif event == "model_reply" and row.get("text"):
                 self._last_model_text = row["text"]
                 self._write("\n✦ Aster", style="bold #b7b0ff")
-                self.query_one("#log", RichLog).write(
-                    Markdown(self.runtime.evidence.redactor.text(row["text"]))
-                )
+                self._write(row["text"], style="markdown")
             elif event == "worker_started":
                 self._write(f"  › 子任务已启动：{row['worker_id']}")
             elif event == "provider_attempt" and row.get("classification") not in {
@@ -264,8 +272,8 @@ if App is not None:
             self._tick()
 
         def _stream_event(self, row: dict) -> None:
-            preview = self.query_one("#model-output", Static)
-            reasoning = self.query_one("#reasoning", Static)
+            preview = self._main_query("#model-output", Static)
+            reasoning = self._main_query("#reasoning", Static)
             kind, attempt = row["type"], row.get("attempt", 1)
             self._stream_status = f"模型请求 {attempt} · {row.get('elapsed_seconds', 0):.1f}秒"
             if kind == "begin":
@@ -329,7 +337,7 @@ if App is not None:
                 return
             text = event.value.strip()
             if text.startswith("/"):
-                self.query_one("#welcome").display = False
+                self._main_query("#welcome").display = False
             self._suggestions = (
                 [name for name in COMMANDS if name.startswith(text)]
                 if text.startswith("/") and " " not in event.value
@@ -339,7 +347,7 @@ if App is not None:
             self._render_suggestions()
 
         def _render_suggestions(self) -> None:
-            widget = self.query_one("#suggestions", Static)
+            widget = self._main_query("#suggestions", Static)
             widget.display = bool(self._suggestions)
             start = max(0, self._suggestion_index - 5)
             text = Text()
@@ -355,7 +363,7 @@ if App is not None:
 
         def complete_command(self) -> None:
             if self._suggestions:
-                prompt = self.query_one("#prompt", Input)
+                prompt = self._main_query("#prompt", Input)
                 prompt.value = self._suggestions[self._suggestion_index] + " "
                 prompt.cursor_position = len(prompt.value)
 
@@ -366,7 +374,7 @@ if App is not None:
                 )
                 self._render_suggestions()
             elif self._history:
-                prompt = self.query_one("#prompt", Input)
+                prompt = self._main_query("#prompt", Input)
                 if self._history_index == len(self._history):
                     self._draft = prompt.value
                 self._history_index = max(
@@ -406,7 +414,7 @@ if App is not None:
             self._history = self._history[-200:]
             self._history_index = len(self._history)
             self._draft = ""
-            self.query_one("#welcome").display = False
+            self._main_query("#welcome").display = False
             self._suggestions = []
             self._render_suggestions()
             if command.startswith("/"):
@@ -418,7 +426,7 @@ if App is not None:
                 self._start_task(prompt)
 
         def action_help(self) -> None:
-            self.query_one("#welcome").display = False
+            self._main_query("#welcome").display = False
             self._write("\n命令帮助", style="bold #b7b0ff")
             for name, (arguments, description) in COMMANDS.items():
                 self._write(f"  {name} {arguments}\n    {description}")
@@ -427,6 +435,8 @@ if App is not None:
             )
 
         def _command(self, command: str, argument: str) -> None:
+            if self._session_command(command, argument):
+                return
             execute_command(
                 command, argument, self.runtime, write=self._write,
                 show_help=self.action_help, clear_screen=self.action_clear_screen,
@@ -440,11 +450,7 @@ if App is not None:
             self._context_report = None
 
         def _new_session(self):
-            self.runtime.new_session()
-            self._mode, self._context_report, self._activity = "work", None, "就绪"
-            self.action_clear_screen()
-            self._write("已开始新会话。请输入任务。")
-            self._tick()
+            self._open_session()
 
         def _saved_runs(self):
             return saved_runs(self.runtime.evidence)
@@ -471,7 +477,7 @@ if App is not None:
                 if argument:
                     self._show_thinking = argument == "on"
                 enabled = self._show_thinking
-                self.query_one("#reasoning").display = (
+                self._main_query("#reasoning").display = (
                     enabled and self._stream_active and bool(self._reasoning_text)
                 )
             self._write(
@@ -510,72 +516,78 @@ if App is not None:
             self._write(f"当前会话已切换到 {self.settings.profile}。")
 
         def _start_task(self, prompt: str | None, *, adopt_workspace: bool = False) -> None:
+            for view in self._views:
+                other = view["runtime"]
+                if other is not self.runtime and other.workspace.root == self.root_path and other._operation_task:
+                    self._write("同一工作目录已有运行中的会话。请等待结束，或用 /new 指定另一个目录 / worktree。", style="#efb38f")
+                    return
             if prompt:
                 self._write(f"\n› 你\n{prompt}", style="#c0ddc7")
             self._started_at, self._activity = time.monotonic(), "准备上下文"
-            self.query_one(
+            self._main_query(
                 "#prompt", Input
             ).placeholder = "任务运行中 · /help 帮助 · /cancel 取消 · quit 退出"
             self.task_worker = self.run_worker(
-                self._run_task(prompt, adopt_workspace=adopt_workspace), exit_on_error=False
+                self._run_task(prompt, adopt_workspace=adopt_workspace, runtime=self.runtime), exit_on_error=False
             )
 
-        async def _run_task(self, prompt: str | None, *, adopt_workspace: bool = False) -> None:
-            self._last_model_text = self._stream_status = ""
-            self._stream_active = False
-            self.query_one("#model-output").display = self.query_one("#reasoning").display = False
+        async def _run_task(self, prompt: str | None, *, adopt_workspace=False, runtime=None) -> None:
+            runtime = runtime or self.runtime
+            view = self._view(runtime)
+            if runtime is self.runtime:
+                self._last_model_text = self._stream_status = ""
+                self._stream_active = False
+                self._main_query("#model-output").display = self._main_query("#reasoning").display = False
             started = False
             try:
-                if self.runtime.state:
-                    self.runtime.continue_task(
-                        prompt, adopt_workspace=adopt_workspace, **self.task_limits
-                    )
+                if runtime.state:
+                    runtime.continue_task(prompt, adopt_workspace=adopt_workspace, **self.task_limits)
                 elif prompt is not None:
-                    self.runtime.start(TaskSpec(prompt=prompt, **self.task_limits))
-                    self.runtime.state.mode = self._mode
+                    runtime.start(TaskSpec(prompt=prompt, **self.task_limits))
+                    runtime.state.mode = self._mode if runtime is self.runtime else view["_mode"]
                 else:
                     raise ValueError("没有可继续的会话，请先输入任务。")
                 started = True
-                state = await self.runtime.run()
-                if not state.final or state.final != self._last_model_text:
-                    self._write(state.final or f"任务已停止：{state.stop_reason}\n{state.feedback}")
+                state = await runtime.run()
+                if not state.final:
+                    self._session_write(runtime, f"任务已停止：{state.stop_reason}\n{state.feedback}")
             except asyncio.CancelledError:
-                if self.runtime.state and not self.runtime.state.terminal:
-                    self.runtime.abort()
-                self._activity = "已取消"
+                if runtime.state and not runtime.state.terminal:
+                    runtime.abort()
                 raise
             except Exception as exc:
-                if started and self.runtime.state and not self.runtime.state.terminal:
-                    self.runtime.finish("ui_error", failed=True)
-                self._activity = "运行失败"
-                self._write(f"运行失败：{type(exc).__name__}: {exc}", style="#efb38f")
+                if started and runtime.state and not runtime.state.terminal:
+                    runtime.finish("ui_error", failed=True)
+                self._session_write(runtime, f"运行失败：{type(exc).__name__}: {exc}", style="#efb38f")
             finally:
-                if started and self.runtime.state:
-                    state = self.runtime.state
-                    self._activity = PHASES[state.phase]
-                    self._write(
+                if started and runtime.state:
+                    state = runtime.state
+                    view["_activity"] = PHASES[state.phase]
+                    self._session_write(runtime,
                         f"\n{PHASES[state.phase]} · 修改 {len(state.changed_paths)} 个文件 · 验证 {VERIFICATION[state.verification.state]}\n运行编号：{state.run_id}"
-                        + (f" · 原因：{state.stop_reason}" if state.stop_reason else ""),
-                        style="#8f9cb4",
-                    )
+                        + (f" · 原因：{state.stop_reason}" if state.stop_reason else ""), style="#8f9cb4")
                     if state.phase != "completed":
-                        self._write(
-                            f"输入 /continue 继续，或用 /resume {state.run_id} 恢复。已完成的修改会保留。"
-                        )
-                if self._stream_active:
-                    self.query_one("#model-output", Static).update(
-                        "模型响应未完成（已停止）。\n"
-                        + self.runtime.evidence.redactor.text(self._stream_text)
-                    )
-                self._stream_status = ""
-                self.query_one("#prompt", Input).placeholder = "输入任务，或输入 / 查看命令…"
-                self.query_one("#prompt", Input).focus()
+                        self._session_write(runtime, f"输入 /continue 继续，或用 /resume {state.run_id} 恢复。已完成的修改会保留。")
+                if runtime is self.runtime and not self._sessions_closing:
+                    self._activity = view["_activity"]
+                    if self._stream_active:
+                        self._main_query("#model-output", Static).update("模型响应未完成（已停止）。\n" + runtime.evidence.redactor.text(self._stream_text))
+                    self._stream_status = ""
+                    self._main_query("#prompt", Input).placeholder = "输入任务，或输入 / 查看命令…"
+                    self._main_query("#prompt", Input).focus()
+
+        def _session_write(self, runtime, text, *, style=""):
+            if runtime is self.runtime:
+                self._write(text, style=style)
+            else:
+                self._view(runtime)["log"].append((runtime.evidence.redactor.text(text), style))
 
         def action_clear_screen(self) -> None:
-            self.query_one("#log", RichLog).clear()
-            self.query_one("#welcome").display = False
+            self._main_query("#log", RichLog).clear()
+            self._view()["log"].clear()
+            self._main_query("#welcome").display = False
             if not self.busy:
-                self.query_one("#model-output").display = self.query_one("#reasoning").display = (
+                self._main_query("#model-output").display = self._main_query("#reasoning").display = (
                     False
                 )
 
@@ -595,17 +607,28 @@ if App is not None:
             else:
                 self._write("当前没有运行中的任务。输入 quit 或按 Ctrl+Q 退出。")
 
+        async def _close_sessions(self):
+            self._sessions_closing = True
+            self._save_view()
+            for view in self._views:
+                worker = view["task_worker"]
+                if worker is not None and not worker.is_finished:
+                    worker.cancel()
+                    with suppress(WorkerCancelled, WorkerFailed):
+                        await worker.wait()
+                view["runtime"].sandbox.close()
+
         async def action_quit(self) -> None:
-            if self.busy:
-                await self.action_cancel_task()
+            await self._close_sessions()
             self.exit()
 
         async def on_unmount(self) -> None:
-            if self._event in self.runtime.evidence.listeners:
-                self.runtime.evidence.listeners.remove(self._event)
-            if self.busy:
-                await self.action_cancel_task()
-            self.runtime.sandbox.close()
+            await self._close_sessions()
+            for view in self._views:
+                listeners = view["runtime"].evidence.listeners
+                if view["listener"] in listeners:
+                    listeners.remove(view["listener"])
+
 else:
 
     class AsterTui:

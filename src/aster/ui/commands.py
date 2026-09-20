@@ -7,7 +7,13 @@ import json
 COMMANDS = {
     "/help": ("", "查看命令与快捷键"),
     "/model": ("[名称]", "查看或切换模型配置"),
-    "/new": ("", "开始新会话，保留已完成的文件修改"),
+    "/new": ("[目录]", "打开独立会话；不同工作目录可同时运行"),
+    "/sessions": ("[关键词]", "查找、选择会话；查看已打开任务"),
+    "/switch": ("序号|会话ID [--adopt-workspace]", "切换已打开或历史会话"),
+    "/tree": ("[关键词]", "搜索、导航当前会话树"),
+    "/branch": ("位置ID [--summary] [--adopt-workspace]", "从历史位置继续，可带入分支摘录"),
+    "/rename": ("名称", "命名当前会话，方便查找"),
+    "/entry": ("记录ID", "查看历史记录与来源"),
     "/clear": ("", "清空屏幕，保留当前会话"),
     "/cancel": ("", "取消当前任务"),
     "/continue": ("[--adopt-workspace]", "继续当前任务"),
@@ -229,4 +235,4 @@ READONLY_COMMANDS = {
 }
 
 def allowed_while_busy(command, argument):
-    return command in READONLY_COMMANDS or (command == "/model" and not argument)
+    return command in READONLY_COMMANDS | {"/sessions", "/switch", "/new", "/tree", "/entry"} or (command == "/model" and not argument)
