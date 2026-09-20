@@ -111,11 +111,22 @@ class SessionViews:
         if runtime is self.runtime:
             self._event(row)
         else:
-            # Do not retain streaming deltas: the final model_reply contains the answer.
-            if row["event"] != "model_stream":
-                view = self._view(runtime)
-                view["events"].append(row)
-                view["events"] = view["events"][-2000:]
+            view = self._view(runtime)
+            if row["event"] == "model_stream":
+                kind = row["type"]
+                if kind == "begin":
+                    view["_stream_text"] = view["_reasoning_text"] = ""
+                    view["_stream_active"] = True
+                elif kind in {"text_delta", "reasoning_delta"}:
+                    field = "_stream_text" if kind == "text_delta" else "_reasoning_text"
+                    view[field] = (view[field] + row.get("text", ""))[-65536:]
+                elif kind == "completed":
+                    view["_stream_active"] = False
+                    if view["_reasoning_text"] and self._show_thinking:
+                        view["events"].append({"event": "ui_note", "text": "思考摘要\n" + view["_reasoning_text"]})
+                return
+            view["events"].append(row)
+            view["events"] = view["events"][-2000:]
 
     async def _session_approve(self, runtime, call, decision):
         arguments = runtime.evidence.redactor.value(call.arguments)
@@ -141,7 +152,8 @@ class SessionViews:
         self._main_query("#prompt", Input).value = view.get("draft", "")
         self._main_query("#model-output", Static).update(self._stream_text)
         self._main_query("#model-output").display = self._stream_active and self.busy
-        self._main_query("#reasoning").display = False
+        self._main_query("#reasoning", Static).update("思考摘要\n" + self._reasoning_text)
+        self._main_query("#reasoning").display = self._show_thinking and self._stream_active and bool(self._reasoning_text)
         self._refresh_model()
         self._tick()
 
@@ -157,6 +169,7 @@ class SessionViews:
         self._stream_text = self._reasoning_text = self._stream_status = self._last_model_text = ""
         self._stream_active = False
         self._register_view(runtime)
+        self._main_query("#prompt", Input).value = ""
         self.action_clear_screen()
         self._refresh_model()
         self._write(f"已打开独立会话 · {target}\n输入任务开始；/sessions 切换会话。")

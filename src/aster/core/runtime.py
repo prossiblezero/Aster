@@ -133,6 +133,15 @@ class Runtime:
                     raise RuntimeError("workspace_busy: use a separate directory or worktree") from None
             self._operation_task = task
         try:
+            if owner and lease is not None and self.memory.enabled:
+                # Another idle session may have committed memory since this Runtime
+                # was opened. Refresh under the workspace lease before reading/writing.
+                memory_state = Memory(
+                    self.workspace.root, self.memory.enabled, self.memory.evolution,
+                    secrets=self.memory.redactor.secrets,
+                ).state
+                if memory_state != self.memory.state:
+                    self.memory.state = memory_state
             yield
         except asyncio.CancelledError:
             self.finish("cancelled")

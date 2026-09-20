@@ -214,3 +214,17 @@ async def test_selection_preserves_transcript_without_double_counting_usage(tmp_
     r.checkout(old)
     assert r.state.usage == {} and r.state.turn == r.state.step == 0
     assert r.session_tree.restore(old)["state"]["usage"] == {"total_tokens": 345}
+
+
+async def test_idle_sessions_refresh_shared_memory_before_next_operation(tmp_path):
+    text_a, text_b = "Service port is 8080.", "Build output is public."
+    (tmp_path / "PROJECT.md").write_text(text_a + "\n" + text_b)
+    first, second = make(tmp_path, memory_enabled=True), make(tmp_path, memory_enabled=True)
+    for r, text in [(first, text_a), (second, text_b)]:
+        r.start(TaskSpec(prompt="read project conventions"))
+        read = await r.step(ToolCall(name="read_file", arguments={"path": "PROJECT.md"}))
+        outcome = await r.step(ToolCall(name="memory_store", arguments={"text": text, "evidence_id": read.evidence_id}))
+        assert outcome.status == "success", outcome
+    assert {row["text"] for row in second.memory.state["lessons"]} == {text_a, text_b}
+    await first.step(ToolCall(name="list_files"))
+    assert {row["text"] for row in first.memory.state["lessons"]} == {text_a, text_b}

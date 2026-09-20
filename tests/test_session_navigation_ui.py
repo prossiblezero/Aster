@@ -80,3 +80,16 @@ async def test_new_session_preserves_per_session_draft_and_local_help(tmp_path):
         app._command("/help", "")
         text = "\n".join(row[0] for row in app._view()["log"])
         assert "/tree" in text and "/sessions" in text
+
+
+async def test_stream_preview_returns_with_its_background_session(tmp_path):
+    app = AsterTui(tmp_path / "a", Settings(completion="off"))
+    async with app.run_test():
+        first = app.runtime
+        app._command("/new", str(tmp_path / "b"))
+        for event in [{"type": "begin"}, {"type": "text_delta", "text": "A后台片段"},
+                      {"type": "reasoning_delta", "text": "A推理摘要"}]:
+            app._route_session_event(first, {"event": "model_stream", **event})
+        assert "A后台片段" not in app._stream_text
+        app._command("/switch", "1")
+        assert app._stream_text == "A后台片段" and app._reasoning_text == "A推理摘要"

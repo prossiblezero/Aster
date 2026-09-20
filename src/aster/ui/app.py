@@ -196,8 +196,8 @@ if App is not None:
             )
 
         def on_resize(self) -> None:
-            if self.is_mounted:
-                self.screen.set_class(self.size.height < 32, "compact")
+            if self.is_mounted and self.screen_stack and not self._sessions_closing:
+                self.screen_stack[0].set_class(self.size.height < 32, "compact")
                 # Keep the input reachable in short terminals.
                 self._main_query("#welcome").display = self.size.height >= 20 and not self._history
                 self._refresh_model()
@@ -335,7 +335,7 @@ if App is not None:
             return await self._prompt(HumanPrompt(question))
 
         def on_input_changed(self, event: Input.Changed) -> None:
-            if event.input.id != "prompt":
+            if event.input.id != "prompt" or not self.screen_stack or self._sessions_closing:
                 return
             text = event.value.strip()
             if text.startswith("/"):
@@ -390,7 +390,7 @@ if App is not None:
                 prompt.cursor_position = len(prompt.value)
 
         def on_input_submitted(self, event: Input.Submitted) -> None:
-            if event.input.id != "prompt":
+            if event.input.id != "prompt" or not self.screen_stack or self._sessions_closing:
                 return
             event.stop()
             prompt = event.value.strip()
