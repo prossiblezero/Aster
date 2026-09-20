@@ -173,8 +173,14 @@ class SessionTree:
 
     def sessions(self, query=""):
         with self.connect() as db:
-            rows = db.execute("SELECT * FROM sessions ORDER BY updated DESC").fetchall()
-        return [dict(row) for row in rows if query.casefold() in row["title"].casefold() or query in row["id"]]
+            rows = db.execute("SELECT s.*, e.payload AS head_payload FROM sessions s LEFT JOIN entries e ON s.head=e.id ORDER BY s.updated DESC").fetchall()
+        result = []
+        for row in rows:
+            if query.casefold() in row["title"].casefold() or query in row["id"]:
+                item = dict(row)
+                payload = json.loads(item.pop("head_payload") or "{}")
+                result.append({**item, "phase": payload.get("phase", "ready"), "reason": payload.get("reason", "")})
+        return result
 
     def rename(self, session_id, title):
         if not title.strip():

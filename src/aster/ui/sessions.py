@@ -5,74 +5,14 @@ import json
 import shlex
 from pathlib import Path
 
-from textual.containers import Vertical
-from textual.screen import ModalScreen
-from textual.widgets import Input, OptionList, RichLog, Static
+from rich.text import Text
+from textual.widgets import Button, Input, OptionList, RichLog, Static
 from textual.widgets.option_list import Option
 
 from ..core.runtime import Runtime
 from ..providers.client import ModelClient
+from .session_widgets import SessionPicker, render_log, session_status
 from .widgets import HumanPrompt
-
-
-class SessionPicker(ModalScreen[tuple[str, bool] | None]):
-    BINDINGS = [("escape", "dismiss_picker", "返回"), ("ctrl+s", "with_summary", "带入摘录")]
-    CSS = """
-    SessionPicker { align: center middle; background: #0f1117 85%; }
-    #session-picker { width: 90%; height: 85%; border: round #9b8afb; padding: 1 2; background: #191c26; }
-    #session-choices { height: 1fr; }
-    #session-query { height: 3; }
-    """
-
-    def __init__(self, rows, *, title, query="", summaries=False):
-        super().__init__()
-        self.rows, self.title, self.initial_query, self.summaries = rows, title, query, summaries
-
-    def compose(self):
-        with Vertical(id="session-picker"):
-            yield Static(self.title, markup=False)
-            yield Input(value=self.initial_query, placeholder="关键词或编号筛选（最多显示 300 项）；↓ 选择，Enter 打开", id="session-query")
-            yield OptionList(id="session-choices", markup=False)
-            yield Static("Esc 返回" + (" · Ctrl+S 带入当前分支摘录 · 文件不会回滚" if self.summaries else ""))
-
-    def on_mount(self):
-        self.filter(self.initial_query)
-        self.query_one(Input).focus()
-
-    def filter(self, query):
-        choices = self.query_one(OptionList)
-        choices.clear_options()
-        rows = [row for row in self.rows if query.casefold() in row[1].casefold() or query in row[0]]
-        choices.add_options(Option(text, id=identifier) for identifier, text in rows[:300])
-        choices.highlighted = 0 if rows else None
-
-    def on_input_changed(self, event: Input.Changed):
-        self.filter(event.value)
-
-    def on_key(self, event):
-        if event.key == "down" and isinstance(self.focused, Input):
-            self.query_one(OptionList).focus()
-            event.stop()
-
-    def selected(self, summary=False):
-        choices = self.query_one(OptionList)
-        if choices.highlighted is not None:
-            self.dismiss((choices.get_option_at_index(choices.highlighted).id, summary))
-
-    def on_input_submitted(self, event: Input.Submitted):
-        event.stop()
-        self.selected()
-
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected):
-        self.dismiss((event.option.id, False))
-
-    def action_dismiss_picker(self):
-        self.dismiss(None)
-
-    def action_with_summary(self):
-        if self.summaries:
-            self.selected(True)
-
 
 VIEW_FIELDS = (
     "runtime", "settings", "root_path", "task_worker", "_activity", "_started_at", "_mode",
@@ -85,11 +25,13 @@ class SessionViews:
 
     def _init_views(self):
         self._views = []
+        self._live_rows = []
+        self._sidebar_current = None
         self._register_view(self.runtime)
 
     def _register_view(self, runtime):
         view = {name: getattr(self, name) for name in VIEW_FIELDS}
-        view.update(runtime=runtime, log=[], events=[])
+        view.update(runtime=runtime, log=[], events=[], waiting="")
         def listener(row):
             self._route_session_event(runtime, row)
         view["listener"] = listener
@@ -131,21 +73,111 @@ class SessionViews:
     async def _session_approve(self, runtime, call, decision):
         arguments = runtime.evidence.redactor.value(call.arguments)
         text = f"会话 {runtime.state.session_id[:8]} · {runtime.workspace.root}\n是否仅允许本次 {call.name} 操作？\n{decision.reason}\n{json.dumps(arguments, ensure_ascii=False, indent=2)}"
-        return await self._prompt(HumanPrompt(text, approval=True)) == "yes"
+        return await self._session_prompt(runtime, HumanPrompt(text, approval=True)) == "yes"
 
     async def _session_question(self, runtime, question):
-        return await self._prompt(HumanPrompt(f"会话 {runtime.state.session_id[:8]} · {runtime.workspace.root}\n{question}"))
+        return await self._session_prompt(runtime, HumanPrompt(f"会话 {runtime.state.session_id[:8]} · {runtime.workspace.root}\n{question}"))
+
+    async def _session_prompt(self, runtime, screen):
+        view = self._view(runtime)
+        view["waiting"] = "等待确认" if screen.approval else "等待回答"
+        try:
+            return await self._prompt(screen)
+        finally:
+            view["waiting"] = ""
+
+    def _view_status(self, view):
+        if view["waiting"]:
+            return view["waiting"]
+        worker = self.task_worker if view["runtime"] is self.runtime else view["task_worker"]
+        if worker is not None and not worker.is_finished:
+            return "工作中"
+        state = view["runtime"].state
+        return session_status(state.phase, state.stop_reason) if state else "就绪"
+
+    def _view_title(self, view):
+        runtime = view["runtime"]
+        title = view.get("title") or (runtime.state.task.prompt if runtime.state else "新会话")
+        return runtime.evidence.redactor.text(" ".join(title.split()))[:80]
+
+    def _refresh_sessions(self):
+        current = self._views.index(self._view())
+        rows = [(f"live:{i}", f"{'●' if view['runtime'] is self.runtime else '○'} {i + 1} · {self._view_status(view)}\n{self._view_title(view)}")
+                for i, view in enumerate(self._views)]
+        if rows != self._live_rows:
+            self._live_rows = rows
+            choices = self._main_query("#live-sessions", OptionList)
+            selected = choices.highlighted
+            choices.clear_options().add_options(Option(label, id=key) for key, label in rows)
+            choices.highlighted = current if current != self._sidebar_current else min(selected or 0, len(rows) - 1)
+            self._sidebar_current = current
+        statuses = [self._view_status(view) for view in self._views]
+        self._main_query("#session-status", Static).update(Text(
+            f"会话 {current + 1} · {self._view_status(self._view())} │ 工作 {statuses.count('工作中')} · 待确认 {sum(s.startswith('等待') for s in statuses)} · 完成 {statuses.count('已完成')}",
+            style="#9ca7be",
+        ))
+        self._main_query("#cancel-session", Button).disabled = not self.busy
+        self._main_query("#show-tree", Button).disabled = self.runtime.state is None
+
+    def _session_rows(self):
+        saved = self.runtime.session_tree.sessions()
+        titles = {row["id"]: row["title"] for row in saved}
+        rows, opened = [], set()
+        for index, view in enumerate(self._views):
+            runtime, state = view["runtime"], view["runtime"].state
+            if state:
+                # Historical names are scoped to their owning workspace database.
+                if runtime.workspace.root == self.root_path and state.session_id in titles:
+                    view["title"] = titles[state.session_id]
+                opened.add(state.session_id)
+            rows.append((f"live:{index}", f"{'●' if runtime is self.runtime else '○'} {index + 1} · {self._view_status(view)} · {self._view_title(view)}\n  {runtime.workspace.root}"))
+        rows.extend((row["id"], f"{session_status(row['phase'], row['reason'])} · {row['title']} · {row['id'][:12]} · 历史")
+                    for row in saved if row["id"] not in opened)
+        return rows
+
+    def action_session_list(self):
+        self._session_command("/sessions", "")
+
+    def action_session_tree(self):
+        try:
+            self._session_command("/tree", "")
+        except (OSError, ValueError, RuntimeError) as exc:
+            self.notify(str(exc), severity="warning")
+
+    def action_branch_at(self, entry, summary=False):
+        self._select_entry((entry, summary))
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected):
+        if event.option_list.id == "live-sessions":
+            event.stop()
+            self._select_session((event.option.id, False))
+
+    def on_button_pressed(self, event: Button.Pressed):
+        event.stop()
+        actions = {"show-sessions": self.action_session_list, "show-tree": self.action_session_tree,
+                   "show-help": self.action_help}
+        if event.button.id in actions:
+            actions[event.button.id]()
+        elif event.button.id == "new-session":
+            self.push_screen(HumanPrompt(
+                "新会话的工作目录。同一目录的任务依次执行；不同目录或 worktree 可并行工作。",
+                value=str(self.root_path), accept_label="打开会话",
+            ), self._select_new_session)
+        elif event.button.id == "cancel-session":
+            self.run_worker(self.action_cancel_task(), exit_on_error=False)
+
+    def _select_new_session(self, root):
+        if root:
+            try:
+                self._open_session(root)
+            except (OSError, ValueError, RuntimeError) as exc:
+                self.notify(f"未打开：{exc}", severity="error")
 
     def _switch_view(self, view):
         self._save_view()
         for name in VIEW_FIELDS:
             setattr(self, name, view[name])
-        log = self._main_query("#log", RichLog)
-        log.clear()
-        from rich.markdown import Markdown
-        from rich.text import Text
-        for text, style in view["log"]:
-            log.write(Markdown(text) if style == "markdown" else Text(text, style=style))
+        self._redraw_transcript()
         events, view["events"] = view["events"], []
         for event in events:
             self._event(event)
@@ -156,6 +188,19 @@ class SessionViews:
         self._main_query("#reasoning").display = self._show_thinking and self._stream_active and bool(self._reasoning_text)
         self._refresh_model()
         self._tick()
+        self._main_query("#welcome").display = not view["log"] and not self.runtime.state
+        self._main_query("#prompt", Input).focus()
+
+    def _redraw_transcript(self, preserve_scroll=False):
+        if not self.is_running or self._sessions_closing:
+            return
+        log = self._main_query("#log", RichLog)
+        position, at_end = log.scroll_y, log.is_vertical_scroll_end
+        log.clear()
+        for text, style in self._view()["log"]:
+            log.write(render_log(text, style))
+        if preserve_scroll and not at_end:
+            log.scroll_to(y=position, animate=False)
 
     def _open_session(self, root=None):
         self._save_view()
@@ -172,17 +217,77 @@ class SessionViews:
         self._main_query("#prompt", Input).value = ""
         self.action_clear_screen()
         self._refresh_model()
-        self._write(f"已打开独立会话 · {target}\n输入任务开始；/sessions 切换会话。")
+        self._write(f"已打开独立会话 · {target}\n输入任务开始；点击「会话」切换。")
+        self._tick()
+        self._main_query("#prompt", Input).focus()
 
-    def _select_entry(self, result):
+    def _select_entry(self, result, *, adopt_workspace=False):
         if result is None:
             return
         entry, summary = result
         try:
-            self.runtime.checkout(entry, summary=summary)
+            if self.busy:
+                raise RuntimeError("当前会话正在工作，请等待完成或点击「取消」后选择分支。")
+            self.runtime.checkout(entry, summary=summary, adopt_workspace=adopt_workspace)
             self._after_checkout()
         except (OSError, ValueError, RuntimeError) as exc:
-            self._write(f"未切换：{exc}\n如需保留当前文件并采用历史上下文，使用 /branch {entry} --adopt-workspace。", style="#efb38f")
+            if str(exc) == "workspace_mismatch" and not adopt_workspace:
+                self._confirm_workspace(lambda: self._select_entry(result, adopt_workspace=True))
+            else:
+                self.notify(f"未切换：{exc}", severity="warning")
+
+    def _confirm_workspace(self, proceed):
+        origin = self.runtime
+        def selected(answer):
+            if answer == "yes":
+                if self.runtime is origin:
+                    proceed()
+                else:
+                    self.notify("前台会话已改变，请重新选择目标位置。", severity="warning")
+        self.push_screen(HumanPrompt(
+            "当前文件与历史位置不同。分支只恢复对话上下文，不回滚文件。\n"
+            "是否保留当前文件并继续？旧文件读取记录和验证结果会失效。",
+            approval=True, accept_label="保留文件并继续",
+        ), selected)
+
+    def _dialogue_footer(self, runtime):
+        entry = runtime.session_tree.cursor
+        if entry:
+            self._session_write(runtime, f"◇ 对话位置 {entry[:8]}", style=f"branch:{entry}")
+
+    def _render_session_history(self):
+        tree = self.runtime.session_tree
+        entries = {row["id"]: row for row in tree.entries(self.runtime.state.session_id)}
+        path, cursor = [], tree.cursor
+        while cursor in entries:
+            row = entries[cursor]
+            path.append(row)
+            cursor = row["parent_id"]
+        path.reverse()
+        endings = {}
+        for row in path:
+            if row["restorable"] and row["payload"].get("phase") in {"completed", "stopped", "failed"} and row["payload"].get("reason") != "branch_selected":
+                endings[row["run_id"]] = row["id"]
+        prompt = None
+        for row in path:
+            kind, payload = row["kind"], row["payload"]
+            if kind == "turn_start" and payload.get("prompt"):
+                prompt = payload["prompt"]
+                self._write("\n› 你\n" + prompt, style="#c0ddc7")
+            elif kind == "message":
+                message = payload["message"]
+                content = message.get("content", "")
+                if isinstance(content, list):
+                    content = "\n".join(block.get("text", "") for block in content if isinstance(block, dict))
+                if message.get("role") in {"user", "assistant"} and content:
+                    if message["role"] == "user" and content == prompt:
+                        prompt = None
+                        continue
+                    self._write(f"{'你' if message['role'] == 'user' else 'Aster'}：{content}")
+            elif kind == "compaction":
+                self._write("· 此处压缩了模型上下文；上方仍可查看原对话。", style="#8f9cb4")
+            if endings.get(row["run_id"]) == row["id"]:
+                self._write(f"◇ 对话位置 {row['id'][:8]}", style=f"branch:{row['id']}")
 
     def _after_checkout(self):
         self.settings = self.runtime.settings
@@ -190,18 +295,13 @@ class SessionViews:
         self._context_report = None
         self._activity = "已选择历史位置"
         self.action_clear_screen()
-        self._write("最初请求：" + self.runtime.state.task.prompt)
-        for message in self.runtime._structured_history[-20:]:
-            if message.get("role") in {"user", "assistant"}:
-                content = message.get("content", "")
-                if isinstance(content, list):
-                    content = "\n".join(block.get("text", "") for block in content if isinstance(block, dict))
-                self._write(f"{'你' if message['role'] == 'user' else 'Aster'}：{content}")
+        self._render_session_history()
         self._write(f"会话 {self.runtime.state.session_id[:12]} · 位置 {self.runtime.session_tree.cursor[:12]}\n历史和模型已恢复，文件保持当前状态。输入新请求会从此处继续。")
         self._refresh_model()
         self._tick()
+        self._main_query("#prompt", Input).focus()
 
-    def _select_session(self, result):
+    def _select_session(self, result, *, adopt_workspace=False):
         if result is None:
             return
         reference = result[0]
@@ -209,9 +309,12 @@ class SessionViews:
             if reference.startswith("live:"):
                 self._switch_view(self._views[int(reference[5:])])
             else:
-                self._checkout_session(reference)
+                self._checkout_session(reference, adopt_workspace=adopt_workspace)
         except (ValueError, RuntimeError, OSError) as exc:
-            self._write(f"未切换：{exc}", style="#efb38f")
+            if str(exc) == "workspace_mismatch" and not adopt_workspace:
+                self._confirm_workspace(lambda: self._select_session(result, adopt_workspace=True))
+            else:
+                self.notify(f"未切换：{exc}", severity="warning")
 
     def _checkout_session(self, reference, *, adopt_workspace=False):
         for view in self._views:
@@ -233,6 +336,9 @@ class SessionViews:
         self.task_worker = None
         self._stream_active = False
         self._register_view(restored)
+        saved = restored.session_tree.sessions(restored.state.session_id)
+        if saved:
+            self._view()["title"] = saved[0]["title"]
         self._after_checkout()
 
     def _session_command(self, command, argument):
@@ -243,18 +349,8 @@ class SessionViews:
             self._open_session(args[0] if args else None)
         elif command == "/sessions":
             self._save_view()
-            rows, opened = [], set()
-            titles = {row["id"]: row["title"] for row in self.runtime.session_tree.sessions()}
-            for index, view in enumerate(self._views):
-                runtime, state = view["runtime"], view["runtime"].state
-                title = (titles.get(state.session_id, view.get("title", state.task.prompt))[:80] if state else "新会话")
-                busy = view["task_worker"] is not None and not view["task_worker"].is_finished
-                rows.append((f"live:{index}", f"{index + 1} · {'运行中' if busy else '空闲'} · {title} · {runtime.workspace.root}"))
-                if state:
-                    opened.add(state.session_id)
-            rows.extend((row["id"], f"{row['id'][:12]} · {row['title']}")
-                        for row in self.runtime.session_tree.sessions() if row["id"] not in opened)
-            self.push_screen(SessionPicker(rows, title="会话 · 当前项目的历史与已打开的任务", query=argument), self._select_session)
+            self.push_screen(SessionPicker(self._session_rows(), title="会话 · 实时状态与项目历史", query=argument,
+                                           refresh_rows=self._session_rows), self._select_session)
         elif command == "/switch":
             args = shlex.split(argument)
             adopt = "--adopt-workspace" in args
@@ -281,7 +377,7 @@ class SessionViews:
                 if entry["restorable"]:
                     payload = entry["payload"]
                     marker = "●" if entry["id"] == self.runtime.session_tree.cursor else "◇"
-                    phase = {"running": "运行中", "completed": "完成", "stopped": "停止", "failed": "失败"}.get(payload.get("phase"), "就绪")
+                    phase = session_status(payload.get("phase"), payload.get("reason"))
                     parent = f" ← {boundary[:8]}" if boundary else " · 起点"
                     rows.append((entry["id"], f"{'  ' * min(depth, 8)}{marker} {entry['id'][:12]}{parent} · {phase} · {payload.get('prompt', '')[:160]}"
                                  + ("\n  " + " / ".join(changes) if changes else "")))

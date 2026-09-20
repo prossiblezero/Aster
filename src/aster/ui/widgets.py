@@ -37,21 +37,23 @@ if Input is not None:
                     border: round #9b8afb; background: #191c26; }
         #decision-text { max-height: 20; overflow-y: auto; }
         #decision-buttons { height: auto; align-horizontal: right; margin-top: 1; }
+        #decision-buttons Button { min-width: 6; width: auto; padding: 0 1; margin-left: 1; }
         """
 
-        def __init__(self, text: str, *, approval: bool = False):
+        def __init__(self, text: str, *, approval: bool = False, value="", accept_label=None):
             super().__init__()
             self.text, self.approval = text, approval
+            self.value, self.accept_label = value, accept_label
 
         def compose(self) -> ComposeResult:
             with Vertical(id="decision"):
                 yield Static(self.text, id="decision-text", markup=False)
                 if not self.approval:
-                    yield Input(placeholder="请输入你的回答", id="answer")
+                    yield Input(value=self.value, placeholder="请输入你的回答", id="answer")
                 with Horizontal(id="decision-buttons"):
                     yield Button("拒绝" if self.approval else "取消", id="decline")
                     yield Button(
-                        "仅允许本次" if self.approval else "发送", id="accept", variant="primary"
+                        self.accept_label or ("仅允许本次" if self.approval else "发送"), id="accept", variant="primary"
                     )
 
         def on_mount(self) -> None:
@@ -66,6 +68,7 @@ if Input is not None:
                 self.dismiss(answer)
 
         def on_button_pressed(self, event: Button.Pressed) -> None:
+            event.stop()
             if event.button.id == "accept":
                 self._accept()
             else:

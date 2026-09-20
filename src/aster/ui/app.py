@@ -23,14 +23,14 @@ from .commands import (
 )
 
 try:
-    from rich.markdown import Markdown
     from rich.text import Text
     from textual.app import App, ComposeResult
     from textual.binding import Binding
-    from textual.containers import Vertical
-    from textual.widgets import Input, RichLog, Static
+    from textual.containers import Horizontal, Vertical
+    from textual.widgets import Button, Input, OptionList, RichLog, Static
     from textual.worker import WorkerCancelled, WorkerFailed
 
+    from .session_widgets import TranscriptLog, render_log
     from .sessions import SessionViews
     from .widgets import HumanPrompt, PromptInput
 except ImportError:  # pragma: no cover
@@ -64,10 +64,19 @@ if App is not None:
         CSS = """
         Screen { layout: vertical; background: #0f1117; color: #e6e9f2; overflow: hidden; }
         #brand { height: 1; margin: 1 2 0 2; color: #a9b9ff; }
+        #session-toolbar { height: 1; margin: 1 2 0 2; }
+        #session-toolbar Button { height: 1; min-width: 6; width: auto; border: none;
+                                  padding: 0 1; margin-right: 1; background: #25263b; }
+        #session-toolbar Button:hover { background: #51486d; }
+        #session-status { height: 1; margin: 0 2; color: #9ca7be; }
+        #workspace { height: 1fr; min-height: 1; }
+        #session-sidebar { width: 28; margin: 1 0 0 1; border-right: solid #353449; }
+        #session-sidebar-title { height: 1; color: #b7b0ff; padding-left: 1; }
+        #live-sessions { height: 1fr; border: none; background: #151822; }
         #welcome { height: auto; margin: 1 2; padding: 1 2;
                    border: round #7165aa; background: #151822; }
         .compact #welcome { margin: 0 2; padding: 0 1; }
-        #conversation { height: 1fr; min-height: 1; overflow: hidden; }
+        #conversation { width: 1fr; height: 1fr; min-height: 1; overflow: hidden; }
         #composer { height: auto; dock: bottom; }
         #log { height: 1fr; min-height: 1; padding: 0 2; background: #0f1117; }
         #log, #reasoning, #model-output { scrollbar-size: 1 1;
@@ -88,6 +97,8 @@ if App is not None:
             Binding("ctrl+q", "quit", "退出", priority=True),
             Binding("ctrl+l", "clear_screen", "清屏", priority=True),
             Binding("f1", "help", "帮助"),
+            Binding("ctrl+o", "session_list", "会话"),
+            Binding("ctrl+t", "session_tree", "历史分支"),
             Binding("escape", "escape", show=False),
         ]
 
@@ -132,11 +143,22 @@ if App is not None:
 
         def compose(self) -> ComposeResult:
             yield Static("", id="brand", markup=False)
-            with Vertical(id="conversation"):
-                yield Static("", id="welcome", markup=False)
-                yield RichLog(id="log", wrap=True, markup=False, min_width=1, max_lines=6000)
-                yield Static("", id="reasoning", markup=False)
-                yield Static("", id="model-output", markup=False)
+            with Horizontal(id="session-toolbar"):
+                yield Button("会话", id="show-sessions")
+                yield Button("历史", id="show-tree")
+                yield Button("新建", id="new-session")
+                yield Button("取消", id="cancel-session")
+                yield Button("帮助", id="show-help")
+            yield Static("", id="session-status", markup=False)
+            with Horizontal(id="workspace"):
+                with Vertical(id="session-sidebar"):
+                    yield Static("已打开的会话", id="session-sidebar-title")
+                    yield OptionList(id="live-sessions", markup=False)
+                with Vertical(id="conversation"):
+                    yield Static("", id="welcome", markup=False)
+                    yield TranscriptLog(id="log", wrap=True, markup=False, min_width=1, max_lines=6000)
+                    yield Static("", id="reasoning", markup=False)
+                    yield Static("", id="model-output", markup=False)
             with Vertical(id="composer"):
                 yield Static("就绪", id="progress", markup=False)
                 yield Static("", id="suggestions", markup=False)
@@ -152,11 +174,13 @@ if App is not None:
             for name in ("model-output", "reasoning", "suggestions"):
                 self._main_query(f"#{name}").display = False
             self._refresh_model()
+            self._main_query("#session-sidebar").display = self.size.width >= 110
             self._tick()
             self.set_interval(0.2, self._tick)
             self._main_query("#prompt", Input).focus()
 
-        def _refresh_model(self) -> None:
+        def _refresh_model(self, size=None) -> None:
+            size = size or self.size
             settings = self.settings
             self.sub_title = f"{settings.profile or '默认'} · {settings.model}"
             self._main_query("#brand", Static).update(
@@ -164,7 +188,7 @@ if App is not None:
             )
             mark = (
                 ASTER_MARK
-                if self.size.height >= 32 and self.size.width >= 55
+                if size.height >= 32 and size.width >= 55
                 else "▄▀█ █▀ ▀█▀ █▀▀ █▀█\n█▀█ ▄█  █  ██▄ █▀▄"
             )
             welcome = Text(mark, style="bold #b7b0ff")
@@ -195,12 +219,13 @@ if App is not None:
                 f" + {settings.effective_output_tokens:,} 输出 token（{source}）"
             )
 
-        def on_resize(self) -> None:
+        def on_resize(self, event) -> None:
             if self.is_mounted and self.screen_stack and not self._sessions_closing:
-                self.screen_stack[0].set_class(self.size.height < 32, "compact")
+                self.screen_stack[0].set_class(event.size.height < 32, "compact")
                 # Keep the input reachable in short terminals.
-                self._main_query("#welcome").display = self.size.height >= 20 and not self._history
-                self._refresh_model()
+                self._main_query("#welcome").display = event.size.height >= 20 and not self._history and not self.runtime.state and not self._view()["log"]
+                self._main_query("#session-sidebar").display = event.size.width >= 110
+                self._refresh_model(event.size)
 
         def _write(self, text: str, *, style: str = "") -> None:
             text = self.runtime.evidence.redactor.text(text)
@@ -208,11 +233,12 @@ if App is not None:
             view["log"].append((text, style))
             view["log"] = view["log"][-6000:]
             if not self._sessions_closing:
-                self._main_query("#log", RichLog).write(Markdown(text) if style == "markdown" else Text(text, style=style))
+                self._main_query("#log", RichLog).write(render_log(text, style))
 
         def _tick(self) -> None:
-            if self._progress is None or not self._progress.is_mounted:
+            if not self.is_running or self._sessions_closing or self._progress is None or not self._progress.is_mounted:
                 return
+            self._refresh_sessions()
             state = self.runtime.state
             task = state.task if state else self._initial_task
             elapsed = time.monotonic() - self._started_at if self.busy else 0
@@ -317,12 +343,9 @@ if App is not None:
 
         async def _prompt(self, screen: HumanPrompt) -> str | None:
             async with self._interaction_lock:
-                previous = self._activity
-                self._activity = "等待你的确认" if screen.approval else "等待你的回答"
                 try:
                     return await self.push_screen_wait(screen)
                 finally:
-                    self._activity = previous
                     if self.screen is screen:
                         self.pop_screen()
 
@@ -433,7 +456,7 @@ if App is not None:
             for name, (arguments, description) in COMMANDS.items():
                 self._write(f"  {name} {arguments}\n    {description}")
             self._write(
-                "\nEnter 发送 · Tab 补全 · ↑↓ 选择命令或浏览输入历史\nCtrl+C / Esc 取消任务 · Ctrl+L 清屏 · Ctrl+Q 退出\n普通输入沿当前会话继续；/review、/test 和带任务的 /plan 会调用模型。"
+                "\nEnter 发送 · Tab 补全 · ↑↓ 选择命令或浏览输入历史\nCtrl+O 会话 · Ctrl+T 历史分支 · 也可点击顶部按钮与对话后的分支入口\nCtrl+C / Esc 取消任务 · Ctrl+L 清屏 · Ctrl+Q 退出\n普通输入沿当前会话继续；/review、/test 和带任务的 /plan 会调用模型。"
             )
 
         def _command(self, command: str, argument: str) -> None:
@@ -571,6 +594,7 @@ if App is not None:
                         + (f" · 原因：{state.stop_reason}" if state.stop_reason else ""), style="#8f9cb4")
                     if state.phase != "completed":
                         self._session_write(runtime, f"输入 /continue 继续，或用 /resume {state.run_id} 恢复。已完成的修改会保留。")
+                    self._dialogue_footer(runtime)
                 if runtime is self.runtime and not self._sessions_closing:
                     self._activity = view["_activity"]
                     if self._stream_active:
@@ -607,8 +631,13 @@ if App is not None:
                 self.task_worker.cancel()
                 with suppress(WorkerCancelled, WorkerFailed):
                     await self.task_worker.wait()
+                self._tick()
             else:
                 self._write("当前没有运行中的任务。输入 quit 或按 Ctrl+Q 退出。")
+
+        def on_worker_state_changed(self, event) -> None:
+            if not self._sessions_closing:
+                self._tick()
 
         async def _close_sessions(self):
             self._sessions_closing = True
