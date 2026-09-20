@@ -233,7 +233,9 @@ if App is not None:
             if self._sessions_closing:
                 return
             event = row["event"]
-            if event == "model_stream":
+            if event == "ui_note":
+                self._write(row["text"], style=row.get("style", ""))
+            elif event == "model_stream":
                 self._stream_event(row)
             elif event == "context_built":
                 self._context_report = row
@@ -563,6 +565,7 @@ if App is not None:
                 if started and runtime.state:
                     state = runtime.state
                     view["_activity"] = PHASES[state.phase]
+                    view["_stream_status"], view["_stream_active"] = "", False
                     self._session_write(runtime,
                         f"\n{PHASES[state.phase]} · 修改 {len(state.changed_paths)} 个文件 · 验证 {VERIFICATION[state.verification.state]}\n运行编号：{state.run_id}"
                         + (f" · 原因：{state.stop_reason}" if state.stop_reason else ""), style="#8f9cb4")
@@ -580,7 +583,7 @@ if App is not None:
             if runtime is self.runtime:
                 self._write(text, style=style)
             else:
-                self._view(runtime)["log"].append((runtime.evidence.redactor.text(text), style))
+                self._view(runtime)["events"].append({"event": "ui_note", "text": runtime.evidence.redactor.text(text), "style": style})
 
         def action_clear_screen(self) -> None:
             self._main_query("#log", RichLog).clear()

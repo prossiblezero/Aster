@@ -31,7 +31,7 @@ class SessionPicker(ModalScreen[tuple[str, bool] | None]):
     def compose(self):
         with Vertical(id="session-picker"):
             yield Static(self.title, markup=False)
-            yield Input(value=self.initial_query, placeholder="输入关键词或编号筛选；↓ 选择，Enter 打开", id="session-query")
+            yield Input(value=self.initial_query, placeholder="关键词或编号筛选（最多显示 300 项）；↓ 选择，Enter 打开", id="session-query")
             yield OptionList(id="session-choices", markup=False)
             yield Static("Esc 返回" + (" · Ctrl+S 带入当前分支摘录 · 文件不会回滚" if self.summaries else ""))
 
@@ -177,6 +177,7 @@ class SessionViews:
         self._context_report = None
         self._activity = "已选择历史位置"
         self.action_clear_screen()
+        self._write("最初请求：" + self.runtime.state.task.prompt)
         for message in self.runtime._structured_history[-20:]:
             if message.get("role") in {"user", "assistant"}:
                 content = message.get("content", "")
@@ -254,14 +255,24 @@ class SessionViews:
         elif command == "/tree":
             if not self.runtime.state:
                 raise ValueError("尚无会话，请先输入任务或恢复历史会话")
-            rows, depths = [], {}
+            rows, depths, boundaries = [], {}, {}
+            labels = {"model_change": "模型配置", "compaction": "上下文压缩", "context_transform": "模型历史转换", "branch_summary": "分支摘录", "branch": "分支选择", "turn_start": "用户请求"}
+            changes = []
             for entry in self.runtime.session_tree.entries(self.runtime.state.session_id):
                 depth = depths.get(entry["parent_id"], 0)
                 depths[entry["id"]] = depth + int(entry["kind"] == "turn_start")
+                boundary = boundaries.get(entry["parent_id"])
+                boundaries[entry["id"]] = entry["id"] if entry["restorable"] else boundary
+                if entry["kind"] in labels:
+                    changes.append(f"{labels[entry['kind']]} {entry['id'][:8]}")
                 if entry["restorable"]:
                     payload = entry["payload"]
                     marker = "●" if entry["id"] == self.runtime.session_tree.cursor else "◇"
-                    rows.append((entry["id"], f"{'  ' * min(depth, 8)}{marker} {entry['id'][:12]} · {payload.get('phase')} · {payload.get('prompt', '')[:160]}"))
+                    phase = {"running": "运行中", "completed": "完成", "stopped": "停止", "failed": "失败"}.get(payload.get("phase"), "就绪")
+                    parent = f" ← {boundary[:8]}" if boundary else " · 起点"
+                    rows.append((entry["id"], f"{'  ' * min(depth, 8)}{marker} {entry['id'][:12]}{parent} · {phase} · {payload.get('prompt', '')[:160]}"
+                                 + ("\n  " + " / ".join(changes) if changes else "")))
+                    changes.clear()
             self.push_screen(SessionPicker(rows, title="会话树 · ◇ 可恢复位置 · 输入新请求创建后续分支", query=argument, summaries=True), self._select_entry)
         elif command == "/branch":
             args = shlex.split(argument)

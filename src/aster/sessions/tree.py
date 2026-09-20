@@ -5,7 +5,9 @@ RunState.turn keeps its existing meaning (one model iteration).
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import sqlite3
 import time
 import zlib
@@ -94,6 +96,7 @@ class SessionTree:
         snapshot.pop("structured_history")
         snapshot.pop("session_entry", None)
         snapshot["dialogue_id"] = self.turn_id or run_id
+        snapshot["session_history_sha256"] = hashlib.sha256(encode(history).encode()).hexdigest()
         packed = zlib.compress(encode(snapshot).encode())
         if packed == self._snapshot and history == self._history and not self.pending:
             return {**data, "session_entry": self.cursor, "dialogue_id": self.turn_id}
@@ -123,6 +126,12 @@ class SessionTree:
             db.execute("INSERT OR IGNORE INTO sessions VALUES (?,?,NULL,?)", (sid, self.evidence.redactor.text(state["task"]["prompt"])[:120], now))
             head = db.execute("SELECT head FROM sessions WHERE id=?", (sid,)).fetchone()[0]
             if head != self.expected_head:
+                committed = db.execute("SELECT data FROM snapshots WHERE entry_id=?", (head,)).fetchone()
+                if committed and json.loads(zlib.decompress(committed[0])) == json.loads(encode(snapshot)) and not self.pending:
+                    # Repeated cleanup of the same already-committed state is idempotent.
+                    self.cursor = self.expected_head = head
+                    self._history, self._identity, self._snapshot = history, deepcopy(identity), packed
+                    return {**data, "session_entry": head, "dialogue_id": self.turn_id}
                 raise RuntimeError("session_changed: reload before writing this session")
             for kind, payload in events:
                 entry_id = uuid4().hex
@@ -142,7 +151,9 @@ class SessionTree:
 
     @staticmethod
     def resolve(db, reference, *, table="entries", session_id=None):
-        clause, args = "id LIKE ?", [reference + "%"]
+        if not re.fullmatch(r"[0-9a-f]{1,32}", reference):
+            raise ValueError("请输入有效的记录编号或前缀")
+        clause, args = "id >= ? AND id < ?", [reference, reference + "g"]
         if session_id is not None:
             clause += " AND session_id=?"
             args.append(session_id)
@@ -190,7 +201,13 @@ class SessionTree:
             elif row["kind"] in {"compaction", "context_transform"}:
                 history = payload["history"]
         history_groups(history)
-        return {**json.loads(zlib.decompress(snapshot[0])), "structured_history": history, "session_entry": target["id"]}
+        data = json.loads(zlib.decompress(snapshot[0]))
+        if data["state"]["session_id"] != target["session_id"] or data["state"]["run_id"] != target["run_id"]:
+            raise ValueError("session_snapshot_identity_mismatch")
+        expected = data.pop("session_history_sha256", None)
+        if expected and expected != hashlib.sha256(encode(history).encode()).hexdigest():
+            raise ValueError("session_history_integrity_error")
+        return {**data, "structured_history": history, "session_entry": target["id"]}
 
     def excerpt(self, source, target):
         """Bounded extract of the departed path; no model call or memory promotion."""
