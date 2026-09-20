@@ -5,8 +5,9 @@ import os
 
 import pytest
 
-from aster.evidence import EvidenceStore, Redactor
-from aster.workspace import BoundaryError, digest
+from aster.safety.redaction import Redactor
+from aster.storage.evidence import EvidenceStore
+from aster.storage.workspace import BoundaryError, digest
 
 
 def test_archive_pages_reconstruct_redacted_text_and_bind_source(tmp_path):
@@ -125,7 +126,7 @@ def test_archive_write_failure_propagates_before_returning_a_reference(tmp_path,
     def disk_full(*_):
         raise OSError("disk full")
 
-    monkeypatch.setattr("aster.evidence.atomic_json", disk_full)
+    monkeypatch.setattr("aster.storage.evidence.atomic_json", disk_full)
     with pytest.raises(OSError, match="disk full"):
         store.archive_observation("run", "call", "run_shell", "irreplaceable observation")
     assert store.list_observations("run")["observations"] == []

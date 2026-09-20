@@ -126,7 +126,7 @@ Aster 因而把任务状态、原生协议历史、运行配置和工作区指�
 <p>工作记忆属于 <code>RunState</code>，没有第二套需要手动同步的 working memory。
 关闭跨运行记忆 <code>memory_enabled=False</code>，也不会让这份任务状态消失。</p>
 <h2 id="工作区指纹检查到了什么">工作区指纹检查到了什么</h2>
-<p><a href="../source/src/aster/workspace.py.html">Workspace.snapshot()</a> 遍历受管理文件，
+<p><a href="../source/src/aster/storage/workspace.py.html">Workspace.snapshot()</a> 遍历受管理文件，
 对<strong>文件权限位与内容</strong>一起计算指纹，再由 <code>fingerprint()</code> 聚合路径映射。
 文件新增、删除、内容改动、权限位改动都可能改变整体结果。</p>
 <p>这是 Aster 自己的文件视图，不是对整台机器做磁盘快照。
@@ -150,7 +150,7 @@ Base URL 不参与一致性比较，因此恢复检查不是服务提供商身�
 这个结果明确表示执行中断，不能把它解读为“工具肯定没有副作用”。</p>
 <p>第 02、06 章的调用/结果配对，在恢复这里仍然必须成立。
 <code>history_groups()</code> 是复用的协议合同，不是为 checkpoint 再写一套宽松校验。</p>
-<p>真正写盘由 <a href="../source/src/aster/evidence.py.html">atomic_json()</a> 完成：
+<p>真正写盘由 <a href="../source/src/aster/storage/evidence.py.html">atomic_json()</a> 完成：
 先在目标目录写临时文件，flush、fsync 后用 <code>os.replace()</code> 替换正式文件。
 这减少写到一半留下坏 JSON 的风险，不能把整个文件系统和外部命令变成一个事务。</p>
 <h2 id="一个容易漏掉的细节模型原生状态不能随意改字符">一个容易漏掉的细节：模型原生状态不能随意改字符</h2>
@@ -183,7 +183,7 @@ Aster 为检查点里的<strong>明确协议位置</strong>做保留，而不是
 </tr>
 </tbody>
 </table>
-<p><a href="../source/src/aster/evidence.py.html">EvidenceStore.save()</a> 默认仍然脱敏。
+<p><a href="../source/src/aster/storage/evidence.py.html">EvidenceStore.save()</a> 默认仍然脱敏。
 只有检查点调用 <code>preserve_native_history=True</code>，并且先调用
 <code>validate_native_history()</code>：已出现 <code>[REDACTED]</code>、包含配置中已知凭据，
 或签名 thinking 正文必须脱敏的记录会被拒绝。</p>

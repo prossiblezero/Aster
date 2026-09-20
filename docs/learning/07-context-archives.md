@@ -50,7 +50,7 @@ workspace/.aster/runs/<run_id>/
 
 ## 先归档，再替换正文
 
-[EvidenceStore.archive_observation()](../../src/aster/evidence.py) 的关键代码节选：
+[EvidenceStore.archive_observation()](../../src/aster/storage/evidence.py) 的关键代码节选：
 
 ```python
 record = self.redactor.value(
@@ -263,7 +263,7 @@ asyncio.run(main())
 归档也可能被用户清理或发生磁盘错误，下一次准备请求需要的引用不可用时会明确失败。
 Aster 没有把“有磁盘归档”宣传成无限上下文或所有内容永久无损。
 
-继续读 [EvidenceStore](../../src/aster/evidence.py)、
+继续读 [EvidenceStore](../../src/aster/storage/evidence.py)、
 [WorkflowTools.execute()](../../src/aster/tools/workflow.py) 和
 [归档合同测试](../../tests/test_context_archives.py)。
 更大的真实任务结果见[上下文评测](../context-results.md)。

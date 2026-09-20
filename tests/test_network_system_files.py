@@ -8,7 +8,7 @@ import pytest
 
 from aster.config import Settings
 from aster.safety.runner import SandboxRunner
-from aster.workspace import Workspace
+from aster.storage.workspace import Workspace
 
 
 @pytest.mark.parametrize("network", [False, True])

@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from mechanism_support import memory_case
 
-from aster.memory import Memory
-from aster.workspace import digest
+from aster.knowledge.memory import Memory
+from aster.storage.workspace import digest
 
 CASES = json.loads(
     (Path(__file__).resolve().parents[1] / "datasets/memory_evolution_cases.json").read_text()

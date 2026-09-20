@@ -9,7 +9,7 @@ from typing import Any
 import httpx
 
 from ..config import Settings
-from ..evidence import Redactor
+from ..safety.redaction import Redactor
 from ..schema import ModelReply
 from .codec import parse_reply, request_payload
 from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request

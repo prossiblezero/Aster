@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from aster.skills import MAX_SKILL_BYTES, Skills
+from aster.knowledge.skills import MAX_SKILL_BYTES, Skills
 
 
 @pytest.mark.parametrize("link_location", ["file", "directory", "parent", "internal_file"])

@@ -5,7 +5,7 @@ import pytest
 from aster.config import ExecRule, Settings
 from aster.safety.policy import command_rule
 from aster.safety.runner import SandboxRunner
-from aster.workspace import BoundaryError, Workspace
+from aster.storage.workspace import BoundaryError, Workspace
 
 
 @pytest.mark.parametrize(

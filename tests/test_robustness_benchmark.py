@@ -20,8 +20,8 @@ from benchmark_support import ScriptedPolicy
 
 from aster.config import Settings
 from aster.schema import ModelReply
+from aster.storage.workspace import Workspace
 from aster.tools import SCHEMAS
-from aster.workspace import Workspace
 
 
 async def test_context_treatment_changes_only_budget_and_preserves_archived_evidence(tmp_path):

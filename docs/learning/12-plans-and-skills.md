@@ -59,7 +59,7 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 
 ## Skill 是本地说明文件，不是可执行插件
 
-[Skills](../../src/aster/skills.py) 搜索两处目录：
+[Skills](../../src/aster/knowledge/skills.py) 搜索两处目录：
 
 ```text
 工作区/

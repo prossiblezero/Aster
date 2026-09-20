@@ -10,7 +10,7 @@ import textwrap
 from contextlib import contextmanager
 from pathlib import Path
 
-from .workspace import CONTROL, IGNORED, sensitive
+from ..storage.workspace import CONTROL, IGNORED, sensitive
 
 SKILL_NAME = re.compile(r"[A-Za-z0-9_.-]{1,80}")
 MAX_SKILL_BYTES = 20 * 1024

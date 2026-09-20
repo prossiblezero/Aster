@@ -13,9 +13,9 @@ import time
 from pathlib import Path
 
 from .config import load_settings
-from .evidence import Redactor
 from .rl import AsterEnv
 from .runtime import Runtime
+from .safety.redaction import Redactor
 from .schema import TaskSpec
 
 try:

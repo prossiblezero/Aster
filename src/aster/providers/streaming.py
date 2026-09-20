@@ -14,7 +14,7 @@ import time
 
 import httpx
 
-from ..evidence import Redactor
+from ..safety.redaction import Redactor
 from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request
 
 MAX_EVENT_BYTES = 16 * 1024 * 1024

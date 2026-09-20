@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from aster.config import Settings
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec
+from aster.storage.workspace import digest
 from aster.training import (
     GRPORollout,
     PolicyDecision,
@@ -18,7 +19,6 @@ from aster.training import (
     validate_group,
     validate_splits,
 )
-from aster.workspace import digest
 
 
 def task_record(**updates):

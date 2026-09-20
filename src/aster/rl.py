@@ -13,7 +13,7 @@ from .config import Settings
 from .context import ContextBudgetError, ContextHistoryError
 from .runtime import Runtime
 from .schema import ACTION, Action, Final, TaskSpec, VerifierResult
-from .workspace import Workspace
+from .storage.workspace import Workspace
 
 
 class AsterEnv:

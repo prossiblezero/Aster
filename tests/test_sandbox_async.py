@@ -4,7 +4,7 @@ import socket
 
 from aster.config import Settings
 from aster.safety.runner import SandboxRunner
-from aster.workspace import Workspace
+from aster.storage.workspace import Workspace
 
 
 async def test_asyncio_and_unittest_work_without_network(tmp_path):

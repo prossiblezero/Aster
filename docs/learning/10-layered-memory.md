@@ -50,7 +50,7 @@ if outcome.status == "success" and call.name == "read_file":
 
 这里的 `outcome` 是工具结果。`_collect_step` 负责把本次观察写入运行状态；长期入库时再由 `memory.store_excerpt` 认证原文摘录、证据和来源指纹。`content` 是展示给模型的文本，`data` 是程序消费的结构化信息；`source_sha256` 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。
 
-继续到 [Memory.remember_file](../../src/aster/memory.py)：
+继续到 [Memory.remember_file](../../src/aster/knowledge/memory.py)：
 
 ```python
 def remember_file(self, path: str, summary: str, working: dict | None = None):

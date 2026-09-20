@@ -6,9 +6,9 @@ import httpx
 import pytest
 
 from aster.config import MODEL_CONTEXT_LIMITS, Settings
-from aster.evidence import Redactor
 from aster.providers.usage import normalize_usage
 from aster.runtime import Runtime
+from aster.safety.redaction import Redactor
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
 

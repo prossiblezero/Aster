@@ -8,11 +8,11 @@ from pathlib import Path
 
 from aster.config import Settings
 from aster.hooks import HookResult, Hooks
-from aster.memory import Memory
+from aster.knowledge.memory import Memory
 from aster.rl import AsterEnv
 from aster.runtime import Runtime
 from aster.schema import Final, TaskSpec, ToolCall, VerifierResult
-from aster.workspace import Workspace, digest
+from aster.storage.workspace import Workspace, digest
 
 
 def memory_case(case: dict, root: Path, *, evolution: bool) -> dict:

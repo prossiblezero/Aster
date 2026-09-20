@@ -38,7 +38,7 @@
 <code>checkpoint.json</code> 用于恢复运行状态，<code>observations</code> 用于让模型找回历史工具正文。
 归档工具不会任意搜索检查点、完整 trace 或其他运行的文件。续聊时，经授权的同一 session 祖先观察 ID 可以被读取；这仍不是任意跨 run 读取，权限和 session 关系必须由 Runtime 检查。</p>
 <h2 id="先归档再替换正文">先归档，再替换正文</h2>
-<p><a href="../source/src/aster/evidence.py.html">EvidenceStore.archive_observation()</a> 的关键代码节选：</p>
+<p><a href="../source/src/aster/storage/evidence.py.html">EvidenceStore.archive_observation()</a> 的关键代码节选：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">redactor</span><span class="o">.</span><span class="n">value</span><span class="p">(</span>
     <span class="p">{</span><span class="s2">"run_id"</span><span class="p">:</span> <span class="n">run_id</span><span class="p">,</span> <span class="s2">"call_id"</span><span class="p">:</span> <span class="n">call_id</span><span class="p">,</span> <span class="s2">"tool"</span><span class="p">:</span> <span class="n">tool</span><span class="p">,</span> <span class="s2">"content"</span><span class="p">:</span> <span class="n">content</span><span class="p">},</span>
     <span class="n">mask_fields</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -267,7 +267,7 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <p>归档解决了证据外置、定位和完整性检查，没有解决模型永远不忘线索的问题。
 归档也可能被用户清理或发生磁盘错误，下一次准备请求需要的引用不可用时会明确失败。
 Aster 没有把“有磁盘归档”宣传成无限上下文或所有内容永久无损。</p>
-<p>继续读 <a href="../source/src/aster/evidence.py.html">EvidenceStore</a>、
+<p>继续读 <a href="../source/src/aster/storage/evidence.py.html">EvidenceStore</a>、
 <a href="../source/src/aster/tools/workflow.py.html">WorkflowTools.execute()</a> 和
 <a href="../source/tests/test_context_archives.py.html">归档合同测试</a>。
 更大的真实任务结果见<a href="../source/docs/context-results.md">上下文评测（Markdown 原文下载）</a>。</p>

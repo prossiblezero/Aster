@@ -128,7 +128,7 @@ Runtime.step() → Outcome
 <p>某些目录要等对应动作发生后才出现。主评测脚本还会把运行记录和候选代码复制到指定结果目录，并生成 <code>patch.diff</code>；不要以为每次普通 Runtime 运行都会自动在 <code>.aster/runs</code> 下生成这份评测 diff。</p>
 <p><code>trace</code> 是事件日志，适合回答“先发生了什么”；<code>checkpoint</code> 是状态快照，适合恢复；<code>report</code> 是运行总结，适合汇总；<code>requests</code> 回答“这一轮送给模型的输入长什么样”。模型请求的 <code>ModelReply.diagnostics</code> 会携带有界诊断，包括请求 <code>attempt</code>、故障类别和未知 usage 标记；它不是成功证明。它们的日志副本经过脱敏，并非包含认证信息的网络抓包。</p>
 <h2 id="代码走读追加日志与原子快照">代码走读：追加日志与原子快照</h2>
-<p><a href="../source/src/aster/evidence.py.html">evidence.py</a> 的 <code>emit()</code> 给事件加入 <code>seq</code>、<code>previous</code> 和 <code>hash</code>。<code>seq</code> 是序号，<code>previous</code> 指向上一个事件摘要，<code>hash</code> 是当前记录的内容摘要。</p>
+<p><a href="../source/src/aster/storage/evidence.py.html">evidence.py</a> 的 <code>emit()</code> 给事件加入 <code>seq</code>、<code>previous</code> 和 <code>hash</code>。<code>seq</code> 是序号，<code>previous</code> 指向上一个事件摘要，<code>hash</code> 是当前记录的内容摘要。</p>
 <p>检查点使用 <code>atomic_json()</code>：先写同目录临时文件，刷新内容，再 <code>os.replace()</code> 替换目标。这样读者不会看到只写到一半的 JSON。但它只保证这个文件的替换边界，不等于工具对整个工作区做了数据库事务。</p>
 <h2 id="实验沿一次读取找到状态与证据">实验：沿一次读取找到状态与证据</h2>
 <p>本实验不调用模型，直接执行一个工具步骤，然后显式结束任务。</p>
@@ -141,7 +141,7 @@ Runtime.step() → Outcome
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">aster.workspace</span><span class="w"> </span><span class="kn">import</span> <span class="n">digest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.storage.workspace</span><span class="w"> </span><span class="kn">import</span> <span class="n">digest</span>
 
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>

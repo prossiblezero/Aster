@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from ..safety.runner import SandboxRunner
 from ..schema import Outcome, Record, ToolCall
-from ..workspace import Workspace
+from ..storage.workspace import Workspace
 from .schemas import SCHEMAS, WORKFLOW_TOOLS
 from .workflow import WorkflowTools
 from .workspace import WorkspaceTools

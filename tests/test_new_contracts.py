@@ -66,7 +66,7 @@ def test_legacy_memory_working_state_is_migrated(tmp_path):
             }
         )
     )
-    from aster.memory import Memory
+    from aster.knowledge.memory import Memory
 
     memory = Memory(tmp_path)
     assert "working" not in memory.state

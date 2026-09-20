@@ -7,7 +7,7 @@ from aster.config import Settings
 from aster.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import TaskSpec
-from aster.workspace import BoundaryError, Workspace
+from aster.storage.workspace import BoundaryError, Workspace
 
 
 def git(root, *arguments):

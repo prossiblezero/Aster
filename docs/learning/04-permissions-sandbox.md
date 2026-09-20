@@ -52,7 +52,7 @@ Shell 复合命令不能简单用第一个单词判断：`echo ok; rm data.txt` 
 
 ## 第二层：文件路径也必须过边界
 
-[Workspace.path()](../../src/aster/workspace.py) 检查路径是否留在当前工作区，并拒绝符号链接、特殊文件和受保护路径。
+[Workspace.path()](../../src/aster/storage/workspace.py) 检查路径是否留在当前工作区，并拒绝符号链接、特殊文件和受保护路径。
 例如 `../outside.txt`、`.git/config`、`.env` 不能通过普通文件工具读取。
 对路径每一段进行检查，是为了避免 `src/link/file.py` 中间的 `link` 把访问重定向到外部。
 

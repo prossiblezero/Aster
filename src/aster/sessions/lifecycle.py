@@ -8,9 +8,9 @@ from uuid import uuid4
 
 from ..config import Settings
 from ..context import ContextBuilder, ContextReport
-from ..evidence import EvidenceStore
 from ..messages import CanonicalHistory, canonicalize
 from ..schema import Outcome, RunState, TaskSpec, Verification
+from ..storage.evidence import EvidenceStore
 from ..verifier import Verifier
 from .checkpoint import redact_skill_snapshots
 

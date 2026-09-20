@@ -3,10 +3,10 @@ import json
 import pytest
 
 from aster.config import Settings
-from aster.memory import Memory
+from aster.knowledge.memory import Memory
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
-from aster.workspace import digest
+from aster.storage.workspace import digest
 
 
 def test_chinese_paraphrase_retrieves_grounded_excerpt_and_expires(tmp_path):

@@ -7,13 +7,13 @@ import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from ..evidence import EvidenceStore
-from ..memory import Memory, store_excerpt
+from ..knowledge.memory import Memory, store_excerpt
+from ..knowledge.skills import Skills
 from ..schema import Outcome, RunState, SkillSnapshot
 from ..sessions.checkpoint import redact_skill_snapshots
 from ..sessions.lifecycle import read_session_observation
-from ..skills import Skills
-from ..workspace import Workspace
+from ..storage.evidence import EvidenceStore
+from ..storage.workspace import Workspace
 from .schemas import SCHEMAS
 from .workspace import text_page
 

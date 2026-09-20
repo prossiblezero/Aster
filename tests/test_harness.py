@@ -2,7 +2,7 @@ import pytest
 
 from aster.config import Settings
 from aster.hooks import HookResult, Hooks
-from aster.memory import Memory
+from aster.knowledge.memory import Memory
 from aster.providers.codec import responses_reply
 from aster.rl import AsterEnv
 from aster.runtime import Runtime

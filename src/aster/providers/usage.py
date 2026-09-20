@@ -10,7 +10,7 @@ from itertools import islice
 
 import httpx
 
-from ..evidence import Redactor
+from ..safety.redaction import Redactor
 
 _USAGE_FIELDS = {
     "input_tokens",

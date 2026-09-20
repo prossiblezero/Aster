@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from ..safety.runner import SandboxRunner
 from ..schema import Outcome, Record, ToolCall
-from ..workspace import digest
+from ..storage.workspace import digest
 from .schemas import (
     ImageRead,
     ListFiles,

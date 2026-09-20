@@ -16,8 +16,8 @@ from aster.config import Settings
 from aster.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import ModelReply, TaskSpec, ToolCall
+from aster.storage.workspace import Workspace
 from aster.testing import parse_junit
-from aster.workspace import Workspace
 
 DATASETS = Path(__file__).resolve().parents[1] / "datasets"
 USAGE_FIELDS = (

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from aster.skills import MAX_METADATA_BYTES, MAX_RESOURCES, MAX_SKILL_BYTES, Skills
+from aster.knowledge.skills import MAX_METADATA_BYTES, MAX_RESOURCES, MAX_SKILL_BYTES, Skills
 
 
 def package(workspace, name="review", source=".skills", header=None, body="Body instructions\n"):

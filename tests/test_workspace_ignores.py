@@ -4,7 +4,7 @@ import pytest
 
 from aster.config import Settings
 from aster.safety.runner import SandboxRunner
-from aster.workspace import BoundaryError, Workspace
+from aster.storage.workspace import BoundaryError, Workspace
 
 
 def git(root, *arguments):

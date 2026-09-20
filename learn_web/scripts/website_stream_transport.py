@@ -14,8 +14,8 @@ from pathlib import Path
 
 import httpx
 
-from aster.evidence import Redactor
 from aster.provider import ModelClient, ProviderError
+from aster.safety.redaction import Redactor
 
 
 async def _sse_events(response):

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from ..safety.runner import SandboxRunner
 from ..schema import Outcome
-from ..workspace import Workspace
+from ..storage.workspace import Workspace
 
 TEST_COMMAND_PREFIXES = [
     ["pytest"],

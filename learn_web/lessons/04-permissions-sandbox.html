@@ -77,7 +77,7 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <p>这也不是静态程序分析器。<code>python -c</code> 能执行任意 Python，单凭命令名字不能证明程序安全。
 参数分类的作用是执行清楚的规则；进程运行范围仍要由后面的隔离层控制。</p>
 <h2 id="第二层文件路径也必须过边界">第二层：文件路径也必须过边界</h2>
-<p><a href="../source/src/aster/workspace.py.html">Workspace.path()</a> 检查路径是否留在当前工作区，并拒绝符号链接、特殊文件和受保护路径。
+<p><a href="../source/src/aster/storage/workspace.py.html">Workspace.path()</a> 检查路径是否留在当前工作区，并拒绝符号链接、特殊文件和受保护路径。
 例如 <code>../outside.txt</code>、<code>.git/config</code>、<code>.env</code> 不能通过普通文件工具读取。
 对路径每一段进行检查，是为了避免 <code>src/link/file.py</code> 中间的 <code>link</code> 把访问重定向到外部。</p>
 <p>受保护元数据和敏感文件也不进入普通沙箱副本。

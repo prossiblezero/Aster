@@ -10,7 +10,7 @@
 
 仓库里留下了两个测试命令：`pytest` 和 `python -m pytest`。它们都包含“project tests”，都来自真实文件，关键词召回无法区分哪个更适用于当前环境。后来第一种方式执行失败，第二种方式成功。下次任务应不应该继续保持原来的召回顺序？
 
-Aster 让记忆保留使用反馈，反馈影响下次排序；持续失败的记录则进入停用状态。所有规则都在 [memory.py](../../src/aster/memory.py) 里，没有额外的反思模型。
+Aster 让记忆保留使用反馈，反馈影响下次排序；持续失败的记录则进入停用状态。所有规则都在 [memory.py](../../src/aster/knowledge/memory.py) 里，没有额外的反思模型。
 
 ```mermaid
 flowchart LR

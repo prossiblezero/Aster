@@ -78,7 +78,7 @@ model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 ## 代码走读：追加日志与原子快照
 
-[evidence.py](../../src/aster/evidence.py) 的 `emit()` 给事件加入 `seq`、`previous` 和 `hash`。`seq` 是序号，`previous` 指向上一个事件摘要，`hash` 是当前记录的内容摘要。
+[evidence.py](../../src/aster/storage/evidence.py) 的 `emit()` 给事件加入 `seq`、`previous` 和 `hash`。`seq` 是序号，`previous` 指向上一个事件摘要，`hash` 是当前记录的内容摘要。
 
 检查点使用 `atomic_json()`：先写同目录临时文件，刷新内容，再 `os.replace()` 替换目标。这样读者不会看到只写到一半的 JSON。但它只保证这个文件的替换边界，不等于工具对整个工作区做了数据库事务。
 
@@ -96,7 +96,7 @@ from tempfile import TemporaryDirectory
 from aster.config import Settings
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
-from aster.workspace import digest
+from aster.storage.workspace import digest
 
 
 async def main():

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .schema import Outcome, RunState, Verification, VerifierResult
-from .workspace import Workspace
+from .storage.workspace import Workspace
 
 
 class Verifier:

@@ -10,7 +10,7 @@ from pydantic import Field, FiniteFloat, StrictBool, StrictInt, model_validator
 
 from .messages import canonicalize
 from .schema import Record, ToolCall
-from .workspace import digest
+from .storage.workspace import digest
 
 Hash = Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
 Revision = Annotated[str, Field(pattern=r"^(?:[a-f0-9]{40}|[a-f0-9]{64})$")]

@@ -14,15 +14,16 @@ from pathlib import Path
 
 from ..config import Settings
 from ..context import ContextBudgetError, ContextBuilder, ContextHistoryError
-from ..evidence import EvidenceStore, Redactor
 from ..hooks import Hooks
-from ..memory import Memory
+from ..knowledge.memory import Memory
+from ..knowledge.skills import Skills
 from ..messages import history_groups
 from ..providers.client import ModelClient
 from ..providers.codec import request_payload
 from ..providers.errors import ProviderError
 from ..recovery import StallDetector, completion_feedback
 from ..safety.policy import Decision, permission
+from ..safety.redaction import Redactor
 from ..safety.runner import SandboxRunner
 from ..schema import (
     Outcome,
@@ -45,7 +46,8 @@ from ..sessions.lifecycle import (
     prepare_model_history,
     preview_context,
 )
-from ..skills import Skills
+from ..storage.evidence import EvidenceStore
+from ..storage.workspace import Workspace
 from ..tools import (
     CORE_TOOLS,
     SCHEMAS,
@@ -59,7 +61,6 @@ from ..tools.registry import validate_arguments
 from ..tools.workflow import WorkflowTools
 from ..verifier import Verifier
 from ..workers import WorkerManager
-from ..workspace import Workspace
 from .execution import execute_reads
 
 

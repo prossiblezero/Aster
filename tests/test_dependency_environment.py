@@ -14,7 +14,7 @@ from aster.config import Settings
 from aster.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import TaskSpec, ToolCall
-from aster.workspace import Workspace
+from aster.storage.workspace import Workspace
 
 
 def test_model_sees_execution_constraints_and_current_capabilities(tmp_path):

@@ -9,7 +9,7 @@ from aster.config import Settings
 from aster.provider import history_groups, request_payload
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
-from aster.workspace import digest
+from aster.storage.workspace import digest
 
 
 def runtime_at(root, **settings):

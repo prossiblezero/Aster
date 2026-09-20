@@ -81,7 +81,7 @@ saved = load_checkpoint(
 
 ## 工作区指纹检查到了什么
 
-[Workspace.snapshot()](../../src/aster/workspace.py) 遍历受管理文件，
+[Workspace.snapshot()](../../src/aster/storage/workspace.py) 遍历受管理文件，
 对**文件权限位与内容**一起计算指纹，再由 `fingerprint()` 聚合路径映射。
 文件新增、删除、内容改动、权限位改动都可能改变整体结果。
 
@@ -113,7 +113,7 @@ history_groups(self._structured_history)
 第 02、06 章的调用/结果配对，在恢复这里仍然必须成立。
 `history_groups()` 是复用的协议合同，不是为 checkpoint 再写一套宽松校验。
 
-真正写盘由 [atomic_json()](../../src/aster/evidence.py) 完成：
+真正写盘由 [atomic_json()](../../src/aster/storage/evidence.py) 完成：
 先在目标目录写临时文件，flush、fsync 后用 `os.replace()` 替换正式文件。
 这减少写到一半留下坏 JSON 的风险，不能把整个文件系统和外部命令变成一个事务。
 
@@ -129,7 +129,7 @@ Aster 为检查点里的**明确协议位置**做保留，而不是放过所有�
 | Anthropic `thinking.signature` | thinking 块的签名 | 签名及其对应正文不能被静默改写 |
 | Anthropic `redacted_thinking.data` | 服务端返回的不透明数据块 | 检查点原样保留 |
 
-[EvidenceStore.save()](../../src/aster/evidence.py) 默认仍然脱敏。
+[EvidenceStore.save()](../../src/aster/storage/evidence.py) 默认仍然脱敏。
 只有检查点调用 `preserve_native_history=True`，并且先调用
 `validate_native_history()`：已出现 `[REDACTED]`、包含配置中已知凭据，
 或签名 thinking 正文必须脱敏的记录会被拒绝。

@@ -32,7 +32,7 @@ Provider有界重试及脱敏诊断、CLI流式进度与TUI预算/恢复提示�
 | 统一执行与观察 | 外部动作复用 `Runtime.step()`；`model_input` 与工具定义来自自主运行同样使用的 `prepare_request()` | [rl.py：_step / _observation](../src/aster/rl.py)、[runtime.py：prepare_request](../src/aster/core/runtime.py)、[test_context_policy_input.py](../tests/test_context_policy_input.py) |
 | 有界交互与终态 | 工具动作和 Final 消耗预算；达到上限仍评分最后候选；终态拒绝重复 step，评分前等待 Worker 停止 | [rl.py：_step / _terminal_reward](../src/aster/rl.py)、[test_rl_contract.py](../tests/test_rl_contract.py) |
 | 独立奖励入口 | 完成要求检查与外部 verifier 分开；没有独立 verifier 不给成功奖励，仓库测试结果只是观察 | [rl.py：_terminal_reward](../src/aster/rl.py)、[schema.py：VerifierResult](../src/aster/schema.py) |
-| 轨迹与输入证据 | 保存实际请求 payload、上下文策略版本、工具结果归档、调用历史、checkpoint 和代码差异；检查工具调用与结果配对 | [runtime.py：prepare_request / checkpoint](../src/aster/core/runtime.py)、[messages.py：history_groups](../src/aster/messages.py)、[evidence.py](../src/aster/evidence.py) |
+| 轨迹与输入证据 | 保存实际请求 payload、上下文策略版本、工具结果归档、调用历史、checkpoint 和代码差异；检查工具调用与结果配对 | [runtime.py：prepare_request / checkpoint](../src/aster/core/runtime.py)、[messages.py：history_groups](../src/aster/messages.py)、[evidence.py](../src/aster/storage/evidence.py) |
 | 失败与恢复边界 | 生成尝试有界、分类诊断与已报告用量累加；schema错误形成配对的失败观察；本任务及已启动子任务有未结在途调用时拒绝恢复 | [provider.py](../src/aster/providers/client.py)、[runtime.py：_execute_batch](../src/aster/core/runtime.py)、[session.py：assert_settled_tools](../src/aster/sessions/checkpoint.py) |
 | 任务与评分组织 | 任务有初始 fixture、预算、参考动作和独立检查；真实模型与脚本回放分开统计，保留失败尝试 | [datasets/README.md](../datasets/README.md)、[benchmark_support.py](../scripts/benchmark_support.py)、[benchmark.md](benchmark.md) |
 

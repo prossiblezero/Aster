@@ -17,7 +17,7 @@ from pathlib import Path
 
 from ..config import Settings
 from ..schema import Outcome
-from ..workspace import CONTROL, BoundaryError, Workspace, sensitive
+from ..storage.workspace import CONTROL, BoundaryError, Workspace, sensitive
 
 OUTPUT_LIMIT = 4 * 1024 * 1024
 DEPENDENCY_DIRECTORIES = {".venv", "node_modules"}

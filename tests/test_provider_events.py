@@ -7,11 +7,12 @@ import httpx
 import pytest
 
 from aster.config import Settings
-from aster.evidence import EvidenceStore, Redactor
 from aster.provider import ModelClient, ProviderError
 from aster.providers.usage import normalize_usage
 from aster.runtime import Runtime
+from aster.safety.redaction import Redactor
 from aster.schema import TaskSpec, ToolCall
+from aster.storage.evidence import EvidenceStore
 
 
 @pytest.mark.parametrize(

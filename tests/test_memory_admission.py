@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 
 from aster.config import Settings
-from aster.memory import store_excerpt
+from aster.knowledge.memory import store_excerpt
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 
