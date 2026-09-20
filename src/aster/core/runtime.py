@@ -106,6 +106,7 @@ class Runtime:
         self._finish_hook_ran = False
         self._dream_ran = False
         self._operation_task: asyncio.Task | None = None
+        self._managed_worker = False
         self._archive_sources: dict[str, str] = {}
         self._history_origins: list[dict] = []
         self._continued_from: str | None = None
@@ -124,7 +125,7 @@ class Runtime:
         if owner:
             # Independent sessions must use separate workspaces while running.
             # Explicit subordinate workers remain governed by WorkerManager scopes.
-            if self.state is None or self.state.parent_run_id is None:
+            if not self._managed_worker:
                 lease = self.evidence.path("workspace.lock").open("a")
                 try:
                     fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)

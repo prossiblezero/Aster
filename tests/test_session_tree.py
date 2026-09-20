@@ -186,6 +186,10 @@ async def test_concurrent_runs_require_distinct_workspaces(tmp_path):
     await entered.wait()
     with pytest.raises(RuntimeError, match="workspace_busy"):
         await other.run(TaskSpec(prompt="must not overlap"))
+    # A persisted parent ID alone does not grant a restored session worker privileges.
+    other.state.parent_run_id = first.state.run_id
+    with pytest.raises(RuntimeError, match="workspace_busy"):
+        await other.run()
     independent = make(tmp_path / "separate")
     await completed(independent, "independent workspace")
     release.set()

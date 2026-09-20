@@ -103,6 +103,7 @@ class WorkerManager:
             question_callback=self.parent.question_callback,
             hooks=self.parent.hooks,
         )
+        runtime._managed_worker = True
         runtime.start(TaskSpec(prompt=task, max_steps=12, max_turns=12))
         runtime.state.parent_run_id = self.parent.state.run_id
         runtime.checkpoint()
