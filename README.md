@@ -97,14 +97,17 @@ TUI 默认使用简体中文，欢迎页显示 Aster 艺术字。输入任务即
 
 交互入口默认开启 Responses 流式输出；配置文件中的 `stream = false` 或 `--no-stream` 仍优先。运行时显示等待耗时、工具调用及结果；接口返回的思考摘要会单独显示，接口没有返回摘要时只显示实际运行状态。Chat 和 Anthropic 协议目前仍使用非流式请求。任务进行中仍可查看帮助和状态、取消或退出；当前会话的新任务输入会留在输入框中；可以用 `/new 目录` 打开另一个工作区并行处理，`/sessions` 切换已打开的会话。
 
-会话历史支持分支：`/tree` 搜索并选择历史位置，Enter 切换，Ctrl+S 带入当前分支摘录；`/sessions` 搜索会话，`/rename 名称` 命名。选择历史不会调用模型，也不会回滚工作区文件。文件有变化时须明确采用当前文件，或先切换对应 worktree。详见[会话与分支](docs/sessions.md)。
+会话历史支持分支：`/tree` 搜索并选择历史位置，Enter 切换，Ctrl+S 带入当前分支摘录；`/sessions` 搜索会话，`/rename 名称` 命名。选择历史不会调用模型，也不会回滚工作区文件。文件有变化时须明确采用当前文件，或先切换对应 worktree。详见[会话与分支](docs/sessions.md)，量化结果见[操作评测报告](evaluations/session-ux-20260920/REPORT.md)。
 
 | 命令 | 作用 |
 |---|---|
 | `/help` / `F1` | 中文命令说明与快捷键 |
 | `/model` | 列出已配置的模型 profile |
 | `/model local` | 在空闲时切换到 `local` profile |
-| `/new` | 开始新会话 |
+| `/new [目录]` | 打开独立会话，保留之前的任务 |
+| `/sessions [关键词]` / `/switch 序号` | 查找或切换会话 |
+| `/tree [关键词]` / `/branch 位置ID` | 查找并选择历史分支位置 |
+| `/rename 名称` / `/entry 记录ID` | 命名会话或查看记录来源 |
 | `/clear` / `Ctrl+L` | 仅清屏，保留会话 |
 | `/cancel` / `Ctrl+C` / `Esc` | 取消当前任务（有命令提示时，Esc 先关闭提示） |
 | `/continue` | 继续当前已停止的任务 |
@@ -119,7 +122,7 @@ TUI 默认使用简体中文，欢迎页显示 Aster 艺术字。输入任务即
 | `/stream on\|off` / `/thinking on\|off` | 开关流式输出 / 思考摘要展示 |
 | `quit` / `exit` / `/quit` / `/exit` / `Ctrl+Q` | 取消正在运行的请求并退出 |
 
-界面实现参考 pico-v3 的欢迎区、命令目录与补全、活动指示和工具展示；所有命令仍复用 Aster 的 Runtime。`/clear` 只清屏，`/new` 才会重置会话。`/resume` 保留原有配置与工作区校验：旧的非流式运行可先用 `/stream off` 恢复相同配置，或显式使用 `--allow-model-change`；外部修改需用 `--adopt-workspace`。
+界面实现参考 pico-v3 的欢迎区、命令目录与补全、活动指示和工具展示；所有命令仍复用 Aster 的 Runtime。`/clear` 只清屏，`/new` 打开新的独立会话，之前的任务可用 `/sessions` 找回。`/resume` 保留原有配置与工作区校验：旧的非流式运行可先用 `/stream off` 恢复相同配置，或显式使用 `--allow-model-change`；外部修改需用 `--adopt-workspace`。
 
 CLI 可使用运行结束时显示的 `run_id` 续接：
 

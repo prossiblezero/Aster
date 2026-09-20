@@ -1,0 +1,447 @@
+{
+  "variant": "candidate",
+  "source": {
+    "commit": "1fee848791e33f839320efbf9e211d5f35900dcc",
+    "sha256": "c96e135371f7fccb232736d51094032c2785d028aeb07115e1012e0ee21f1380",
+    "files": {
+      "src/aster/__init__.py": "2ec5953be6571fb191a0aac946bfd89e4d5a87cd00cd639e5e7ce671ba089f1e",
+      "src/aster/cli.py": "291ba8612e0d2137b1e213344273280364c1e2a2dbe51fabc0ee198e12d76244",
+      "src/aster/config.py": "4e0918883f751c1753cca3d1b47fc3eff7c4fb2cfa71896b9023911992229f50",
+      "src/aster/context/__init__.py": "d312a31ff47cec1c7f0da56155e351e40042dc78eb84b4f212264194dbf1a596",
+      "src/aster/context/budget.py": "f96370eadfe8379d66a6ff02fee5fc89797894e63cd438d1384cf027daf21541",
+      "src/aster/context/builder.py": "36937788d0acd8675f2e08edccb50815f0db8b4de64d14c914b08472bfe27f1c",
+      "src/aster/context/prompt.py": "a2ba950a57b91c718b03f31a855068002a994a06a2c8554bb817f08c6a9615a9",
+      "src/aster/core/__init__.py": "a85d65f43607cdac2796abe8c593242b5b0e73ad0b4bd2e54640fe5ef63a024f",
+      "src/aster/core/execution.py": "5b8c94245d2bbe3a3ee64c25f8a802fb170faf32e45759959be26844d4233798",
+      "src/aster/core/hooks.py": "2e7e9149a5f978b2a0fc9aeec79311ac5d0e0102608672b49552b1bcbfc6011e",
+      "src/aster/core/recovery.py": "88a55f90c3109a9b08870a520b4723343a56075f883ccd607b213bd878e5961a",
+      "src/aster/core/runtime.py": "8a451c76f37224459744b3aaa64b9480f06f8ee6deb4e62084541448081a0f64",
+      "src/aster/core/verifier.py": "07ceaab1da8927c6c29fc8a10e092e4c12f32ca8aa48fa89049a409061ec25b0",
+      "src/aster/core/workers.py": "16d213953cd0bbe3de370a6578d92f444ea5e46d3968c5989bfe950ec368e481",
+      "src/aster/knowledge/__init__.py": "0cc853491001ec99094f876e31dbf6b2e895d752088079a95e65df0d56b9902f",
+      "src/aster/knowledge/memory.py": "1565cc1fc005f4aac94892318386b2f84e8e9995f451872a2db81570bbd75f21",
+      "src/aster/knowledge/skills.py": "b51d8bbafd54afe25ae60c4498327b26b754c9378de59de03bc3160ea8b69a5a",
+      "src/aster/messages.py": "04edeb8dacca2f5520549d512b8553483b0c5d81b3990bf55a7562f2d5e4bcc3",
+      "src/aster/providers/__init__.py": "6e16c7f2aa03141dda8f96848ca822a922d8f12af9c8ba8907b0f0a8fe8ad232",
+      "src/aster/providers/client.py": "92d21eb51d450945bd28c525a6b7474f48a45bd2c0e8f061fe02cbc74b8b68c7",
+      "src/aster/providers/codec.py": "d7013ca1708c6cb941672d962a36816a28a7671a003627a4bca7acc00eb1b7a4",
+      "src/aster/providers/errors.py": "9681935253644324a6e11fb8ea8a47ba34e45694339c42c6497d9c44734060bb",
+      "src/aster/providers/streaming.py": "6342597a61cbef284330da48d075a3690abf128cecc586ee9af6c4fcd8790d93",
+      "src/aster/providers/usage.py": "cc1a4aecf6c3a01cc1e3481d15fc4ef4f108366861a32043a43ba3929400349d",
+      "src/aster/safety/__init__.py": "d28664dfbadfe0ee5f8b052e06f68322a7e535282f5e2d8be17154ea65c2633c",
+      "src/aster/safety/linux.py": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49",
+      "src/aster/safety/policy.py": "625cdfb4a736910f4d6e2bd3f3fc37c74e1455b54943233ddaf9d445c78c90f9",
+      "src/aster/safety/redaction.py": "1b631885da65992c6c3f1259510b004ad993a16be75f0e2ee826fb0e3a7d9d9c",
+      "src/aster/safety/runner.py": "bc544bc8746e17f01db48f80c1b0fa1ee9f8567d1b230185e58ac91736fa6bea",
+      "src/aster/schema.py": "971cbee803ae1187ab4c3ad792f58125909303e96262c6fc0e53cec71c11c241",
+      "src/aster/sessions/__init__.py": "d008b79a563f8e292b1b71fad9597715f687fe2d54b068c092cad301877dffb3",
+      "src/aster/sessions/checkpoint.py": "8b13eadebff7776224ebc950d1361a016b45550d6c6a17b61652796d25d362ad",
+      "src/aster/sessions/lifecycle.py": "c1b2348fd6140edc8e50489c99645da34d9dc308374a210b0c3f4304ee660f3d",
+      "src/aster/sessions/navigation.py": "0760daebea5b4139fa045f08da4bd06457ea65e40aef5fa3382bc4b18d26e39f",
+      "src/aster/sessions/tree.py": "bbe48e5d7261a539587120d087347866224395ba58ef6891d33ccea11116a2c2",
+      "src/aster/storage/__init__.py": "de4545d93932311e07e41362760767236c80b38e221306aa87f6e2870941419e",
+      "src/aster/storage/evidence.py": "9ef31962fea5fdcb0457d86a0eb7559dcdcb88b866ac723c4de2680f30e638c4",
+      "src/aster/storage/workspace.py": "6a76fdffdeb4ba4fbd852aa5c170801e370aded34c835def6cf0e00bc00f66b1",
+      "src/aster/tools/__init__.py": "fcdb47ec082ca78e5ba275c2f5e7c4782031d59ef9fefb342ffd53e03ef95b35",
+      "src/aster/tools/availability.py": "5d998ad60e589336243e9e333f7fbb671fea80ffecd345248e32ded72b5f9e78",
+      "src/aster/tools/registry.py": "f6ef41a8556e2613cf497c95bb5ef894095b81f6f58199ea99d9f9d1117877a0",
+      "src/aster/tools/schemas.py": "3f7f4d8a78382f968372c411f9c6016b5755d003717efa826ff727620e1a76f6",
+      "src/aster/tools/testing.py": "9bcc2c12e53516674176c4e3364864f47204debc8aba72928fd7d349bfb07439",
+      "src/aster/tools/workflow.py": "f6ceb6459aa4803b25c29822a914383b897c948bfe8c425ac8bdc3e070fa7478",
+      "src/aster/tools/workspace.py": "5ecb677dd136ac36ee28cf851fd0c310d5c3715ea0ca89da211a7fdd799db25d",
+      "src/aster/training/__init__.py": "2ad5066a387243862b9b73c44977d47c71b3f227640a4c38db60864a6fef26bc",
+      "src/aster/training/contracts.py": "e8223375a18867a87281c049f27c811a6b13f32bb4a243c942c251248ffd3f66",
+      "src/aster/training/env.py": "33475119211a00c1dec0dec6a3efc1ea8bff00f6677feb71a70fa3059101fcda",
+      "src/aster/ui/__init__.py": "087be78ff7e72f6bc3a76d09aeea9ddbd634412dd03252100ab242afbd2308e1",
+      "src/aster/ui/app.py": "20b4c02ec6f751225848dbcb78bc2fe7585a06c79dfaf2d8a8702f83c3e1e7ce",
+      "src/aster/ui/commands.py": "1aa6b059ae26e6e1c0103a9eb5b1053c5c473e519ac4b2837c9bf548453ff14a",
+      "src/aster/ui/sessions.py": "70642f02f0078bd39157a5e7d7fa8f35fedc022d1623e3d72d3c126a585f2492",
+      "src/aster/ui/widgets.py": "870d08c99c44fb7b07dc8a8095e573824a5fd1cef4b26221c70d326a87dac2df"
+    }
+  },
+  "import": "/home/dzh/Aster/src/aster/__init__.py",
+  "python": "/home/dzh/.conda/envs/aster/bin/python",
+  "platform": "Linux-7.0.0-28-generic-x86_64-with-glibc2.39",
+  "driver_sha256": "9e734b27f1ffeb1c9f74df479a02f95483cd7e2108af0d490e07dbb26a557d12",
+  "measurement": "scripted offline workflow; no human timing or real model quality claims",
+  "results": [
+    {
+      "workflow": "locate",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 共同约束_01"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "d8d666b68f954bada628711eb088148c",
+      "run_id": "ff044cb1473f45b883de0824df220c9d"
+    },
+    {
+      "workflow": "locate",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 共同约束_02"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "7db0117e5e3e4139b5da328d60370e7a",
+      "run_id": "7092743ea3094c369549ed8805240975"
+    },
+    {
+      "workflow": "locate",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 共同约束_03"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "b5b311dd49854cfc8446255cecb613bc",
+      "run_id": "f4f2e22d202641d6a6734aab34bb1c35"
+    },
+    {
+      "workflow": "fork",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_01"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "2245a1ff2ac84b78850ed6345f393db1",
+      "run_id": "798c688baf5943c193c8b5a57a8fc282"
+    },
+    {
+      "workflow": "fork",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_02"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "9624e8aebf1146aca8347571a2aa10bc",
+      "run_id": "ac74c488e4fc4dbe84d5933d9ddfad14"
+    },
+    {
+      "workflow": "fork",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_03"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "6bd0b4ec69a74ac28d120cc62f3211d1",
+      "run_id": "81be05afb20c49be8010d9d89e4b1394"
+    },
+    {
+      "workflow": "model",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_01"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "b84c1594a2724755a82a4c91f0e37c69",
+      "run_id": "3c1286d5f5944dd39fe1d8b2d53a5ef8"
+    },
+    {
+      "workflow": "model",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_02"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "9fd221d8c0fc4269a6760d7bc869bac8",
+      "run_id": "89bee2eb3b714506b80d96990c9c301c"
+    },
+    {
+      "workflow": "model",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_03"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "9525e73be8044ec392ce78c111e3ac3d",
+      "run_id": "9a56cfe6ff4b48a38d87871a1b60841d"
+    },
+    {
+      "workflow": "summary",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_01"
+        },
+        {
+          "kind": "selection",
+          "text": "带入摘录"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "e55710f6cd6b410b97131a9510ee405f",
+      "run_id": "e21747c0d9ca40aaaf8181537c1a62d3"
+    },
+    {
+      "workflow": "summary",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_02"
+        },
+        {
+          "kind": "selection",
+          "text": "带入摘录"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "66229f13a2464a4facdc53c84c7909d8",
+      "run_id": "70a9334de95f4aa582100c7140797b16"
+    },
+    {
+      "workflow": "summary",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/tree 共同约束_03"
+        },
+        {
+          "kind": "selection",
+          "text": "带入摘录"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 1,
+      "session_id": "0f47aab0468c4a78af4f555ca0a36494",
+      "run_id": "45d270694a68476a9c67277bbe638284"
+    },
+    {
+      "workflow": "restore",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 恢复测试_01"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "0ebd4ffc97b94e80b9a931a4e13fc81d",
+      "run_id": "ea85524dfabe41ef9573d592aeaad462"
+    },
+    {
+      "workflow": "restore",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 恢复测试_02"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "c9b52f7e63854b1699e723c8daa9efc8",
+      "run_id": "867f8148e04b494f8ab6e4378394b11a"
+    },
+    {
+      "workflow": "restore",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/sessions 恢复测试_03"
+        },
+        {
+          "kind": "selection",
+          "text": "选择匹配的历史位置"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "150cde5ce76049db9c121c747e8b7e68",
+      "run_id": "db22021ce5524d50879d10b95ba92369"
+    },
+    {
+      "workflow": "switch",
+      "variant": 1,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/switch 1"
+        },
+        {
+          "kind": "command",
+          "text": "/switch 2"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "53a7eb330bf8490db0187e4b7814010d",
+      "run_id": "e8810dd95db64d32815faf820e009237"
+    },
+    {
+      "workflow": "switch",
+      "variant": 2,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/switch 1"
+        },
+        {
+          "kind": "command",
+          "text": "/switch 2"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "1bc50bc6b9764e7d875799a2bce6ee13",
+      "run_id": "5b64ab5e9b1243b4b600af56b72d217d"
+    },
+    {
+      "workflow": "switch",
+      "variant": 3,
+      "passed": true,
+      "product_only": true,
+      "actions": [
+        {
+          "kind": "command",
+          "text": "/switch 1"
+        },
+        {
+          "kind": "command",
+          "text": "/switch 2"
+        }
+      ],
+      "operation_count": 2,
+      "manual_context_characters": 0,
+      "scripted_model_calls_during_workflow": 0,
+      "session_id": "a21730be92a74bad84ffa618b90de436",
+      "run_id": "1c7cb51c82c046ea81c34ccb325fcdd7"
+    }
+  ]
+}
