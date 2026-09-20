@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections import deque
 
-from .schema import Outcome, RunState, ToolCall
+from ..schema import Outcome, RunState, ToolCall
 
 
 class StallDetector:

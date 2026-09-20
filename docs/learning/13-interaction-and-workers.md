@@ -71,7 +71,7 @@ aster --cwd /tmp/aster-tui-practice
 
 ## worker 复制运行边界，不复制一个独立仓库
 
-查看 [WorkerManager.start()](../../src/aster/workers.py)。它创建新的 Runtime、新的 `RunState` 和检查点，并记录 `parent_run_id`。
+查看 [WorkerManager.start()](../../src/aster/core/workers.py)。它创建新的 Runtime、新的 `RunState` 和检查点，并记录 `parent_run_id`。
 子运行与父运行共享工作区；这是有写入范围检查的协作，不是每个 worker 都有 Git worktree。
 
 | 字段或配置 | 具体含义 |

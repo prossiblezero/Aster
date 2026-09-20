@@ -33,7 +33,7 @@ flowchart TD
 
 ## Hooks 是四个可选方法
 
-打开 [hooks.py](../../src/aster/hooks.py)。插件是一个普通 Python 对象，只实现需要的方法即可，没有必须继承的基类。
+打开 [hooks.py](../../src/aster/core/hooks.py)。插件是一个普通 Python 对象，只实现需要的方法即可，没有必须继承的基类。
 `Hooks([plugin])` 将它接入 Runtime；默认 `Hooks()` 不会凭空执行任何业务插件。
 
 | 回调 | 调用时机 | 常见用途 |
@@ -66,7 +66,7 @@ class HookResult:
 
 ## 停滞检查比较的是动作和结果
 
-[recovery.py](../../src/aster/recovery.py) 中的 `StallDetector.observe()` 保存一个小窗口。
+[recovery.py](../../src/aster/core/recovery.py) 中的 `StallDetector.observe()` 保存一个小窗口。
 每个记录由工具名、参数摘要、结果摘要构成；结果摘要包括 `status`、`reason`、`content`。
 所以同一个文件读取两次，如果内容真的变了，不会被当成相同结果。
 
@@ -93,7 +93,7 @@ Recovery required (repeated_identical). Change approach and use fresh evidence.
 
 `TaskSpec` 可以要求 `require_observation`、`require_edit`、`require_verification`，分别对应观察过仓库、产生过改动、存在有效验证结果。
 `completion_feedback()` 检查这些必要条件；`Runtime.finalize()` 负责反馈、次数限制和最终决策。
-正式 `Verifier` 还会检查任务要求的产物等细节，参见 [verifier.py](../../src/aster/verifier.py)。
+正式 `Verifier` 还会检查任务要求的产物等细节，参见 [verifier.py](../../src/aster/core/verifier.py)。
 
 `max_final_revisions` 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
 `completion="strict"` 在最终检查不通过时停止；`warn` 和 `soft` 当前走相同的宽松分支，重试后可带警告结束。
@@ -113,7 +113,7 @@ import tempfile
 from pathlib import Path
 
 from aster.config import Settings
-from aster.hooks import HookResult, Hooks
+from aster.core.hooks import HookResult, Hooks
 from aster.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 

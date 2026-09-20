@@ -1,6 +1,6 @@
 # 后训练方案与数据契约
 
-日期：2026-09-18。范围：数据隔离、SFT 导出准备、GRPO 采样记录及校验。**本批没有训练、没有新增模型调用、没有导出当前评测题用于训练，也没有训练效果结论。** 准备度依据见 [后训练审计](post-training-readiness.md)；新增可执行契约在 [training.py](../src/aster/training.py)。
+日期：2026-09-18。范围：数据隔离、SFT 导出准备、GRPO 采样记录及校验。**本批没有训练、没有新增模型调用、没有导出当前评测题用于训练，也没有训练效果结论。** 准备度依据见 [后训练审计](post-training-readiness.md)；新增可执行契约在 [training/contracts.py](../src/aster/training/contracts.py)。
 
 ## 1. 采用的最小路线
 
@@ -107,7 +107,7 @@ flowchart LR
 
 ```bash
 /home/dzh/.conda/envs/aster/bin/python -m pytest -q tests/test_training_contract.py
-/home/dzh/.conda/envs/aster/bin/python -m ruff check src/aster/training.py tests/test_training_contract.py
+/home/dzh/.conda/envs/aster/bin/python -m ruff check src/aster/training/contracts.py tests/test_training_contract.py
 ```
 
 训练模块独立于权重更新路径；本批同时在 Runtime 的 `model_reply` 事件新增实际请求摘要绑定，以避免导出同轮预览错配。回滚时须一并处理该证据字段及其回归，不能只删除新增模块后声称数据接口完全回到原状。没有修改训练数据、模型权重或环境依赖。

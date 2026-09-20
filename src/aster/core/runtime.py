@@ -6,7 +6,6 @@ import asyncio
 import hashlib
 import inspect
 import json
-import shlex
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
@@ -14,14 +13,12 @@ from pathlib import Path
 
 from ..config import Settings
 from ..context import ContextBudgetError, ContextBuilder, ContextHistoryError
-from ..hooks import Hooks
 from ..knowledge.memory import Memory
 from ..knowledge.skills import Skills
 from ..messages import history_groups
 from ..providers.client import ModelClient
 from ..providers.codec import request_payload
 from ..providers.errors import ProviderError
-from ..recovery import StallDetector, completion_feedback
 from ..safety.policy import Decision, permission
 from ..safety.redaction import Redactor
 from ..safety.runner import SandboxRunner
@@ -51,17 +48,19 @@ from ..storage.workspace import Workspace
 from ..tools import (
     CORE_TOOLS,
     SCHEMAS,
-    TEST_COMMAND_PREFIXES,
     ToolContext,
     ToolRegistry,
     definitions,
     read_edit_source,
 )
+from ..tools.availability import unavailable_reason
 from ..tools.registry import validate_arguments
 from ..tools.workflow import WorkflowTools
-from ..verifier import Verifier
-from ..workers import WorkerManager
 from .execution import execute_reads
+from .hooks import Hooks
+from .recovery import StallDetector, completion_feedback
+from .verifier import Verifier
+from .workers import WorkerManager
 
 
 class Runtime:
@@ -1265,67 +1264,11 @@ class Runtime:
         )
 
     def _unavailable_reason(self, name, *, state=None):
-        state = self.state if state is None else state
-        if self.settings.sandbox == "off" and (
-            name == "run_tests"
-            or (
-                name in {"run_shell", "write_file", "patch_file"}
-                and (
-                    self.settings.read_only
-                    or self.settings.write_scope is not None
-                    or (state and state.mode == "plan")
-                )
-            )
-        ):
-            return "isolation_required_for_scope"
-        if name in {"write_file", "patch_file"}:
-            if self.settings.read_only:
-                return "read_only"
-            if state and state.mode == "plan":
-                return "plan_mode"
-            if self.settings.write_scope == []:
-                return "write_scope"
-        if name == "plan_exit" and self.settings.read_only:
-            return "read_only"
-        if name.startswith("memory_") and not self.settings.memory_enabled:
-            return "memory_disabled"
-        if name.startswith("worker_") and self.settings.max_workers == 0:
-            return "workers_disabled"
-        if name == "ask_user" and self.question_callback is None:
-            return "user_input_unavailable"
-        no_approval = self.settings.approval == "never" or (
-            self.settings.approval == "ask" and self.approval_callback is None
+        return unavailable_reason(
+            name, self.settings, self.state if state is None else state,
+            approval_available=self.approval_callback is not None,
+            question_available=self.question_callback is not None,
         )
-        if no_approval and (
-            name in {"write_file", "patch_file", "plan_exit"}
-            or (name in {"run_shell", "run_tests"} and not self._has_allowed_command(name, state=state))
-        ):
-            return "approval_unavailable"
-        return ""
-
-    def _has_allowed_command(self, name, *, state=None):
-        """An allow rule must apply to this tool and survive higher-priority denials."""
-        state = self.state if state is None else state
-        for rule in self.settings.rules:
-            if rule.decision != "allow":
-                continue
-            for prefix in TEST_COMMAND_PREFIXES if name == "run_tests" else [rule.prefix]:
-                if rule.prefix[: len(prefix)] == prefix:
-                    candidate = rule.prefix
-                elif prefix[: len(rule.prefix)] == rule.prefix:
-                    candidate = prefix
-                else:
-                    continue
-                decision = permission(
-                    name,
-                    "process",
-                    {"command": shlex.join(candidate)},
-                    self.settings,
-                    state.mode if state else "work",
-                )
-                if decision.action == "allow":
-                    return True
-        return False
 
     def _tool_names(self, *, state=None):
         state = self.state if state is None else state

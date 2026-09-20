@@ -85,9 +85,9 @@ class WorkflowTools:
                     content=json.dumps(unknown, ensure_ascii=False),
                 )
             unavailable = {
-                name: self.unavailable_reason(name)
+                name: reason
                 for name in requested
-                if self.unavailable_reason(name)
+                if (reason := self.unavailable_reason(name))
             }
             if unavailable:
                 return Outcome(

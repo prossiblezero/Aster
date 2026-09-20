@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from .schema import Outcome, RunState, Verification, VerifierResult
-from .storage.workspace import Workspace
+from ..schema import Outcome, RunState, Verification, VerifierResult
+from ..storage.workspace import Workspace
 
 
 class Verifier:

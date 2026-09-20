@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from mechanism_support import run_case
 
-from aster.recovery import StallDetector
+from aster.core.recovery import StallDetector
 from aster.schema import Outcome, ToolCall
 
 DATASET = json.loads(

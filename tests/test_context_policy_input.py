@@ -5,8 +5,8 @@ import json
 from aster.config import Settings
 from aster.context import ContextBuilder
 from aster.provider import history_groups
-from aster.rl import AsterEnv
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
+from aster.training.env import AsterEnv
 
 
 async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_path):

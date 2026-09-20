@@ -7,12 +7,12 @@ import shutil
 from pathlib import Path
 
 from aster.config import Settings
-from aster.hooks import HookResult, Hooks
+from aster.core.hooks import HookResult, Hooks
 from aster.knowledge.memory import Memory
-from aster.rl import AsterEnv
 from aster.runtime import Runtime
 from aster.schema import Final, TaskSpec, ToolCall, VerifierResult
 from aster.storage.workspace import Workspace, digest
+from aster.training.env import AsterEnv
 
 
 def memory_case(case: dict, root: Path, *, evolution: bool) -> dict:

@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 
 from aster.config import Settings
-from aster.rl import AsterEnv
 from aster.schema import TaskSpec, ToolCall
+from aster.training.env import AsterEnv
 
 CASES = json.loads((Path(__file__).parents[1] / "datasets/tool_contract_cases.json").read_text())
 

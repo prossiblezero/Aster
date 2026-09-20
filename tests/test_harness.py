@@ -1,13 +1,13 @@
 import pytest
 
 from aster.config import Settings
-from aster.hooks import HookResult, Hooks
+from aster.core.hooks import HookResult, Hooks
+from aster.core.verifier import Verifier
 from aster.knowledge.memory import Memory
 from aster.providers.codec import responses_reply
-from aster.rl import AsterEnv
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
-from aster.verifier import Verifier
+from aster.training.env import AsterEnv
 
 
 class FakeModel:

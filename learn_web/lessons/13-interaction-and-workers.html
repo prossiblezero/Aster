@@ -53,7 +53,7 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 <code>aster '任务内容'</code> 则只执行一次任务；<code>aster --tui</code>、<code>aster-tui</code> 保留显式 TUI 入口。非交互输入下无任务会报错，<code>--resume</code> 与 <code>--rl-smoke</code> 继续使用专用执行路径。
 本节后面的自动实验完全离线，不依赖人工操作这个界面。</p>
 <h2 id="worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</h2>
-<p>查看 <a href="../source/src/aster/workers.py.html">WorkerManager.start()</a>。它创建新的 Runtime、新的 <code>RunState</code> 和检查点，并记录 <code>parent_run_id</code>。
+<p>查看 <a href="../source/src/aster/core/workers.py.html">WorkerManager.start()</a>。它创建新的 Runtime、新的 <code>RunState</code> 和检查点，并记录 <code>parent_run_id</code>。
 子运行与父运行共享工作区；这是有写入范围检查的协作，不是每个 worker 都有 Git worktree。</p>
 <table>
 <thead>

@@ -9,10 +9,10 @@ import pytest
 
 from aster.cli import Terminal
 from aster.config import ExecRule, Settings
+from aster.core.workers import _scope
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 from aster.tui import AsterTui, HumanPrompt
-from aster.workers import _scope
 
 
 class CallThenFinish:

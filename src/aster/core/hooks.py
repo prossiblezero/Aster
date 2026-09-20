@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-from .schema import Outcome, RunState, ToolCall
+from ..schema import Outcome, RunState, ToolCall
 
 
 @dataclass(frozen=True)

@@ -3,11 +3,11 @@ import asyncio
 import pytest
 
 from aster.config import Settings
-from aster.hooks import HookResult, Hooks
-from aster.rl import AsterEnv
+from aster.core.hooks import HookResult, Hooks
+from aster.core.workers import Worker
 from aster.runtime import Runtime
 from aster.schema import ACTION, Final, TaskSpec, ToolCall, VerifierResult
-from aster.workers import Worker
+from aster.training.env import AsterEnv
 
 
 def test_action_contract_is_discriminated():

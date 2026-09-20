@@ -10,7 +10,7 @@ from aster.config import Settings
 from aster.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec
 from aster.storage.workspace import digest
-from aster.training import (
+from aster.training.contracts import (
     GRPORollout,
     PolicyDecision,
     TaskRecord,

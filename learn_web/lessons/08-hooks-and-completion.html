@@ -26,7 +26,7 @@ Hooks 用于注入局部规则，<code>StallDetector</code> 识别重复无进�
     L --&gt;|满足条件| N[完成 + stop Hook]
 </code></pre></details></figure>
 <h2 id="hooks-是四个可选方法">Hooks 是四个可选方法</h2>
-<p>打开 <a href="../source/src/aster/hooks.py.html">hooks.py</a>。插件是一个普通 Python 对象，只实现需要的方法即可，没有必须继承的基类。
+<p>打开 <a href="../source/src/aster/core/hooks.py.html">hooks.py</a>。插件是一个普通 Python 对象，只实现需要的方法即可，没有必须继承的基类。
 <code>Hooks([plugin])</code> 将它接入 Runtime；默认 <code>Hooks()</code> 不会凭空执行任何业务插件。</p>
 <table>
 <thead>
@@ -76,7 +76,7 @@ Hooks 用于注入局部规则，<code>StallDetector</code> 识别重复无进�
 后置 Hook 出错会产生 <code>hook_error:...</code> 反馈；已完成的工具副作用不会因此被自动撤销。
 这些 Hook 是受信任的宿主 Python 代码，不是给不可信插件提供的安全隔离容器。</p>
 <h2 id="停滞检查比较的是动作和结果">停滞检查比较的是动作和结果</h2>
-<p><a href="../source/src/aster/recovery.py.html">recovery.py</a> 中的 <code>StallDetector.observe()</code> 保存一个小窗口。
+<p><a href="../source/src/aster/core/recovery.py.html">recovery.py</a> 中的 <code>StallDetector.observe()</code> 保存一个小窗口。
 每个记录由工具名、参数摘要、结果摘要构成；结果摘要包括 <code>status</code>、<code>reason</code>、<code>content</code>。
 所以同一个文件读取两次，如果内容真的变了，不会被当成相同结果。</p>
 <table>
@@ -117,7 +117,7 @@ Hooks 用于注入局部规则，<code>StallDetector</code> 识别重复无进�
 <h2 id="我要结束了仍需检查条件">“我要结束了”仍需检查条件</h2>
 <p><code>TaskSpec</code> 可以要求 <code>require_observation</code>、<code>require_edit</code>、<code>require_verification</code>，分别对应观察过仓库、产生过改动、存在有效验证结果。
 <code>completion_feedback()</code> 检查这些必要条件；<code>Runtime.finalize()</code> 负责反馈、次数限制和最终决策。
-正式 <code>Verifier</code> 还会检查任务要求的产物等细节，参见 <a href="../source/src/aster/verifier.py.html">verifier.py</a>。</p>
+正式 <code>Verifier</code> 还会检查任务要求的产物等细节，参见 <a href="../source/src/aster/core/verifier.py.html">verifier.py</a>。</p>
 <p><code>max_final_revisions</code> 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
 <code>completion=&quot;strict&quot;</code> 在最终检查不通过时停止；<code>warn</code> 和 <code>soft</code> 当前走相同的宽松分支，重试后可带警告结束。
 <code>off</code> 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。</p>
@@ -131,7 +131,7 @@ Hooks 用于注入局部规则，<code>StallDetector</code> 识别重复无进�
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">aster.hooks</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookResult</span><span class="p">,</span> <span class="n">Hooks</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.core.hooks</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookResult</span><span class="p">,</span> <span class="n">Hooks</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
 
