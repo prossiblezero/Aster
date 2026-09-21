@@ -1,0 +1,156 @@
+{
+  "variant": "candidate",
+  "mode": "real",
+  "rows": [
+    {
+      "scenario": "i4_j3_course_export",
+      "path": "branch_clean",
+      "variant": "candidate",
+      "mode": "real",
+      "passed": true,
+      "constraints_preserved": {
+        "sqlite": true,
+        "offline_only": true,
+        "asia/shanghai": true
+      },
+      "future_markers_in_final_prompt": {
+        "FUTURE_POSTGRES": false,
+        "FUTURE_UPLOAD": false,
+        "FUTURE_UTC": false
+      },
+      "isolation_ok": true,
+      "answer_ok": true,
+      "operations": [
+        "打开历史树",
+        "选择第 i 轮位置"
+      ],
+      "operation_count": 2,
+      "manual_handoff_characters": 0,
+      "preparation_model_calls": 0,
+      "echo_setup_calls": 7,
+      "usage": {
+        "model_requests": 1,
+        "input_tokens": 6023,
+        "output_tokens": 135,
+        "total_tokens": 6158
+      },
+      "http": {
+        "http_attempts": 1,
+        "http_attempts_with_usage": 1,
+        "http_classifications": {
+          "success": 1
+        }
+      },
+      "final_text": "{\"storage\":\"sqlite\",\"privacy\":\"offline_only\",\"timezone\":\"Asia/Shanghai\",\"decision\":{\"status\":\"confirmed\",\"plan\":\"设计课程导出工具时使用 SQLite 本地存储，产品全程离线运行且绝不上传用户数据，所有日期均按 Asia/Shanghai 时区解释。\",\"rejected_exploration\":[]}}",
+      "target_run": "1fe0da7bd90643de88327a6c68775f44",
+      "target_entry": "7292243386124d5a9b6f317eb6b6bf2d",
+      "source": {
+        "import": "/tmp/aster-session-candidate-20260921/src/aster/__init__.py",
+        "settings": {
+          "provider": "openai",
+          "profile": null,
+          "protocol": "responses",
+          "model": "gpt-5.6-luna",
+          "auth": "required",
+          "stream": false,
+          "request_timeout": 90.0,
+          "context_tokens": 876924,
+          "output_tokens": 1024,
+          "approval": "auto",
+          "sandbox": "required",
+          "network": false,
+          "read_only": true,
+          "write_scope": null,
+          "rules": [],
+          "max_recovery": 1,
+          "max_final_revisions": 2,
+          "completion": "off",
+          "memory_enabled": false,
+          "memory_evolution": false,
+          "auto_dream": false,
+          "tool_profile": "core",
+          "max_workers": 0,
+          "read_parallelism": 1,
+          "reuse_environment": false
+        },
+        "git_head": "edec1aa1a7ca84550bcf95df42c142489ee665fa",
+        "src_sha256": "54a30a387be84efbee9374b7edc6c2af41754ba921686b052d2fa951744ef02e"
+      }
+    },
+    {
+      "scenario": "i4_j3_course_export",
+      "path": "branch_excerpt",
+      "variant": "candidate",
+      "mode": "real",
+      "passed": true,
+      "constraints_preserved": {
+        "sqlite": true,
+        "offline_only": true,
+        "asia/shanghai": true
+      },
+      "future_markers_in_final_prompt": {
+        "FUTURE_POSTGRES": true,
+        "FUTURE_UPLOAD": true,
+        "FUTURE_UTC": true
+      },
+      "isolation_ok": true,
+      "answer_ok": true,
+      "operations": [
+        "打开历史树",
+        "选择第 i 轮位置并带入摘录"
+      ],
+      "operation_count": 2,
+      "manual_handoff_characters": 0,
+      "preparation_model_calls": 0,
+      "echo_setup_calls": 7,
+      "usage": {
+        "model_requests": 1,
+        "input_tokens": 6377,
+        "output_tokens": 140,
+        "total_tokens": 6517
+      },
+      "http": {
+        "http_attempts": 1,
+        "http_attempts_with_usage": 1,
+        "http_classifications": {
+          "success": 1
+        }
+      },
+      "final_text": "{\"storage\":\"sqlite\",\"privacy\":\"offline_only\",\"timezone\":\"Asia/Shanghai\",\"decision\":{\"rejected_exploration\":[\"FUTURE_POSTGRES：云端 PostgreSQL 仅作为备选研究，不纳入当前方案。\",\"FUTURE_UPLOAD：云端上传与 offline_only 冲突，不纳入当前方案。\",\"FUTURE_UTC：统一使用 UTC 与 Asia/Shanghai 冲突，不纳入当前方案。\"]}}",
+      "target_run": "e2bef878cbf6413ba5ada8f76e7ed126",
+      "target_entry": "c58630533cac4f40951675c0ebc8aed5",
+      "source": {
+        "import": "/tmp/aster-session-candidate-20260921/src/aster/__init__.py",
+        "settings": {
+          "provider": "openai",
+          "profile": null,
+          "protocol": "responses",
+          "model": "gpt-5.6-luna",
+          "auth": "required",
+          "stream": false,
+          "request_timeout": 90.0,
+          "context_tokens": 876924,
+          "output_tokens": 1024,
+          "approval": "auto",
+          "sandbox": "required",
+          "network": false,
+          "read_only": true,
+          "write_scope": null,
+          "rules": [],
+          "max_recovery": 1,
+          "max_final_revisions": 2,
+          "completion": "off",
+          "memory_enabled": false,
+          "memory_evolution": false,
+          "auto_dream": false,
+          "tool_profile": "core",
+          "max_workers": 0,
+          "read_parallelism": 1,
+          "reuse_environment": false
+        },
+        "git_head": "edec1aa1a7ca84550bcf95df42c142489ee665fa",
+        "src_sha256": "54a30a387be84efbee9374b7edc6c2af41754ba921686b052d2fa951744ef02e"
+      }
+    }
+  ]
+}

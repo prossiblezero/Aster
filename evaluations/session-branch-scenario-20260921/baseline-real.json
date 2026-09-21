@@ -1,0 +1,160 @@
+{
+  "variant": "baseline",
+  "mode": "real",
+  "rows": [
+    {
+      "scenario": "i4_j3_course_export",
+      "path": "legacy_summary",
+      "variant": "baseline",
+      "mode": "real",
+      "passed": true,
+      "constraints_preserved": {
+        "sqlite": true,
+        "offline_only": true,
+        "asia/shanghai": true
+      },
+      "future_markers_in_final_prompt": {
+        "FUTURE_POSTGRES": true,
+        "FUTURE_UPLOAD": true,
+        "FUTURE_UTC": true
+      },
+      "isolation_ok": true,
+      "answer_ok": true,
+      "operations": [
+        "提交总结请求",
+        "复制摘要",
+        "新建会话",
+        "粘贴摘要"
+      ],
+      "operation_count": 4,
+      "manual_handoff_characters": 303,
+      "preparation_model_calls": 1,
+      "echo_setup_calls": 7,
+      "usage": {
+        "model_requests": 2,
+        "input_tokens": 12155,
+        "output_tokens": 442,
+        "total_tokens": 12597
+      },
+      "http": {
+        "http_attempts": 2,
+        "http_attempts_with_usage": 2,
+        "http_classifications": {
+          "success": 2
+        }
+      },
+      "final_text": "{\"storage\":\"sqlite\",\"privacy\":\"offline_only\",\"timezone\":\"Asia/Shanghai\",\"decision\":{\"current_plan\":\"使用本地 SQLite 存储课程数据，导出过程完全在本机完成，不上传任何用户数据；所有日期和时间均按 Asia/Shanghai 解释。\",\"rejected_exploration\":[\"FUTURE_POSTGRES：云端 PostgreSQL 方案与当前本地 SQLite 方案不一致。\",\"FUTURE_UPLOAD：云端上传方案违反 offline_only 约束。\",\"FUTURE_UTC：统一使用 UTC 与 Asia/Shanghai 产品约束不一致。\"],\"export_design\":{\"format\":\"本地生成课程导出文件\",\"data_source\":\"SQLite 本地数据库\",\"processing\":\"离线本地处理\",\"datetime_rule\":\"输入、筛选、文件名和导出内容中的日期均按 Asia/Shanghai 解释\"}}}",
+      "target_run": "5d2ce8cbda944efa8c4e59381cfb716c",
+      "target_entry": null,
+      "source": {
+        "import": "/tmp/aster-session-baseline-20260920/src/aster/__init__.py",
+        "settings": {
+          "provider": "openai",
+          "profile": null,
+          "protocol": "responses",
+          "model": "gpt-5.6-luna",
+          "auth": "required",
+          "stream": false,
+          "request_timeout": 90.0,
+          "context_tokens": 876924,
+          "output_tokens": 1024,
+          "approval": "auto",
+          "sandbox": "required",
+          "network": false,
+          "read_only": true,
+          "write_scope": null,
+          "rules": [],
+          "max_recovery": 1,
+          "max_final_revisions": 2,
+          "completion": "off",
+          "memory_enabled": false,
+          "memory_evolution": false,
+          "auto_dream": false,
+          "tool_profile": "core",
+          "max_workers": 0,
+          "read_parallelism": 1,
+          "reuse_environment": false
+        },
+        "git_head": "a3f338b43bfea61cc7bae563c07168f502cc34b5",
+        "src_sha256": "bebec829dd234930ee655926debd0957d6e4e3021c406300a79d6cc482eaf179"
+      }
+    },
+    {
+      "scenario": "i4_j3_course_export",
+      "path": "legacy_checkpoint",
+      "variant": "baseline",
+      "mode": "real",
+      "passed": true,
+      "constraints_preserved": {
+        "sqlite": true,
+        "offline_only": true,
+        "asia/shanghai": true
+      },
+      "future_markers_in_final_prompt": {
+        "FUTURE_POSTGRES": false,
+        "FUTURE_UPLOAD": false,
+        "FUTURE_UTC": false
+      },
+      "isolation_ok": true,
+      "answer_ok": true,
+      "operations": [
+        "查找 checkpoint",
+        "复制运行编号",
+        "粘贴运行编号",
+        "提交 resume"
+      ],
+      "operation_count": 4,
+      "manual_handoff_characters": 0,
+      "preparation_model_calls": 0,
+      "echo_setup_calls": 7,
+      "usage": {
+        "model_requests": 1,
+        "input_tokens": 6023,
+        "output_tokens": 129,
+        "total_tokens": 6152
+      },
+      "http": {
+        "http_attempts": 1,
+        "http_attempts_with_usage": 1,
+        "http_classifications": {
+          "success": 1
+        }
+      },
+      "final_text": "{\"storage\":\"sqlite\",\"privacy\":\"offline_only\",\"timezone\":\"Asia/Shanghai\",\"decision\":{\"current_plan\":\"课程导出工具使用 SQLite 本地存储，产品绝不上传用户数据，所有日期按上海时区解释。\",\"rejected_exploration\":[]}}",
+      "target_run": "8db040b9473341878664835838d144a6",
+      "target_entry": null,
+      "source": {
+        "import": "/tmp/aster-session-baseline-20260920/src/aster/__init__.py",
+        "settings": {
+          "provider": "openai",
+          "profile": null,
+          "protocol": "responses",
+          "model": "gpt-5.6-luna",
+          "auth": "required",
+          "stream": false,
+          "request_timeout": 90.0,
+          "context_tokens": 876924,
+          "output_tokens": 1024,
+          "approval": "auto",
+          "sandbox": "required",
+          "network": false,
+          "read_only": true,
+          "write_scope": null,
+          "rules": [],
+          "max_recovery": 1,
+          "max_final_revisions": 2,
+          "completion": "off",
+          "memory_enabled": false,
+          "memory_evolution": false,
+          "auto_dream": false,
+          "tool_profile": "core",
+          "max_workers": 0,
+          "read_parallelism": 1,
+          "reuse_environment": false
+        },
+        "git_head": "a3f338b43bfea61cc7bae563c07168f502cc34b5",
+        "src_sha256": "bebec829dd234930ee655926debd0957d6e4e3021c406300a79d6cc482eaf179"
+      }
+    }
+  ]
+}
