@@ -1,5 +1,7 @@
 # Aster 评测：任务正确性与机制收益分开看
 
+会话管理改造的质量与消耗对照见 [2026-09-21 真实编码回归](../evaluations/session-quality-20260921/REPORT.md)：比较改造前后版本的任务完成率、独立验收和实际 usage。它补充 [会话操作评测](../evaluations/session-ux-20260920/REPORT.md) 的便利性指标；旧版其他专项的模型成绩不能直接充当本次改造的质量证据。
+
 当前上下文结果见[上下文实测](context-results.md)：v8 真实批次冻结于 `01638a7`，后续 `4bb221b` 单独修复检查点持久化。下文保留各专项原始版本与口径，旧批次不合并计算 Pass@k。代码学习从[上下文预算](learning/06-context-budget.md)与[归档回读](learning/07-context-archives.md)进入。
 
 v7 工程测试 **479/479**，基础参考动作 **205/205**，机制条件检查 **123/123**，上下文专项预检 **52/52**；脚本通过不等于模型完成任务。v7 历史证据：[原题比较](../artifacts/benchmark-v7-context/comparison.md)、[参考回放](../artifacts/benchmark-v7-scripted/report.md)、[机制报告](../artifacts/benchmark-v7-mechanisms/report.md)、[任务手册](../datasets/robustness.md)。

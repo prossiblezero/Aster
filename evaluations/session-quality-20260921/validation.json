@@ -1,0 +1,111 @@
+{
+  "raw_archive": {
+    "path": "artifacts/private/session-quality-20260921.tar.gz",
+    "sha256": "0a53930b657194716cb362fbe0bf586d14307e65d50773d0c9f759ccca23d7a0",
+    "bytes": 2163762,
+    "extracted_root": "/tmp/aster-session-quality-20260921"
+  },
+  "preflight": {
+    "baseline": {
+      "report_sha256": "36f22abbb4945889cbee394929c33d3920a7506aac1b813f03e0d3220267b72b",
+      "source": {
+        "git_head": "a3f338b43bfea61cc7bae563c07168f502cc34b5",
+        "content_sha256": "faec9d09307247460d208f72e942eafb002390458dd87732005bda90ea6f1caf",
+        "python": "3.12.14"
+      },
+      "grader_checks": [
+        {
+          "task_id": "multi-file-refactor",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "debug-and-fix",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "add-endpoint-with-test",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "config-migration",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "dependency-upgrade",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        }
+      ],
+      "reference_passed": 5,
+      "reference_attempts": 5
+    },
+    "candidate": {
+      "report_sha256": "611bd8f7dddb3847ee854d47ce5f57feef2d390b84553dcfe037ec0893c0b0d5",
+      "source": {
+        "git_head": "edec1aa1a7ca84550bcf95df42c142489ee665fa",
+        "content_sha256": "fbb2775f7f35d1d6ef42e9d302d20c6507cfa76896ba241cb8f2af45f345abfe",
+        "python": "3.12.14"
+      },
+      "grader_checks": [
+        {
+          "task_id": "multi-file-refactor",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "debug-and-fix",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "add-endpoint-with-test",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "config-migration",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        },
+        {
+          "task_id": "dependency-upgrade",
+          "fix_fails_before": true,
+          "regression_passes_before": true
+        }
+      ],
+      "reference_passed": 5,
+      "reference_attempts": 5
+    }
+  },
+  "real_process_exit_codes": {
+    "baseline": 1,
+    "candidate": 1
+  },
+  "evaluator_tests": {
+    "command": "python -m pytest -q tests/test_benchmark.py tests/test_benchmark_comparison.py tests/test_benchmark_usage.py",
+    "passed": 17,
+    "seconds": 3.31
+  },
+  "website_tests": {
+    "command": "python -m pytest -q learn_web/tests",
+    "passed": 25,
+    "seconds": 1.43
+  },
+  "checks": {
+    "source_imports_match_worktrees": true,
+    "effective_settings_equal": true,
+    "fixture_grader_driver_unchanged_between_versions": true,
+    "public_reports_identical_to_originals": true,
+    "comparison_recomputed": true,
+    "trace_usage_matches_reported_totals": true,
+    "historical_session_ux_manifest_entries_verified": 11,
+    "ruff": true,
+    "git_diff_check": true,
+    "public_report_credential_scan": true,
+    "frozen_worktrees_clean_after_execution": true
+  }
+}

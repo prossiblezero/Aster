@@ -1,0 +1,1588 @@
+{
+  "scope": "5 existing repository tasks; one attempt per tool profile and version",
+  "monetary_cost_note": "Unmeasured: gateway prices and invoice unavailable.",
+  "usage_coverage_note": "Inherited usage_summary coverage counts logical model requests. HTTP retry coverage is reported separately. Token ratios compare reported usage only; missing retry usage is unknown, not zero.",
+  "input_sha256": {
+    "baseline.json": "23b446e5cad251cc03a1762bb5c82aca7298363287c500a761865e23225a2579",
+    "candidate.json": "941482f88c57837bfc2cdbc065146b0edce40a80e0dafc95a4bde367c8276b3d",
+    "environment.json": "337ba5714c183b7e670ab39cd137bdfd0054ea2518eedf6a172891355e84e77f",
+    "provider-audit.json": "6b44aadd950487a695d0931f7211a778ae77225a0452b388681a1a7e935b11fa",
+    "PROTOCOL.md": "9eb863d90b4a432a1f773d3ea72b995d17acc76dd2e43ee177c7fc00f5a0fd83"
+  },
+  "groups": {
+    "repository/all": {
+      "before": {
+        "attempts": 5,
+        "passed": 4,
+        "mean_tool_calls": 20.4,
+        "mean_tokens": 73535.4,
+        "mean_seconds": 75.9312,
+        "total_tool_calls": 102,
+        "total_tokens": 367677,
+        "usage_summary": {
+          "input_tokens": {
+            "reported_tokens": 360055,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 39,
+            "model_requests": 39
+          },
+          "output_tokens": {
+            "reported_tokens": 7622,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 39,
+            "model_requests": 39
+          },
+          "total_tokens": {
+            "reported_tokens": 367677,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 39,
+            "model_requests": 39
+          },
+          "cache_read_input_tokens": {
+            "reported_tokens": 247296,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 39,
+            "model_requests": 39
+          },
+          "cache_creation_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 39
+          },
+          "uncached_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 39
+          },
+          "reasoning_tokens": {
+            "reported_tokens": 1723,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 39,
+            "model_requests": 39
+          }
+        },
+        "read_calls": 46,
+        "failed_without_reported_tokens": 0,
+        "failure_counts": {
+          "step_limit": 1
+        },
+        "pass_rate": 0.8,
+        "independent_code_passed": 5,
+        "model_requests": 39,
+        "total_seconds": 379.656,
+        "http_attempts": 39,
+        "http_attempts_with_total_tokens": 39,
+        "http_attempts_without_usage": 0,
+        "monetary_cost": null
+      },
+      "after": {
+        "attempts": 5,
+        "passed": 4,
+        "mean_tool_calls": 18,
+        "mean_tokens": 54070.8,
+        "mean_seconds": 72.21039999999999,
+        "total_tool_calls": 90,
+        "total_tokens": 270354,
+        "usage_summary": {
+          "input_tokens": {
+            "reported_tokens": 264108,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 31,
+            "model_requests": 31
+          },
+          "output_tokens": {
+            "reported_tokens": 6246,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 31,
+            "model_requests": 31
+          },
+          "total_tokens": {
+            "reported_tokens": 270354,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 31,
+            "model_requests": 31
+          },
+          "cache_read_input_tokens": {
+            "reported_tokens": 200704,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 31,
+            "model_requests": 31
+          },
+          "cache_creation_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 31
+          },
+          "uncached_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 31
+          },
+          "reasoning_tokens": {
+            "reported_tokens": 1289,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 31,
+            "model_requests": 31
+          }
+        },
+        "read_calls": 43,
+        "failed_without_reported_tokens": 0,
+        "failure_counts": {
+          "step_limit": 1
+        },
+        "pass_rate": 0.8,
+        "independent_code_passed": 5,
+        "model_requests": 31,
+        "total_seconds": 361.052,
+        "http_attempts": 31,
+        "http_attempts_with_total_tokens": 31,
+        "http_attempts_without_usage": 0,
+        "monetary_cost": null
+      },
+      "attempt_pairs": [
+        {
+          "task_id": "add-endpoint-with-test",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 9,
+            "total_tokens": 66930,
+            "seconds": 39.608,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 8,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 8,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 6,
+            "total_tokens": 40440,
+            "seconds": 29.5,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "config-migration",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 29,
+            "total_tokens": 93735,
+            "seconds": 98.724,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 20,
+            "total_tokens": 43593,
+            "seconds": 43.647,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "debug-and-fix",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 10,
+            "total_tokens": 40596,
+            "seconds": 59.719,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 13,
+            "total_tokens": 76498,
+            "seconds": 93.365,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "dependency-upgrade",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 22,
+            "total_tokens": 77333,
+            "seconds": 48.801,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 8,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 8,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 8,
+                "model_requests": 8,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 19,
+            "total_tokens": 43782,
+            "seconds": 38.199,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "multi-file-refactor",
+          "attempt": 1,
+          "before": {
+            "passed": false,
+            "steps": 32,
+            "total_tokens": 89083,
+            "seconds": 132.804,
+            "stop_reason": "step_limit",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": false,
+            "steps": 32,
+            "total_tokens": 66041,
+            "seconds": 156.341,
+            "stop_reason": "step_limit",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              }
+            }
+          }
+        }
+      ],
+      "fixed": [],
+      "regressed": [],
+      "common_success": {
+        "pairs": [
+          [
+            "add-endpoint-with-test",
+            1
+          ],
+          [
+            "config-migration",
+            1
+          ],
+          [
+            "debug-and-fix",
+            1
+          ],
+          [
+            "dependency-upgrade",
+            1
+          ]
+        ],
+        "before": {
+          "attempts": 4,
+          "passed": 4,
+          "mean_tool_calls": 17.5,
+          "mean_tokens": 69648.5,
+          "mean_seconds": 61.713,
+          "total_tool_calls": 70,
+          "total_tokens": 278594,
+          "usage_summary": {
+            "input_tokens": {
+              "reported_tokens": 272692,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 30,
+              "model_requests": 30
+            },
+            "output_tokens": {
+              "reported_tokens": 5902,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 30,
+              "model_requests": 30
+            },
+            "total_tokens": {
+              "reported_tokens": 278594,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 30,
+              "model_requests": 30
+            },
+            "cache_read_input_tokens": {
+              "reported_tokens": 190464,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 30,
+              "model_requests": 30
+            },
+            "cache_creation_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 4,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 30
+            },
+            "uncached_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 4,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 30
+            },
+            "reasoning_tokens": {
+              "reported_tokens": 1519,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 30,
+              "model_requests": 30
+            }
+          },
+          "read_calls": 31,
+          "failed_without_reported_tokens": 0,
+          "failure_counts": {}
+        },
+        "after": {
+          "attempts": 4,
+          "passed": 4,
+          "mean_tool_calls": 14.5,
+          "mean_tokens": 51078.25,
+          "mean_seconds": 51.177749999999996,
+          "total_tool_calls": 58,
+          "total_tokens": 204313,
+          "usage_summary": {
+            "input_tokens": {
+              "reported_tokens": 199916,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 24,
+              "model_requests": 24
+            },
+            "output_tokens": {
+              "reported_tokens": 4397,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 24,
+              "model_requests": 24
+            },
+            "total_tokens": {
+              "reported_tokens": 204313,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 24,
+              "model_requests": 24
+            },
+            "cache_read_input_tokens": {
+              "reported_tokens": 147968,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 24,
+              "model_requests": 24
+            },
+            "cache_creation_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 4,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 24
+            },
+            "uncached_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 4,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 24
+            },
+            "reasoning_tokens": {
+              "reported_tokens": 1026,
+              "reported_runs": 4,
+              "runs": 4,
+              "complete": true,
+              "reported_requests": 24,
+              "model_requests": 24
+            }
+          },
+          "read_calls": 27,
+          "failed_without_reported_tokens": 0,
+          "failure_counts": {}
+        },
+        "token_reduction": 0.26662813987379486
+      }
+    },
+    "repository/core": {
+      "before": {
+        "attempts": 5,
+        "passed": 5,
+        "mean_tool_calls": 16.6,
+        "mean_tokens": 56713.4,
+        "mean_seconds": 60.1236,
+        "total_tool_calls": 83,
+        "total_tokens": 283567,
+        "usage_summary": {
+          "input_tokens": {
+            "reported_tokens": 277541,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 34,
+            "model_requests": 34
+          },
+          "output_tokens": {
+            "reported_tokens": 6026,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 34,
+            "model_requests": 34
+          },
+          "total_tokens": {
+            "reported_tokens": 283567,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 34,
+            "model_requests": 34
+          },
+          "cache_read_input_tokens": {
+            "reported_tokens": 176640,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 34,
+            "model_requests": 34
+          },
+          "cache_creation_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 34
+          },
+          "uncached_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 34
+          },
+          "reasoning_tokens": {
+            "reported_tokens": 1348,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 34,
+            "model_requests": 34
+          }
+        },
+        "read_calls": 35,
+        "failed_without_reported_tokens": 0,
+        "failure_counts": {},
+        "pass_rate": 1.0,
+        "independent_code_passed": 5,
+        "model_requests": 34,
+        "total_seconds": 300.618,
+        "http_attempts": 35,
+        "http_attempts_with_total_tokens": 34,
+        "http_attempts_without_usage": 1,
+        "monetary_cost": null
+      },
+      "after": {
+        "attempts": 5,
+        "passed": 5,
+        "mean_tool_calls": 16.8,
+        "mean_tokens": 58305.0,
+        "mean_seconds": 58.8222,
+        "total_tool_calls": 84,
+        "total_tokens": 291525,
+        "usage_summary": {
+          "input_tokens": {
+            "reported_tokens": 285442,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 35,
+            "model_requests": 35
+          },
+          "output_tokens": {
+            "reported_tokens": 6083,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 35,
+            "model_requests": 35
+          },
+          "total_tokens": {
+            "reported_tokens": 291525,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 35,
+            "model_requests": 35
+          },
+          "cache_read_input_tokens": {
+            "reported_tokens": 220672,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 35,
+            "model_requests": 35
+          },
+          "cache_creation_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 35
+          },
+          "uncached_input_tokens": {
+            "reported_tokens": null,
+            "reported_runs": 0,
+            "runs": 5,
+            "complete": false,
+            "reported_requests": 0,
+            "model_requests": 35
+          },
+          "reasoning_tokens": {
+            "reported_tokens": 1280,
+            "reported_runs": 5,
+            "runs": 5,
+            "complete": true,
+            "reported_requests": 35,
+            "model_requests": 35
+          }
+        },
+        "read_calls": 39,
+        "failed_without_reported_tokens": 0,
+        "failure_counts": {},
+        "pass_rate": 1.0,
+        "independent_code_passed": 5,
+        "model_requests": 35,
+        "total_seconds": 294.111,
+        "http_attempts": 36,
+        "http_attempts_with_total_tokens": 35,
+        "http_attempts_without_usage": 1,
+        "monetary_cost": null
+      },
+      "attempt_pairs": [
+        {
+          "task_id": "add-endpoint-with-test",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 7,
+            "total_tokens": 45522,
+            "seconds": 46.65,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 6,
+            "total_tokens": 44512,
+            "seconds": 46.168,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "config-migration",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 18,
+            "total_tokens": 57464,
+            "seconds": 46.539,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 18,
+            "total_tokens": 57902,
+            "seconds": 43.251,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "debug-and-fix",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 10,
+            "total_tokens": 37326,
+            "seconds": 39.764,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 5,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 5,
+                "model_requests": 5,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 10,
+            "total_tokens": 43613,
+            "seconds": 45.267,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 6,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 6,
+                "model_requests": 6,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "dependency-upgrade",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 21,
+            "total_tokens": 60488,
+            "seconds": 95.229,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 19,
+            "total_tokens": 59523,
+            "seconds": 76.233,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 7,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 7,
+                "model_requests": 7,
+                "complete": true
+              }
+            }
+          }
+        },
+        {
+          "task_id": "multi-file-refactor",
+          "attempt": 1,
+          "before": {
+            "passed": true,
+            "steps": 27,
+            "total_tokens": 82767,
+            "seconds": 72.436,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              }
+            }
+          },
+          "after": {
+            "passed": true,
+            "steps": 31,
+            "total_tokens": 85975,
+            "seconds": 83.192,
+            "stop_reason": "verified",
+            "usage_coverage": {
+              "input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "output_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "total_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_read_input_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              },
+              "cache_creation_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "uncached_input_tokens": {
+                "reported_requests": 0,
+                "model_requests": 9,
+                "complete": false
+              },
+              "reasoning_tokens": {
+                "reported_requests": 9,
+                "model_requests": 9,
+                "complete": true
+              }
+            }
+          }
+        }
+      ],
+      "fixed": [],
+      "regressed": [],
+      "common_success": {
+        "pairs": [
+          [
+            "add-endpoint-with-test",
+            1
+          ],
+          [
+            "config-migration",
+            1
+          ],
+          [
+            "debug-and-fix",
+            1
+          ],
+          [
+            "dependency-upgrade",
+            1
+          ],
+          [
+            "multi-file-refactor",
+            1
+          ]
+        ],
+        "before": {
+          "attempts": 5,
+          "passed": 5,
+          "mean_tool_calls": 16.6,
+          "mean_tokens": 56713.4,
+          "mean_seconds": 60.1236,
+          "total_tool_calls": 83,
+          "total_tokens": 283567,
+          "usage_summary": {
+            "input_tokens": {
+              "reported_tokens": 277541,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 34,
+              "model_requests": 34
+            },
+            "output_tokens": {
+              "reported_tokens": 6026,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 34,
+              "model_requests": 34
+            },
+            "total_tokens": {
+              "reported_tokens": 283567,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 34,
+              "model_requests": 34
+            },
+            "cache_read_input_tokens": {
+              "reported_tokens": 176640,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 34,
+              "model_requests": 34
+            },
+            "cache_creation_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 5,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 34
+            },
+            "uncached_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 5,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 34
+            },
+            "reasoning_tokens": {
+              "reported_tokens": 1348,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 34,
+              "model_requests": 34
+            }
+          },
+          "read_calls": 35,
+          "failed_without_reported_tokens": 0,
+          "failure_counts": {}
+        },
+        "after": {
+          "attempts": 5,
+          "passed": 5,
+          "mean_tool_calls": 16.8,
+          "mean_tokens": 58305.0,
+          "mean_seconds": 58.8222,
+          "total_tool_calls": 84,
+          "total_tokens": 291525,
+          "usage_summary": {
+            "input_tokens": {
+              "reported_tokens": 285442,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 35,
+              "model_requests": 35
+            },
+            "output_tokens": {
+              "reported_tokens": 6083,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 35,
+              "model_requests": 35
+            },
+            "total_tokens": {
+              "reported_tokens": 291525,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 35,
+              "model_requests": 35
+            },
+            "cache_read_input_tokens": {
+              "reported_tokens": 220672,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 35,
+              "model_requests": 35
+            },
+            "cache_creation_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 5,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 35
+            },
+            "uncached_input_tokens": {
+              "reported_tokens": null,
+              "reported_runs": 0,
+              "runs": 5,
+              "complete": false,
+              "reported_requests": 0,
+              "model_requests": 35
+            },
+            "reasoning_tokens": {
+              "reported_tokens": 1280,
+              "reported_runs": 5,
+              "runs": 5,
+              "complete": true,
+              "reported_requests": 35,
+              "model_requests": 35
+            }
+          },
+          "read_calls": 39,
+          "failed_without_reported_tokens": 0,
+          "failure_counts": {}
+        },
+        "token_reduction": -0.02806391434828459
+      }
+    }
+  }
+}
