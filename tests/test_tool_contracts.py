@@ -9,6 +9,8 @@ from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
 from aster.tools import CORE_TOOLS, SCHEMAS
 
+pytestmark = pytest.mark.core
+
 CASES = json.loads((Path(__file__).parents[1] / "datasets/tool_contract_cases.json").read_text())
 VISIBILITY = json.loads(
     (Path(__file__).parents[1] / "datasets/tool_visibility_cases.json").read_text()
@@ -106,6 +108,7 @@ async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
     assert not runtime.workspace.snapshot()
 
 
+@pytest.mark.smoke
 async def test_plan_mode_changes_schema_and_prevents_loading_write_tools(tmp_path):
     runtime = Runtime(tmp_path, Settings(approval="auto", completion="off"))
     runtime.start(TaskSpec(prompt="look around"))

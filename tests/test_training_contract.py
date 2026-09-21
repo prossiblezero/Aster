@@ -20,6 +20,8 @@ from aster.training.contracts import (
     validate_splits,
 )
 
+pytestmark = pytest.mark.core
+
 
 def task_record(**updates):
     return TaskRecord.model_validate(
@@ -124,6 +126,7 @@ def test_training_license_and_repository_family_splits_are_required():
     )
 
 
+@pytest.mark.smoke
 async def test_sft_uses_real_request_artifact_and_only_visible_assistant_output(tmp_path):
     class Teacher:
         async def complete(self, *_):
@@ -229,6 +232,7 @@ async def test_sft_rejects_same_turn_preview_and_legacy_unbound_reply(tmp_path):
         )
 
 
+@pytest.mark.smoke
 def test_assistant_mask_never_supervises_prompt_or_tool_observations():
     fields = decision()
     fields.pop("behavior_logprobs")

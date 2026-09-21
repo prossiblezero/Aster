@@ -8,6 +8,8 @@ from aster.config import load_settings
 from aster.schema import ModelReply
 from aster.ui.app import ASTER_MARK, AsterTui
 
+pytestmark = pytest.mark.core
+
 
 class WaitingModel:
     def __init__(self):
@@ -29,7 +31,7 @@ def log_text(app):
     return "\n".join(line.text for line in app.query_one("#log").lines)
 
 
-@pytest.mark.parametrize("command", ["quit", "exit", "/quit", "/exit"])
+@pytest.mark.parametrize("command", [pytest.param("quit", marks=pytest.mark.smoke), "exit", "/quit", "/exit"])
 async def test_quit_exits_without_ever_calling_model(tmp_path, command):
     app = AsterTui(tmp_path, load_settings(interactive=True, completion="off"))
     app.runtime.model = model = WaitingModel()
@@ -41,7 +43,7 @@ async def test_quit_exits_without_ever_calling_model(tmp_path, command):
     assert model.requests == 0 and app.runtime.state is None
 
 
-@pytest.mark.parametrize("action", ["quit", "/cancel", "ctrl+c", "ctrl+q", "escape"])
+@pytest.mark.parametrize("action", ["quit", "/cancel", pytest.param("ctrl+c", marks=pytest.mark.smoke), "ctrl+q", "escape"])
 async def test_busy_input_help_and_cancel_remain_responsive(tmp_path, action):
     app = AsterTui(tmp_path, load_settings(interactive=True, completion="off"))
     app.runtime.model = model = WaitingModel()

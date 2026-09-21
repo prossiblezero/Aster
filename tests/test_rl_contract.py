@@ -9,6 +9,8 @@ from aster.core.workers import Worker
 from aster.schema import ACTION, Final, TaskSpec, ToolCall, VerifierResult
 from aster.training.env import AsterEnv
 
+pytestmark = pytest.mark.core
+
 
 def test_action_contract_is_discriminated():
     assert isinstance(ACTION.validate_python({"kind": "final", "answer": "ok"}), Final)
@@ -20,6 +22,7 @@ def test_action_contract_is_discriminated():
         ACTION.validate_python({"kind": "tool", "name": ""})
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_rl_step_accepts_wire_dict(tmp_path):
     env = AsterEnv(tmp_path, Settings(approval="never"))
@@ -165,6 +168,7 @@ async def test_verifier_errors_are_reported_without_reward(tmp_path, invalid_ret
     env.close()
 
 
+@pytest.mark.smoke
 async def test_no_verifier_cannot_reward_budget_completion(tmp_path):
     env = AsterEnv(tmp_path)
     env.reset(TaskSpec(prompt="Answer", max_turns=1))

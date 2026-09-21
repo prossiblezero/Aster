@@ -9,6 +9,8 @@ from aster.core.runtime import Runtime
 from aster.knowledge.memory import store_excerpt
 from aster.schema import TaskSpec, ToolCall
 
+pytestmark = pytest.mark.core
+
 
 def runtime_for(root):
     runtime = Runtime(root, Settings(memory_enabled=True, completion="off"))
@@ -16,6 +18,7 @@ def runtime_for(root):
     return runtime
 
 
+@pytest.mark.smoke
 async def test_excerpt_admission_and_replacement_keep_authenticated_provenance(tmp_path):
     source = tmp_path / "PROJECT.md"
     source.write_text("Service port is 8080.\nBuild output is public.\n")

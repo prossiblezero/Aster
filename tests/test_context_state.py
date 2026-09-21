@@ -10,6 +10,8 @@ from aster.core.runtime import Runtime
 from aster.providers.codec import request_payload
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 
+pytestmark = pytest.mark.core
+
 
 def workflow_state():
     return RunState(
@@ -25,6 +27,7 @@ def workflow_state():
     )
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
 def test_workflow_and_loaded_skill_survive_compaction_without_system_privileges(protocol):
     state = workflow_state()
@@ -101,6 +104,7 @@ def test_loaded_skill_excerpt_is_bounded_and_reported_as_compaction():
     assert body in str(prompt) and not report.compacted
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_checkpoint_restores_plan_todos_and_skill_body_to_next_model_request(tmp_path):
     (tmp_path / ".skills").mkdir()

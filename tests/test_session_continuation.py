@@ -14,6 +14,8 @@ from aster.providers.codec import request_payload
 from aster.providers.errors import ProviderError
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
+pytestmark = pytest.mark.core
+
 
 def test_process_death_after_write_refuses_uncertain_resume(tmp_path):
     program = '''
@@ -186,6 +188,7 @@ def profile(protocol="chat", context=16000):
     )
 
 
+@pytest.mark.smoke
 async def test_recovery_keeps_successful_tools_and_original_request(tmp_path):
     class Interrupted:
         calls = 0

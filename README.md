@@ -293,7 +293,13 @@ Aster/
 在已安装开发依赖的 `aster` 环境中运行：
 
 ```bash
-# 工程回归测试，不调用真实模型 API
+# 日常开发：先跑快速检查，再跑改动模块的测试
+python -m pytest -q -m smoke
+
+# 提交前：核心回归（包含快速检查）
+python -m pytest -q -m core
+
+# 发布 / 大规模重构：完整工程回归，不调用真实模型 API
 python -m pytest -q
 
 # 静态检查
@@ -302,6 +308,8 @@ python -m ruff check src tests scripts learn_web/scripts learn_web/tests
 # 运行教程中的全部标记实验
 python docs/learning/run_examples.py all
 ```
+
+测试按 pytest 原生标记分层：快速检查 37 项、核心回归 403 项、完整回归 1011 项（含网站测试）。这些是包含关系，无需依次重复运行。CI 将核心与其余回归分开执行，仍覆盖全部用例。按模块选择、失败重跑、参数化维护规则见[测试指南](tests/README.md)。
 
 真实模型评测需要另外配置服务并显式启动，命令与数据说明见[评测指南](docs/benchmark.md)及[数据集说明](datasets/README.md)。工程测试通过、机制被调用和真实任务交付质量是不同指标；未知 usage 保留为未知，已有开发与评测题不作为未见训练测试集。
 

@@ -23,6 +23,11 @@ packages = ["src/aster"]
 testpaths = ["tests", "learn_web/tests"]
 pythonpath = ["scripts", "learn_web/scripts"]
 asyncio_mode = "auto"
+addopts = "--strict-markers"
+markers = [
+    "smoke: representative startup and end-to-end checks for the local edit loop (subset of core)",
+    "core: main runtime, protocol, safety, persistence, terminal and training contracts",
+]
 
 [tool.ruff]
 line-length = 100

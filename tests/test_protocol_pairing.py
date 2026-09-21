@@ -12,6 +12,8 @@ from aster.providers.client import ModelClient
 from aster.providers.codec import request_payload
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
+pytestmark = pytest.mark.core
+
 
 def batch(protocol, calls=("a", "b"), outputs=("b", "a")):
     if protocol == "responses":
@@ -59,6 +61,7 @@ def batch(protocol, calls=("a", "b"), outputs=("b", "a")):
     ]
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
 def test_native_parallel_results_can_arrive_out_of_order(protocol):
     history = batch(protocol)
@@ -198,6 +201,7 @@ async def test_duplicate_direct_step_preserves_resumable_transcript(tmp_path):
     assert sum(any(item.get("type") == "function_call" for item in group) for group in groups) == 2
 
 
+@pytest.mark.smoke
 def test_checkpoint_and_resume_reject_incomplete_transcript_without_replacing_state(tmp_path):
     settings = Settings(memory_enabled=False)
     runtime = Runtime(tmp_path, settings)

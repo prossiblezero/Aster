@@ -7,7 +7,10 @@ from aster.safety.policy import command_rule
 from aster.safety.runner import SandboxRunner
 from aster.storage.workspace import BoundaryError, Workspace
 
+pytestmark = pytest.mark.core
 
+
+@pytest.mark.smoke
 @pytest.mark.parametrize(
     "path", ["../escape", ".aster/trace.json", ".git/config", ".env", "keys/a.pem"]
 )
@@ -22,6 +25,7 @@ def test_symlink(tmp_path):
         Workspace(tmp_path).path("link")
 
 
+@pytest.mark.smoke
 def test_rules_deny_precedence():
     settings = Settings(
         rules=[
@@ -34,6 +38,7 @@ def test_rules_deny_precedence():
     assert command_rule("git status; echo x", Settings()).action == "ask"
 
 
+@pytest.mark.smoke
 async def test_real_isolation_and_sync(tmp_path):
     workspace = tmp_path / "repo"
     workspace.mkdir()

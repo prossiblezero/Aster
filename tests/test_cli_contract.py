@@ -7,6 +7,8 @@ import pytest
 from aster.cli import Terminal, tui_main
 from aster.config import Settings
 
+pytestmark = pytest.mark.core
+
 
 def test_tui_entrypoint_forwards_command_line(monkeypatch):
     seen = []
@@ -43,6 +45,7 @@ def test_bare_cli_opens_tui_with_current_directory_env(tmp_path, monkeypatch):
     assert seen == [(tmp_path, "startup-test-model", {}), "started"]
 
 
+@pytest.mark.smoke
 def test_installed_cli_smoke(tmp_path):
     from pathlib import Path
 

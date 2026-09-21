@@ -1,12 +1,15 @@
 import asyncio
 import json
 
+import pytest
 from textual.widgets import Input, OptionList
 
 from aster.config import Settings
 from aster.schema import ModelReply
 from aster.ui.app import AsterTui
 from aster.ui.sessions import SessionPicker
+
+pytestmark = pytest.mark.core
 
 
 class Echo:
@@ -34,6 +37,7 @@ async def test_tree_picker_restores_search_result_without_copying_ids(tmp_path):
         assert "另一个方案" not in json.dumps(app.runtime._structured_history, ensure_ascii=False)
 
 
+@pytest.mark.smoke
 async def test_background_runs_and_cancellation_stay_with_their_session(tmp_path):
     entered_a, entered_b, finish_a = asyncio.Event(), asyncio.Event(), asyncio.Event()
     class Wait:

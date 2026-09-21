@@ -15,6 +15,8 @@ from aster.safety.redaction import Redactor
 from aster.schema import TaskSpec, ToolCall
 from aster.storage.evidence import EvidenceStore
 
+pytestmark = pytest.mark.core
+
 
 @pytest.mark.parametrize(
     "protocol, response, code",

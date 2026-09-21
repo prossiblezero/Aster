@@ -9,6 +9,8 @@ from aster.config import ModelProfile, load_settings
 from aster.schema import ModelReply
 from aster.ui.app import AsterTui
 
+pytestmark = pytest.mark.core
+
 PROFILES = """
 approval = "never"
 read_only = true
@@ -53,6 +55,7 @@ def configuration(tmp_path, monkeypatch, *, key=True):
     return config, env
 
 
+@pytest.mark.smoke
 def test_profile_selection_replaces_coordinates_auth_and_budgets_atomically(tmp_path, monkeypatch):
     config, env = configuration(tmp_path, monkeypatch)
     monkeypatch.setenv("ASTER_MODEL", "legacy-override")

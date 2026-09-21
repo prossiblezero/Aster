@@ -11,6 +11,8 @@ from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 from aster.sessions.tree import SessionTree
 
+pytestmark = pytest.mark.core
+
 
 class Echo:
     async def complete(self, messages, tools):
@@ -30,6 +32,7 @@ async def completed(runtime, prompt):
     return runtime.session_tree.cursor
 
 
+@pytest.mark.smoke
 async def test_branch_restores_ancestor_without_sibling_history(tmp_path):
     r = make(tmp_path)
     ancestor = await completed(r, "shared request")
@@ -89,6 +92,7 @@ async def test_model_profile_and_default_restore(tmp_path):
     assert r.state.session_id == r.session_tree.restore(default)["state"]["session_id"]
 
 
+@pytest.mark.smoke
 async def test_workspace_adoption_is_explicit_and_does_not_rewind_files(tmp_path):
     r = make(tmp_path)
     entry = await completed(r, "before files")
@@ -118,6 +122,7 @@ async def test_past_boundary_cannot_read_future_observations(tmp_path):
     assert outcome.status == "blocked" and "SIBLING_SECRET" not in outcome.content
 
 
+@pytest.mark.smoke
 async def test_uncertain_tool_effect_is_never_replayed_by_checkout(tmp_path):
     r = make(tmp_path)
     r.start(TaskSpec(prompt="write a file"))

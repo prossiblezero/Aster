@@ -12,6 +12,8 @@ from aster.ui.app import AsterTui
 from aster.ui.session_widgets import SessionPicker
 from aster.ui.widgets import HumanPrompt
 
+pytestmark = pytest.mark.core
+
 
 class Echo:
     async def complete(self, *_):
@@ -53,7 +55,7 @@ async def select_filtered(app, pilot, query):
     await pilot.pause()
 
 
-@pytest.mark.parametrize("summary", [False, True])
+@pytest.mark.parametrize("summary", [pytest.param(False, marks=pytest.mark.smoke), True])
 async def test_click_older_dialogue_creates_exact_branch_and_survives_reopen(tmp_path, summary):
     settings = Settings(completion="off", auto_dream=False)
     app = AsterTui(tmp_path, settings)

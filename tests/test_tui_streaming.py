@@ -9,6 +9,8 @@ from aster.providers.client import ModelClient
 from aster.schema import ModelReply
 from aster.ui.app import AsterTui
 
+pytestmark = pytest.mark.core
+
 
 class PausedStream(ModelClient):
     def __init__(self, settings, *, retry=False):
@@ -96,6 +98,7 @@ async def test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools(t
         assert not app.query_one("#prompt").disabled
 
 
+@pytest.mark.smoke
 async def test_real_sse_adapter_streams_reasoning_and_text_into_tui(tmp_path, monkeypatch):
     import json
 

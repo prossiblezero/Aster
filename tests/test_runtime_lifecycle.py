@@ -9,7 +9,10 @@ from aster.config import Settings
 from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
+pytestmark = pytest.mark.core
 
+
+@pytest.mark.smoke
 def test_explicit_false_requirements_override_prompt_inference(tmp_path):
     runtime = Runtime(tmp_path, Settings())
     state = runtime.start(
@@ -101,6 +104,7 @@ async def test_abort_during_approval_never_executes_late_approved_write(
     assert runtime.state.phase == "running"
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_busy_runtime_rejects_other_entries_without_replacing_current_run(tmp_path):
     entered, release = asyncio.Event(), asyncio.Event()

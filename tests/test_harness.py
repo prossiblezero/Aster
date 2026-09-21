@@ -9,6 +9,8 @@ from aster.providers.codec import responses_reply
 from aster.schema import ModelReply, TaskSpec, ToolCall
 from aster.training.env import AsterEnv
 
+pytestmark = pytest.mark.core
+
 
 class FakeModel:
     def __init__(self, replies):
@@ -24,6 +26,7 @@ def reply(*calls, text=""):
     )
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_production_loop_write_then_verify_and_stale_verification(tmp_path):
     (tmp_path / "app.py").write_text("print('old')\n")
@@ -58,6 +61,7 @@ async def test_production_loop_write_then_verify_and_stale_verification(tmp_path
     assert len(events) >= 12
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_completion_strictly_rejects_final_without_edit(tmp_path):
     runtime = Runtime(
@@ -202,6 +206,7 @@ async def test_runtime_does_not_duplicate_tool_observation(tmp_path):
     assert sum(m["role"] == "tool" for m in runtime.state.messages) == 1
 
 
+@pytest.mark.smoke
 @pytest.mark.asyncio
 async def test_injected_hooks_run_and_fail_closed(tmp_path):
     class Plugin:
