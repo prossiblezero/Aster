@@ -51,7 +51,7 @@ def paired(rows, left, right, *, independent=False):
     }
 
 
-def audit(output):
+def audit(output, directed=None):
     rows = read(output / "results.json")
     expected = {
         ("worker", t, a, None)
@@ -74,17 +74,43 @@ def audit(output):
     expected |= {("learning", t, "shared", None) for t in ["parcel", "agenda"]}
     actual = [(r["family"], r["task"], r["arm"], r.get("stage")) for r in rows]
     assert len(actual) == len(set(actual)) == 32 and set(actual) == expected
+    revisions = read(output / "regrade.json") if (output / "regrade.json").exists() else None
+    if revisions:
+        by_name = {r["name"]: r for r in revisions["results"]}
+        for row in rows:
+            if row["name"] in by_name:
+                row["original_passed"], row["original_grade"] = row["passed"], row["grade"]
+                row["grade"] = by_name[row["name"]]["grade"]
+                row["passed"] = (
+                    row["phase"] == "completed" and row["docs_unchanged"] and row["grade"]["passed"]
+                )
     frozen = read(output / "freeze.json")
     here = Path(__file__).resolve().parent
     for name, digest in frozen["driver"].items():
         assert hashlib.sha256((here / name).read_bytes()).hexdigest() == digest
+    source = here.parents[1] / "src/aster"
+    assert {
+        str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
+        for p in source.rglob("*.py")
+        if "__pycache__" not in p.parts
+    } == frozen["source"]
+    directed_rows = []
+    if directed is not None:
+        directed_rows = read(directed / "results.json")
+        assert len(directed_rows) == 4
+        assert {(r["task"], r["arm"]) for r in directed_rows} == {
+            (t, a) for t in ["csv-ledger", "access-report"] for a in ["solo", "directed"]
+        }
+        for name, digest in read(directed / "freeze.json")["driver"].items():
+            assert hashlib.sha256((here / name).read_bytes()).hexdigest() == digest
+        rows.extend(directed_rows)
     assert all(r["source_unchanged"] and r["docs_unchanged"] and r["usage_matches"] for r in rows)
     attempts = []
     per_run = []
     scopes = []
     memory = []
     for row in rows:
-        folder = output / "runs" / row["name"]
+        folder = (directed if row["family"] == "directed" else output) / "runs" / row["name"]
         ledger = read(folder / "request-ledger.json")
         assert all(r["status"] in {"completed", "failed"} for r in ledger)
         known = Counter()
@@ -96,6 +122,13 @@ def audit(output):
         parent = [n for n in row["runs"] if not n["parent_run_id"]]
         children = [n for n in row["runs"] if n["parent_run_id"]]
         assert len(parent) == 1
+        first_files = sorted(
+            (root / ".aster/runs" / parent[0]["run_id"] / "requests").glob("0001-*.json")
+        )
+        assert len(first_files) == 1
+        first = read(first_files[0])["payload"]
+        schemas = {t["name"]: t for t in first["tools"]}
+        loadable = schemas["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
         for child in children:
             checkpoint = read(root / ".aster/runs" / child["run_id"] / "checkpoint.json")
             scope = checkpoint["runtime_identity"]["write_scope"]
@@ -141,18 +174,25 @@ def audit(output):
                 "parent_usage": parent[0]["usage"],
                 "children_usage": dict(sum((Counter(n["usage"]) for n in children), Counter())),
                 "max_overlapping_model_calls": maximum,
+                "worker_schema_initially_loaded": "worker_start" in schemas,
+                "worker_start_loadable": "worker_start" in loadable,
+                "worker_load_calls": [
+                    t
+                    for t in row["tools"]
+                    if t["name"] == "tool_load"
+                    and any(n.startswith("worker_") for n in t["arguments"].get("names", []))
+                ],
             }
         )
         if row["family"] == "memory":
             before = read(folder / "memory-before.json")["lessons"]
             recalled = [e for e in row["memory_events"] if e["event"] == "memory_recalled"]
             first_ids = recalled[0]["ids"] if recalled else []
-            wire_ids = [m["id"] for m in before if "docs/wire.md" in m.get("sources", {})]
-            first_files = sorted(
-                (root / ".aster/runs" / parent[0]["run_id"] / "requests").glob("0001-*.json")
-            )
-            assert len(first_files) == 1
-            first = read(first_files[0])["payload"]
+            wire_ids = [
+                m["id"]
+                for m in before
+                if any(p.lstrip("./") == "docs/wire.md" for p in m.get("sources", {}))
+            ]
             contexts = [
                 m.get("content", "")
                 for m in first.get("input", [])
@@ -165,15 +205,34 @@ def audit(output):
                 if "memory:\n" in c
             )
             by_id = {m["id"]: m for m in before}
+            recalled_sources = sorted(
+                {p.lstrip("./") for i in first_ids for p in by_id[i].get("sources", {})}
+            )
+            # Post hoc diagnosis of retrieval coverage, not a preregistered outcome.
+            contracts = {
+                0: {"wire", "identity", "order", "weight" if row["task"] == "parcel" else "time"},
+                1: {"identity", "weight" if row["task"] == "parcel" else "time"},
+                2: {"wire"},
+            }[row["stage"]]
+            required = sorted(f"docs/{p}.md" for p in contracts)
             memory.append(
                 {
                     "name": row["name"],
                     "stage": row["stage"],
                     "arm": row["arm"],
                     "first_recalled_ids": first_ids,
+                    "first_recalled_sources": recalled_sources,
+                    "posthoc_required_sources": required,
+                    "posthoc_covered_sources": sorted(set(required) & set(recalled_sources)),
+                    "all_recalled_id_sets": sorted({tuple(e["ids"]) for e in recalled}),
                     "first_recalled_text": [by_id[i]["text"] for i in first_ids if i in by_id],
                     "stale_wire_ids": wire_ids if row["stage"] == 2 else [],
                     "stale_wire_ids_recalled": sorted(set(wire_ids) & set(first_ids))
+                    if row["stage"] == 2
+                    else [],
+                    "stale_wire_text_in_first_memory": [
+                        i for i in wire_ids if by_id[i]["text"] in memory_section
+                    ]
                     if row["stage"] == 2
                     else [],
                     "first_memory_section": memory_section,
@@ -213,7 +272,42 @@ def audit(output):
         "memory": memory,
         "worker_pairs": paired(rows, "solo", "workers"),
         "worker_independent_pairs": paired(rows, "solo", "workers", independent=True),
+        "grading_revisions": revisions,
+        "directed_pairs": paired(
+            [{**r, "family": "worker"} for r in directed_rows], "solo", "directed"
+        ),
+        "groups": {
+            f"{family}/{arm}": {
+                "runs": len(group),
+                "passed": sum(r["passed"] for r in group),
+                "code_passed": sum(bool(r["grade"] and r["grade"]["passed"]) for r in group),
+                "usage": dict(sum((Counter(r["usage"]) for r in group), Counter())),
+                **{
+                    k: sum(r[k] for r in group)
+                    for k in [
+                        "seconds",
+                        "model_calls",
+                        "http_attempts",
+                        "http_with_total_usage",
+                        "doc_read_calls",
+                        "read_calls",
+                        "search_calls",
+                        "shell_calls",
+                        "workers_started",
+                        "workers_completed",
+                        "coordination_calls",
+                        "memory_store_attempts",
+                        "memory_store_successes",
+                    ]
+                },
+            }
+            for family, arm in sorted({(r["family"], r["arm"]) for r in rows})
+            if (group := [r for r in rows if r["family"] == family and r["arm"] == arm])
+        },
     }
+    (output / "analysis-results.json").write_text(
+        json.dumps(rows, ensure_ascii=False, indent=2) + "\n"
+    )
     (output / "audit.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print(
         json.dumps(
@@ -227,6 +321,8 @@ def audit(output):
                     "memory",
                     "worker_pairs",
                     "worker_independent_pairs",
+                    "grading_revisions",
+                    "directed_pairs",
                 }
             },
             ensure_ascii=False,
@@ -238,4 +334,6 @@ def audit(output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    audit(parser.parse_args().output)
+    parser.add_argument("--directed", type=Path)
+    args = parser.parse_args()
+    audit(args.output, args.directed)
