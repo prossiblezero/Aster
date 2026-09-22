@@ -51,7 +51,7 @@ def paired(rows, left, right, *, independent=False):
     }
 
 
-def audit(output, directed=None):
+def audit(output, directed=None, public=None):
     rows = read(output / "results.json")
     expected = {
         ("worker", t, a, None)
@@ -150,6 +150,11 @@ def audit(output, directed=None):
                 {
                     "name": row["name"],
                     "child": child["run_id"],
+                    "phase": child["phase"],
+                    "stop_reason": child["stop_reason"],
+                    "steps": child["step"],
+                    "turns": child["turn"],
+                    "usage": child["usage"],
                     "scope": scope,
                     "written_paths": writes,
                     "outside_scope": escaped,
@@ -205,6 +210,7 @@ def audit(output, directed=None):
                 if "memory:\n" in c
             )
             by_id = {m["id"]: m for m in before}
+            assert all(by_id[i]["text"] in memory_section for i in first_ids)
             recalled_sources = sorted(
                 {p.lstrip("./") for i in first_ids for p in by_id[i].get("sources", {})}
             )
@@ -309,6 +315,62 @@ def audit(output, directed=None):
         json.dumps(rows, ensure_ascii=False, indent=2) + "\n"
     )
     (output / "audit.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    if public:
+        # Publish measured outcomes without prompts, final answers, or private reasoning.
+        keys = [
+            "name",
+            "family",
+            "task",
+            "category",
+            "arm",
+            "stage",
+            "phase",
+            "stop_reason",
+            "error",
+            "passed",
+            "original_passed",
+            "seconds",
+            "usage",
+            "model_calls",
+            "http_attempts",
+            "http_with_total_usage",
+            "workers_started",
+            "workers_completed",
+            "coordination_calls",
+            "scope_conflicts",
+            "doc_read_calls",
+            "read_calls",
+            "search_calls",
+            "shell_calls",
+            "memory_store_attempts",
+            "memory_store_successes",
+        ]
+        published = {k: v for k, v in report.items() if k not in {"memory", "grading_revisions"}}
+        published["attempts"] = [
+            {
+                **{k: r[k] for k in keys if k in r},
+                "grade": {k: v for k, v in r["grade"].items() if k != "output"}
+                if r["grade"]
+                else None,
+            }
+            for r in rows
+        ]
+        published["memory"] = [
+            {
+                k: v
+                for k, v in m.items()
+                if k not in {"first_recalled_text", "first_memory_section", "source_lookup_tools"}
+            }
+            for m in memory
+        ]
+        published["main_freeze"] = frozen
+        published["directed_freeze"] = read(directed / "freeze.json") if directed else None
+        published["preflight"] = [
+            {"id": c["id"], "passed": c["passed"]}
+            for c in read(output.parent / "aster-worker-memory-preflight-20260922/preflight.json")
+        ]
+        published["grading_revision"] = "ERRATA.md; original_passed preserves initial decisions"
+        public.write_text(json.dumps(published, ensure_ascii=False, indent=2) + "\n")
     print(
         json.dumps(
             {
@@ -335,5 +397,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--directed", type=Path)
+    parser.add_argument("--public", type=Path, help="Optional compact public evidence JSON")
     args = parser.parse_args()
-    audit(args.output, args.directed)
+    audit(args.output, args.directed, args.public)
