@@ -195,7 +195,7 @@ class WorkflowTools:
                 data=data,
             )
         if name == "worker_status":
-            data = await self.worker_status(args["worker_id"])
+            data = await self.worker_status(args["worker_id"], args.get("wait_seconds", 0))
             return Outcome(
                 status="success" if data["status"] != "missing" else "blocked",
                 content=json.dumps(data, ensure_ascii=False),

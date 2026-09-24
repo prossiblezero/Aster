@@ -148,10 +148,16 @@ class WorkerManager:
             await runtime.workers.close()
             runtime.sandbox.close()
 
-    async def status(self, worker_id: str):
+    async def status(self, worker_id: str, wait_seconds: float = 0):
         worker = self.workers.get(worker_id)
         if not worker:
             return {"status": "missing", "worker_id": worker_id}
+        if wait_seconds > 0 and not worker.future.done():
+            try:
+                # A status timeout must not cancel the child task.
+                await asyncio.wait_for(asyncio.shield(worker.future), wait_seconds)
+            except TimeoutError:
+                pass
         state = worker.runtime.state
         if worker.future.cancelled():
             return {

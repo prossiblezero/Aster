@@ -156,6 +156,15 @@ class WorkerId(Record):
     worker_id: str
 
 
+class WorkerStatus(WorkerId):
+    wait_seconds: float = Field(
+        default=0,
+        ge=0,
+        le=60,
+        description="Wait up to this many seconds for the worker to finish; timeout leaves it running.",
+    )
+
+
 class WorkerMessage(WorkerId):
     message: str
 
@@ -225,7 +234,11 @@ SCHEMAS = {
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (WorkerStart, "Start a bounded Explore or write-scoped worker.", "state"),
-    "worker_status": (WorkerId, "Read a worker status and result.", "read"),
+    "worker_status": (
+        WorkerStatus,
+        "Read a worker status and result; optionally wait briefly for completion.",
+        "read",
+    ),
     "worker_message": (
         WorkerMessage,
         "Send guidance to a running worker at its next turn.",

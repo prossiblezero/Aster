@@ -181,6 +181,25 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_worker_status_waits_without_cancelling_child(tmp_path):
+    model = PausedModel()
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=model)
+    parent.start(TaskSpec(prompt="demo"))
+    started = await parent.workers.start("demo")
+    worker_id = started["worker_id"]
+    await model.entered.wait()
+
+    timed_out = await parent.workers.status(worker_id, wait_seconds=0.01)
+    assert timed_out["status"] == "running"
+    assert not parent.workers.workers[worker_id].future.cancelled()
+
+    model.release.set()
+    finished = await parent.workers.status(worker_id, wait_seconds=1)
+    assert finished["status"] == "completed"
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
 async def test_overlapping_worker_write_scopes_are_rejected(tmp_path):
     parent = Runtime(tmp_path, Settings(approval="auto", max_workers=2), model=PausedModel())
     parent.start(TaskSpec(prompt="demo"))
