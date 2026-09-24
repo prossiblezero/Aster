@@ -1,0 +1,201 @@
+{
+  "source_commit": "9edb23b",
+  "previous_snapshot": "pre-worker-repair-20260924",
+  "runs": [
+    {
+      "name": "directed-csv-ledger-solo",
+      "task": "csv",
+      "arm": "solo",
+      "passed": false,
+      "phase": "failed",
+      "stop_reason": "provider_error",
+      "seconds": 209.77439876296557,
+      "usage_total_tokens": 22538,
+      "model_calls": 4,
+      "http_attempts": 4,
+      "http_with_total_usage": 3,
+      "workers_started": 0,
+      "workers_completed": 0,
+      "coordination_calls": 0,
+      "worker_status_calls": 0,
+      "wait_seconds": [],
+      "children": [],
+      "grade": {
+        "passed": false,
+        "exit_code": 1,
+        "status": "error",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 1
+        },
+        "grader_reason": "test_process_failed"
+      }
+    },
+    {
+      "name": "directed-csv-ledger-directed",
+      "task": "csv",
+      "arm": "directed",
+      "passed": true,
+      "phase": "completed",
+      "stop_reason": "verified",
+      "seconds": 507.6664531799033,
+      "usage_total_tokens": 331598,
+      "model_calls": 32,
+      "http_attempts": 32,
+      "http_with_total_usage": 32,
+      "workers_started": 2,
+      "workers_completed": 1,
+      "coordination_calls": 13,
+      "worker_status_calls": 11,
+      "wait_seconds": [
+        10,
+        10,
+        20,
+        20,
+        30,
+        10,
+        30,
+        20,
+        30,
+        30,
+        30
+      ],
+      "children": [
+        {
+          "phase": "stopped",
+          "stop_reason": "step_limit",
+          "step": 12,
+          "changed_paths": [
+            "ledger_import.py"
+          ]
+        },
+        {
+          "phase": "completed",
+          "stop_reason": "verified",
+          "step": 11,
+          "changed_paths": [
+            "ledger_summary.py"
+          ]
+        }
+      ],
+      "grade": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      }
+    },
+    {
+      "name": "directed-access-report-directed",
+      "task": "access-report",
+      "arm": "directed",
+      "passed": true,
+      "phase": "completed",
+      "stop_reason": "verified",
+      "seconds": 133.45278919581324,
+      "usage_total_tokens": 217013,
+      "model_calls": 23,
+      "http_attempts": 23,
+      "http_with_total_usage": 23,
+      "workers_started": 2,
+      "workers_completed": 2,
+      "coordination_calls": 5,
+      "worker_status_calls": 3,
+      "wait_seconds": [
+        10,
+        10,
+        20
+      ],
+      "children": [
+        {
+          "phase": "completed",
+          "stop_reason": "verified",
+          "step": 11,
+          "changed_paths": [
+            "access_parse.py"
+          ]
+        },
+        {
+          "phase": "completed",
+          "stop_reason": "verified",
+          "step": 10,
+          "changed_paths": [
+            "access_stats.py"
+          ]
+        }
+      ],
+      "grade": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      }
+    },
+    {
+      "name": "directed-access-report-solo",
+      "task": "access-report",
+      "arm": "solo",
+      "passed": true,
+      "phase": "completed",
+      "stop_reason": "verified",
+      "seconds": 85.18045388883911,
+      "usage_total_tokens": 98163,
+      "model_calls": 10,
+      "http_attempts": 10,
+      "http_with_total_usage": 10,
+      "workers_started": 0,
+      "workers_completed": 0,
+      "coordination_calls": 0,
+      "worker_status_calls": 0,
+      "wait_seconds": [],
+      "children": [],
+      "grade": {
+        "passed": true,
+        "exit_code": 0,
+        "status": "success",
+        "isolation": "landlock+seccomp",
+        "tests": {
+          "expected": 2,
+          "executed": 2,
+          "passed": 2
+        },
+        "grader_reason": "all_tests_passed"
+      }
+    }
+  ],
+  "repaired_directed": {
+    "runs": 2,
+    "passed": 2,
+    "workers_started": 4,
+    "workers_completed": 3,
+    "coordination_calls": 18,
+    "worker_status_calls": 14,
+    "seconds": 641.1192423757166,
+    "total_tokens": 548611
+  },
+  "previous_directed": {
+    "runs": 2,
+    "passed": 2,
+    "workers_started": 4,
+    "workers_completed": 1,
+    "coordination_calls": 22,
+    "worker_status_calls": 16,
+    "seconds": 506.87335798796266,
+    "total_tokens": 487097
+  },
+  "archive": "artifacts/private/worker-repair-20260924.tar.gz"
+}
