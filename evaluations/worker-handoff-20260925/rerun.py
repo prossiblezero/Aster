@@ -14,7 +14,7 @@ import cases  # noqa: E402
 import run as driver  # noqa: E402
 
 
-async def main(source, output, prepared):
+async def main(source, output, prepared, protocol):
     driver.SOURCE = source
     source_hashes = driver.verify_source()
     output.mkdir(parents=True, exist_ok=False)
@@ -23,17 +23,20 @@ async def main(source, output, prepared):
     paths = [
         BASE / name for name in ["cases.py", "run.py", "directed.py", "DIRECTED.md", "PROTOCOL.md"]
     ] + [HERE / "rerun.py", HERE / "PROTOCOL.md"]
+    if protocol not in paths:
+        paths.append(protocol)
     driver.save(
         output / "freeze.json",
         {
             "commit": source,
+            "protocol": str(protocol.relative_to(HERE)),
             "source": source_hashes,
             "driver": {
                 str(p.relative_to(HERE.parent)): hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in paths
             },
             "graders": driver.hashes(output / "graders"),
-            "settings": driver.config().identity(),
+            "settings": driver.config(max_workers=2).identity(),
             "limits": driver.LIMITS,
         },
     )
@@ -68,5 +71,13 @@ if __name__ == "__main__":
     parser.add_argument("--source", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--prepared", type=Path, required=True)
+    parser.add_argument("--protocol", type=Path, default=HERE / "PROTOCOL.md")
     args = parser.parse_args()
-    asyncio.run(main(args.source, args.output.resolve(), args.prepared.resolve()))
+    asyncio.run(
+        main(
+            args.source,
+            args.output.resolve(),
+            args.prepared.resolve(),
+            args.protocol.resolve(),
+        )
+    )

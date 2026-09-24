@@ -28,7 +28,7 @@ Aster 关注模型提出动作之后的工程问题：如何组织上下文、�
 
 默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker 及依赖复用均需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
 
-Worker 共享工作区，按不重叠的写入范围协作。委派时应传递完整子任务与测试分工；可显式由具有严格验证要求的父任务负责集成测试，子任务只交付限定范围内的实现。子任务完成不代表整体已验证，详见[Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
+Worker 共享工作区，按不重叠的写入范围协作。委派时应传递完整子任务与测试分工；具有严格验证要求的父任务自动承担最终验证，子任务交付限定范围内的实现。子任务完成不代表整体已验证，详见[Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
 
 ## 快速开始
 

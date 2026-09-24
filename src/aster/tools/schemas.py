@@ -155,15 +155,6 @@ class WorkerStart(Record):
     )
     mode: str = Field(default="explore", pattern="^(explore|worker)$")
     write_scope: list[str] = Field(default_factory=list)
-    verification_owner: str = Field(
-        default="worker",
-        pattern="^(worker|parent)$",
-        description=(
-            "worker keeps normal task verification. parent delegates implementation "
-            "delivery only and owns integration tests; requires a strict parent task "
-            "with require_verification enabled."
-        ),
-    )
 
 
 class WorkerId(Record):
@@ -251,9 +242,11 @@ SCHEMAS = {
         WorkerStart,
         "Start an independent task (12 tool steps/12 turns), sharing this workspace. "
         "Use disjoint write scopes and pass complete requirements and known paths. "
-        "Do independent work, such as integration tests, while workers run; avoid "
-        "duplicating their work. Then wait, inspect delivered changes, and verify the "
-        "integrated result. Small tasks can be cheaper to do directly.",
+        "Delegate implementation delivery; write integration tests while workers run, "
+        "then wait, inspect delivered changes and verify the integrated result. "
+        "When the parent has a strict verification requirement, workers can hand off "
+        "without passing tests: the parent's test gate still applies. Avoid duplicating "
+        "their work. Small tasks can be cheaper to do directly.",
         "state",
     ),
     "worker_status": (

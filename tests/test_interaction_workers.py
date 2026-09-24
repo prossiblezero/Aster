@@ -129,7 +129,7 @@ async def test_worker_permissions_never_exceed_parent(tmp_path, read_only, mode)
         ),
         model=PausedModel(),
     )
-    parent.start(TaskSpec(prompt="demo"))
+    parent.start(TaskSpec(prompt="demo", require_verification=True))
     parent.state.mode = mode
     response = await parent.workers.start("demo", mode="worker", write_scope=["src", "outside"])
     child = parent.workers.workers[response["worker_id"]].runtime
@@ -140,6 +140,7 @@ async def test_worker_permissions_never_exceed_parent(tmp_path, read_only, mode)
     assert child.settings.max_workers == 0
     assert child.settings.memory_enabled is False
     assert child.state.parent_run_id == parent.state.run_id
+    assert not child.state.task.require_edit and not child.state.task.require_observation
     nested = await child.workers.start("nested")
     assert nested["reason"] == "worker_limit"
     stopped = await parent.workers.stop(response["worker_id"])
@@ -245,8 +246,8 @@ async def test_waiting_tool_returns_child_failure_without_aborting_parent(tmp_pa
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("owner", ["worker", "parent"])
-async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, owner):
+@pytest.mark.parametrize("parent_verifies", [False, True])
+async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, parent_verifies):
     (tmp_path / "calc.py").write_text("def answer(): return 0\n")
     (tmp_path / "test_calc.py").write_text(
         "from calc import answer\ndef test_answer(): assert answer() == 42\n"
@@ -278,7 +279,12 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, ow
         Settings(approval="auto", max_workers=1, max_final_revisions=1),
         model=ChildModel(),
     )
-    parent.start(TaskSpec(prompt="Implement and test answer() = 42."))
+    parent.start(
+        TaskSpec(
+            prompt="Implement and test answer() = 42.",
+            require_verification=parent_verifies,
+        )
+    )
     prompt = parent.state.task.prompt
     started = await parent.step(
         ToolCall(
@@ -287,12 +293,11 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, ow
                 "task": "Implement answer() = 42 in calc.py; parent integration tests cover it.",
                 "mode": "worker",
                 "write_scope": ["calc.py"],
-                "verification_owner": owner,
             },
         )
     )
     child = parent.workers.workers[started.data["worker_id"]].runtime
-    assert child.state.task.require_verification == (owner == "worker")
+    assert child.state.task.require_verification == (not parent_verifies)
     assert child.state.task.require_edit and child.state.task.require_observation
     delivered = await parent.step(
         ToolCall(
@@ -303,12 +308,14 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, ow
             },
         )
     )
-    assert delivered.data["status"] == ("completed" if owner == "parent" else "stopped")
+    assert delivered.data["status"] == ("completed" if parent_verifies else "stopped")
     assert delivered.data["verification"]["state"] == "missing"
-    assert parent.state.task.prompt == prompt and parent.state.task.require_verification
+    assert parent.state.task.prompt == prompt
+    assert parent.state.task.require_verification == parent_verifies
     assert parent.state.changed_paths == ["calc.py"]
     await parent.step(ToolCall(name="read_file", arguments={"path": "calc.py"}))
-    assert not parent.finalize("Delivered.").terminal
+    if parent_verifies:
+        assert not parent.finalize("Delivered.").terminal
     assert parent.state.verification.state == "missing"
     result = await parent.step(
         ToolCall(
@@ -324,13 +331,13 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, ow
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(("completion", "required"), [("strict", False), ("off", True)])
-async def test_parent_test_ownership_requires_a_strict_parent_gate(tmp_path, completion, required):
-    parent = Runtime(tmp_path, Settings(max_workers=1, completion=completion), model=PausedModel())
-    parent.start(TaskSpec(prompt="demo", require_verification=required))
-    result = await parent.workers.start("demo", verification_owner="parent")
-    assert result["reason"] == "parent_verification_required"
-    assert not parent.workers.workers
+async def test_non_strict_parent_keeps_child_task_requirements(tmp_path):
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="warn"), model=PausedModel())
+    parent.start(TaskSpec(prompt="Implement and test"))
+    result = await parent.workers.start("Implement and test")
+    child = parent.workers.workers[result["worker_id"]].runtime
+    assert child.state.task.require_verification
+    await parent.workers.close()
 
 
 @pytest.mark.asyncio

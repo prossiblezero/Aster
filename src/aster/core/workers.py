@@ -55,29 +55,18 @@ class WorkerManager:
         self.parent = runtime
         self.workers: dict[str, Worker] = {}
 
-    async def start(
-        self,
-        task: str,
-        mode: str = "explore",
-        write_scope: list[str] | None = None,
-        verification_owner: str = "worker",
-    ):
+    async def start(self, task: str, mode: str = "explore", write_scope: list[str] | None = None):
         if self.parent.state is None or self.parent.state.terminal:
             return {"status": "blocked", "reason": "run_terminal"}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
         if len(active) >= self.parent.settings.max_workers:
             return {"status": "blocked", "reason": "worker_limit"}
-        if (
-            not task.strip()
-            or mode not in {"explore", "worker"}
-            or verification_owner not in {"worker", "parent"}
-        ):
+        if not task.strip() or mode not in {"explore", "worker"}:
             return {"status": "blocked", "reason": "invalid_worker_request"}
-        if verification_owner == "parent" and (
-            self.parent.settings.completion != "strict"
-            or not self.parent.state.task.require_verification
-        ):
-            return {"status": "blocked", "reason": "parent_verification_required"}
+        parent_verifies = (
+            self.parent.settings.completion == "strict"
+            and self.parent.state.task.require_verification
+        )
         try:
             scope = _scope(write_scope or [], self.parent.settings.write_scope)
         except ValueError as exc:
@@ -119,10 +108,11 @@ class WorkerManager:
             hooks=self.parent.hooks,
         )
         runtime._managed_worker = True
-        spec = TaskSpec(prompt=task, max_steps=12, max_turns=12)
-        if verification_owner == "parent":
-            # Explicit ownership avoids inferring a child test gate from mentions of
-            # tests that the parent is still writing. The parent's strict gate remains.
+        # Infer from the assignment, not from the handoff guidance appended below.
+        spec = TaskSpec(prompt=task, max_steps=12, max_turns=12, **runtime.verifier.infer(task))
+        if parent_verifies:
+            # Delivery must not wait on tests still owned by the parent. Keep the
+            # parent's strict gate and the child's observation/edit requirements.
             spec.prompt += (
                 "\nThe parent owns integration tests and final verification. "
                 "Deliver the assigned changes promptly; do not wait for its tests or "
@@ -145,7 +135,7 @@ class WorkerManager:
             task=task,
             mode=mode,
             write_scope=settings.write_scope,
-            verification_owner=verification_owner,
+            verification_owner="parent" if parent_verifies else "worker",
         )
         return {"status": "running", "worker_id": worker_id, "mode": mode}
 
