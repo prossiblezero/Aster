@@ -193,10 +193,144 @@ async def test_worker_status_waits_without_cancelling_child(tmp_path):
     assert timed_out["status"] == "running"
     assert not parent.workers.workers[worker_id].future.cancelled()
 
+    waiter = asyncio.create_task(parent.workers.status(worker_id, wait_seconds=60))
+    await asyncio.sleep(0)
+    waiter.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiter
+    assert not parent.workers.workers[worker_id].future.done()
+
     model.release.set()
     finished = await parent.workers.status(worker_id, wait_seconds=1)
     assert finished["status"] == "completed"
     await parent.workers.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cancel_child", [False, True])
+async def test_waiting_tool_returns_child_failure_without_aborting_parent(tmp_path, cancel_child):
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    class FailingModel:
+        async def complete(self, *_):
+            entered.set()
+            await release.wait()
+            raise RuntimeError("child failure")
+
+    parent = Runtime(tmp_path, Settings(max_workers=1), model=FailingModel())
+    parent.start(TaskSpec(prompt="demo"))
+    started = await parent.workers.start("demo")
+    worker_id = started["worker_id"]
+    await entered.wait()
+    waiting = asyncio.create_task(
+        parent.step(
+            ToolCall(
+                name="worker_status",
+                arguments={"worker_id": worker_id, "wait_seconds": 60},
+            )
+        )
+    )
+    await asyncio.sleep(0)
+    assert not waiting.done()
+    if cancel_child:
+        await parent.workers.stop(worker_id)
+    else:
+        release.set()
+    outcome = await asyncio.wait_for(waiting, 2)
+    assert outcome.status == "success"
+    assert outcome.data["status"] == ("cancelled" if cancel_child else "failed")
+    assert outcome.data["verification"]["state"] == "missing"
+    assert not parent.state.terminal
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("owner", ["worker", "parent"])
+async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, owner):
+    (tmp_path / "calc.py").write_text("def answer(): return 0\n")
+    (tmp_path / "test_calc.py").write_text(
+        "from calc import answer\ndef test_answer(): assert answer() == 42\n"
+    )
+
+    class ChildModel:
+        def __init__(self):
+            self.calls = iter(
+                [
+                    ToolCall(name="read_file", arguments={"path": "calc.py"}),
+                    ToolCall(
+                        name="write_file",
+                        arguments={
+                            "path": "calc.py",
+                            "content": "def answer(): return 42\n",
+                        },
+                    ),
+                ]
+            )
+
+        async def complete(self, *_):
+            call = next(self.calls, None)
+            return (
+                ModelReply(calls=[call]) if call else ModelReply(text="Delivered; tests not run.")
+            )
+
+    parent = Runtime(
+        tmp_path,
+        Settings(approval="auto", max_workers=1, max_final_revisions=1),
+        model=ChildModel(),
+    )
+    parent.start(TaskSpec(prompt="Implement and test answer() = 42."))
+    prompt = parent.state.task.prompt
+    started = await parent.step(
+        ToolCall(
+            name="worker_start",
+            arguments={
+                "task": "Implement answer() = 42 in calc.py; parent integration tests cover it.",
+                "mode": "worker",
+                "write_scope": ["calc.py"],
+                "verification_owner": owner,
+            },
+        )
+    )
+    child = parent.workers.workers[started.data["worker_id"]].runtime
+    assert child.state.task.require_verification == (owner == "worker")
+    assert child.state.task.require_edit and child.state.task.require_observation
+    delivered = await parent.step(
+        ToolCall(
+            name="worker_status",
+            arguments={
+                "worker_id": started.data["worker_id"],
+                "wait_seconds": 5,
+            },
+        )
+    )
+    assert delivered.data["status"] == ("completed" if owner == "parent" else "stopped")
+    assert delivered.data["verification"]["state"] == "missing"
+    assert parent.state.task.prompt == prompt and parent.state.task.require_verification
+    assert parent.state.changed_paths == ["calc.py"]
+    await parent.step(ToolCall(name="read_file", arguments={"path": "calc.py"}))
+    assert not parent.finalize("Delivered.").terminal
+    assert parent.state.verification.state == "missing"
+    result = await parent.step(
+        ToolCall(
+            name="run_tests",
+            arguments={
+                "command": "python -m pytest -q test_calc.py",
+            },
+        )
+    )
+    assert result.status == "success", result.content
+    assert parent.finalize("Verified.").phase == "completed"
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("completion", "required"), [("strict", False), ("off", True)])
+async def test_parent_test_ownership_requires_a_strict_parent_gate(tmp_path, completion, required):
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion=completion), model=PausedModel())
+    parent.start(TaskSpec(prompt="demo", require_verification=required))
+    result = await parent.workers.start("demo", verification_owner="parent")
+    assert result["reason"] == "parent_verification_required"
+    assert not parent.workers.workers
 
 
 @pytest.mark.asyncio

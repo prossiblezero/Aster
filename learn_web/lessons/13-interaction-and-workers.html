@@ -76,6 +76,10 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 <td>相对工作区路径列表；与父范围取交集，不扩大权限</td>
 </tr>
 <tr>
+<td><code>verification_owner</code></td>
+<td>默认 <code>worker</code> 沿用任务验证规则；<code>parent</code> 表示子任务交付实现，父任务负责集成测试</td>
+</tr>
+<tr>
 <td><code>max_workers</code></td>
 <td>同时活跃的子任务上限，默认 0（按需显式开启）；结束后名额可复用</td>
 </tr>
@@ -97,6 +101,10 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 它保留自己的短期工作记忆，但关闭跨运行记忆写入与演化，由父任务负责长期经验维护。
 如果两个活跃写入 worker 的范围重叠，启动会返回 <code>worker_scope_busy</code>。
 这并不禁止用户的编辑器或另一个 Aster 进程修改文件，所以第 04 章的并发变更检查仍然必要。</p>
+<h3 id="交付范围与测试责任">交付范围与测试责任</h3>
+<p>子任务不会继承父任务的整段对话。<code>worker_start.task</code> 应包含目标文件、完整接口与验收条件、已知事实、测试分工；“按用户要求实现”不足以传递需求。子任务使用专门的交付提示，优先检查给定目标、遵守范围，结束时简要说明改动、实际检查和未验证项。</p>
+<p>如果父任务负责公共测试，可指定 <code>verification_owner=&quot;parent&quot;</code>：子任务读完目标后交付实现，不必等待父任务尚未写好的测试，也不能到范围外自建替代测试。这个选项只允许在父任务 <code>completion=&quot;strict&quot;</code> 且 <code>TaskSpec.require_verification=True</code> 时使用，否则返回 <code>parent_verification_required</code>。它只解除子任务自己的验证完成门槛，不改变观察、编辑要求，也不把未测试的交付标成验证通过；默认 <code>worker</code> 保留原有的任务推断规则。</p>
+<p>父任务应在子任务运行时完成独立工作（例如集成测试），随后等待结果、检查改动并验证最终工作区。子任务的验证证据不是父任务的验证证据；共享文件仍在变化时执行的测试也不能证明最终状态正确。小任务的交接与模型调用开销可能超过并行收益，无需为了使用 Worker 而拆分。</p>
 <h2 id="消息要在明确边界生效">消息要在明确边界生效</h2>
 <p><code>worker_message</code> 成功时返回 <code>queued</code>，只意味着消息进入队列。
 worker 在下一轮模型请求前把队列内容写入自己的消息状态，然后清空队列；不会修改已经发出的 HTTP 请求。
@@ -104,7 +112,7 @@ worker 在下一轮模型请求前把队列内容写入自己的消息状态，�
 <p>每个队列最多 8 条待投递消息，单条最长 8192 字符。
 worker 已结束再发送会返回 <code>worker_finished</code>；未知编号返回 <code>worker_missing</code>。
 这些是明确的生命周期结果，不是“这个工具永远不支持”的占位实现。</p>
-<p><code>worker_status</code> 返回状态、最终回答和改动路径，并让父运行吸收新增改动信息。
+<p><code>worker_status</code> 返回状态、最终回答、改动路径和子任务记录的 <code>verification</code>，并让父运行吸收新增改动信息。可传 <code>wait_seconds</code>（0–60）等待子任务完成；等待超时只返回当前状态，不会取消子任务。等待期间子任务发生异常或被取消，会分别返回 <code>failed</code> / <code>cancelled</code>，不因此中断父任务。取消查询本身也不会取消子任务；退出父任务时仍按原有规则清理子任务。
 <code>worker_stop</code> 取消仍在运行的任务并等待清理；不能用“子任务已结束”推断它一定成功完成了目标。</p>
 <h2 id="离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</h2>
 <p>激活 <code>aster</code>，保存为 <code>/tmp/aster_lesson13.py</code>，运行 <code>python /tmp/aster_lesson13.py</code>。
@@ -213,4 +221,4 @@ worker 已结束再发送会返回 <code>worker_finished</code>；未知编号�
 <p>鼠标入口复用同一套导航：顶部「新建」填写工作目录，「会话」选择任务，「历史」选择恢复点；每次对话后的「从此分支」「带入摘录」绑定该次对话的确定位置，不会把当前最新位置误当成用户点击的旧位置。宽终端显示可点击的会话侧栏，小终端通过弹窗查看。文件变化时必须点击「保留文件并继续」才能采用当前文件。</p>
 <p><a href="../source/src/aster/ui/session_widgets.py.html"><code>session_widgets.py</code></a> 使用 Textual 原生按钮、列表与 Rich 点击动作，不增加界面依赖。侧栏按真实 worker 和该会话的交互等待状态显示工作中、等待回答、已完成、取消或失败；磁盘里 running 的旧存档显示「待恢复」。弹窗定时更新状态但保留筛选与选中条目，后台审批也不会把前台会话误标为等待。恢复历史时沿父指针重建可见对话，模型上下文仍由原有恢复和压缩规则决定。</p>
 <p>独立会话与模型启动的 Worker 不同。不同工作目录的会话可并行执行；相同目录以操作级文件锁防止多个独立执行者同时写入，现有父子 Worker 继续遵循作用域隔离。工具审批和追问显示所属会话与工作目录，不因切换前台而改变授权对象。不同目录的长期记忆不会自动共享。</p>
-<nav class="chapter-nav"><a href="12-plans-and-skills.html">← 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</a><a href="14-evaluation.html">14｜从“能跑”到“证明有用” →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#两类等别人回答">两类“等别人回答”</a><a href="#ask_user-是真正的等待不是占位返回">ask_user 是真正的等待，不是占位返回</a><a href="#tui-改变的是交互方式">TUI 改变的是交互方式</a><a href="#worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</a><a href="#消息要在明确边界生效">消息要在明确边界生效</a><a href="#离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</a><a href="#练习与核对">练习与核对</a><a href="#多个独立会话">多个独立会话</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="12-plans-and-skills.html">← 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</a><a href="14-evaluation.html">14｜从“能跑”到“证明有用” →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#两类等别人回答">两类“等别人回答”</a><a href="#ask_user-是真正的等待不是占位返回">ask_user 是真正的等待，不是占位返回</a><a href="#tui-改变的是交互方式">TUI 改变的是交互方式</a><a href="#worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</a><a href="#交付范围与测试责任">交付范围与测试责任</a><a href="#消息要在明确边界生效">消息要在明确边界生效</a><a href="#离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</a><a href="#练习与核对">练习与核对</a><a href="#多个独立会话">多个独立会话</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

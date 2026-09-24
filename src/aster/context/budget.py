@@ -76,7 +76,10 @@ class BudgetCalculator:
         validate_archive=None,
         redact_history=None,
     ):
-        system = system_prompt(memory_enabled, skills_available, environment, archive)
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+        )
         workflow = workflow_state(state)
         workflow_text_limit = max(
             self.count(state.plan),

@@ -55,14 +55,29 @@ class WorkerManager:
         self.parent = runtime
         self.workers: dict[str, Worker] = {}
 
-    async def start(self, task: str, mode: str = "explore", write_scope: list[str] | None = None):
+    async def start(
+        self,
+        task: str,
+        mode: str = "explore",
+        write_scope: list[str] | None = None,
+        verification_owner: str = "worker",
+    ):
         if self.parent.state is None or self.parent.state.terminal:
             return {"status": "blocked", "reason": "run_terminal"}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
         if len(active) >= self.parent.settings.max_workers:
             return {"status": "blocked", "reason": "worker_limit"}
-        if not task.strip() or mode not in {"explore", "worker"}:
+        if (
+            not task.strip()
+            or mode not in {"explore", "worker"}
+            or verification_owner not in {"worker", "parent"}
+        ):
             return {"status": "blocked", "reason": "invalid_worker_request"}
+        if verification_owner == "parent" and (
+            self.parent.settings.completion != "strict"
+            or not self.parent.state.task.require_verification
+        ):
+            return {"status": "blocked", "reason": "parent_verification_required"}
         try:
             scope = _scope(write_scope or [], self.parent.settings.write_scope)
         except ValueError as exc:
@@ -104,7 +119,18 @@ class WorkerManager:
             hooks=self.parent.hooks,
         )
         runtime._managed_worker = True
-        runtime.start(TaskSpec(prompt=task, max_steps=12, max_turns=12))
+        spec = TaskSpec(prompt=task, max_steps=12, max_turns=12)
+        if verification_owner == "parent":
+            # Explicit ownership avoids inferring a child test gate from mentions of
+            # tests that the parent is still writing. The parent's strict gate remains.
+            spec.prompt += (
+                "\nThe parent owns integration tests and final verification. "
+                "Deliver the assigned changes promptly; do not wait for its tests or "
+                "create substitute tests outside your scope. Report checks actually run "
+                "and any unverified behavior in your handoff."
+            )
+            spec.require_verification = False
+        runtime.start(spec)
         runtime.state.parent_run_id = self.parent.state.run_id
         runtime.checkpoint()
         worker_id = uuid.uuid4().hex[:12]
@@ -119,6 +145,7 @@ class WorkerManager:
             task=task,
             mode=mode,
             write_scope=settings.write_scope,
+            verification_owner=verification_owner,
         )
         return {"status": "running", "worker_id": worker_id, "mode": mode}
 
@@ -153,42 +180,34 @@ class WorkerManager:
         if not worker:
             return {"status": "missing", "worker_id": worker_id}
         if wait_seconds > 0 and not worker.future.done():
-            try:
-                # A status timeout must not cancel the child task.
-                await asyncio.wait_for(asyncio.shield(worker.future), wait_seconds)
-            except TimeoutError:
-                pass
+            # Return child failures/cancellation as status; caller cancellation still
+            # propagates, and neither it nor the timeout cancels the child.
+            await asyncio.wait({worker.future}, timeout=wait_seconds)
         state = worker.runtime.state
+        details = {
+            "worker_id": worker_id,
+            "steps": state.step,
+            "changed_paths": state.changed_paths,
+            "verification": state.verification.model_dump(),
+        }
         if worker.future.cancelled():
-            return {
-                "status": "cancelled",
-                "worker_id": worker_id,
-                "changed_paths": state.changed_paths,
-            }
+            return {**details, "status": "cancelled"}
         if worker.future.done():
             try:
                 result = worker.future.result()
                 return {
+                    **details,
                     "status": result.phase,
-                    "worker_id": worker_id,
                     "stop_reason": result.stop_reason,
                     "answer": result.final,
-                    "steps": result.step,
-                    "changed_paths": result.changed_paths,
                 }
             except Exception as exc:
                 return {
+                    **details,
                     "status": "failed",
-                    "worker_id": worker_id,
                     "error": type(exc).__name__,
-                    "changed_paths": state.changed_paths,
                 }
-        return {
-            "status": state.phase,
-            "worker_id": worker_id,
-            "steps": state.step,
-            "changed_paths": state.changed_paths,
-        }
+        return {**details, "status": state.phase}
 
     async def message(self, worker_id: str, message: str):
         worker = self.workers.get(worker_id)

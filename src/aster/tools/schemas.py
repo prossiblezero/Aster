@@ -147,9 +147,23 @@ class AskUser(Record):
 
 
 class WorkerStart(Record):
-    task: str
+    task: str = Field(
+        description=(
+            "Self-contained assignment: target files, interfaces, acceptance criteria, "
+            "known facts and test responsibility. Workers do not inherit your conversation."
+        )
+    )
     mode: str = Field(default="explore", pattern="^(explore|worker)$")
     write_scope: list[str] = Field(default_factory=list)
+    verification_owner: str = Field(
+        default="worker",
+        pattern="^(worker|parent)$",
+        description=(
+            "worker keeps normal task verification. parent delegates implementation "
+            "delivery only and owns integration tests; requires a strict parent task "
+            "with require_verification enabled."
+        ),
+    )
 
 
 class WorkerId(Record):
@@ -233,10 +247,20 @@ SCHEMAS = {
     ),
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
-    "worker_start": (WorkerStart, "Start a bounded Explore or write-scoped worker.", "state"),
+    "worker_start": (
+        WorkerStart,
+        "Start an independent task (12 tool steps/12 turns), sharing this workspace. "
+        "Use disjoint write scopes and pass complete requirements and known paths. "
+        "Do independent work, such as integration tests, while workers run; avoid "
+        "duplicating their work. Then wait, inspect delivered changes, and verify the "
+        "integrated result. Small tasks can be cheaper to do directly.",
+        "state",
+    ),
     "worker_status": (
         WorkerStatus,
-        "Read a worker status and result; optionally wait briefly for completion.",
+        "Read status, result, changed paths and recorded verification. Use wait_seconds "
+        "when awaiting delivery instead of repeated immediate polling. Child completion "
+        "does not verify the integrated result; the parent must check it after changes settle.",
         "read",
     ),
     "worker_message": (
