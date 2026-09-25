@@ -17,6 +17,7 @@ def read(path):
 
 def summarize(folder):
     rows = []
+    freeze = read(folder / "freeze.json")
     for original in read(folder / "results.json"):
         row = {
             k: original[k]
@@ -46,7 +47,14 @@ def summarize(folder):
             ]
         }
         launch = read(folder / "runs" / row["name"] / "launch.json")
-        row.update(batch=folder.name, source=launch["source"])
+        row.update(
+            batch=folder.name,
+            source=launch["source"],
+            driver_commit=freeze.get("driver_commit"),
+            resolved_source=(
+                freeze["driver_commit"] if launch["source"] == "HEAD" else launch["source"]
+            ),
+        )
         ledger = read(folder / "runs" / row["name"] / "request-ledger.json")
         assert dict(sum((Counter(q["usage"]) for q in ledger), Counter())) == row["usage"]
         assert all(q["status"] != "pending" for q in ledger)
@@ -69,7 +77,10 @@ def summarize(folder):
         row["max_overlapping_model_calls"] = peak
         row["runs"] = []
         for run in original["runs"]:
-            root = Path(original["workspace"]) / ".aster/runs" / run["run_id"]
+            workspace = folder / "workspaces" / row["name"]
+            if not workspace.exists():
+                workspace = Path(original["workspace"])
+            root = workspace / ".aster/runs" / run["run_id"]
             events = [json.loads(line) for line in (root / "trace.jsonl").read_text().splitlines()]
             checkpoint = read(root / "checkpoint.json")
             if run["parent_run_id"]:
@@ -102,6 +113,11 @@ def summarize(folder):
                     default=0,
                 ),
                 "tool_counts": dict(Counter(e["call"]["name"] for e in results)),
+                "observed_paths": sorted({
+                    e["call"]["arguments"]["path"] for e in results
+                    if e["call"]["name"] == "read_file"
+                    and e["outcome"]["status"] == "success"
+                }),
                 "status_arguments": [
                     e["call"]["arguments"] for e in results if e["call"]["name"] == "worker_status"
                 ],
