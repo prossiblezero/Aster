@@ -110,7 +110,11 @@ class WorkerManager:
         runtime._managed_worker = True
         # Infer from the assignment, not from the handoff guidance appended below.
         spec = TaskSpec(prompt=task, max_steps=12, max_turns=12, **runtime.verifier.infer(task))
-        if parent_verifies:
+        if read_only:
+            # "Identify the fix" is an investigation, not an impossible write gate.
+            spec.require_edit = False
+            spec.require_verification = False
+        elif parent_verifies:
             # Delivery must not wait on tests still owned by the parent. Keep the
             # parent's strict gate and the child's observation/edit requirements.
             spec.prompt += (

@@ -367,9 +367,29 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, pa
 async def test_non_strict_parent_keeps_child_task_requirements(tmp_path):
     parent = Runtime(tmp_path, Settings(max_workers=1, completion="warn"), model=PausedModel())
     parent.start(TaskSpec(prompt="Implement and test"))
-    result = await parent.workers.start("Implement and test")
+    result = await parent.workers.start("Implement and test", "worker", ["target.py"])
     child = parent.workers.workers[result["worker_id"]].runtime
     assert child.state.task.require_verification
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
+async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path):
+    (tmp_path / "target.py").write_text("def answer(): return 0\n")
+    parent = Runtime(
+        tmp_path,
+        Settings(max_workers=1),
+        model=CallThenFinish("read_file", {"path": "target.py"}),
+    )
+    parent.start(TaskSpec(prompt="Inspect the repository"))
+    started = await parent.workers.start("Inspect target.py and recommend a fix and tests")
+    worker = parent.workers.workers[started["worker_id"]]
+    result = await worker.future
+    assert result.phase == "completed" and result.observed
+    assert result.task.require_observation
+    assert not result.task.require_edit and not result.task.require_verification
+    assert not result.changed_paths and worker.runtime.settings.read_only
+    assert (tmp_path / "target.py").read_text() == "def answer(): return 0\n"
     await parent.workers.close()
 
 
