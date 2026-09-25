@@ -1,6 +1,8 @@
 """Tool parameter contracts, descriptions, effects and model-visible definitions."""
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field, model_validator
 
 from ..schema import Record
@@ -162,11 +164,14 @@ class WorkerId(Record):
 
 
 class WorkerStatus(WorkerId):
+    worker_id: str | Annotated[list[str], Field(min_length=1, max_length=4)] = Field(
+        description="One worker id, or up to four ids to join in one call; duplicates are returned once."
+    )
     wait_seconds: float = Field(
         default=0,
         ge=0,
-        le=60,
-        description="Wait up to this many seconds for the worker to finish; timeout leaves it running.",
+        le=300,
+        description="One shared wait deadline for all selected workers; timeout leaves them running. Use 300 when awaiting final delivery, 0 for a snapshot.",
     )
 
 
@@ -242,7 +247,11 @@ SCHEMAS = {
         WorkerStart,
         "Start an independent task (12 tool steps/12 turns), sharing this workspace. "
         "Use disjoint write scopes and pass complete requirements and known paths. "
-        "Delegate implementation delivery; write integration tests while workers run, "
+        "Delegate substantial independent work or investigations; do small lookups directly. "
+        "Start independent assignments together, then use one worker_status call with "
+        "their ids and wait_seconds=300. For investigations request concise conclusions "
+        "with source paths and evidence, and inspect gaps rather than repeating every read. "
+        "For implementation delivery, write integration tests while workers run, "
         "then wait, inspect delivered changes and verify the integrated result. "
         "When the parent has a strict verification requirement, workers can hand off "
         "without passing tests: the parent's test gate still applies. Avoid duplicating "
@@ -251,8 +260,10 @@ SCHEMAS = {
     ),
     "worker_status": (
         WorkerStatus,
-        "Read status, result, changed paths and recorded verification. Use wait_seconds "
-        "when awaiting delivery instead of repeated immediate polling. Child completion "
+        "Read status, result, changed paths and recorded verification. Pass a list of "
+        "ids to await all results together; the timeout is shared, not per child. "
+        "List status 'finished' means no selected child is running; inspect each result "
+        "for failure or missing ids. Use wait_seconds when awaiting delivery instead of polling. Child completion "
         "does not verify the integrated result; the parent must check it after changes settle.",
         "read",
     ),

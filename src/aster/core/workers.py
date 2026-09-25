@@ -165,7 +165,25 @@ class WorkerManager:
             await runtime.workers.close()
             runtime.sandbox.close()
 
-    async def status(self, worker_id: str, wait_seconds: float = 0):
+    async def status(self, worker_id: str | list[str], wait_seconds: float = 0):
+        if isinstance(worker_id, list):
+            ids = list(dict.fromkeys(worker_id))
+            pending = {
+                self.workers[key].future
+                for key in ids
+                if key in self.workers and not self.workers[key].future.done()
+            }
+            if pending and wait_seconds > 0:
+                await asyncio.wait(pending, timeout=wait_seconds)
+            results = [await self.status(key) for key in ids]
+            return {
+                # Finished means no selected child is running, not that all succeeded.
+                "status": "running" if any(not task.done() for task in pending) else "finished",
+                "workers": results,
+                "changed_paths": sorted(
+                    {p for result in results for p in result.get("changed_paths", [])}
+                ),
+            }
         worker = self.workers.get(worker_id)
         if not worker:
             return {"status": "missing", "worker_id": worker_id}

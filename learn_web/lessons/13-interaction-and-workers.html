@@ -108,7 +108,7 @@ worker 在下一轮模型请求前把队列内容写入自己的消息状态，�
 <p>每个队列最多 8 条待投递消息，单条最长 8192 字符。
 worker 已结束再发送会返回 <code>worker_finished</code>；未知编号返回 <code>worker_missing</code>。
 这些是明确的生命周期结果，不是“这个工具永远不支持”的占位实现。</p>
-<p><code>worker_status</code> 返回状态、最终回答、改动路径和子任务记录的 <code>verification</code>，并让父运行吸收新增改动信息。可传 <code>wait_seconds</code>（0–60）等待子任务完成；等待超时只返回当前状态，不会取消子任务。等待期间子任务发生异常或被取消，会分别返回 <code>failed</code> / <code>cancelled</code>，不因此中断父任务。取消查询本身也不会取消子任务；退出父任务时仍按原有规则清理子任务。
+<p><code>worker_status</code> 返回状态、最终回答、改动路径和子任务记录的 <code>verification</code>，并让父运行吸收新增改动信息。<code>worker_id</code> 兼容单个编号，也可传最多四个编号的列表，一次等待全部交付。<code>wait_seconds</code>（0–300）是本次查询的共同期限，不按子任务数累加；默认 0 立即查询，整合前可用 300 等待。列表按请求顺序去重，外层 <code>finished</code> 只表示没有选中的子任务仍在运行，须逐项检查成功、失败、取消或 <code>missing</code>。等待超时只返回当前状态，不会取消子任务。等待期间子任务发生异常或被取消，会分别返回 <code>failed</code> / <code>cancelled</code>，不因此中断父任务。取消查询本身也不会取消子任务；退出父任务时仍按原有规则清理子任务。
 <code>worker_stop</code> 取消仍在运行的任务并等待清理；不能用“子任务已结束”推断它一定成功完成了目标。</p>
 <h2 id="离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</h2>
 <p>激活 <code>aster</code>，保存为 <code>/tmp/aster_lesson13.py</code>，运行 <code>python /tmp/aster_lesson13.py</code>。

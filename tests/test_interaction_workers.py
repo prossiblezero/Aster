@@ -208,6 +208,39 @@ async def test_worker_status_waits_without_cancelling_child(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_worker_status_joins_results_with_one_deadline_and_preserves_cancellation(tmp_path):
+    model = PausedModel()
+    parent = Runtime(tmp_path, Settings(max_workers=2, completion="off"), model=model)
+    parent.start(TaskSpec(prompt="demo"))
+    first = (await parent.workers.start("demo"))["worker_id"]
+    second = (await parent.workers.start("demo"))["worker_id"]
+    await model.entered.wait()
+    ids = [first, "missing", second, first]
+    partial = await parent.workers.status(ids, wait_seconds=0.01)
+    assert partial["status"] == "running"
+    assert [r["worker_id"] for r in partial["workers"]] == ids[:3]
+    assert partial["workers"][1]["status"] == "missing"
+    waiting = asyncio.create_task(parent.workers.status(ids, wait_seconds=300))
+    await asyncio.sleep(0)
+    waiting.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiting
+    assert all(not w.future.done() for w in parent.workers.workers.values())
+    await parent.workers.stop(second)
+    model.release.set()
+    outcome = await parent.step(
+        ToolCall(
+            name="worker_status",
+            arguments={"worker_id": ids, "wait_seconds": 300},
+        )
+    )
+    assert outcome.status == "success" and outcome.data["status"] == "finished"
+    assert [r["status"] for r in outcome.data["workers"]] == ["completed", "missing", "cancelled"]
+    assert not parent.state.terminal
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("cancel_child", [False, True])
 async def test_waiting_tool_returns_child_failure_without_aborting_parent(tmp_path, cancel_child):
     entered, release = asyncio.Event(), asyncio.Event()
