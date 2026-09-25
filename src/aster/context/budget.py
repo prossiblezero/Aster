@@ -71,6 +71,7 @@ class BudgetCalculator:
         skill_bodies: dict[str, str] | None = None,
         memory_enabled: bool = False,
         skills_available: bool = False,
+        workers_available: bool = False,
         environment: str = "",
         archive=None,
         validate_archive=None,
@@ -79,6 +80,7 @@ class BudgetCalculator:
         system = system_prompt(
             memory_enabled, skills_available, environment, archive,
             worker=bool(state.parent_run_id),
+            workers_available=workers_available,
         )
         workflow = workflow_state(state)
         workflow_text_limit = max(

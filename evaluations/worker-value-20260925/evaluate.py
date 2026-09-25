@@ -103,6 +103,7 @@ async def execute(args):
         output / "freeze.json",
         {
             "source": args.source,
+            "driver_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=REPO, text=True).strip(),
             "source_root": str(source_root),
             "source_hashes": source_hashes,
             "drivers": {

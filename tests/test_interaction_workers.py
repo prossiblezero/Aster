@@ -163,6 +163,11 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     model = PausedModel()
     parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=model)
     parent.start(TaskSpec(prompt="demo"))
+    prompt, tools, report = parent.prepare_request()
+    assert "Worker capability:" in prompt[0]["content"]
+    assert "worker_start" not in {t["name"] for t in tools}
+    preview = parent._preview_context(parent.state, [], parent.settings, {})
+    assert preview.estimated_tokens == report.estimated_tokens
     started = await parent.workers.start("demo")
     worker_id = started["worker_id"]
     await model.entered.wait()
@@ -173,6 +178,8 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     assert not model.requests
     model.release.set()
     worker = parent.workers.workers[worker_id]
+    child_prompt, _, _ = worker.runtime.prepare_request()
+    assert "Worker capability:" not in child_prompt[0]["content"]
     await worker.future
     assert "Also check the license." in json.dumps(model.requests[-1])
     assert (await parent.workers.status(worker_id))["status"] == "completed"

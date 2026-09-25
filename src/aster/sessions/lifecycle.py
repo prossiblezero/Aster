@@ -58,6 +58,7 @@ def preview_context(
         model=settings.model,
         memory_enabled=settings.memory_enabled,
         skills_available=skills_available,
+        workers_available=settings.max_workers > 0,
         environment=environment,
         archive=lambda call_id, tool, content: evidence.archive_observation(
             state.run_id, call_id, tool, content

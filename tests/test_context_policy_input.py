@@ -144,6 +144,7 @@ def test_host_capabilities_are_stable_and_repository_content_stays_untrusted():
     options = dict(
         memory_enabled=True,
         skills_available=True,
+        workers_available=True,
         environment="Python available; sandbox required; network disabled.",
     )
     first, _ = builder.build(
@@ -165,6 +166,7 @@ def test_host_capabilities_are_stable_and_repository_content_stays_untrusted():
     system = first[0]["content"]
     assert system == second[0]["content"]
     assert "Memory capability:" in system and "Skill capability:" in system
+    assert "Worker capability:" in system
     assert options["environment"] in system
     for marker in ("UNTRUSTED-MEMORY", "UNTRUSTED-CATALOG", "UNTRUSTED-SKILL"):
         assert marker not in system and marker in first[-1]["content"]
@@ -172,4 +174,5 @@ def test_host_capabilities_are_stable_and_repository_content_stays_untrusted():
     disabled, _ = builder.build(state, state.task.prompt)
     assert "Memory capability:" not in disabled[0]["content"]
     assert "Skill capability:" not in disabled[0]["content"]
+    assert "Worker capability:" not in disabled[0]["content"]
     assert "Execution environment:" not in disabled[0]["content"]

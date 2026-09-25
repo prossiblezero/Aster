@@ -27,6 +27,7 @@ class ContextBuilder:
         skill_bodies: dict[str, str] | None = None,
         memory_enabled: bool = False,
         skills_available: bool = False,
+        workers_available: bool = False,
         environment: str = "",
         archive=None,
         validate_archive=None,
@@ -37,6 +38,7 @@ class ContextBuilder:
             budget=self.budget, output_reserve=self.output_reserve,
             tools=tools, protocol=protocol, model=model, skill_bodies=skill_bodies,
             memory_enabled=memory_enabled, skills_available=skills_available,
+            workers_available=workers_available,
             environment=environment, archive=archive, validate_archive=validate_archive,
             redact_history=redact_history,
         )

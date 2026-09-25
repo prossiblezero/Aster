@@ -528,6 +528,7 @@ class Runtime:
             model=self.settings.model,
             memory_enabled=self.settings.memory_enabled,
             skills_available=bool(catalog),
+            workers_available=self.settings.max_workers > 0,
             environment=self.sandbox.capabilities(),
             skill_bodies=skill_bodies,
             archive=lambda call_id, tool, content: self.evidence.archive_observation(
