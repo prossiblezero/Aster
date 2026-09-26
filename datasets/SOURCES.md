@@ -32,4 +32,6 @@
 
 ## SWE-bench
 
-参考官方仓库 <https://github.com/SWE-bench/SWE-bench> 的任务结构和测试思路，读取时版本 `02e7a74ffd0b707aab73d203fe87bdc7c76afc8e`。本项目**未导入或运行官方 SWE-bench 实例**，没有 SWE-bench 分数。5 条小仓库题也不等同于 SWE-bench 真实 issue 的难度。
+参考官方仓库 <https://github.com/SWE-bench/SWE-bench> 的任务结构和测试思路，读取时版本 `02e7a74ffd0b707aab73d203fe87bdc7c76afc8e`。Worker 首个真实仓库评测集见 [`worker-code-v1/`](worker-code-v1/)，固定使用 `SWE-bench/SWE-bench_Verified` 的 `test` split 中 20 个 instance ID（6 simple、10 medium、4 hard）。该目录只保存 issue 元数据和隐藏 artifact 的哈希，不导入完整仓库或 gold patch；运行时失败、下载失败和 verifier 不可用都必须单独报告。
+
+这 20 条题不构成官方 SWE-bench 运行，也不产生 SWE-bench 官方分数。旧的 5 条小仓库题仍然保留在 Aster 自有 benchmark 中，不能和 `worker-code-v1` 的真实 issue 结果合并。
