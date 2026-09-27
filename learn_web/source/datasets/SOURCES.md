@@ -32,4 +32,12 @@
 
 ## SWE-bench
 
-参考官方仓库 <https://github.com/SWE-bench/SWE-bench> 的任务结构和测试思路，读取时版本 `02e7a74ffd0b707aab73d203fe87bdc7c76afc8e`。本项目**未导入或运行官方 SWE-bench 实例**，没有 SWE-bench 分数。5 条小仓库题也不等同于 SWE-bench 真实 issue 的难度。
+参考官方仓库 <https://github.com/SWE-bench/SWE-bench> 的任务结构和测试思路，读取时版本 `02e7a74ffd0b707aab73d203fe87bdc7c76afc8e`。Worker 首个真实仓库评测集见 [`worker-code-v1/`](worker-code-v1/)，固定使用 `SWE-bench/SWE-bench_Verified` 的 `test` split 中 20 个 instance ID（6 simple、10 medium、4 hard）。该目录只保存 issue 元数据和隐藏 artifact 的哈希，不导入完整仓库或 gold patch；运行时失败、下载失败和 verifier 不可用都必须单独报告。
+
+这 20 条题不构成官方 SWE-bench 运行，也不产生 SWE-bench 官方分数。旧的 5 条小仓库题仍然保留在 Aster 自有 benchmark 中，不能和 `worker-code-v1` 的真实 issue 结果合并。
+
+## Worker 多来源代码集 v2（当前入口）
+
+[`worker-code-v2/`](worker-code-v2/) 替代上面的 v1 作为后续选题入口，共 20 条：Aider Polyglot Python 6 条、BigCodeBench 2 条、Terminal-Bench 5 条、SWE-bench Pro v2 2 条、Verified 5 条。v1 仅保留来源历史。每个来源的固定 revision、下载 URL 与 SHA-256 见 [`sources.json`](worker-code-v2/sources.json)；原始难度、自定义难度、可拆分性和已知 grader 缺口逐题记录。
+
+初始材料与 grader 下载到 `artifacts/private/worker-code-v2/`，不放入 Aster 产品代码或模型的可见工作区。Aider 原始公开测试仍是公开接口契约，独立评分使用不可修改副本；其余隐藏材料只给控制端。来源版权各自保留：Exercism Python MIT、BigCodeBench annotation/Terminal Apache-2.0、SWE/Pro harness MIT、具体源码仓库按原许可（包括 Flipt GPL-3.0、OpenLibrary AGPL-3.0）。参考预检与容器环境缺口见 [`PREPARATION.json`](worker-code-v2/PREPARATION.json)，不能把准备结果当作模型能力或官方成绩。

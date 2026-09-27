@@ -1,0 +1,63 @@
+{
+  "name": "Aster Worker Code Benchmark v2",
+  "version": "2.0.0",
+  "created_at": "2026-09-27",
+  "status": "selection_frozen_environment_preflight_partial",
+  "purpose": "Compare delegation/cooperation designs across several coding benchmark families, including overhead controls. Does not prescribe parent/child architecture.",
+  "total": 20,
+  "difficulty_counts": {
+    "simple": 6,
+    "medium": 10,
+    "hard": 4
+  },
+  "source_counts": {
+    "aider-polyglot": 6,
+    "bigcodebench": 2,
+    "swebench-verified": 5,
+    "terminal-bench": 5,
+    "swebench-pro": 2
+  },
+  "cohort_counts": {
+    "overhead_control": 6,
+    "coupled_control": 3,
+    "opportunity": 11
+  },
+  "file_sha256": {
+    "instances.jsonl": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+    "sources.json": "c89f591be25685e6b9a89d18ec59caad6d445bc64dc161233f27c57e89a16403"
+  },
+  "model_input_allowlist": [
+    "prompt",
+    "materials.public",
+    "base repository workspace from materials.setup, prepared by trusted host"
+  ],
+  "private_fields": [
+    "collaboration",
+    "grading",
+    "materials.grader",
+    "source record archives",
+    "source README containing solutions",
+    "oracle"
+  ],
+  "protocol": {
+    "unit_of_analysis": "one original upstream task; do not concatenate exercises or split one into extra tasks",
+    "arms": [
+      "solo",
+      "current_worker",
+      "redesigned_cooperation_when_available"
+    ],
+    "architecture": "No forced worker count, read-only worker role or centralized writer. Compare isolated patch, test generation or investigation strategies under the same task contract.",
+    "fairness": "Freeze model, total team token/tool/time budgets, dependency snapshots and arm order before model runs; audit annotations never enter prompts.",
+    "success": "Native independent verifier/reward + complete expected tests; local oracle preparation is not agent success.",
+    "metrics": [
+      "task pass rate by source/difficulty/cohort",
+      "whole-team input/output/cache tokens and priced cost",
+      "end-to-end wall time including integration",
+      "whole-team tool calls",
+      "integration rework and conflicts when instrumented"
+    ],
+    "failures": "Report environment/service failures, unresolved cases and no-delegation; do not silently drop tasks or retry one arm.",
+    "training": "evaluation only; preserve upstream canaries; no training from these tasks or trajectories",
+    "next_gate": "Each environment must show empty/starter failure and reference success with the actual independent verifier before paid model comparison."
+  }
+}

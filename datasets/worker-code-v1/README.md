@@ -1,5 +1,7 @@
 # Aster Worker Code Benchmark v1
 
+历史版本：后续 Worker 对照使用 [多来源 v2](../worker-code-v2/README.md)。本版固定清单留作来源追踪，不与 v2 相加计数。
+
 这是 Aster Worker 委派机制的首个公开代码任务评测集。任务来自 **SWE-bench Verified** 的 `test` split，固定到 benchmark 仓库 revision `02e7a74ffd0b707aab73d203fe87bdc7c76afc8e`。每条任务是真实开源仓库中的 issue，模型需要在对应 `base_commit` 上修改代码并通过独立验证。
 
 本目录只保存任务元数据和 issue 描述。完整仓库、gold patch、`test_patch` 和官方评测脚本在运行时按 `repo`、`base_commit` 和 `instance_id` 获取，并通过清单中的 SHA-256 校验。gold patch 与隐藏测试不会进入模型 prompt，也不能从本清单直接还原。

@@ -5,7 +5,9 @@ HumanEval 和 SWE-bench 首先是代码能力评测资源，并非天然的 SFT 
 | 对象 | 输入与输出 | 成功条件 | Aster 当前用法 |
 |---|---|---|---|
 | HumanEval | 函数签名、说明 → 实现 | 通过函数测试 | 组织全部 164 题；参考动作全量验证；固定 12 题参加真实模型对照 |
-| SWE-bench | 仓库版本、issue → 补丁 | 目标测试从失败变通过，原有测试继续通过 | `worker-code-v1` 固定 20 条 Verified issue；旧 5 条小仓库题仍单独统计 |
+| SWE-bench Verified / Pro | 仓库版本、issue → 补丁 | 上游独立评分器和回归检查 | `worker-code-v2` 保留 Verified 5 条、Pro v2 2 条，均未跑模型对照 |
+| Terminal-Bench | 初始环境、需求 → 可运行程序/系统修复 | 任务独立 verifier 与产物约束 | v2 选入 5 条，功能移植检查与完整 native 验证分开报告 |
+| Aider Polyglot / BigCodeBench | 代码接口、需求 → 实现 | 不可修改的原始测试副本 | v2 选入 6 + 2 条控制题，参考解共通过 150 个测试 |
 | Aster Harness 用例 | 任务、异常或权限约束 → 工具轨迹与结果 | 文件、状态、拒绝理由和审计事件满足契约 | 确定性回放；与模型成功率分开 |
 | Aster 记忆对照 | 首次读取存储 → 新运行中的事实问答 | 回答正确，同时比较读取、工具与 token 成本 | 相同学习阶段，后续运行仅改变记忆开关 |
 
@@ -17,6 +19,6 @@ HumanEval 和 SWE-bench 首先是代码能力评测资源，并非天然的 SFT 
 
 SFT 数据应保存模型可见的消息、合法工具调用和实际观察；筛选成功轨迹时保留原始失败记录。测试答案只用于筛选，不写进模型观察。RL 的输入是同类任务环境，奖励来自运行结束后的独立验证器，还要测试超时、空测试、改测试骗分和非预期文件修改。
 
-`datasets/worker-code-v1` 是 evaluation-only 的 metadata 清单，不是训练集。它按真实 issue 的模块边界标注 Worker 调查单元，并保留 simple 负控制；gold patch、隐藏测试名称和内容不能传入模型。详细来源、许可证边界和不能宣称官方 SWE-bench 分数的说明见其 `README.md` 与 `SOURCES.md`。
+`datasets/worker-code-v2` 是 evaluation-only 的多来源任务集。11 道协作机会候选、6 道简单开销控制、3 道中等低协作控制分别统计；不强制 Worker 只读或指定父子结构。人工协作标注、参考解和隐藏测试不能传入模型。详细来源、准备命令与评分局限见其 `README.md`。v1 是历史选择，两版中重复的任务只算一次。
 
 目前仅有共享 Runtime 的 Agent-RL 环境接口，没有实现 SFT、GRPO、轨迹筛选器或训练数据流水线。这里是数据隔离约定，训练方案等后续讨论后实现。

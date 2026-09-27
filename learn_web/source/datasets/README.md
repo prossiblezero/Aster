@@ -2,6 +2,8 @@
 
 当前基础评测包含 **193 条主任务、85 个机制场景**。上下文专项另有 **12 道代码任务和 1 个信息丢失控制**；恢复专项有 **12 个故障注入场景，复用已有 5 道仓库题**，不把它们算成 12 道新代码题。另有 **12 组上下文压力配置、16 组工具可见性配置、10 个停滞检测器边界契约**。配置数、重复次数、开关条件及单元测试都不算新增任务；v4 报告保留当时的 69 个机制场景口径。
 
+Worker 委派当前选题入口是 [`worker-code-v2/`](worker-code-v2/)：从 Aider Polyglot、BigCodeBench、Terminal-Bench、SWE-bench Pro 和 SWE-bench Verified 固定选择 20 条代码任务，分为 6 条 simple、10 条 medium、4 条 hard。原始材料按固定 revision 与 SHA-256 下载到私有缓存；8 道轻量控制题已验证初始失败、参考解通过。其余准备状态逐题记录，尚无本集的真实模型成绩。v1 保留为历史清单，两版不能相加计数；新集不由旧 `benchmark_tasks.json` 执行器加载。
+
 | 数据范围 | 数量 | 定义位置 |
 |---|---:|---|
 | Harness 行为 | 12 条任务 | `benchmark_tasks.json` |
@@ -17,6 +19,7 @@
 | 上下文真实代码任务 | 12 道 + 1 个信息丢失控制 | `context_task_cases.json` |
 | 模型接手后的停滞恢复 | 12 个故障场景，复用 5 道仓库题 | `recovery_task_cases.json` |
 | 停滞检测器边界 | 10 个契约，单列 | `runtime_cases.json` 的 `detector_contracts` |
+| Worker 多来源代码集 | 20 条（6/10/4），5 个公开来源 | `worker-code-v2/manifest.json` 与 `instances.jsonl` |
 
 先看 [任务手册](benchmark.md)，再看 [评测方法与结果](../docs/benchmark.md)。任务总数多不等于长任务能力强：164 条函数题用于代码正确性覆盖，5 条仓库题用于多文件工具执行；两类分别统计。
 
