@@ -1,6 +1,6 @@
 # Worker 适用范围与剩余边界
 
-更新于 2026-09-28，对应 `src/aster/core/workers.py`。9 月 18 日只读工具并行实验始终关闭 Worker，其读取重叠不能作为多 Agent 收益。历史实验见 [交付修复](../evaluations/worker-handoff-20260925/REPORT.md)、[调查委派迭代](../evaluations/worker-value-20260925/REPORT.md)与[重设计前代码任务基线](../evaluations/worker-code-20260928/REPORT.md)；下述能力需要通过新旧对照实验评价，不能把历史结果算作本次重设计收益。
+更新于 2026-09-29，对应 `src/aster/core/workers.py`。9 月 18 日只读工具并行实验始终关闭 Worker，其读取重叠不能作为多 Agent 收益。历史实验见 [交付修复](../evaluations/worker-handoff-20260925/REPORT.md)、[调查委派迭代](../evaluations/worker-value-20260925/REPORT.md)与[重设计前代码任务基线](../evaluations/worker-code-20260928/REPORT.md)。最新的 [三臂真实模型评测](../evaluations/worker-redesign-20260928/REPORT.md)覆盖 26 道题；它证明 partial handoff 可以保留并对账，但尚未证明通过率或全队 token 的总体收益。
 
 ## 已有能力
 
