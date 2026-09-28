@@ -28,11 +28,11 @@ Aster 关注模型提出动作之后的工程问题：如何组织上下文、�
 
 默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker 及依赖复用均需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
 
-Worker 共享工作区，按不重叠的写入范围协作。委派时应传递完整子任务与测试分工；具有严格验证要求的父任务自动承担最终验证，子任务交付限定范围内的实现。子任务完成不代表整体已验证，详见[Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
+Worker 使用独立上下文，共享整个任务的模型调用、工具调用与可选 token 额度，并为父任务保留收尾预算。子任务从剩余额度分配局部上限，最多 24 步/12 轮。共享工作区同一时间只允许一个写入者：写 Worker 活跃时，父任务只能进行只读操作；最终验证仍由具有严格验证要求的父任务承担。详见 [Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
 
-独立调查可交给只读 Explore：启用后首轮提示说明委派能力，父任务传清问题与交付字段，用一次 `worker_status` 等待一组结果，再核查缺口和可执行结论。子任务保持原有 12 步/12 轮上限，提示要求及时交付并减少父子重复阅读；实际收益取决于任务。小样本审计观察到质量改善，总消耗仍更高，详见 [Worker 迭代评测](evaluations/worker-value-20260925/REPORT.md)；预算与生命周期边界见 [扩展评估](docs/worker-readiness.md)。
+独立调查可交给只读 Explore。父任务传清问题、证据要求与测试分工；子任务在局部预算耗尽前进入一次无工具交付轮，失败或取消也保存明确标注的部分结果。交付会在父任务下一轮自动送达，显式 `worker_status` 等待已返回的结果不会再重复通知；已完成子任务可用 `worker_message(resume=true)` 补问一次。实际收益取决于任务，预算、恢复和协作边界见 [扩展评估](docs/worker-readiness.md)。
 
-后续 [20 题多来源代码评测](evaluations/worker-code-20260928/REPORT.md)中，单 Agent 独立通过率为 70%，当前 Worker 为 65%，全队 token 多 5.9%；18 个子任务仅 5 个正常交付。当前自主委派尚未体现整体优势，步数耗尽后无报告与基础工具限制已记录为改进依据。
+重设计前的 [20 题多来源代码评测](evaluations/worker-code-20260928/REPORT.md)中，单 Agent 独立通过率为 70%，旧 Worker 为 65%，全队 token 多 5.9%；18 个子任务仅 5 个正常交付。这些结果是本次交付与预算重设计的依据，不能作为新机制的收益证明。
 
 ## 快速开始
 
@@ -195,9 +195,9 @@ run_shell   run_tests   git_diff    tool_load
 | `read_parallelism` | `1` | 大于 1 时并行执行纯 `read_file` / `search` / `list_files` 批次 |
 | `reuse_environment` | `false` | 在同一 Runtime 中复用受控依赖目录，要求 `sandbox="required"` |
 | `memory_enabled` | `false` | 开启项目持久记忆；会话工作记忆始终独立保留 |
-| `max_workers` | `0` | 开启有独立预算的子任务 Worker |
+| `max_workers` | `0` | 开启共享任务额度的 Worker，并限制同时活跃数 |
 
-默认每个任务最多 40 个工具步骤、40 个模型轮次。CLI / TUI 均可用 `--max-steps`、`--max-turns` 调整；`--context-tokens` 与 `--output-tokens` 则控制模型请求预算。
+默认每个任务最多 40 个工具步骤、40 个模型轮次；启用 Worker 后，这也是父子共同消耗的总额度。CLI / TUI 均可用 `--max-steps`、`--max-turns` 调整；Python 接口的 `TaskSpec.max_tokens` 可增加总 token 上限，`--context-tokens` 与 `--output-tokens` 控制单次模型请求预算。
 
 正式验证使用 `run_tests`，支持 pytest、unittest 和 Node 内置测试；普通 `run_shell` 成功不会自动生成正式测试证据。依赖默认不跨命令保留，后台服务也不跨调用存活，详见[执行环境](docs/execution-environment.md)。
 
