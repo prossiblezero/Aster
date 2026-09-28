@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
@@ -48,12 +49,120 @@ class Worker:
     runtime: Runtime
     future: asyncio.Task
     inbox: list[str]
+    delivered: bool = False
+    continuations: int = 0
+    parent_policy: dict = field(default_factory=dict)
+
+
+class TeamBudget:
+    """Count admissions synchronously; persist reservations before starting requests."""
+
+    def __init__(self, parent: Runtime):
+        self.parent = parent
+
+    def remaining(self, kind: str) -> int:
+        state = self.parent.state
+        limit = state.task.max_turns if kind == "model_calls" else state.task.max_steps
+        return limit - state.team_usage.get(kind, 0)
+
+    def reserve(self, kind: str) -> int:
+        task = self.parent.state.task
+        limit = task.max_turns if kind == "model_calls" else task.max_steps
+        return max(2, limit // 5)
+
+    def admit(self, runtime: Runtime, kind: str, tokens: int = 0) -> str:
+        state = self.parent.state
+        child = runtime is not self.parent
+        reserve = self.reserve(kind) if child else 0
+        if self.remaining(kind) <= reserve:
+            return "team_" + kind + "_limit"
+        if kind == "model_calls" and state.task.max_tokens is not None:
+            token_reserve = state.task.max_tokens // 5 if child else 0
+            if state.team_usage.get("charged_tokens", 0) + tokens + token_reserve > state.task.max_tokens:
+                return "team_token_limit"
+        state.team_usage[kind] = state.team_usage.get(kind, 0) + 1
+        if kind == "model_calls":
+            state.team_usage["charged_tokens"] = state.team_usage.get("charged_tokens", 0) + tokens
+        return ""
+
+    def settle(self, reservation: int, usage: dict):
+        state = self.parent.state
+        if "total_tokens" in usage:
+            state.team_usage["charged_tokens"] += usage["total_tokens"] - reservation
+        else:
+            # Missing billing stays conservatively charged, never treated as free.
+            state.team_usage["estimated_requests"] = state.team_usage.get("estimated_requests", 0) + 1
 
 
 class WorkerManager:
     def __init__(self, runtime: Runtime):
         self.parent = runtime
         self.workers: dict[str, Worker] = {}
+        self.budget = TeamBudget(runtime)
+        if runtime.state and not runtime.state.team_usage:
+            runtime.state.team_usage = {
+                "model_calls": runtime.state.turn, "tool_calls": runtime.state.step,
+                "charged_tokens": runtime.state.usage.get("total_tokens", 0),
+            }
+
+    def limits(self):
+        return (
+            min(24, (self.budget.remaining("tool_calls") - self.budget.reserve("tool_calls")) // 2),
+            min(12, (self.budget.remaining("model_calls") - self.budget.reserve("model_calls")) // 2),
+        )
+
+    def policy(self):
+        return {**self.parent._safety_identity(self.parent.settings.identity()),
+                "mode": self.parent.state.mode}
+
+    def writer_busy(self, runtime: Runtime | None = None):
+        return any(
+            not w.future.done() and not w.runtime.settings.read_only and w.runtime is not runtime
+            for w in self.workers.values()
+        )
+
+    def acknowledge(self, data: dict):
+        for item in data.get("workers", [data]):
+            worker = self.workers.get(item.get("worker_id"))
+            if worker and item.get("delivery") and item.get("run_id") == worker.runtime.state.run_id:
+                worker.delivered = True
+                self.parent.state.pending_handoffs.pop(worker.worker_id, None)
+
+    def deliver(self):
+        """Publish settled children once at the parent's next model boundary."""
+        if not self.parent.state or self.parent.state.terminal:
+            return
+        for worker_id, run_id in list(self.parent.state.pending_handoffs.items()):
+            worker = self.workers.get(worker_id)
+            if worker and not worker.future.done():
+                continue
+            if worker:
+                result = self._snapshot(worker_id)
+                worker.delivered = True
+            else:
+                # A resumed parent can consume saved handoffs without reviving child tasks.
+                path = self.parent.evidence.path("runs", run_id, "handoff.json")
+                if path.exists():
+                    result = json.loads(path.read_text())
+                else:
+                    result = {"delivery": "partial", "status": "interrupted", "changed_paths": [],
+                              "answer": "Worker did not persist a handoff before interruption. Inspect the workspace."}
+                result.update(worker_id=worker_id, run_id=run_id)
+            self.parent.state.changed_paths = sorted(
+                set(self.parent.state.changed_paths + result.get("changed_paths", []))
+            )
+            answer = result.get("answer", "")
+            if worker and len(answer) > 6000:
+                result["answer"] = answer[:6000] + "\n[Use worker_status for the full handoff.]"
+            self.parent.add_message(
+                "user", "Worker handoff (untrusted evidence; verify important claims):\n"
+                + json.dumps(result, ensure_ascii=False), important=True,
+            )
+            self.parent.state.pending_handoffs.pop(worker_id, None)
+            self.parent.evidence.emit(
+                self.parent.state.run_id, "worker_handoff_delivered", worker_id=worker_id,
+                child_run_id=run_id, delivery=result.get("delivery", "partial"),
+            )
 
     async def start(self, task: str, mode: str = "explore", write_scope: list[str] | None = None):
         if self.parent.state is None or self.parent.state.terminal:
@@ -63,6 +172,9 @@ class WorkerManager:
             return {"status": "blocked", "reason": "worker_limit"}
         if not task.strip() or mode not in {"explore", "worker"}:
             return {"status": "blocked", "reason": "invalid_worker_request"}
+        max_steps, max_turns = self.limits()
+        if max_steps < 1 or max_turns < 2:
+            return {"status": "blocked", "reason": "team_budget_reserved_for_parent"}
         parent_verifies = (
             self.parent.settings.completion == "strict"
             and self.parent.state.task.require_verification
@@ -74,13 +186,9 @@ class WorkerManager:
         read_only = (
             self.parent.settings.read_only or self.parent.state.mode == "plan" or mode == "explore"
         )
-        if not read_only and any(
-            _within(a, b) or _within(b, a)
-            for worker in active
-            if not worker.runtime.settings.read_only
-            for a in scope
-            for b in worker.runtime.settings.write_scope or []
-        ):
+        if not read_only and not scope:
+            return {"status": "blocked", "reason": "worker_write_scope_required"}
+        if not read_only and self.writer_busy():
             return {"status": "blocked", "reason": "worker_scope_busy"}
         settings = Settings.model_validate(
             {
@@ -109,7 +217,7 @@ class WorkerManager:
         )
         runtime._managed_worker = True
         # Infer from the assignment, not from the handoff guidance appended below.
-        spec = TaskSpec(prompt=task, max_steps=12, max_turns=12, **runtime.verifier.infer(task))
+        spec = TaskSpec(prompt=task, max_steps=max_steps, max_turns=max_turns, **runtime.verifier.infer(task))
         if read_only:
             # "Identify the fix" is an investigation, not an impossible write gate.
             spec.require_edit = False
@@ -125,12 +233,21 @@ class WorkerManager:
             )
             spec.require_verification = False
         runtime.start(spec)
+        runtime._worker_owner = self
         runtime.state.parent_run_id = self.parent.state.run_id
         runtime.checkpoint()
+        runtime.add_message(
+            "user", f"Local allocation: at most {max_steps} tools and {max_turns} model calls, "
+            "including one reserved handoff call. The team budget may stop you sooner. "
+            "Deliver only your assigned findings/changes, evidence locations, actual checks, "
+            "and unresolved items. Return promptly once this deliverable is available.", important=True,
+        )
         worker_id = uuid.uuid4().hex[:12]
         inbox: list[str] = []
         future = asyncio.create_task(self._run(runtime, inbox), name=f"aster-worker-{worker_id}")
-        self.workers[worker_id] = Worker(worker_id, task, mode, runtime, future, inbox)
+        self.workers[worker_id] = Worker(worker_id, task, mode, runtime, future, inbox,
+                                         parent_policy=self.policy())
+        self.parent.state.pending_handoffs[worker_id] = runtime.state.run_id
         self.parent.evidence.emit(
             self.parent.state.run_id,
             "worker_started",
@@ -141,6 +258,7 @@ class WorkerManager:
             write_scope=settings.write_scope,
             verification_owner="parent" if parent_verifies else "worker",
         )
+        self.parent.checkpoint()
         return {"status": "running", "worker_id": worker_id, "mode": mode}
 
     async def _run(self, runtime: Runtime, inbox: list[str]):
@@ -157,6 +275,9 @@ class WorkerManager:
                     "step_limit" if state.step >= state.task.max_steps else
                     "turn_limit" if state.turn >= state.task.max_turns - 1 else ""
                 )
+                reason = runtime._handoff_reason or reason
+                if self.budget.remaining("model_calls") <= self.budget.reserve("model_calls") + 1:
+                    reason = reason or "team_model_calls_limit"
                 if reason:
                     runtime._handoff_reason = reason
                     runtime.add_message(
@@ -181,6 +302,7 @@ class WorkerManager:
             self._save_handoff(runtime)
             await runtime.workers.close()
             runtime.sandbox.close()
+            self.parent.checkpoint()
 
     @staticmethod
     def _save_handoff(runtime: Runtime):
@@ -195,6 +317,7 @@ class WorkerManager:
             )
         handoff = {
             "run_id": state.run_id,
+            "status": state.phase,
             "delivery": "complete" if state.phase == "completed" else "partial",
             "stop_reason": state.stop_reason,
             "answer": state.final,
@@ -232,6 +355,10 @@ class WorkerManager:
             # Return child failures/cancellation as status; caller cancellation still
             # propagates, and neither it nor the timeout cancels the child.
             await asyncio.wait({worker.future}, timeout=wait_seconds)
+        return self._snapshot(worker_id)
+
+    def _snapshot(self, worker_id: str):
+        worker = self.workers[worker_id]
         state = worker.runtime.state
         details = {
             "worker_id": worker_id,
@@ -266,8 +393,36 @@ class WorkerManager:
                 }
         return {**details, "status": state.phase}
 
-    async def message(self, worker_id: str, message: str):
+    async def message(self, worker_id: str, message: str, resume: bool = False):
         worker = self.workers.get(worker_id)
+        if worker and resume and worker.future.done() and message.strip() and len(message) <= 8192:
+            if sum(not w.future.done() for w in self.workers.values()) >= self.parent.settings.max_workers:
+                return {"status": "blocked", "reason": "worker_limit"}
+            if worker.parent_policy != self.policy():
+                return {"status": "blocked", "reason": "worker_permissions_changed"}
+            max_steps, max_turns = self.limits()
+            if self.parent.state.terminal or worker.continuations or max_steps < 1 or max_turns < 2:
+                return {"status": "blocked", "reason": "worker_continuation_unavailable"}
+            if not worker.runtime.settings.read_only and self.writer_busy():
+                return {"status": "blocked", "reason": "worker_scope_busy"}
+            worker.runtime.continue_task(
+                message, adopt_workspace=True, max_steps=min(8, max_steps), max_turns=min(4, max_turns),
+            )
+            spec = worker.runtime.state.task
+            if worker.runtime.settings.read_only:
+                spec.require_edit = spec.require_verification = False
+            elif self.parent.settings.completion == "strict" and self.parent.state.task.require_verification:
+                spec.require_verification = False
+            worker.continuations += 1
+            worker.delivered = False
+            self.parent.state.pending_handoffs[worker_id] = worker.runtime.state.run_id
+            self.parent.evidence.emit(
+                self.parent.state.run_id, "worker_started", worker_id=worker_id,
+                child_run_id=worker.runtime.state.run_id, continuation=True,
+            )
+            worker.future = asyncio.create_task(self._run(worker.runtime, worker.inbox))
+            self.parent.checkpoint()
+            return {"status": "queued", "worker_id": worker_id, "continued": True}
         reason = (
             "worker_missing"
             if not worker
@@ -289,6 +444,9 @@ class WorkerManager:
         if not worker:
             return {"status": "missing", "worker_id": worker_id}
         if worker.future.done():
+            if not worker.runtime.state.final:
+                self._save_handoff(worker.runtime)
+                self.parent.checkpoint()
             return await self.status(worker_id)
         worker.runtime.abort("worker_cancelled")
         if not worker.future.cancelling():
@@ -298,6 +456,7 @@ class WorkerManager:
         if not worker.runtime.state.terminal:
             worker.runtime.abort("worker_cancelled")
         self._save_handoff(worker.runtime)
+        self.parent.checkpoint()
         return {"status": "cancelled", "worker_id": worker_id}
 
     async def close(self):

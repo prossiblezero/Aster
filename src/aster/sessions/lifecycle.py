@@ -87,6 +87,8 @@ def prepare_continuation(
     state.phase, state.stop_reason, state.final, state.feedback = "running", "", "", ""
     state.step = state.turn = state.final_revisions = 0
     state.usage = {}
+    state.team_usage = {}
+    state.pending_handoffs = {}
     history = deepcopy(history)
     if feedback is not None:
         inferred = verifier.infer(feedback)
@@ -101,6 +103,7 @@ def prepare_continuation(
             prompt=previous.task.prompt,
             max_steps=previous.task.max_steps,
             max_turns=previous.task.max_turns,
+            max_tokens=previous.task.max_tokens,
             required_artifacts=previous.task.required_artifacts
             if inferred["require_edit"] or unfinished
             else [],

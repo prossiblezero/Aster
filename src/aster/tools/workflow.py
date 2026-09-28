@@ -205,7 +205,7 @@ class WorkflowTools:
                 ],
             )
         if name == "worker_message":
-            data = await self.worker_message(args["worker_id"], args["message"])
+            data = await self.worker_message(args["worker_id"], args["message"], resume=args.get("resume", False))
             return Outcome(
                 status="success" if data["status"] == "queued" else "blocked",
                 reason=data.get("reason", ""),

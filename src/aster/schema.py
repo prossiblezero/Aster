@@ -47,6 +47,7 @@ class TaskSpec(Record):
     task_id: str = Field(default_factory=lambda: uuid4().hex)
     max_steps: int = Field(default=40, ge=1, le=500)
     max_turns: int = Field(default=40, ge=1, le=500)
+    max_tokens: int | None = Field(default=None, ge=1)
     require_observation: bool = False
     require_edit: bool = False
     require_verification: bool = False
@@ -103,6 +104,8 @@ class RunState(Record):
     read_evidence: dict[str, str] = Field(default_factory=dict)
     used_call_ids: list[str] = Field(default_factory=list)
     usage: dict[str, int] = Field(default_factory=dict)
+    team_usage: dict[str, int] = Field(default_factory=dict)
+    pending_handoffs: dict[str, str] = Field(default_factory=dict)
     loaded_tools: list[str] = Field(default_factory=list)
 
     @property

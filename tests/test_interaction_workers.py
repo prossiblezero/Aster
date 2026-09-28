@@ -185,6 +185,30 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     assert "Also check the license." in json.dumps(model.requests[-1])
     assert (await parent.workers.status(worker_id))["status"] == "completed"
     assert (await parent.workers.message(worker_id, "late"))["reason"] == "worker_finished"
+    occupied = await parent.workers.start("Occupy the available worker slot")
+    assert (await parent.workers.message(worker_id, "Follow up", resume=True))["reason"] == "worker_limit"
+    await parent.workers.stop(occupied["worker_id"])
+    parent.state.mode = "plan"
+    assert (await parent.workers.message(worker_id, "Follow up", resume=True))[
+        "reason"
+    ] == "worker_permissions_changed"
+    parent.state.mode = "work"
+    previous_run = worker.runtime.state.run_id
+    previous_usage = parent.state.team_usage.copy()
+    continued = await parent.step(ToolCall(name="worker_message", arguments={
+        "worker_id": worker_id, "message": "Explain the license finding.", "resume": True,
+    }))
+    assert continued.data["continued"] and continued.data["status"] == "queued"
+    await worker.future
+    assert worker.runtime.state.run_id != previous_run
+    assert worker.runtime.state.task.max_steps <= 8 and worker.runtime.state.task.max_turns <= 4
+    assert worker.runtime.settings.read_only and worker.runtime.settings.max_workers == 0
+    assert "Also check the license." in json.dumps(model.requests[-1])
+    assert "Explain the license finding." in json.dumps(model.requests[-1])
+    assert parent.state.team_usage["model_calls"] == previous_usage["model_calls"] + 1
+    assert (await parent.workers.message(worker_id, "Again", resume=True))[
+        "reason"
+    ] == "worker_continuation_unavailable"
     assert (await parent.workers.start("another task"))["status"] == "running"
     await parent.workers.close()
 
@@ -244,6 +268,9 @@ async def test_worker_status_joins_results_with_one_deadline_and_preserves_cance
     )
     assert outcome.status == "success" and outcome.data["status"] == "finished"
     assert [r["status"] for r in outcome.data["workers"]] == ["completed", "missing", "cancelled"]
+    prompt, _, _ = parent.prepare_request()
+    assert "Worker handoff (untrusted evidence" not in json.dumps(prompt)
+    assert all(worker.delivered for worker in parent.workers.workers.values())
     assert not parent.state.terminal
     await parent.workers.close()
 
@@ -395,6 +422,75 @@ async def test_worker_handoff_cannot_execute_unsolicited_tools(tmp_path):
     await parent.workers.close()
 
 
+@pytest.mark.parametrize("limit", ["tool_calls", "model_calls", "tokens"])
+async def test_team_budget_covers_children_parent_and_checkpoint_restore(tmp_path, limit):
+    (tmp_path / "target.py").write_text("answer = 42\n")
+    requests = []
+    entered, release = asyncio.Event(), asyncio.Event()
+    billed_tokens = 7
+
+    class Model:
+        async def complete(self, messages, tools):
+            requests.append(tools)
+            if limit == "tokens":
+                entered.set()
+                await release.wait()
+                return ModelReply(text="Findings delivered.", usage={"total_tokens": billed_tokens})
+            return ModelReply(
+                calls=[ToolCall(name="read_file", arguments={"path": "target.py"})
+                       for _ in range(6 if limit == "tool_calls" else 1)] if tools else [],
+                text="Partial findings." if not tools else "", usage={"total_tokens": 7},
+            )
+
+    settings = Settings(max_workers=2, completion="off", read_parallelism=2)
+    parent = Runtime(tmp_path, settings, model=Model())
+    parent.start(TaskSpec(
+        prompt="Inspect the repository", max_steps=10 if limit == "tool_calls" else 40,
+        max_turns=8 if limit == "model_calls" else 20,
+    ))
+    for _ in range(2):
+        assert (await parent.workers.start("Inspect target.py"))["status"] == "running"
+    if limit == "tokens":
+        first, second = parent.workers.workers.values()
+        _, _, estimate = first.runtime.prepare_request()
+        billed_tokens = estimate.estimated_tokens + first.runtime.settings.effective_output_tokens
+        parent.state.task.max_tokens = billed_tokens * 3 // 2
+        await asyncio.wait_for(entered.wait(), 5)
+        await wait_until(second.future.done)
+        assert len(requests) == 1 and not first.future.done()
+        assert parent.state.team_usage["charged_tokens"] == billed_tokens
+        assert second.runtime.state.stop_reason == "team_token_limit"
+        release.set()
+    await asyncio.wait_for(asyncio.gather(
+        *(worker.future for worker in parent.workers.workers.values())
+    ), 5)
+    if limit == "tool_calls":
+        assert parent.state.team_usage[limit] == 8
+        for _ in range(2):
+            assert (await parent.step(ToolCall(name="read_file", arguments={"path": "target.py"}))).status == "success"
+        assert (await parent.step(ToolCall(name="list_files"))).reason == "team_tool_calls_limit"
+        assert parent.state.team_usage[limit] == 10
+    elif limit == "model_calls":
+        assert parent.state.team_usage[limit] == 6
+        for _ in range(3):
+            await parent.turn()
+        assert parent.state.team_usage[limit] == 8 and len(requests) == 8
+    else:
+        await parent.turn()
+        assert len(requests) == 1
+    assert parent.state.stop_reason == f"team_{'token' if limit == 'tokens' else limit}_limit"
+    assert parent.state.team_usage.get("charged_tokens", 0) == len(requests) * billed_tokens
+    assert parent.state.team_usage.get("model_calls", 0) == len(requests)
+    assert all(worker.runtime.state.final for worker in parent.workers.workers.values())
+    restored = Runtime(tmp_path, settings, model=parent.model)
+    restored.resume(parent.state.run_id)
+    assert restored.state.team_usage == parent.state.team_usage
+    assert restored.state.task.max_tokens == parent.state.task.max_tokens
+    await restored.turn()
+    assert restored.state.team_usage == parent.state.team_usage
+    await parent.workers.close()
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("parent_verifies", [False, True])
 async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, parent_verifies):
@@ -491,7 +587,8 @@ async def test_non_strict_parent_keeps_child_task_requirements(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path):
+@pytest.mark.parametrize("delivery", ["automatic", "status", "resume"])
+async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path, delivery):
     (tmp_path / "target.py").write_text("def answer(): return 0\n")
     parent = Runtime(
         tmp_path,
@@ -507,17 +604,57 @@ async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path)
     assert not result.task.require_edit and not result.task.require_verification
     assert not result.changed_paths and worker.runtime.settings.read_only
     assert (tmp_path / "target.py").read_text() == "def answer(): return 0\n"
+    if delivery == "status":
+        await parent.step(ToolCall(name="worker_status", arguments={"worker_id": worker.worker_id}))
+    elif delivery == "resume":
+        parent.checkpoint()
+        restored = Runtime(tmp_path, parent.settings, model=parent.model)
+        restored.resume(parent.state.run_id)
+        assert restored.state.team_usage == parent.state.team_usage
+        parent = restored
+    else:
+        # UI polling does not deliver a tool result to the parent model.
+        await parent.workers.status(worker.worker_id)
+    parent.prepare_request()
+    prompt, _, _ = parent.prepare_request()
+    assert "Finished." in json.dumps(prompt)
+    notifications = [row for row in parent.evidence.events(parent.state.run_id)
+                     if row["event"] == "worker_handoff_delivered"]
+    assert len(notifications) == (0 if delivery == "status" else 1)
     await parent.workers.close()
 
 
 @pytest.mark.asyncio
-async def test_overlapping_worker_write_scopes_are_rejected(tmp_path):
-    parent = Runtime(tmp_path, Settings(approval="auto", max_workers=2), model=PausedModel())
+@pytest.mark.parametrize("cancel_writer", [False, True])
+async def test_worker_writer_excludes_other_writers_and_parent_effects(tmp_path, cancel_writer):
+    model = PausedModel()
+    parent = Runtime(tmp_path, Settings(approval="auto", max_workers=2), model=model)
     parent.start(TaskSpec(prompt="demo"))
-    assert (await parent.workers.start("demo", "worker", ["src"]))["status"] == "running"
+    started = await parent.workers.start("demo", "worker", ["src"])
+    assert started["status"] == "running"
+    await model.entered.wait()
     assert (await parent.workers.start("demo", "worker", ["src/core"]))[
         "reason"
     ] == "worker_scope_busy"
+    assert (await parent.workers.start("demo", "worker", ["tests"]))["reason"] == "worker_scope_busy"
+    reader = await parent.workers.start("Inspect the repository")
+    assert reader["status"] == "running"
+    write = {"path": "parent.txt", "content": "parent"}
+    for call in [
+        ToolCall(name="write_file", arguments=write),
+        ToolCall(name="run_shell", arguments={"command": "touch parent.txt"}),
+        ToolCall(name="run_tests", arguments={"command": "python -m pytest"}),
+    ]:
+        assert (await parent.step(call)).reason == "worker_writer_active"
+    assert not (tmp_path / "parent.txt").exists()
+    assert (await parent.step(ToolCall(name="list_files"))).status == "success"
+    if cancel_writer:
+        await parent.workers.stop(started["worker_id"])
+    else:
+        model.release.set()
+        await parent.workers.workers[started["worker_id"]].future
+    assert (await parent.step(ToolCall(name="write_file", arguments=write))).status == "success"
+    await parent.workers.stop(reader["worker_id"])
     assert (await parent.workers.start("demo", "worker", ["tests"]))["status"] == "running"
     await parent.workers.close()
 

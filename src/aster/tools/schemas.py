@@ -177,6 +177,7 @@ class WorkerStatus(WorkerId):
 
 class WorkerMessage(WorkerId):
     message: str
+    resume: bool = Field(default=False, description="Continue a finished worker once for a focused follow-up, within the remaining team budget.")
 
 
 class ImageRead(Record):
@@ -245,14 +246,14 @@ SCHEMAS = {
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (
         WorkerStart,
-        "Start an independent task (12 tool steps/12 turns), sharing this workspace. "
-        "Use disjoint write scopes and pass complete requirements and known paths. "
+        "Start a bounded task sharing this workspace and the parent's total budget. "
+        "Pass the specific deliverable, known paths/facts, scope and test responsibility. "
         "Delegate substantial independent work or investigations; do small lookups directly. "
-        "Start independent assignments together, then use one worker_status call with "
-        "their ids and wait_seconds=300. For investigations request concise conclusions "
+        "Finished handoffs arrive automatically at your next turn. When waiting, use one "
+        "worker_status call with their ids and wait_seconds=300. For investigations request concise conclusions "
         "with source paths and evidence, and inspect gaps rather than repeating every read. "
-        "For implementation delivery, write integration tests while workers run, "
-        "then wait, inspect delivered changes and verify the integrated result. "
+        "Only one agent writes at a time: a writing worker needs a nonempty write_scope; "
+        "while it runs do read-only work, then inspect its changes and verify the integrated result. "
         "When the parent has a strict verification requirement, workers can hand off "
         "without passing tests: the parent's test gate still applies. Avoid duplicating "
         "their work. Small tasks can be cheaper to do directly.",
@@ -269,7 +270,7 @@ SCHEMAS = {
     ),
     "worker_message": (
         WorkerMessage,
-        "Send guidance to a running worker at its next turn.",
+        "Send guidance to a running worker, or set resume=true for one bounded follow-up to a finished worker. Preserve its local context instead of repeating discovery.",
         "state",
     ),
     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),

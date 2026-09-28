@@ -108,12 +108,18 @@ class Runtime:
         self._operation_task: asyncio.Task | None = None
         self._managed_worker = False
         self._handoff_reason = ""
+        self._worker_owner: WorkerManager | None = None
+        self._request_estimate = 0
         self._archive_sources: dict[str, str] = {}
         self._history_origins: list[dict] = []
         self._continued_from: str | None = None
         self._checkpoint_workspace: dict[str, str] = {}
         self._environment_generation = self.sandbox.environment_generation
         self.workers = WorkerManager(self)
+
+    @property
+    def _team(self):
+        return self._worker_owner or self.workers
 
     @contextmanager
     def _operation(self):
@@ -283,6 +289,7 @@ class Runtime:
         self._initial_text, self._initial_modes = initial_text, initial_modes
         self._pending_messages = []
         self.workers = WorkerManager(self)
+        self._handoff_reason = ""
         self.stall.items.clear()
         self._recovery_used = 0
         self._finish_hook_ran = self._dream_ran = False
@@ -315,6 +322,7 @@ class Runtime:
         self.session_tree.turn_id = self.state.run_id
         self.session_tree.pending.append(("turn_start", {"prompt": task.prompt}))
         self.workers = WorkerManager(self)
+        self._handoff_reason = ""
         self._initial_text = self.workspace.text_snapshot()
         self._initial_modes = self.workspace.mode_snapshot()
         self.stall.items.clear()
@@ -403,6 +411,7 @@ class Runtime:
             state.working_memory.pop("__run_tests__", None)
         self.state = state
         self.workers = WorkerManager(self)
+        self._handoff_reason = ""
         self._initial_text = data.get("initial_text", {})
         self._initial_modes = data.get("initial_modes", {})
         self._recovery_used = data.get("recovery_used", 0)
@@ -492,6 +501,7 @@ class Runtime:
         """One budgeted policy observation for autonomous calls and external rollouts."""
         state = self.state
         assert state is not None
+        self.workers.deliver()
         # Settings are mutable; the counted request must use the provider's current model limits.
         self.context.budget = self.settings.effective_context_tokens
         self.context.output_reserve = self.settings.effective_output_tokens
@@ -539,6 +549,7 @@ class Runtime:
             redact_history=self.evidence.redact_history,
         )
         self.checkpoint()
+        self._request_estimate = report.estimated_tokens + self.settings.effective_output_tokens
         payload = request_payload(
             prompt,
             tool_defs,
@@ -580,6 +591,12 @@ class Runtime:
     async def _model_turn(self, prompt, tool_defs):
         state = self.state
         assert state is not None
+        reservation = self._request_estimate
+        reason = self._team.budget.admit(self, "model_calls", reservation)
+        if reason:
+            self.finish(reason)
+            return state
+        self._team.parent.checkpoint()
         request_hash = self._request_hash(
             request_payload(
                 prompt,
@@ -589,6 +606,7 @@ class Runtime:
                 output_tokens=self.settings.effective_output_tokens,
             )
         )
+        request_usage = {}
         try:
             request_messages = prompt
             if isinstance(self.model, ModelClient):
@@ -605,12 +623,15 @@ class Runtime:
                 )
             else:
                 reply = await self.model.complete(request_messages, tool_defs)
+            request_usage = reply.usage
         except asyncio.CancelledError:
             if isinstance(self.model, ModelClient):
+                request_usage = self.model.last_usage
                 for name, value in self.model.last_usage.items():
                     state.usage[name] = state.usage.get(name, 0) + value
             raise
         except ProviderError as exc:
+            request_usage = exc.details.get("usage", {})
             state.feedback = self.evidence.redactor.text(str(exc))
             for name, value in exc.details.get("usage", {}).items():
                 state.usage[name] = state.usage.get(name, 0) + value
@@ -619,6 +640,9 @@ class Runtime:
             )
             self.finish("provider_error", failed=True)
             return state
+        finally:
+            self._team.budget.settle(reservation, request_usage)
+            self._team.parent.checkpoint()
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
         if state.terminal:
@@ -727,6 +751,8 @@ class Runtime:
         )
 
     def _append_output(self, call: ToolCall, outcome: Outcome):
+        if call.name == "worker_status":
+            self.workers.acknowledge(outcome.data)
         output = json.dumps(
             {
                 "status": outcome.status,
@@ -840,7 +866,7 @@ class Runtime:
                 self.checkpoint()
                 self.evidence.path("runs", self.state.run_id, "inflight.json").unlink(missing_ok=True)
 
-    async def _step(self, call: ToolCall, arguments=None) -> Outcome:
+    def _take_step(self, *, detached=False):
         state = self.state
         assert state is not None
         if state.terminal:
@@ -848,12 +874,24 @@ class Runtime:
         if self._handoff_reason:
             return Outcome(status="blocked", reason="handoff_only")
         if state.step >= state.task.max_steps:
-            if not self._managed_worker:
+            if not self._managed_worker and not detached:
                 self.finish("step_limit")
             return Outcome(status="blocked", reason="step_limit")
+        reason = self._team.budget.admit(self, "tool_calls")
+        if reason:
+            if self._managed_worker:
+                self._handoff_reason = reason
+            elif not detached:
+                self.finish(reason)
+            return Outcome(status="blocked", reason=reason)
         state.step += 1
+
+    async def _step(self, call: ToolCall, arguments=None) -> Outcome:
+        blocked = self._take_step()
+        if blocked:
+            return blocked
         outcome = await self._execute(call, arguments)
-        return self._collect_step(call, outcome, state.step)
+        return self._collect_step(call, outcome, self.state.step)
 
     async def _execute_batch(self, calls: list[ToolCall], *, on_result=None) -> list[Outcome]:
         """Preflight in order, overlap detached reads, then publish results in order.
@@ -879,12 +917,10 @@ class Runtime:
             state = self.state
             outcomes = []
             for call in calls:
-                if state.terminal or state.step >= state.task.max_steps:
-                    if not self._managed_worker:
-                        self.finish("step_limit")
-                    outcome = Outcome(status="blocked", reason="step_limit")
+                blocked = self._take_step()
+                if blocked:
+                    outcome = blocked
                 else:
-                    state.step += 1
                     outcome = self._collect_step(call, invalid.get(call.call_id) or Outcome(
                         status="blocked", reason="batch_validation_failed",
                         content="No tools in this batch ran. Correct the invalid tool arguments, then resubmit the intended calls.",
@@ -902,16 +938,11 @@ class Runtime:
         state = self.state
         assert state is not None
         preparations = []
-        exhausted = False
         for call in calls:
-            if state.terminal:
-                preparations.append((call, Outcome(status="blocked", reason="run_terminal"), None))
-            elif state.step >= state.task.max_steps:
-                reason = "run_terminal" if exhausted else "step_limit"
-                exhausted = True
-                preparations.append((call, Outcome(status="blocked", reason=reason), None))
+            blocked = self._take_step(detached=True)
+            if blocked:
+                preparations.append((call, blocked, None))
             else:
-                state.step += 1
                 preparations.append(
                     (call, await self._prepare_tool(call, detached=True, arguments=arguments[call.call_id]), state.step)
                 )
@@ -937,8 +968,8 @@ class Runtime:
             if step is None:
                 if state.terminal:
                     prepared = Outcome(status="blocked", reason="run_terminal")
-                elif prepared.reason == "step_limit" and not self._managed_worker:
-                    self.finish("step_limit")
+                elif prepared.reason in {"step_limit", "team_tool_calls_limit"} and not self._managed_worker:
+                    self.finish(prepared.reason)
                 outcomes.append(record(call, prepared))
                 continue
             if isinstance(prepared, Outcome):
@@ -1086,6 +1117,9 @@ class Runtime:
         if isinstance(arguments, Outcome):
             return arguments
         effect = SCHEMAS[call.name][2]
+        if effect in {"write", "process"} and self._team.writer_busy(self):
+            return Outcome(status="blocked", reason="worker_writer_active",
+                           content="Await or stop the writing worker before editing or running processes.")
         call = call.model_copy(update={"arguments": arguments.model_dump()})
         unavailable = self._unavailable_reason(call.name)
         if unavailable:
