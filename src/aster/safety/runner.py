@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import shlex
 import shutil
 import signal
 import subprocess
@@ -230,7 +231,7 @@ class SandboxRunner:
             if constrained:
                 return Outcome(status="blocked", reason="isolation_required_for_scope")
             before = workspace.snapshot()
-            result = await self._process(["/bin/sh", "-c", command], workspace.root, timeout)
+            result = await self._run_command(command, workspace.root, timeout)
             result.changed_paths = Workspace.changes(before, workspace.snapshot())
             result.partial_success = bool(result.changed_paths) and result.status != "success"
             result.data["isolation"] = "off"
@@ -249,27 +250,25 @@ class SandboxRunner:
             launcher = Path(__file__).with_name("linux.py")
             if persistent:
                 self._generation += 1
-            result = await self._process(
+            result = await self._run_command(
+                command,
+                root,
+                timeout,
                 [
                     sys.executable,
                     "-I",
                     str(launcher),
                     str(root),
                     "on" if self.settings.network else "off",
-                    command,
-                    *(str(path) for path in borrowed.values()),
                 ],
-                root,
-                timeout,
+                [str(path) for path in borrowed.values()],
             )
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
                 if self.settings.sandbox == "best_effort" and not constrained:
                     if conflict := self._check_expected(workspace, expected_files):
                         return conflict
                     before = workspace.snapshot()
-                    fallback = await self._process(
-                        ["/bin/sh", "-c", command], workspace.root, timeout
-                    )
+                    fallback = await self._run_command(command, workspace.root, timeout)
                     fallback.data.update(isolation="off", degraded=True)
                     fallback.changed_paths = Workspace.changes(before, workspace.snapshot())
                     fallback.partial_success = (
@@ -421,6 +420,22 @@ class SandboxRunner:
         result.changed_paths = Workspace.changes(current, workspace.snapshot())
         result.partial_success = bool(result.changed_paths) and result.status != "success"
         return result
+
+    async def _run_command(
+        self, command: str, cwd: Path, timeout: float,
+        launcher: list[str] | None = None, dependencies: list[str] | None = None,
+    ) -> Outcome:
+        # Linux also limits each argv entry, so a large patch cannot travel via -c.
+        with tempfile.TemporaryDirectory(
+            prefix="aster-command-",
+            dir=cwd / ".tmp" if launcher else None,
+        ) as directory:
+            script = Path(directory) / "command.sh"
+            script.write_text(command + "\n", encoding="utf-8")
+            argv = ["/bin/sh", str(script)]
+            if launcher:
+                argv = [*launcher, shlex.join(argv), *(dependencies or [])]
+            return await self._process(argv, cwd, timeout)
 
     async def _process(self, argv: list[str], cwd: Path, timeout: float) -> Outcome:
         started = time.monotonic()

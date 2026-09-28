@@ -80,6 +80,22 @@ async def test_patch_accepts_bom_from_actual_read(tmp_path):
     assert (tmp_path / "a.txt").read_bytes() == b"\xef\xbb\xbfbeta\r\nalpha\r\n"
 
 
+@pytest.mark.parametrize("tool", ["write_file", "patch_file"])
+async def test_large_edit_does_not_exceed_process_argument_limit(tmp_path, tool):
+    original = b"unique heading\n" + b"unchanged body\n" * 20000
+    runtime = await editor(tmp_path, original)
+    arguments = {"path": "a.txt"}
+    expected = original.replace(b"unique heading", b"edited heading", 1)
+    if tool == "write_file":
+        arguments["content"] = expected.decode()
+    else:
+        arguments.update(old_text="unique heading", new_text="edited heading")
+    result = await runtime.step(ToolCall(name=tool, arguments=arguments))
+    assert result.status == "success", result.model_dump()
+    assert (tmp_path / "a.txt").read_bytes() == expected
+    assert result.changed_paths == ["a.txt"]
+
+
 async def test_long_command_output_is_archived_and_readable_after_resume(tmp_path):
     runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
     runtime.start(TaskSpec(prompt="inspect output"))

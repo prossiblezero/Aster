@@ -8,6 +8,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from ..safety.policy import local_python_paths
 from ..safety.runner import SandboxRunner
 from ..schema import Outcome
 from ..storage.workspace import Workspace
@@ -17,6 +18,7 @@ TEST_COMMAND_PREFIXES = [
     ["python", "-m", "pytest"],
     ["python", "-m", "unittest"],
     ["node", "--test"],
+    ["go", "test"],
 ]
 
 
@@ -57,6 +59,9 @@ async def run_tests(
 ) -> Outcome:
     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
     argv = shlex.split(command)
+    python_paths = []
+    if len(argv) > 1 and argv[1] == "python" and (paths := local_python_paths(argv[0])):
+        python_paths, argv = paths, argv[1:]
     if not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES) or any(
         c in command for c in ";|&><$`\n"
     ):
@@ -64,8 +69,9 @@ async def run_tests(
             status="blocked",
             reason="test_command_not_supported",
             content=(
-                "Use pytest, python -m pytest/unittest, or node --test without a .venv/bin/ "
-                "path or environment-variable prefix. With reuse_environment enabled, installed "
+                "Use pytest, python -m pytest/unittest, node --test, or go test without a .venv/bin/ "
+                "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
+                "With reuse_environment enabled, installed "
                 "project .venv dependencies are exposed automatically; keep them installed until "
                 "verification finishes. Other commands belong in run_shell, which does not "
                 "update formal test evidence."
@@ -75,11 +81,17 @@ async def run_tests(
         return Outcome(status="blocked", reason="isolation_required_for_scope")
     unittest = argv[:3] == ["python", "-m", "unittest"]
     node = argv[:2] == ["node", "--test"]
-    options = argv[2:] if node else argv[3:] if argv[0] == "python" else argv[1:]
+    go = argv[:2] == ["go", "test"]
+    options = argv[2:] if node or go else argv[3:] if argv[0] == "python" else argv[1:]
     if node and any(option.startswith("--test-reporter") for option in options):
         return Outcome(
             status="blocked", reason="test_reporter_reserved",
             content="Remove --test-reporter and --test-reporter-destination; run_tests supplies its own structured reporter. Retry with node --test and your test paths.",
+        )
+    if go and any(option == "-json" or option.startswith("-json=") for option in options):
+        return Outcome(
+            status="blocked", reason="test_reporter_reserved",
+            content="Remove -json; run_tests captures Go's structured test events automatically.",
         )
     tested_fingerprint = workspace.fingerprint()
     tested_environment = sandbox.environment_generation
@@ -98,6 +110,39 @@ async def run_tests(
                 f"--test-reporter-destination={report}",
                 *options,
             ]
+        elif go:
+            # Convert Go's test events, not human-readable PASS lines, into our shared report.
+            program = """import json, subprocess, sys, xml.etree.ElementTree as ET
+report = sys.argv[1]
+try:
+    process = subprocess.Popen(['go', 'test', '-json', *sys.argv[2:]], stdout=subprocess.PIPE, text=True)
+except FileNotFoundError:
+    raise SystemExit(127)
+suite = ET.Element('testsuite')
+failed_packages = set()
+for line in process.stdout:
+    try:
+        event = json.loads(line)
+    except (ValueError, TypeError):
+        case = ET.SubElement(suite, 'testcase', name='invalid test event', classname='go')
+        ET.SubElement(case, 'error').text = line
+        continue
+    if event.get('Output'):
+        print(event['Output'], end='', flush=True)
+    action, name, package = event.get('Action'), event.get('Test'), event.get('Package', '')
+    if name and action in {'pass', 'fail', 'skip'}:
+        case = ET.SubElement(suite, 'testcase', name=name, classname=package)
+        if action != 'pass':
+            ET.SubElement(case, 'failure' if action == 'fail' else 'skipped')
+        if action == 'fail':
+            failed_packages.add(package)
+    elif not name and action == 'fail' and package not in failed_packages:
+        case = ET.SubElement(suite, 'testcase', name=package or 'package startup', classname=package)
+        ET.SubElement(case, 'error')
+ET.ElementTree(suite).write(report, encoding='unicode')
+raise SystemExit(process.wait())
+"""
+            command = ["python", "-I", "-c", program, report, *options]
         elif unittest:
             # Import the standard runner before adding repository modules to sys.path.
             # TextTestResult already owns failures/skips; no stdout parsing is needed.
@@ -147,7 +192,11 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             boundary = options.index("--") if "--" in options else len(options)
             options[boundary:boundary] = [f"--junitxml={report}", "-p", "no:cacheprovider"]
             command = ["python", "-I", "-c", program, *options]
-        if not node and sandbox.settings.reuse_environment:
+        if not node and not go and python_paths:
+            marker = "sys.path.insert(0, os.getcwd())"
+            program = program.replace(marker, marker + f"\nsys.path[:0] = {python_paths!r}")
+            command[3] = program
+        if not node and not go and sandbox.settings.reuse_environment:
             # -I intentionally ignores PYTHONPATH. Import the trusted test runner
             # first, then expose only this sandbox's controlled dependency target.
             marker = "sys.path.insert(0, os.getcwd())"
@@ -218,15 +267,15 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.status = "blocked"
             result.reason = "no_tests_executed" if cases else "no_tests_collected"
     elif result.status == "error":
-        if not unittest and not node and result.exit_code == 5:
+        if not unittest and not node and not go and result.exit_code == 5:
             result.reason = "no_tests_collected"
-        elif not unittest and not node and result.exit_code == 2:
+        elif not unittest and not node and not go and result.exit_code == 2:
             result.reason = (
                 "test_collection_failed"
                 if any(case["status"] == "error" for case in cases or [])
                 else "test_interrupted"
             )
-        elif not unittest and not node and result.exit_code in {3, 4}:
+        elif not unittest and not node and not go and result.exit_code in {3, 4}:
             result.reason = "test_runner_error"
         elif result.exit_code == 127:
             result.reason = "test_runner_unavailable"

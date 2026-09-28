@@ -5,12 +5,29 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 
 from ..config import Settings
+from ..storage.workspace import CONTROL, sensitive
 
 
 @dataclass(frozen=True)
 class Decision:
     action: str
     reason: str
+
+
+def local_python_paths(assignment: str) -> list[str] | None:
+    """Only explicit relative import roots; never arbitrary environment assignments."""
+    if not assignment.startswith("PYTHONPATH="):
+        return None
+    paths = assignment.removeprefix("PYTHONPATH=").split(":")
+    if any(
+        not value or PurePosixPath(value).is_absolute()
+        or ".." in PurePosixPath(value).parts
+        or any(part in CONTROL for part in PurePosixPath(value).parts)
+        or sensitive(PurePosixPath(value))
+        for value in paths
+    ):
+        return None
+    return paths
 
 
 def shell_argv(command: str) -> list[str] | None:
@@ -49,6 +66,8 @@ def shell_argv(command: str) -> list[str] | None:
     )
     if not argv:
         raise ValueError("empty command")
+    if len(argv) > 1 and argv[1] in {"python", "python3"} and local_python_paths(argv[0]):
+        argv = argv[1:]
     # An embedded command is not protected by rules on the outer executable.
     executable = PurePosixPath(argv[0]).name or argv[0]
     if executable in {

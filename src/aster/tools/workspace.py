@@ -4,7 +4,6 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
-import shlex
 from collections.abc import Iterable
 from itertools import islice
 from pathlib import Path
@@ -255,4 +254,5 @@ class WorkspaceTools:
             f"p=Path({path!r}); p.parent.mkdir(parents=True,exist_ok=True); "
             f"p.write_bytes(base64.b64decode({encoded!r}))"
         )
-        return "python -c " + shlex.quote(program)
+        # Keep file contents out of execve arguments, including Python's -c argument.
+        return "python - <<'ASTER_WRITE'\n" + program + "\nASTER_WRITE\n"
