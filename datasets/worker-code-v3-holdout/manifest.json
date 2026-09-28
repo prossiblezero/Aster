@@ -1,0 +1,41 @@
+{
+  "name": "Aster Worker Code v3 frozen holdout",
+  "version": "3.0.0",
+  "created_at": "2026-09-28",
+  "status": "selection_frozen_before_scorer_and_model_runs",
+  "total": 6,
+  "difficulty_counts": {
+    "simple": 2,
+    "medium": 3,
+    "hard": 1
+  },
+  "source_counts": {
+    "aider-polyglot": 1,
+    "bigcodebench": 1,
+    "swebench-verified": 4
+  },
+  "file_sha256": {
+    "instances.jsonl": "114c34db313668edd18197a1fc3771a0ad5d28329ca579b91a9398dbebf79ed2",
+    "sources.json": "a4bb98da52c4032fe248c5d9028ba112dd490d50f8895c813a6dd65e4a76bb1c",
+    "environment.json": "893796d93d480684e7db97e4e6f8f59f11d394ed3b5084f708b3412f86c97049"
+  },
+  "selection_rule": "Six original tasks, disjoint from v1/v2; frozen before preflight/model outcomes. No substitution after model results.",
+  "model_input_allowlist": [
+    "prompt",
+    "materials.public",
+    "base repository from materials.setup"
+  ],
+  "private_fields": [
+    "grading",
+    "collaboration",
+    "materials.grader",
+    "derived official rows",
+    "reference patch",
+    "test patch"
+  ],
+  "notes": [
+    "2 simple/3 medium/1 hard across 3 previously prepared upstream sources.",
+    "Difficulty is Aster stratum; the hard issue also carries upstream >4 hours.",
+    "Reuse existing scoring adapters and dependency environments; no new task content in driver."
+  ]
+}
