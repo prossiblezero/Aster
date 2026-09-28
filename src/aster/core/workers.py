@@ -146,16 +146,28 @@ class WorkerManager:
     async def _run(self, runtime: Runtime, inbox: list[str]):
         try:
             while not runtime.state.terminal:
-                if runtime.state.step >= runtime.state.task.max_steps:
-                    runtime.finish("step_limit")
-                    break
                 for message in inbox:
                     runtime.add_message("user", message, important=True)
                     runtime.evidence.emit(
                         runtime.state.run_id, "worker_message_delivered", text=message
                     )
                 inbox.clear()
+                state = runtime.state
+                reason = (
+                    "step_limit" if state.step >= state.task.max_steps else
+                    "turn_limit" if state.turn >= state.task.max_turns - 1 else ""
+                )
+                if reason:
+                    runtime._handoff_reason = reason
+                    runtime.add_message(
+                        "user", "Your work budget is exhausted. No more tools are available. "
+                        "Return a concise PARTIAL handoff using only observed facts: findings, "
+                        "paths/symbols, changes, checks actually run, and remaining gaps. "
+                        "Do not claim the assignment is complete.", important=True,
+                    )
                 await runtime.turn()
+                if reason and not state.terminal:
+                    runtime.finish(reason)
             return runtime.state
         except asyncio.CancelledError:
             if not runtime.state.terminal:
@@ -166,8 +178,33 @@ class WorkerManager:
                 runtime.finish("worker_error", failed=True)
             raise
         finally:
+            self._save_handoff(runtime)
             await runtime.workers.close()
             runtime.sandbox.close()
+
+    @staticmethod
+    def _save_handoff(runtime: Runtime):
+        state = runtime.state
+        if not state.final:
+            state.final = runtime.evidence.redactor.text(
+                f"Partial handoff ({state.stop_reason or state.phase}). "
+                f"Read paths: {', '.join(list(state.read_evidence)[:20]) or 'none'}. "
+                f"Changed paths: {', '.join(state.changed_paths) or 'none'}. "
+                f"Verification: {state.verification.state}. "
+                "No model conclusion was delivered; inspect the saved evidence before continuing."
+            )
+        handoff = {
+            "run_id": state.run_id,
+            "delivery": "complete" if state.phase == "completed" else "partial",
+            "stop_reason": state.stop_reason,
+            "answer": state.final,
+            "read_evidence": state.read_evidence,
+            "changed_paths": state.changed_paths,
+            "verification": state.verification.model_dump(),
+        }
+        runtime.evidence.save(("runs", state.run_id, "handoff.json"), handoff)
+        runtime.checkpoint()
+        return handoff
 
     async def status(self, worker_id: str | list[str], wait_seconds: float = 0):
         if isinstance(worker_id, list):
@@ -202,6 +239,14 @@ class WorkerManager:
             "changed_paths": state.changed_paths,
             "verification": state.verification.model_dump(),
         }
+        if worker.future.done():
+            details.update(
+                run_id=state.run_id,
+                delivery="complete" if state.phase == "completed" else "partial",
+                answer=state.final,
+                read_evidence=state.read_evidence,
+                stop_reason=state.stop_reason,
+            )
         if worker.future.cancelled():
             return {**details, "status": "cancelled"}
         if worker.future.done():
@@ -252,6 +297,7 @@ class WorkerManager:
         # A coroutine cancelled before its first turn has not entered its finally block.
         if not worker.runtime.state.terminal:
             worker.runtime.abort("worker_cancelled")
+        self._save_handoff(worker.runtime)
         return {"status": "cancelled", "worker_id": worker_id}
 
     async def close(self):

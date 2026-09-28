@@ -11,6 +11,7 @@ from aster.cli import Terminal
 from aster.config import ExecRule, Settings
 from aster.core.runtime import Runtime
 from aster.core.workers import _scope
+from aster.providers.errors import ProviderError
 from aster.schema import ModelReply, TaskSpec, ToolCall
 from aster.ui.app import AsterTui
 from aster.ui.widgets import HumanPrompt
@@ -282,6 +283,115 @@ async def test_waiting_tool_returns_child_failure_without_aborting_parent(tmp_pa
     assert outcome.data["status"] == ("cancelled" if cancel_child else "failed")
     assert outcome.data["verification"]["state"] == "missing"
     assert not parent.state.terminal
+    await parent.workers.close()
+
+
+@pytest.mark.parametrize("boundary", ["sequential", "parallel", "invalid_batch", "turn"])
+async def test_worker_budget_delivers_one_tool_free_partial_handoff(tmp_path, boundary):
+    (tmp_path / "target.py").write_text("answer = 42\n")
+    calls = [ToolCall(name="read_file", arguments={"path": "target.py"}) for _ in range(3)]
+    if boundary == "invalid_batch":
+        calls[0] = ToolCall(name="read_file", arguments={})
+    if boundary == "turn":
+        calls = calls[:1]
+    requests = []
+
+    class Model:
+        async def complete(self, messages, tools):
+            requests.append((messages, tools))
+            return ModelReply(calls=calls) if len(requests) == 1 else ModelReply(
+                text="Partial: the assignment needs further investigation."
+            )
+
+    parent = Runtime(tmp_path, Settings(
+        max_workers=1, completion="off", read_parallelism=1 if boundary == "sequential" else 2,
+    ), model=Model())
+    parent.start(TaskSpec(prompt="Inspect the repository"))
+    started = await parent.workers.start("Inspect target.py")
+    worker = parent.workers.workers[started["worker_id"]]
+    worker.runtime.state.task.max_steps = 12 if boundary == "turn" else 2
+    worker.runtime.state.task.max_turns = 2 if boundary == "turn" else 12
+    result = await asyncio.wait_for(worker.future, 5)
+    delivered = await parent.workers.status(worker.worker_id)
+    assert len(requests) == 2 and requests[0][1] and requests[1][1] == []
+    assert "PARTIAL handoff" in json.dumps(requests[1][0])
+    assert result.step == (1 if boundary == "turn" else 2)
+    assert result.phase == "stopped" and delivered["delivery"] == "partial"
+    assert result.stop_reason == ("turn_limit" if boundary == "turn" else "step_limit")
+    assert delivered["answer"] == result.final == "Partial: the assignment needs further investigation."
+    outputs = [json.loads(item["output"]) for item in worker.runtime._structured_history
+               if item.get("type") == "function_call_output"]
+    assert len(outputs) == len(calls)
+    assert sum(item["status"] == "success" for item in outputs) == (
+        0 if boundary == "invalid_batch" else min(len(calls), 2)
+    )
+    assert bool(result.read_evidence) == (boundary != "invalid_batch")
+    saved = json.loads(worker.runtime.evidence.path("runs", result.run_id, "handoff.json").read_text())
+    assert saved["answer"] == delivered["answer"] and saved["delivery"] == "partial"
+    await parent.workers.close()
+
+
+@pytest.mark.parametrize("failure", ["provider", "cancelled", "error"])
+async def test_worker_failed_handoff_preserves_observed_facts(tmp_path, failure):
+    (tmp_path / "target.py").write_text("answer = 42\n")
+    requests = []
+
+    class Model:
+        async def complete(self, messages, tools):
+            requests.append(tools)
+            if len(requests) == 1:
+                return ModelReply(calls=[ToolCall(name="read_file", arguments={"path": "target.py"})])
+            if failure == "provider":
+                raise ProviderError("summary unavailable", category="transport")
+            if failure == "cancelled":
+                raise asyncio.CancelledError
+            raise RuntimeError("summary failed")
+
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=Model())
+    parent.start(TaskSpec(prompt="Inspect the repository"))
+    started = await parent.workers.start("Inspect target.py")
+    worker = parent.workers.workers[started["worker_id"]]
+    worker.runtime.state.task.max_steps = 1
+    await asyncio.wait_for(asyncio.gather(worker.future, return_exceptions=True), 5)
+    delivered = await parent.workers.status(worker.worker_id)
+    assert len(requests) == 2 and requests[-1] == []
+    assert delivered["status"] == ("cancelled" if failure == "cancelled" else "failed")
+    assert delivered["delivery"] == "partial" and "target.py" in delivered["answer"]
+    assert delivered["read_evidence"] and delivered["verification"]["state"] == "missing"
+    state = worker.runtime.state
+    saved = json.loads(worker.runtime.evidence.path("runs", state.run_id, "handoff.json").read_text())
+    assert saved["answer"] == state.final == delivered["answer"]
+    assert saved["stop_reason"] == state.stop_reason and saved["delivery"] == "partial"
+    assert not parent.state.terminal and (tmp_path / "target.py").read_text() == "answer = 42\n"
+    await parent.workers.close()
+
+
+async def test_worker_handoff_cannot_execute_unsolicited_tools(tmp_path):
+    (tmp_path / "target.py").write_text("answer = 42\n")
+    requests = []
+
+    class Model:
+        async def complete(self, messages, tools):
+            requests.append(tools)
+            if len(requests) == 1:
+                return ModelReply(calls=[ToolCall(name="read_file", arguments={"path": "target.py"})])
+            return ModelReply(calls=[ToolCall(
+                name="write_file", arguments={"path": "target.py", "content": "unexpected"},
+            )])
+
+    parent = Runtime(tmp_path, Settings(approval="auto", max_workers=1, completion="off"), model=Model())
+    parent.start(TaskSpec(prompt="Inspect the repository"))
+    started = await parent.workers.start("Inspect target.py", "worker", ["target.py"])
+    worker = parent.workers.workers[started["worker_id"]]
+    worker.runtime.state.task.max_turns = 2
+    result = await asyncio.wait_for(worker.future, 5)
+    outputs = [json.loads(item["output"]) for item in worker.runtime._structured_history
+               if item.get("type") == "function_call_output"]
+    assert len(requests) == 2 and requests[-1] == [] and result.step == 1
+    assert outputs[-1]["reason"] == "handoff_only"
+    assert result.phase == "stopped" and result.final and not result.changed_paths
+    assert (tmp_path / "target.py").read_text() == "answer = 42\n"
+    assert (await parent.workers.status(worker.worker_id))["delivery"] == "partial"
     await parent.workers.close()
 
 

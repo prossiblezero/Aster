@@ -107,6 +107,7 @@ class Runtime:
         self._dream_ran = False
         self._operation_task: asyncio.Task | None = None
         self._managed_worker = False
+        self._handoff_reason = ""
         self._archive_sources: dict[str, str] = {}
         self._history_origins: list[dict] = []
         self._continued_from: str | None = None
@@ -674,6 +675,10 @@ class Runtime:
         )
         if not reply.calls:
             if reply.text:
+                if self._handoff_reason:
+                    state.final = self.evidence.redactor.text(reply.text)
+                    self.finish(self._handoff_reason)
+                    return state
                 return self.finalize(reply.text)
             state.feedback = "Model returned neither text nor a tool call."
             self.finish("empty_model_reply", failed=True)
@@ -840,8 +845,11 @@ class Runtime:
         assert state is not None
         if state.terminal:
             return Outcome(status="blocked", reason="run_terminal")
+        if self._handoff_reason:
+            return Outcome(status="blocked", reason="handoff_only")
         if state.step >= state.task.max_steps:
-            self.finish("step_limit")
+            if not self._managed_worker:
+                self.finish("step_limit")
             return Outcome(status="blocked", reason="step_limit")
         state.step += 1
         outcome = await self._execute(call, arguments)
@@ -859,6 +867,9 @@ class Runtime:
                 on_result(call, outcome)
             return outcome
 
+        if self._handoff_reason:
+            return [record(call, Outcome(status="blocked", reason="handoff_only")) for call in calls]
+
         # Provider parsing has already established complete JSON and call IDs.
         # A tool's business-schema mistake is correctable feedback, not damaged
         # history. Reject the whole batch before any effect, and pair every call.
@@ -869,7 +880,8 @@ class Runtime:
             outcomes = []
             for call in calls:
                 if state.terminal or state.step >= state.task.max_steps:
-                    self.finish("step_limit")
+                    if not self._managed_worker:
+                        self.finish("step_limit")
                     outcome = Outcome(status="blocked", reason="step_limit")
                 else:
                     state.step += 1
@@ -925,7 +937,7 @@ class Runtime:
             if step is None:
                 if state.terminal:
                     prepared = Outcome(status="blocked", reason="run_terminal")
-                elif prepared.reason == "step_limit":
+                elif prepared.reason == "step_limit" and not self._managed_worker:
                     self.finish("step_limit")
                 outcomes.append(record(call, prepared))
                 continue
@@ -1340,6 +1352,8 @@ class Runtime:
         return definitions(self._tool_names(state=state), available=available)
 
     def _request_tool_definitions(self, settings, *, state=None):
+        if self._handoff_reason:
+            return []
         tools = self.tool_definitions(state=state)
         if self.evidence.redactor.value(tools, mask_fields=False) != tools:
             raise ContextHistoryError("tool_definitions_contain_credential")
