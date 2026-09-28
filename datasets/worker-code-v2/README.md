@@ -60,7 +60,9 @@ python datasets/worker-code-v2/checks/verify.py --check-cache --preflight-contro
 
 Aider 的原始测试作为公开接口契约保留，评分使用另一个不可修改的副本；不能声称所有测试都隐藏。BigCodeBench 原始 row 含答案，只有 `instruct_prompt`、`code_prompt` 的 starter 可以供模型使用。SWE/Pro 的完整 parquet、patch/test patch、Terminal-Bench 的 `README.md`/`solution/`/`tests/`/`cheat/` 都属于控制端材料。只把目录命名为 private 并不形成隔离，后续 runner 必须实际限制可访问的挂载和路径。
 
-## 已完成的预检与尚缺的门槛
+## 数据冻结时的预检记录
+
+下表保留选题完成时的准备状态。后续真实模型评测的环境验证和结果单独记录，不能把后补验证当作冻结时已完成。
 
 | 范围 | 本次实际验证 |
 |---|---|
@@ -75,7 +77,13 @@ Aider 的原始测试作为公开接口契约保留，评分使用另一个不�
 
 BigCodeBench/7 的原测试还存在题面与评分差异：要求空 CSV 抛 `ValueError`，题面未说明；测试了前提以外的非整数数量，却没有用重复商品行检验累计销量。保留原题和评分器，在失分分析中单独标注这些边界，不把上游评分问题归因于 Worker。
 
-**当前完成的是多来源选题、材料准备和部分参考预检；没有跑 Aster 的真实模型对照，也没有得出 Worker 更有效的结论。** 付费模型评测前，每题必须先在真正使用的隔离评分环境中确认初始失败、参考解通过、测试收集完整；环境问题作为环境问题报告。
+**数据冻结时只完成多来源选题、材料准备和部分参考预检，尚未运行 Aster 真实模型对照。** 付费模型评测前，每题必须先在真正使用的隔离评分环境中确认初始失败、参考解通过、测试收集完整；环境问题作为环境问题报告。
+
+## 后续真实模型评测（2026-09-28）
+
+已保持本版 20 题与冻结数据不变，完成全部 20 题实际评分器的初始失败/参考解通过预检，并执行 solo / current_worker 共 40 次 GPT 运行。独立通过率为 14/20 对 13/20，Worker 全队 token 多 5.9%、耗时多 3.4%，18 个子任务仅 5 个正常交付。未证明当前 Worker 带来整体收益。
+
+详见 [完整报告](../../evaluations/worker-code-20260928/REPORT.md)、[协议](../../evaluations/worker-code-20260928/PROTOCOL.md)及[预检摘要](../../evaluations/worker-code-20260928/preflight-summary.json)。仓库题使用原 F2P/P2P 的本地依赖适配，Terminal 使用包含完整功能断言的 portable secondary 评分，均不是官方 Docker 成绩。上面的冻结准备记录及 `PREPARATION.json` 保留原历史状态。
 
 ## 比较协议
 
