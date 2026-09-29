@@ -187,7 +187,8 @@ class WorkflowTools:
             return Outcome(status="success", content=str(answer))
         if name == "worker_start":
             data = await self.worker_start(
-                args["task"], args.get("mode", "explore"), args.get("write_scope", [])
+                args["task"], args.get("mode", "explore"), args.get("write_scope", []),
+                parent_work=args.get("parent_work", ""),
             )
             return Outcome(
                 status="success" if data["status"] == "running" else "blocked",

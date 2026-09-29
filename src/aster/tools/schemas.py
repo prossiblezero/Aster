@@ -151,12 +151,18 @@ class AskUser(Record):
 class WorkerStart(Record):
     task: str = Field(
         description=(
-            "Self-contained assignment: target files, interfaces, acceptance criteria, "
-            "known facts and test responsibility. Workers do not inherit your conversation."
+            "Bounded assignment: target files, interfaces, acceptance criteria, "
+            "known facts and test responsibility. The original request is supplied "
+            "automatically; workers do not inherit your conversation or observations."
         )
     )
     mode: str = Field(default="explore", pattern="^(explore|worker)$")
     write_scope: list[str] = Field(default_factory=list)
+    parent_work: str = Field(
+        default="", max_length=2000,
+        description="Your separate module or check while this worker runs; avoid overlapping "
+        "investigations. If no independent work remains, say you will await and integrate.",
+    )
 
 
 class WorkerId(Record):
@@ -214,7 +220,7 @@ SCHEMAS = {
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, node --test, or go test with structured results. Use command names without a .venv/bin/ path. Python accepts a workspace-relative PYTHONPATH prefix such as PYTHONPATH=.; other environment assignments may require approval. With reuse_environment enabled, the trusted Python test runner automatically exposes installed project .venv dependencies; keep them installed until verification finishes. Tests should exercise the actual implementation or public entry point and assert requested behavior, including boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these do not update formal test evidence.",
+        "Run pytest, python -m pytest/unittest, python <workspace test script> (e.g. tests/runtests.py or bin/test), node --test, or go test. Native Python scripts must run unittest, pytest or SymPy tests: Aster captures framework results, not printed summaries or exit 0 alone. SymPy bin/test runs without its extra subprocess inside the existing sandbox. Use command names without a .venv/bin/ path. Python accepts a workspace-relative PYTHONPATH prefix such as PYTHONPATH=.; other environment assignments may require approval. With reuse_environment enabled, the trusted Python test runner automatically exposes installed project .venv dependencies; keep them installed until verification finishes. Tests should exercise the actual implementation or public entry point and assert requested behavior, including boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these do not update formal test evidence.",
         "process",
     ),
     "observation_read": (
@@ -247,7 +253,8 @@ SCHEMAS = {
     "worker_start": (
         WorkerStart,
         "Start a bounded task sharing this workspace and the parent's total budget. "
-        "Pass the specific deliverable, known paths/facts, scope and test responsibility. "
+        "Pass the specific deliverable, known paths/facts, scope and test responsibility; "
+        "state your separate work in parent_work. The original request is included automatically. "
         "Delegate substantial independent work or investigations; do small lookups directly. "
         "Finished handoffs arrive automatically at your next turn. When waiting, use one "
         "worker_status call with their ids and wait_seconds=300. For investigations request concise conclusions "

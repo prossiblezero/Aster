@@ -17,6 +17,7 @@ TEST_COMMAND_PREFIXES = [
     ["pytest"],
     ["python", "-m", "pytest"],
     ["python", "-m", "unittest"],
+    ["python"],  # Workspace test scripts; run_tests validates the entry point.
     ["node", "--test"],
     ["go", "test"],
 ]
@@ -62,14 +63,18 @@ async def run_tests(
     python_paths = []
     if len(argv) > 1 and argv[1] == "python" and (paths := local_python_paths(argv[0])):
         python_paths, argv = paths, argv[1:]
-    if not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES) or any(
+    native = len(argv) > 1 and argv[0] == "python" and not argv[1].startswith("-")
+    if not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES) or (
+        argv[0] == "python" and not native
+        and argv[1:3] not in [["-m", "pytest"], ["-m", "unittest"]]
+    ) or any(
         c in command for c in ";|&><$`\n"
     ):
         return Outcome(
             status="blocked",
             reason="test_command_not_supported",
             content=(
-                "Use pytest, python -m pytest/unittest, node --test, or go test without a .venv/bin/ "
+                "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, or go test without a .venv/bin/ "
                 "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
                 "With reuse_environment enabled, installed "
                 "project .venv dependencies are exposed automatically; keep them installed until "
@@ -77,12 +82,18 @@ async def run_tests(
                 "update formal test evidence."
             ),
         )
+    if native:
+        try:
+            if Path(argv[1]).is_absolute() or not workspace.path(argv[1]).is_file():
+                raise ValueError("test_script_not_in_workspace")
+        except (OSError, ValueError) as exc:
+            return Outcome(status="blocked", reason="test_script_not_in_workspace", content=str(exc))
     if sandbox.settings.sandbox == "off":
         return Outcome(status="blocked", reason="isolation_required_for_scope")
     unittest = argv[:3] == ["python", "-m", "unittest"]
     node = argv[:2] == ["node", "--test"]
     go = argv[:2] == ["go", "test"]
-    options = argv[2:] if node or go else argv[3:] if argv[0] == "python" else argv[1:]
+    options = argv[2:] if native or node or go else argv[3:] if argv[0] == "python" else argv[1:]
     if node and any(option.startswith("--test-reporter") for option in options):
         return Outcome(
             status="blocked", reason="test_reporter_reserved",
@@ -143,12 +154,13 @@ ET.ElementTree(suite).write(report, encoding='unicode')
 raise SystemExit(process.wait())
 """
             command = ["python", "-I", "-c", program, report, *options]
-        elif unittest:
-            # Import the standard runner before adding repository modules to sys.path.
-            # TextTestResult already owns failures/skips; no stdout parsing is needed.
-            program = """import os, sys, unittest, xml.etree.ElementTree as ET
+        elif unittest or native:
+            # Import trusted frameworks before exposing repository import roots.
+            program = """import os, runpy, sys, unittest, xml.etree.ElementTree as ET
 report = sys.argv.pop(1)
 sys.path.insert(0, os.getcwd())
+suite = ET.Element('testsuite')
+observed = False
 class StructuredResult(unittest.TextTestResult):
     def startTestRun(self):
         self.successes = set()
@@ -161,24 +173,114 @@ class StructuredResult(unittest.TextTestResult):
             self.successes.add(test.id())
 class Runner(unittest.TextTestRunner):
     resultclass = StructuredResult
+def record_unittest(result):
+    global observed
+    observed = True
+    if not isinstance(result, StructuredResult):
+        ET.SubElement(ET.SubElement(suite, 'testcase', name='untracked unittest result', classname='unittest'), 'error')
+        return
+    outcomes = [('failure', result.failures), ('error', result.errors),
+                ('skipped', result.skipped), ('skipped', result.expectedFailures),
+                ('failure', [(test, 'unexpected success') for test in result.unexpectedSuccesses])]
+    for status, entries in outcomes:
+        for test, detail in entries:
+            result.successes.discard(test.id())
+            case = ET.SubElement(suite, 'testcase', name=test.id(),
+                                 classname=f'{type(test).__module__}.{type(test).__qualname__}')
+            ET.SubElement(case, status).text = detail
+    for name in sorted(result.successes):
+        ET.SubElement(suite, 'testcase', name=name, classname='unittest')
+"""
+            if native:
+                program = program.replace(
+                    "sys.path.insert(0, os.getcwd())",
+                    "try:\n    import pytest\nexcept ImportError:\n    pytest = None\n"
+                    "sys.path.insert(0, os.getcwd())",
+                )
+                program += """
+original_run = unittest.TextTestRunner.run
+def run_unittest(self, *args, **kwargs):
+    result = original_run(self, *args, **kwargs)
+    record_unittest(result)
+    return result
+unittest.TextTestResult = StructuredResult
+unittest.TextTestRunner.resultclass = StructuredResult
+unittest.TextTestRunner.run = run_unittest
+if pytest is not None:
+    original_pytest = pytest.main
+    def run_pytest(args=None, plugins=None):
+        global observed
+        args = list(sys.argv[1:] if args is None else args)
+        path = os.path.join('.tmp', 'native-pytest.xml')
+        if os.path.exists(path):
+            os.unlink(path)
+        boundary = args.index('--') if '--' in args else len(args)
+        args[boundary:boundary] = [f'--junitxml={path}', '-p', 'no:cacheprovider']
+        code = original_pytest(args, plugins=plugins)
+        try:
+            cases = list(ET.parse(path).getroot().iter('testcase'))
+        except (OSError, ET.ParseError):
+            cases, code = [], code or 1
+        suite.extend(cases)
+        if code and not any(case.find('failure') is not None or case.find('error') is not None for case in cases):
+            ET.SubElement(ET.SubElement(suite, 'testcase', name='pytest runner', classname='pytest'), 'error')
+        observed = True
+        return code
+    pytest.main = run_pytest
+entry = sys.argv.pop(1)
+sys.argv[0] = entry
+sys.path.insert(0, os.path.dirname(os.path.abspath(entry)))
+if os.path.normpath(entry) == 'bin/test' and os.path.isfile('sympy/utilities/runtests.py'):
+    import builtins
+    original_import = builtins.__import__
+    def import_sympy(name, *args, **kwargs):
+        module = original_import(name, *args, **kwargs)
+        if name == 'sympy' and not getattr(module.__spec__, '_initializing', False):
+            builtins.__import__ = original_import
+            sympy = module
+            from sympy.utilities.runtests import PyTestReporter
+            original_finish = PyTestReporter.finish
+            def finish(self):
+                global observed
+                value = original_finish(self)
+                counts = [(self._passed, None), (self._skipped + self._xfailed, 'skipped'),
+                          (len(self._failed) + len(self._failed_doctest) + len(self._xpassed), 'failure'),
+                          (len(self._exceptions), 'error')]
+                for count, status in counts:
+                    for index in range(count):
+                        case = ET.SubElement(suite, 'testcase', name=f'{status or "passed"}-{index}', classname='sympy')
+                        if status:
+                            ET.SubElement(case, status)
+                observed = True
+                return value
+            PyTestReporter.finish = finish
+            original_test = sympy.test
+            def test(*args, **kwargs):
+                kwargs['subprocess'] = False  # Keep reporter hooks in this sandboxed process.
+                return original_test(*args, **kwargs)
+            sympy.test = test
+        return module
+    # Let bin/test apply -C/ground-type options before importing its framework.
+    builtins.__import__ = import_sympy
+try:
+    runpy.run_path(entry, run_name='__main__')
+    code = 0
+except SystemExit as exc:
+    code = exc.code
+if observed:
+    ET.ElementTree(suite).write(report, encoding='unicode')
+raise SystemExit(code)
+"""
+                command = ["python", "-I", "-c", program, report, argv[1], *options]
+            else:
+                program += """
 result = unittest.main(module=None, argv=['unittest', *sys.argv[1:]],
                        testRunner=Runner, exit=False).result
-suite = ET.Element('testsuite')
-outcomes = [('failure', result.failures), ('error', result.errors),
-            ('skipped', result.skipped), ('skipped', result.expectedFailures),
-            ('failure', [(test, 'unexpected success') for test in result.unexpectedSuccesses])]
-for status, entries in outcomes:
-    for test, detail in entries:
-        result.successes.discard(test.id())
-        case = ET.SubElement(suite, 'testcase', name=test.id(),
-                             classname=f'{type(test).__module__}.{type(test).__qualname__}')
-        ET.SubElement(case, status).text = detail
-for name in sorted(result.successes):
-    ET.SubElement(suite, 'testcase', name=name, classname='unittest')
+record_unittest(result)
 ET.ElementTree(suite).write(report, encoding='unicode')
 raise SystemExit(not result.wasSuccessful())
 """
-            command = ["python", "-I", "-c", program, report, *options]
+                command = ["python", "-I", "-c", program, report, *options]
         else:
             # Keep repository import semantics while importing the installed pytest first.
             program = """import os, sys
@@ -217,6 +319,14 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             Workspace(target), shlex.join(command), timeout
         )
         cases = None
+        if native:
+            result.data["test_evidence_source"] = "native_framework"
+            if Path(argv[1]).as_posix() in {"bin/test", "./bin/test"} and workspace.path("sympy/utilities/runtests.py").is_file():
+                result.data["native_sympy_subprocess"] = False
+                result.content = (
+                    "[Aster captures SymPy's native reporter in the current isolated process; "
+                    "its extra hash-randomization subprocess is disabled.]\n" + result.content
+                )
         try:
             cases = parse_junit(Workspace(target).read(report))
             if node:
@@ -267,15 +377,15 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.status = "blocked"
             result.reason = "no_tests_executed" if cases else "no_tests_collected"
     elif result.status == "error":
-        if not unittest and not node and not go and result.exit_code == 5:
+        if not native and not unittest and not node and not go and result.exit_code == 5:
             result.reason = "no_tests_collected"
-        elif not unittest and not node and not go and result.exit_code == 2:
+        elif not native and not unittest and not node and not go and result.exit_code == 2:
             result.reason = (
                 "test_collection_failed"
                 if any(case["status"] == "error" for case in cases or [])
                 else "test_interrupted"
             )
-        elif not unittest and not node and not go and result.exit_code in {3, 4}:
+        elif not native and not unittest and not node and not go and result.exit_code in {3, 4}:
             result.reason = "test_runner_error"
         elif result.exit_code == 127:
             result.reason = "test_runner_unavailable"

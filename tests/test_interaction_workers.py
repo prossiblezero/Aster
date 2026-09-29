@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import shutil
 import sys
 
 import pytest
@@ -163,7 +164,7 @@ def test_worker_scope_intersection_does_not_widen_permissions():
 async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     model = PausedModel()
     parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=model)
-    parent.start(TaskSpec(prompt="demo"))
+    parent.start(TaskSpec(prompt="demo: preserve reproduction condition iso8859-1"))
     prompt, tools, report = parent.prepare_request()
     assert "Worker capability:" in prompt[0]["content"]
     assert "worker_start" not in {t["name"] for t in tools}
@@ -205,6 +206,7 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     assert worker.runtime.settings.read_only and worker.runtime.settings.max_workers == 0
     assert "Also check the license." in json.dumps(model.requests[-1])
     assert "Explain the license finding." in json.dumps(model.requests[-1])
+    assert "reproduction condition iso8859-1" in model.requests[-1][1]["content"]
     assert parent.state.team_usage["model_calls"] == previous_usage["model_calls"] + 1
     assert (await parent.workers.message(worker_id, "Again", resume=True))[
         "reason"
@@ -595,10 +597,21 @@ async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path,
         Settings(max_workers=1),
         model=CallThenFinish("read_file", {"path": "target.py"}),
     )
-    parent.start(TaskSpec(prompt="Inspect the repository"))
-    started = await parent.workers.start("Inspect target.py and recommend a fix and tests")
-    worker = parent.workers.workers[started["worker_id"]]
+    original = "Fix non-ASCII hostname with iso8859-1; test SMTP and Message-ID."
+    parent.start(TaskSpec(prompt=original))
+    parent.add_message("user", "Unrelated private parent history.", important=True)
+    assignment = "Inspect target.py and recommend a fix and tests"
+    parent_work = "Inspect the independent SMTP module, then run integration tests."
+    started = await parent.step(ToolCall(name="worker_start", arguments={
+        "task": assignment, "parent_work": parent_work,
+    }))
+    worker = parent.workers.workers[started.data["worker_id"]]
     result = await worker.future
+    child_prompt = parent.model.requests[0]
+    assert child_prompt[1]["content"].count(original) == 1
+    assert assignment in child_prompt[1]["content"]
+    assert parent_work in child_prompt[1]["content"]
+    assert "Unrelated private parent history." not in json.dumps(child_prompt)
     assert result.phase == "completed" and result.observed
     assert result.task.require_observation
     assert not result.task.require_edit and not result.task.require_verification
@@ -618,10 +631,74 @@ async def test_explore_can_report_a_fix_without_being_required_to_edit(tmp_path,
     parent.prepare_request()
     prompt, _, _ = parent.prepare_request()
     assert "Finished." in json.dumps(prompt)
+    assert parent_work in json.dumps(prompt)
+    assert parent.state.task.require_edit and parent.state.task.require_verification
     notifications = [row for row in parent.evidence.events(parent.state.run_id)
                      if row["event"] == "worker_handoff_delivered"]
     assert len(notifications) == (0 if delivery == "status" else 1)
     await parent.workers.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_background_tracks_user_turn_through_resume_and_branch_checkout(tmp_path):
+    class Capture:
+        def __init__(self):
+            self.requests = []
+
+        async def complete(self, messages, _tools):
+            self.requests.append(messages)
+            return ModelReply(text="Subtask delivered.")
+
+    model = Capture()
+    settings = Settings(max_workers=1, completion="off", memory_enabled=False)
+    root = tmp_path / "workspace"
+    parent = Runtime(root, settings, model=model)
+    original = "Original project requirement: preserve the file format."
+    current = "Current failure: hostname 漢字 and iso-8859-1; SMTP must work."
+    sibling = "SIBLING_ONLY: investigate the alternative UTF-8 requirement."
+    synthetic = "SYNTHETIC_PRIVATE: a coordination record, not a user request."
+
+    async def assert_background(runtime, expected, excluded):
+        runtime.add_message("user", synthetic, important=True)
+        started = await runtime.workers.start("Summarize the reproduction conditions.")
+        worker = runtime.workers.workers[started["worker_id"]]
+        await worker.future
+        prompt = model.requests[-1][1]["content"]
+        assert original in prompt and expected in prompt
+        assert ("takes precedence over the original request" in prompt) == (expected != original)
+        assert excluded not in json.dumps(model.requests[-1], ensure_ascii=False)
+        assert synthetic not in json.dumps(model.requests[-1], ensure_ascii=False)
+        assert runtime.state.task.prompt == original
+        runtime.finalize("Done.")
+        await runtime.workers.close()
+
+    parent.start(TaskSpec(prompt=original))
+    parent.finalize("Done.")
+    parent.continue_task(current)
+    await assert_background(parent, current, sibling)
+    current_run = parent.state.run_id
+
+    parent.continue_task(sibling)
+    parent.finalize("Done.")
+    sibling_entry = parent.session_tree.cursor
+
+    restored = Runtime(root, settings, model=model)
+    restored.resume(current_run)
+    restored.continue_task()
+    await assert_background(restored, current, sibling)
+
+    restored.checkout(sibling_entry)
+    restored.continue_task()
+    await assert_background(restored, sibling, current)
+
+    # Portable checkpoints may lack the optional session tree. Do not guess the
+    # current request from user-role coordination records in imported history.
+    portable = tmp_path / "portable"
+    shutil.copytree(restored.evidence.path("runs"), portable / ".aster" / "runs")
+    legacy = Runtime(portable, settings, model=model)
+    legacy.resume(restored.state.run_id)
+    legacy.continue_task()
+    await assert_background(legacy, original, sibling)
 
 
 @pytest.mark.asyncio

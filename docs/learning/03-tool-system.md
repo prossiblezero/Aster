@@ -69,7 +69,9 @@ class ReadFile(Record):
 
 写入工具的参数也按整批边界验证。例如 `patch_file` 的 `edits` 是一组不重叠、各自唯一匹配的 `{old_text, new_text}`；任一项缺失、不唯一或重叠时整批拒绝，不会先应用前几项。还要区分两种“整批”：`patch_file` 是同一文件内的原子参数/匹配校验；模型同轮返回多个工具调用时，Runtime 会先对整个调用批次做 schema 预检，只要一个调用参数无效，整个批次都不执行。先读后改和成功后的新鲜证据因此仍是调用者责任。
 
-启用 `reuse_environment` 后，正式 Python 测试使用可信测试运行器，并自动加入受控 `.venv` 的依赖路径；直接调用 `python -m unittest` 或 `python -m pytest`，不要增加 `.venv/bin/` 或环境变量前缀，也不要在正式验证前删除依赖。失败的可写 Shell 若丢弃了复用环境，结果会带 `environment_discarded=true` 和重装提示。Shell 中自测成功不会更新正式验证状态，完成反馈会明确要求调用 `run_tests`。
+启用 `reuse_environment` 后，正式 Python 测试使用可信测试运行器，并自动加入受控 `.venv` 的依赖路径；直接调用 `python -m unittest` 或 `python -m pytest`，不要增加 `.venv/bin/`；也支持只含工作区相对目录的 `PYTHONPATH=.` 前缀，也不要在正式验证前删除依赖。失败的可写 Shell 若丢弃了复用环境，结果会带 `environment_discarded=true` 和重装提示。Shell 中自测成功不会更新正式验证状态，完成反馈会明确要求调用 `run_tests`。
+
+项目原生 Python 入口也可通过 `run_tests` 执行，例如 `python tests/runtests.py ...` 和 `python bin/test ...`。运行器在隔离副本内捕获 unittest、pytest 或 SymPy 的真实框架结果，生成统一测试证据；只有退出码或打印“passed”的脚本不能通过正式验证。SymPy 的额外测试子进程会关闭，以在当前隔离进程收集 reporter 结果，不关闭 Aster 沙箱。零测试、全部跳过、失败、运行器错误仍不能证明通过。
 
 ## 两种分类，不要交叉理解
 

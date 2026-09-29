@@ -192,6 +192,18 @@ class SessionTree:
         with self.connect() as db:
             return self.resolve(db, reference, table="sessions")["head"]
 
+    def current_request(self):
+        """Read the latest real user turn on this path, excluding sibling branches."""
+        if not self.cursor:
+            return None
+        with self.connect() as db:
+            row = db.execute("""WITH RECURSIVE path AS (
+                SELECT * FROM entries WHERE id=? UNION ALL
+                SELECT e.* FROM entries e JOIN path p ON e.id=p.parent_id
+            ) SELECT payload FROM path WHERE kind='turn_start' ORDER BY seq DESC LIMIT 1""",
+                             (self.cursor,)).fetchone()
+        return json.loads(row[0]).get("prompt") if row else None
+
     def restore(self, reference, session_id=None):
         with self.connect() as db:
             target = self.resolve(db, reference, session_id=session_id)

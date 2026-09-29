@@ -164,7 +164,10 @@ class WorkerManager:
                 child_run_id=run_id, delivery=result.get("delivery", "partial"),
             )
 
-    async def start(self, task: str, mode: str = "explore", write_scope: list[str] | None = None):
+    async def start(
+        self, task: str, mode: str = "explore", write_scope: list[str] | None = None,
+        parent_work: str = "",
+    ):
         if self.parent.state is None or self.parent.state.terminal:
             return {"status": "blocked", "reason": "run_terminal"}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
@@ -218,6 +221,20 @@ class WorkerManager:
         runtime._managed_worker = True
         # Infer from the assignment, not from the handoff guidance appended below.
         spec = TaskSpec(prompt=task, max_steps=max_steps, max_turns=max_turns, **runtime.verifier.infer(task))
+        parent_work = parent_work.strip() or "Integrate the handoff and verify the final result."
+        spec.prompt = (
+            "Your assigned subtask:\n" + task
+            + "\n\nParent's separate work (do not duplicate):\n" + parent_work
+            + "\n\nOriginal request, supplied verbatim as background for reproduction and "
+            "acceptance criteria. Complete only your assigned subtask; flag relevant gaps "
+            "outside your scope in the handoff:\n" + self.parent.state.task.prompt
+        )
+        current_request = self.parent.session_tree.current_request() or self.parent.state.task.prompt
+        if current_request != self.parent.state.task.prompt:
+            spec.prompt += (
+                "\n\nLatest user request on this branch (takes precedence over the original request):\n"
+                + current_request
+            )
         if read_only:
             # "Identify the fix" is an investigation, not an impossible write gate.
             spec.require_edit = False
@@ -248,12 +265,18 @@ class WorkerManager:
         self.workers[worker_id] = Worker(worker_id, task, mode, runtime, future, inbox,
                                          parent_policy=self.policy())
         self.parent.state.pending_handoffs[worker_id] = runtime.state.run_id
+        self.parent.add_message(
+            "user", "Work allocation (coordination record, not new authorization):\n"
+            + json.dumps({"worker_id": worker_id, "assignment": task,
+                          "parent_work": parent_work}, ensure_ascii=False), important=True,
+        )
         self.parent.evidence.emit(
             self.parent.state.run_id,
             "worker_started",
             worker_id=worker_id,
             child_run_id=runtime.state.run_id,
             task=task,
+            parent_work=parent_work,
             mode=mode,
             write_scope=settings.write_scope,
             verification_owner="parent" if parent_verifies else "worker",

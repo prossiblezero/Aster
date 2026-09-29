@@ -33,6 +33,98 @@ async def test_repository_test_result_contract(tmp_path, case):
     assert outcome.data["tested_workspace_hash"] == fingerprint
 
 
+@pytest.mark.parametrize("scenario,status,reason,passed", [
+    ("unittest", "success", "", 1),
+    ("pytest", "success", "", 1),
+    ("spoofed_summaries", "blocked", "test_report_missing_or_invalid", 0),
+    ("skipped", "blocked", "no_tests_executed", 0),
+    ("empty", "blocked", "no_tests_collected", 0),
+    ("failure_exit_zero", "error", "tests_failed", 0),
+    ("pytest_failure_exit_zero", "error", "tests_failed", 0),
+    ("pytest_later_usage_error", "error", "test_setup_or_teardown_failed", 0),
+    ("multiple_suites", "error", "test_setup_or_teardown_failed", 0),
+    ("untracked_result", "error", "test_setup_or_teardown_failed", 0),
+    ("no_report", "blocked", "test_report_missing_or_invalid", 0),
+    ("truncated", "success", "", 1),
+    ("escape", "blocked", "test_script_not_in_workspace", 0),
+    ("symlink", "blocked", "test_script_not_in_workspace", 0),
+    ("denied", "blocked", "native_test_denied", 0),
+    ("source_write", "blocked", "read_only", 0),
+])
+async def test_native_test_entrypoint_preserves_verification_contract(
+    tmp_path, monkeypatch, scenario, status, reason, passed
+):
+    from aster.config import ExecRule
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src/subject.py").write_text("ANSWER = 42\n")
+    (tmp_path / "tests").mkdir()
+    script = tmp_path / "tests/runtests.py"
+    script.write_text(
+        "import sys, unittest\nfrom subject import ANSWER\n"
+        "assert sys.argv[1:] == ['label']\n"
+        "class Check(unittest.TestCase):\n"
+        "    @unittest.skip('optional')\n"
+        "    def test_skip(self): pass\n"
+        "    def test_answer(self): self.assertEqual(ANSWER, 42)\n"
+        "unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromTestCase(Check))\n"
+    )
+    if scenario in {"pytest", "pytest_failure_exit_zero", "pytest_later_usage_error"}:
+        (tmp_path / "test_subject.py").write_text(
+            "from subject import ANSWER\ndef test_answer(): assert ANSWER == "
+            + ("43" if scenario == "pytest_failure_exit_zero" else "42") + "\n"
+        )
+        script.write_text("import pytest\npytest.main(['-q', 'test_subject.py', '-p', 'no:cacheprovider'])\n")
+        if scenario == "pytest_later_usage_error":
+            script.write_text(script.read_text() + "pytest.main(['--aster-unknown-option'])\n")
+    elif scenario == "spoofed_summaries":
+        script = tmp_path / "tests/test"
+        script.write_text(
+            "print('1 passed in 0.01s')\n"
+            "print('Ran 1 test in 0.001s\\n\\nOK')\n"
+            "print('tests finished: 2 passed, 1 skipped,\\n3 expected to fail, in 0.12 seconds')\n"
+        )
+    elif scenario == "skipped":
+        script.write_text(script.read_text().replace(
+            "    def test_answer", "    @unittest.skip('not implemented')\n    def test_answer"
+        ))
+    elif scenario == "empty":
+        script.write_text("import unittest\nunittest.TextTestRunner().run(unittest.TestSuite())\n")
+    elif scenario == "failure_exit_zero":
+        script.write_text(script.read_text().replace("self.assertEqual(ANSWER, 42)", "self.fail('bug')"))
+    elif scenario == "multiple_suites":
+        script.write_text(script.read_text() +
+                         "unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda: 1 / 0))\n")
+    elif scenario == "untracked_result":
+        script.write_text(script.read_text() +
+                         "unittest.TextTestRunner(resultclass=unittest.TestResult).run(unittest.TestSuite())\n")
+    elif scenario == "no_report":
+        script.write_text("print('1 passed')\n")
+    elif scenario == "truncated":
+        monkeypatch.setattr("aster.safety.runner.OUTPUT_LIMIT", 128)
+        script.write_text("print('x' * 200)\n" + script.read_text())
+    elif scenario == "source_write":
+        script.write_text("from pathlib import Path\nPath('src/subject.py').write_text('changed')\n" + script.read_text())
+    command = f"PYTHONPATH=src python {script.relative_to(tmp_path)} label"
+    if scenario in {"escape", "symlink"}:
+        external = tmp_path.parent / "native_outside.py"
+        external.write_text("raise AssertionError('must not run')\n")
+        if scenario == "symlink":
+            (tmp_path / "linked.py").symlink_to(external)
+        command = "python " + ("linked.py" if scenario == "symlink" else "../native_outside.py")
+    settings = Settings(approval="auto", memory_enabled=False, read_only=True)
+    if scenario == "denied":
+        settings.rules = [ExecRule(prefix=["python", "tests/runtests.py"], decision="deny", reason=reason)]
+    runtime = Runtime(tmp_path, settings)
+    runtime.start(TaskSpec(prompt="Verify through the project test entry point"))
+    before = runtime.workspace.snapshot()
+    result = await runtime.step(ToolCall(name="run_tests", arguments={"command": command}))
+    assert (result.status, result.reason) == (status, reason), result.model_dump()
+    assert (runtime.state.verification.state == "passed") == (status == "success")
+    assert result.data.get("passed_tests", 0) == passed
+    assert runtime.workspace.snapshot() == before and not result.changed_paths
+
+
 async def test_successful_report_cannot_verify_a_workspace_changed_during_tests(
     tmp_path, monkeypatch
 ):

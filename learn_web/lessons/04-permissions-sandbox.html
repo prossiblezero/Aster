@@ -214,7 +214,7 @@ auto 遇到明确拒绝: blocked no_delete
 <ol>
 <li>能。这里验证当前内容是否与已读取版本一致，不提供完整的编辑历史或时间版本锁。</li>
 <li>不是。<code>source_sha256</code> 基于整个文件；返回给模型的是指定行范围。</li>
-<li>普通命令没有结构化测试报告。<code>run_tests</code> 在独立副本运行测试并解析 JUnit 结果，确认确实执行了测试，而且结果绑定当前工作区摘要。</li>
+<li>普通命令没有结构化测试报告。<code>run_tests</code> 在独立副本运行测试并解析 JUnit 结果（原生 Python 入口从测试框架捕获并转换），确认确实执行了测试，而且结果绑定当前工作区摘要。</li>
 </ol>
 </details>
 <p>继续阅读 <a href="../source/tests/test_fresh_read.py.html">test_fresh_read.py</a>、<a href="../source/tests/test_safety.py.html">test_safety.py</a> 和 <a href="../source/tests/test_workspace_execution.py.html">test_workspace_execution.py</a>，可以看到各层边界分别如何被验证。
