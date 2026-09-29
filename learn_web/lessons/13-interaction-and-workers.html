@@ -228,6 +228,7 @@ worker 已结束后，默认发送仍返回 <code>worker_finished</code>；显�
 </details>
 <p><a href="../source/tests/test_interaction_workers.py.html">test_interaction_workers.py</a> 还用 Textual 的无头界面测试验证了真实弹窗、拒绝、回答与取消。
 这个设计没有跨机器消息队列、持久化团队调度或自动合并分支；先把有界协作做完整，再由评测判断是否值得继续扩展。</p>
+<p>真实代码复验的结果也需要和机制可用性分开看：<a href="../source/evaluations/worker-focused-20260929/REPORT.md">2026-09-29 聚焦复验（Markdown 原文下载）</a>共运行 24 个 episode。Worker 的冻结评分为 5/12，Solo 为 2/12，但全队报告 token 多 21.6%、时间多 30.2%；只有 CDF 的一次 repeat 能确认子任务实际写入六个方法并被父任务保留。三轮公开样例合计 Worker 31/36、Solo 30/36，不能据此声称委派稳定提升任务能力或降低成本。使用 Worker 时应把独立工作的范围、父任务的验证责任和额外协调成本一起记录。</p>
 <h2 id="多个独立会话">多个独立会话</h2>
 <p><a href="../source/src/aster/ui/sessions.py.html"><code>SessionViews</code></a> 给每个打开的会话保留自己的 Runtime、任务 worker、草稿和输出。异步运行捕获自身 Runtime，事件只发给所属会话；后台回复暂存，切回时展示。<code>/new [目录]</code> 打开独立会话，<code>/sessions</code> 查找切换，<code>/switch 序号</code> 快速切换。取消只作用于当前会话，退出则结算全部打开任务。</p>
 <p>鼠标入口复用同一套导航：顶部「新建」填写工作目录，「会话」选择任务，「历史」选择恢复点；每次对话后的「从此分支」「带入摘录」绑定该次对话的确定位置，不会把当前最新位置误当成用户点击的旧位置。宽终端显示可点击的会话侧栏，小终端通过弹窗查看。文件变化时必须点击「保留文件并继续」才能采用当前文件。</p>

@@ -99,3 +99,18 @@ and the parent action it informed. Child-produced files can contribute directly
 without a model-authored summary; a deterministic fallback can carry evidence
 without proving the parent used it. Preserve those distinctions. No worker use
 means no attribution to delegation, regardless of the episode's timing.
+
+## Public-example diagnostics
+
+After all 24 paid episodes finished, the copied script
+[`diagnostics/public_examples.py`](diagnostics/public_examples.py) ran against the
+completed candidate workspaces. It made no model requests and did not change the
+frozen grader, score or source. The compact, redacted result is
+[`public-diagnostics.json`](public-diagnostics.json); interpretation and limits
+are in [`PUBLIC-DIAGNOSTICS.md`](PUBLIC-DIAGNOSTICS.md).
+
+The diagnostics use one public printer expression and three numeric points per
+CDF distribution. They only establish the stated sample observations. They do
+not prove complete symbolic behavior, support boundaries, arbitrary parameters,
+or the twelve-distribution task as a whole. Unknown and timeout observations
+remain unknown; they are not silently converted into omissions or failures.

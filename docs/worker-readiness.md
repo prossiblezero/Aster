@@ -1,6 +1,8 @@
 # Worker 适用范围与剩余边界
 
-更新于 2026-09-29，对应 `src/aster/core/workers.py`。9 月 18 日只读工具并行实验始终关闭 Worker，其读取重叠不能作为多 Agent 收益。历史实验见 [交付修复](../evaluations/worker-handoff-20260925/REPORT.md)、[调查委派迭代](../evaluations/worker-value-20260925/REPORT.md)与[重设计前代码任务基线](../evaluations/worker-code-20260928/REPORT.md)。最新的 [三臂真实模型评测](../evaluations/worker-redesign-20260928/REPORT.md)覆盖 26 道题；它证明 partial handoff 可以保留并对账，但尚未证明通过率或全队 token 的总体收益。
+更新于 2026-09-29，对应 `src/aster/core/workers.py`。9 月 18 日只读工具并行实验始终关闭 Worker，其读取重叠不能作为多 Agent 收益。历史实验见 [交付修复](../evaluations/worker-handoff-20260925/REPORT.md)、[调查委派迭代](../evaluations/worker-value-20260925/REPORT.md)与[重设计前代码任务基线](../evaluations/worker-code-20260928/REPORT.md)。[三臂真实模型评测](../evaluations/worker-redesign-20260928/REPORT.md)和最新的[四题三次聚焦复验](../evaluations/worker-focused-20260929/REPORT.md)都证明 partial handoff 可以保留并对账，但没有证明 Worker 稳定提高通过率或降低全队 token。
+
+最新复验的 24 个 episode 中，Solo 通过 2/12、Worker 5/12；正确正常交付为 1/12 对 3/12，但 Worker token 多 21.6%、时间多 30.2%。CDF repeat-01 是明确的 scoped 正例：子任务实际写入六个 CDF 方法，公开内部样例 12/12 通过；三轮合计仅 Worker 31/36、Solo 30/36，后续仍有精度错误和超时。这个结果支持“可选协作能力在特定任务可能有用”，不支持默认开启或效率收益的简历表述。
 
 ## 已有能力
 

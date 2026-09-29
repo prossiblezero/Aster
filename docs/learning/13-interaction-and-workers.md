@@ -241,6 +241,8 @@ asyncio.run(main())
 [test_interaction_workers.py](../../tests/test_interaction_workers.py) 还用 Textual 的无头界面测试验证了真实弹窗、拒绝、回答与取消。
 这个设计没有跨机器消息队列、持久化团队调度或自动合并分支；先把有界协作做完整，再由评测判断是否值得继续扩展。
 
+真实代码复验的结果也需要和机制可用性分开看：[2026-09-29 聚焦复验](../../evaluations/worker-focused-20260929/REPORT.md)共运行 24 个 episode。Worker 的冻结评分为 5/12，Solo 为 2/12，但全队报告 token 多 21.6%、时间多 30.2%；只有 CDF 的一次 repeat 能确认子任务实际写入六个方法并被父任务保留。三轮公开样例合计 Worker 31/36、Solo 30/36，不能据此声称委派稳定提升任务能力或降低成本。使用 Worker 时应把独立工作的范围、父任务的验证责任和额外协调成本一起记录。
+
 ## 多个独立会话
 
 [`SessionViews`](../../src/aster/ui/sessions.py) 给每个打开的会话保留自己的 Runtime、任务 worker、草稿和输出。异步运行捕获自身 Runtime，事件只发给所属会话；后台回复暂存，切回时展示。`/new [目录]` 打开独立会话，`/sessions` 查找切换，`/switch 序号` 快速切换。取消只作用于当前会话，退出则结算全部打开任务。

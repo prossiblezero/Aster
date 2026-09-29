@@ -1,0 +1,25 @@
+{
+  "scope": "补充公开样例诊断；不改变原评分，也不代表完整需求正确",
+  "script": "diagnostics/public_examples.py",
+  "script_sha256": "5000f20a34cf3888898c12b5258ab64e25b6043e9829a1b1350b7a3ae80d2435",
+  "launcher_sha256": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49",
+  "runs": 12,
+  "printing": {
+    "cases": 9,
+    "solo": {"verified_public_example": 1, "unknown": 8},
+    "worker": {"verified_public_example": 1, "unknown": 8},
+    "note": "每次只用 A - A*B - B 一个公开表达式；unknown 保留给非标准或无法判定的表示，不能直接计为错误。"
+  },
+  "cdf": {
+    "cases": 36,
+    "solo": {"verified_sample_points": 30, "observed_mismatch": 4, "unknown": 2},
+    "worker": {"verified_sample_points": 31, "observed_mismatch": 2, "unknown": 3},
+    "note": "每个分布只检查原公开构造和两个内部点，另检查未求积、概率范围和 Erlang 精确性；不是符号恒等式、边界或完整测试证明。"
+  },
+  "observed_mismatches": {
+    "solo": ["Erlang exactness in all three repeats", "StudentT repeat 1"],
+    "worker": ["Erlang exactness in repeats 2 and 3"],
+    "timeouts_or_incomplete": ["UniformSum solo repeats 2 and 3", "UniformSum worker repeats 2 and 3", "StudentT worker repeat 3"]
+  },
+  "interpretation": "CDF 首轮 Worker 为 12/12、Solo 为 10/12；三轮合计 Worker 31/36、Solo 30/36，后两轮仍有精度错误或未完成项。该结果支持一次 scoped 协作的正面案例，不支持稳定的总体能力或成本收益。"
+}
