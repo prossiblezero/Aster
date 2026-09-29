@@ -1,0 +1,90 @@
+[
+  {
+    "task": "swe-verified-django__django-16256--redesigned",
+    "command": "PYTHONPATH=. python tests/runtests.py --settings=test_sqlite --parallel 1 async",
+    "expected": "success",
+    "status": "success",
+    "reason": "",
+    "exit_code": 0,
+    "data": {
+      "output_bytes": 383,
+      "captured_bytes": 383,
+      "output_truncated": false,
+      "output_limit_bytes": 4194304,
+      "isolation": "landlock+seccomp",
+      "environment_generation": 0,
+      "environment_reused": false,
+      "test_evidence_source": "native_framework",
+      "tested_workspace_hash": "43ae10aba8d7558d1339011055a812c901d59ea79ab74612ef307763e5ab9c45",
+      "tested_environment_generation": 0,
+      "passed_tests": 39
+    },
+    "output_tail": "Creating test database for alias 'default'...\nTesting against Django installed in '/tmp/aster-exec-wf4k44kk/./django'\nFound 40 test(s).\nSystem check identified no issues (0 silenced).\n..............................s.........\n----------------------------------------------------------------------\nRan 40 tests in 0.034s\n\nOK (skipped=1)\nDestroying test database for alias 'default'...\n"
+  },
+  {
+    "task": "swe-verified-django__django-16256--redesigned",
+    "command": "PYTHONPATH=. python tests/runtests.py --settings=test_sqlite --parallel 1 async.NoSuchTest",
+    "expected": "error",
+    "status": "error",
+    "reason": "test_collection_failed",
+    "exit_code": 1,
+    "data": {
+      "output_bytes": 741,
+      "captured_bytes": 741,
+      "output_truncated": false,
+      "output_limit_bytes": 4194304,
+      "isolation": "landlock+seccomp",
+      "environment_generation": 0,
+      "environment_reused": false,
+      "test_evidence_source": "native_framework",
+      "tested_workspace_hash": "43ae10aba8d7558d1339011055a812c901d59ea79ab74612ef307763e5ab9c45",
+      "tested_environment_generation": 0,
+      "passed_tests": 0
+    },
+    "output_tail": "Testing against Django installed in '/tmp/aster-exec-y3atzj3a/./django'\nFound 1 test(s).\nSystem check identified no issues (0 silenced).\nE\n======================================================================\nERROR: NoSuchTest (unittest.loader._FailedTest)\n----------------------------------------------------------------------\nImportError: Failed to import test module: NoSuchTest\nTraceback (most recent call last):\n  File \"/tmp/aster-worker-repository-py39-20260928/lib/python3.9/unittest/loader.py\", line 154, in loadTestsFromName\n    module = __import__(module_name)\nModuleNotFoundError: No module named 'async.NoSuchTest'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n"
+  },
+  {
+    "revision": "native-framework-lazy-import",
+    "command": "PYTHONPATH=. python bin/test -C --verbose sympy/core/tests/test_symbol.py",
+    "status": "success",
+    "reason": "",
+    "data": {
+      "output_bytes": 1564,
+      "captured_bytes": 1564,
+      "output_truncated": false,
+      "output_limit_bytes": 4194304,
+      "isolation": "landlock+seccomp",
+      "environment_generation": 0,
+      "environment_reused": false,
+      "test_evidence_source": "native_framework",
+      "native_sympy_subprocess": false,
+      "tested_workspace_hash": "94e0e959011d0a5b51825c77b881742cdd7aae3f3e82ecf9bb27c3bbbf3d14fc",
+      "tested_environment_generation": 0,
+      "passed_tests": 13
+    },
+    "cache": "cache:              no",
+    "output_tail": "ster-exec-v4r47fi0/sympy/core/containers.py:271: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working\n  class OrderedSet(collections.MutableSet):\n/tmp/aster-exec-v4r47fi0/sympy/solvers/diophantine.py:3188: SyntaxWarning: \"is\" with a literal. Did you mean \"==\"?\n  if feasible is 1:  # it's prime and k == 2\n============================= test process starts ==============================\nexecutable:         /tmp/aster-worker-repository-py39-20260928/bin/python  (3.9.25-final-0) [CPython]\narchitecture:       64-bit\ncache:              no\nground types:       python \nnumpy:              None\nrandom seed:        54410122\nhash randomization: off\n\nsympy/core/tests/test_symbol.py[13] \ntest_Symbol ok\ntest_Dummy ok\ntest_Dummy_force_dummy_index ok\ntest_as_dummy ok\ntest_lt_gt ok\ntest_no_len ok\ntest_ineq_unequal ok\ntest_Wild_properties ok\ntest_symbols ok\ntest_call ok\ntest_unicode ok\ntest__uniquely_named_symbol_and__symbol ok\ntest_disambiguate ok                                                        [OK]\n\n\n================== tests finished: 13 passed, in 0.16 seconds ==================\n"
+  },
+  {
+    "revision": "native-framework-lazy-import",
+    "command": "PYTHONPATH=. python bin/test -C --verbose sympy/printing/tests/test_str.py",
+    "status": "error",
+    "reason": "test_setup_or_teardown_failed",
+    "data": {
+      "output_bytes": 361820,
+      "captured_bytes": 361820,
+      "output_truncated": false,
+      "output_limit_bytes": 4194304,
+      "isolation": "landlock+seccomp",
+      "environment_generation": 0,
+      "environment_reused": false,
+      "test_evidence_source": "native_framework",
+      "native_sympy_subprocess": false,
+      "tested_workspace_hash": "94e0e959011d0a5b51825c77b881742cdd7aae3f3e82ecf9bb27c3bbbf3d14fc",
+      "tested_environment_generation": 0,
+      "passed_tests": 0
+    },
+    "cache": "cache:              no",
+    "output_tail": "= self.as_terms()\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/expr.py\", line 1018, in as_terms\n    coeff = complex(coeff)\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/expr.py\", line 260, in __complex__\n    re, im = result.as_real_imag()\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/expr.py\", line 1763, in as_real_imag\n    return (re(self), im(self))\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/function.py\", line 425, in __new__\n    if n not in cls.nargs:\n  File \"/tmp/aster-exec-gy0kksn2/sympy/sets/sets.py\", line 560, in __contains__\n    symb = sympify(self.contains(other))\n  File \"/tmp/aster-exec-gy0kksn2/sympy/sets/sets.py\", line 288, in contains\n    ret = sympify(self._contains(other))\n  File \"/tmp/aster-exec-gy0kksn2/sympy/sets/sets.py\", line 1616, in _contains\n    t = Eq(e, other, evaluate=True)\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/relational.py\", line 327, in __new__\n    if lhs == rhs:\n  File \"/tmp/aster-exec-gy0kksn2/sympy/core/numbers.py\", line 2160, in __eq__\n    elif isinstance(other, Integer):\nRecursionError: maximum recursion depth exceeded while calling a Python object\n\n=========== tests finished: 75 passed, 3 exceptions, in 0.54 seconds ===========\nDO *NOT* COMMIT!\n"
+  }
+]
