@@ -58,7 +58,7 @@ def preview_context(
         model=settings.model,
         memory_enabled=settings.memory_enabled,
         skills_available=skills_available,
-        workers_available=settings.max_workers > 0,
+        workers_available=settings.max_workers > 0 or bool(state.worker_sessions),
         environment=environment,
         archive=lambda call_id, tool, content: evidence.archive_observation(
             state.run_id, call_id, tool, content
@@ -88,7 +88,8 @@ def prepare_continuation(
     state.step = state.turn = state.final_revisions = 0
     state.usage = {}
     state.team_usage = {}
-    state.pending_handoffs = {}
+    # Explicit child conversations may finish after the parent's last answer.
+    # Keep their pending deliveries on this branch for the next user turn.
     for item in state.todos:
         if item.get("delivery") == "running":
             item.update(status="pending", owner="parent", delivery="interrupted")

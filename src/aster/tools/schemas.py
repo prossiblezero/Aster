@@ -186,7 +186,7 @@ class WorkerStatus(WorkerId):
 
 class WorkerMessage(WorkerId):
     message: str
-    resume: bool = Field(default=False, description="Continue a finished worker once for a focused follow-up, within the remaining team budget.")
+    resume: bool = Field(default=False, description="Continue a finished or saved worker in its own context, within the remaining team budget.")
 
 
 class ImageRead(Record):
@@ -280,7 +280,7 @@ SCHEMAS = {
     ),
     "worker_message": (
         WorkerMessage,
-        "Send guidance to a running worker, or set resume=true for one bounded follow-up to a finished worker. Preserve its local context instead of repeating discovery.",
+        "Send guidance to a running worker, or set resume=true to continue a finished or saved worker. Preserve its local context; all follow-ups share the remaining team budget.",
         "state",
     ),
     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),

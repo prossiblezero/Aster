@@ -27,7 +27,7 @@ COMMANDS = {
     "/skills": ("", "查看项目技能及说明"),
     "/memory": ("", "查看长期记忆与启用状态"),
     "/working-memory": ("", "查看当前会话的工作记忆"),
-    "/agents": ("", "查看子任务进度"),
+    "/agents": ("", "打开子任务面板：调查、查看结果、补问与取消"),
     "/todos": ("", "查看计划与待办事项"),
     "/plan": ("[任务]", "进入只读规划模式，可同时提交任务"),
     "/plan-exit": ("", "返回执行模式"),
@@ -136,15 +136,6 @@ def inspect_command(command: str, runtime, *, settings, activity, root_path, con
             if state and state.working_memory
             else "当前会话暂无工作记忆。"
         )
-    elif command == "/agents":
-        workers = runtime.workers.workers.values()
-        write(
-            f"子任务：{len(runtime.workers.workers)} · 并行上限：{settings.max_workers}"
-        )
-        for worker in workers:
-            write(
-                f"  {worker.worker_id} · {'已结束' if worker.future.done() else '运行中'} · {worker.task[:120]}"
-            )
     elif command == "/todos":
         write(state.plan if state and state.plan else "暂无计划。")
         for todo in state.todos if state else []:

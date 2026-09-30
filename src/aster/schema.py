@@ -106,6 +106,7 @@ class RunState(Record):
     usage: dict[str, int] = Field(default_factory=dict)
     team_usage: dict[str, int] = Field(default_factory=dict)
     pending_handoffs: dict[str, str] = Field(default_factory=dict)
+    worker_sessions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     loaded_tools: list[str] = Field(default_factory=list)
 
     @property

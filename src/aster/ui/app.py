@@ -30,6 +30,7 @@ try:
     from textual.widgets import Button, Input, OptionList, RichLog, Static
     from textual.worker import WorkerCancelled, WorkerFailed
 
+    from .agent_widgets import AgentPanel
     from .session_widgets import TranscriptLog, render_log
     from .sessions import SessionViews
     from .widgets import HumanPrompt, PromptInput
@@ -64,9 +65,9 @@ if App is not None:
         CSS = """
         Screen { layout: vertical; background: #0f1117; color: #e6e9f2; overflow: hidden; }
         #brand { height: 1; margin: 1 2 0 2; color: #a9b9ff; }
-        #session-toolbar { height: 1; margin: 1 2 0 2; }
+        #session-toolbar { height: 1; margin: 1 1 0 1; }
         #session-toolbar Button { height: 1; min-width: 6; width: auto; border: none;
-                                  padding: 0 1; margin-right: 1; background: #25263b; }
+                                  padding: 0; margin-right: 1; background: #25263b; }
         #session-toolbar Button:hover { background: #51486d; }
         #session-status { height: 1; margin: 0 2; color: #9ca7be; }
         #workspace { height: 1fr; min-height: 1; }
@@ -146,6 +147,7 @@ if App is not None:
             with Horizontal(id="session-toolbar"):
                 yield Button("会话", id="show-sessions")
                 yield Button("历史", id="show-tree")
+                yield Button("子任务", id="show-agents")
                 yield Button("新建", id="new-session")
                 yield Button("取消", id="cancel-session")
                 yield Button("帮助", id="show-help")
@@ -481,11 +483,17 @@ if App is not None:
             return saved_runs(self.runtime.evidence)
 
         def _inspect(self, command: str):
+            if command == "/agents":
+                self.action_agents()
+                return
             inspect_command(
                 command, self.runtime, settings=self.settings, activity=self._activity,
                 root_path=self.root_path, context_report=self._context_report,
                 budget_text=self._budget_text(), write=self._write,
             )
+
+        def action_agents(self):
+            self.push_screen(AgentPanel(self.runtime))
 
         def _configure_output(self, command, argument):
             if argument not in {"", "on", "off"}:
@@ -566,7 +574,26 @@ if App is not None:
             started = False
             try:
                 if runtime.state:
-                    runtime.continue_task(prompt, adopt_workspace=adopt_workspace, **self.task_limits)
+                    children = [child.future for child in runtime.workers.workers.values() if not child.future.done()]
+                    if children and runtime.state.turn == 0 and runtime.state.phase == "running":
+                        # A panel-created investigation has not started the parent's first turn.
+                        if prompt is not None:
+                            runtime.state.task = runtime.state.task.model_copy(update={
+                                "prompt": prompt, **runtime.verifier.infer(prompt),
+                            })
+                            runtime.add_message("user", prompt, important=True)
+                            runtime.session_tree.pending.append(("turn_start", {"prompt": prompt}))
+                            runtime.checkpoint()
+                    else:
+                        if children:
+                            self._session_write(runtime, "等待子任务交付后继续；可在子任务面板取消，或按 Ctrl+C 取消本次等待。")
+                            view["_activity"] = "等待子任务交付"
+                            if runtime is self.runtime:
+                                self._activity = view["_activity"]
+                        while children:
+                            await asyncio.gather(*children, return_exceptions=True)
+                            children = [child.future for child in runtime.workers.workers.values() if not child.future.done()]
+                        runtime.continue_task(prompt, adopt_workspace=adopt_workspace, **self.task_limits)
                 elif prompt is not None:
                     runtime.start(TaskSpec(prompt=prompt, **self.task_limits))
                     runtime.state.mode = self._mode if runtime is self.runtime else view["_mode"]
@@ -579,6 +606,10 @@ if App is not None:
             except asyncio.CancelledError:
                 if runtime.state and not runtime.state.terminal:
                     runtime.abort()
+                await runtime.workers.close()
+                view["_activity"] = "已取消"
+                if runtime is self.runtime:
+                    self._activity = view["_activity"]
                 raise
             except Exception as exc:
                 if started and runtime.state and not runtime.state.terminal:
@@ -648,6 +679,7 @@ if App is not None:
                     worker.cancel()
                     with suppress(WorkerCancelled, WorkerFailed):
                         await worker.wait()
+                await view["runtime"].workers.close()
                 view["runtime"].sandbox.close()
 
         async def action_quit(self) -> None:

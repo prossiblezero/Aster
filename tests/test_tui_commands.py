@@ -107,6 +107,8 @@ async def test_chinese_welcome_local_commands_completion_and_history(tmp_path):
         ):
             prompt.value = command
             await pilot.press("enter")
+            if command == "/agents":
+                assert await pilot.click("#agent-close")
         assert "未知命令" in log_text(app)
         assert "命令未执行" not in log_text(app)
         assert not app.settings.stream

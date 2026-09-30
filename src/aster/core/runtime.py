@@ -539,7 +539,7 @@ class Runtime:
             model=self.settings.model,
             memory_enabled=self.settings.memory_enabled,
             skills_available=bool(catalog),
-            workers_available=self.settings.max_workers > 0,
+            workers_available=self.settings.max_workers > 0 or bool(state.worker_sessions),
             environment=self.sandbox.capabilities(),
             skill_bodies=skill_bodies,
             archive=lambda call_id, tool, content: self.evidence.archive_observation(
@@ -1251,8 +1251,9 @@ class Runtime:
         if self._operation_task is not None and self._operation_task is not asyncio.current_task():
             raise RuntimeError("runtime_busy: await the current operation before Final")
         self.workers.deliver()
-        if any(item.get("delivery") == "running" for item in state.pending_requirements):
-            state.feedback = "Requirement workers are still running. Await or stop them, then review their artifacts before final delivery."
+        if (any(worker.explicit and not worker.future.done() for worker in self.workers.workers.values())
+                or any(item.get("delivery") == "running" for item in state.pending_requirements)):
+            state.feedback = "Requirement or user-started workers are still running. Await them with worker_status(wait_seconds=300) or stop them, then review their artifacts before final delivery."
             self.add_message("user", state.feedback, important=True)
             self.evidence.emit(state.run_id, "requirement_wait", feedback=state.feedback)
             return state

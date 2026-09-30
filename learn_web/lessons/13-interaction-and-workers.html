@@ -77,7 +77,7 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 </tr>
 <tr>
 <td><code>max_workers</code></td>
-<td>同时活跃的子任务上限，默认 0（按需显式开启）；结束后名额可复用</td>
+<td>同时活跃的子任务上限，默认 0（关闭模型自主派工）；面板显式只读派工仍最多两个，结束后名额可复用</td>
 </tr>
 <tr>
 <td><code>worker_id</code></td>
@@ -93,7 +93,7 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 </tr>
 </tbody>
 </table>
-<p>Worker 默认关闭；启用后每个 worker 保留独立上下文，但父子共同消耗根任务的 <code>TaskSpec.max_steps</code>、<code>max_turns</code>，以及可选的 <code>max_tokens</code> 总额度。启动时从剩余额度分配局部上限，最多 24 次工具调用、12 次模型调用；为父任务保留步骤与调用总额度的约 20%（至少各 2 次），token 至少保留约 20%，父任务已有本次运行请求估计时取它与两次父请求估计的较大值；不足以保留收尾空间时不再派出新子任务。子运行 <code>max_workers=0</code> 禁止继续派生；持久 Memory 召回与演化也关闭。流式预览只表示暂时收到的 delta，不表示动作已经执行。
+<p>模型自主派工默认关闭；每个 worker 保留独立上下文，但父子共同消耗根任务的 <code>TaskSpec.max_steps</code>、<code>max_turns</code>，以及可选的 <code>max_tokens</code> 总额度。启动和续问时从扣除父方保留量后的余额按并发上限分配局部额度，不再加 24 步/12 轮的固定截断；为父任务保留步骤与调用总额度的约 20%（至少各 2 次），token 至少保留约 20%，父任务已有本次运行请求估计时取它与两次父请求估计的较大值；不足以保留收尾空间时不再派出新子任务。子运行 <code>max_workers=0</code> 禁止继续派生；持久 Memory 召回与演化也关闭。流式预览只表示暂时收到的 delta，不表示动作已经执行。
 它保留自己的短期工作记忆，但关闭跨运行记忆写入与演化，由父任务负责长期经验维护。
 共享工作区同一时间只允许一个写入者。只要已有写 worker 活跃，另一个写 worker 就会返回 <code>worker_scope_busy</code>，即使范围不重叠；父任务的写入和进程工具返回 <code>worker_writer_active</code>，但仍可读取文件。写 worker 结束或取消后释放写入资格，父任务才能修改文件或运行测试。
 这并不禁止用户的编辑器或另一个 Aster 进程修改文件，所以第 04 章的并发变更检查仍然必要。</p>
@@ -107,14 +107,18 @@ CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点�
 <p>Explore 和继承只读权限的子任务按调查交付：即使要求“找出修复方法、建议测试”，也不会因关键词而被要求实际编辑或通过正式测试。原有的观察要求仍然有效；只读工具权限没有放宽。</p>
 <p>当父任务 <code>completion=&quot;strict&quot;</code> 且 <code>TaskSpec.require_verification=True</code> 时，系统自动由父任务承担最终验证：子任务读完目标后交付实现，不必等待父任务尚未写好的测试，也不能到范围外自建替代测试。这个规则只解除子任务自己的验证完成门槛，不改变观察、编辑要求，也不把未测试的交付标成验证通过；父任务没有严格验证门槛时，子任务保留原有的任务推断规则。分工记录在 <code>worker_started.verification_owner</code>，无需模型选择额外参数。</p>
 <p>只读子任务运行时，父任务可处理独立工作；写子任务运行时，父任务只能做只读调查。写入结束后再检查改动并验证最终工作区。子任务的验证证据不是父任务的验证证据；共享文件仍在变化时执行的测试也不能证明最终状态正确。小任务的交接与模型调用开销可能超过并行收益，无需为了使用 Worker 而拆分。</p>
+<h2 id="点击使用子任务">点击使用子任务</h2>
+<p>顶部「子任务」或 <code>/agents</code> 打开面板。输入调查/审查要求后点击「启动」，选中条目可查看结果、最近工具和读取证据，再输入补充说明点击「发送」。工作中、完成、失败和中断分别显示；「取消」会等待工具清理，退出 TUI 也会清理子任务。无需修改 <code>.env</code> 或启用模型自主派工，默认允许用户明确启动最多两个只读子任务。</p>
+<p>面板复用 <code>WorkerManager</code> 和原有检查点，没有新执行服务。<code>overview()</code> 只读状态；<code>start(..., explicit=True)</code> 是界面入口，工具调用不能通过该参数绕过 <code>max_workers=0</code>。父回答后仍可调查和补问，但沿用该任务的剩余团队额度；已耗尽时需提交新的用户任务。</p>
+<p>交付中的 <code>stale_paths</code> 列出已读后又变化或不可读取的文件。摘要依然是模型判断，文件哈希仅用于发现过期证据，不证明结论正确。</p>
 <h2 id="消息要在明确边界生效">消息要在明确边界生效</h2>
 <p><code>worker_message</code> 成功时返回 <code>queued</code>，只意味着消息进入队列。
 worker 在下一轮模型请求前把队列内容写入自己的消息状态，然后清空队列；不会修改已经发出的 HTTP 请求。
-正在执行最后一轮的 worker 如果直接完成，刚排队的消息可能来不及送达；需要区分入队记录与 <code>worker_message_delivered</code> 事件。</p>
+若补充说明在最后一次请求期间到达，子任务会在剩余预算内开启后续一轮处理；额度不足时保留待处理消息并记录 <code>worker_message_pending</code>。需要区分入队、实际处理与任务完成。</p>
 <p>每个队列最多 8 条待投递消息，单条最长 8192 字符。
-worker 已结束后，默认发送仍返回 <code>worker_finished</code>；显式 <code>resume=true</code> 可在同一子任务上下文中补问一次，最多追加 8 步/4 轮，且继续占用团队预算。续问也检查父权限、并发名额和单写入者限制；父任务切到计划模式等权限变化后不会沿用旧权限继续执行。未知编号返回 <code>worker_missing</code>。
+worker 已结束后，默认发送仍返回 <code>worker_finished</code>；显式 <code>resume=true</code> 可在同一子任务上下文中继续补问，局部额度重新从团队余额分配，不重置团队消耗。续问也检查父权限、并发名额和单写入者限制；父任务切到计划模式等权限变化后不会沿用旧权限继续执行。未知编号返回 <code>worker_missing</code>。
 这些是明确的生命周期结果，不是“这个工具永远不支持”的占位实现。</p>
-<p>完成的子任务在父任务下一轮构建模型请求时自动投递一次。显式 <code>worker_status</code> 工具已经返回的交付不会再重复通知；界面轮询仅查看状态，不表示父模型已收到结果。<code>pending_handoffs</code> 随父检查点保存，进程恢复后补发已落盘交付；没有交付文件时报告中断，不会自动重启后台子任务，恢复后也不能对已不存在的子 Runtime 续问。</p>
+<p>完成的子任务在父任务下一轮构建模型请求时自动投递一次。显式 <code>worker_status</code> 工具已经返回的交付不会再重复通知；界面轮询仅查看状态，不表示父模型已收到结果。<code>pending_handoffs</code> 随父检查点保存，进程恢复后补发已落盘交付；<code>worker_sessions</code> 另外保存当前分支的子会话引用。重启后只查看已保存的结果，不自动重启后台子任务；显式补问才加载子检查点，恢复独立历史，并检查父权限和未确认的工具效果。新的独立会话不继承这些引用。</p>
 <p><code>worker_status</code> 返回状态、完整交付、改动路径和子任务记录的 <code>verification</code>，并让父运行吸收新增改动信息。<code>worker_id</code> 兼容单个编号，也可传最多四个编号的列表，一次等待全部交付。<code>wait_seconds</code>（0–300）是本次查询的共同期限，不按子任务数累加；默认 0 立即查询，整合前可用 300 等待。列表按请求顺序去重，外层 <code>finished</code> 只表示没有选中的子任务仍在运行，须逐项检查成功、失败、取消或 <code>missing</code>。等待超时只返回当前状态，不会取消子任务。等待期间子任务发生异常或被取消，会分别返回 <code>failed</code> / <code>cancelled</code>，不因此中断父任务。取消查询本身也不会取消子任务；退出父任务时仍按原有规则清理子任务。
 <code>worker_stop</code> 取消仍在运行的任务并等待清理；不能用“子任务已结束”推断它一定成功完成了目标。</p>
 <h2 id="离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</h2>
@@ -235,4 +239,4 @@ worker 已结束后，默认发送仍返回 <code>worker_finished</code>；显�
 <p>鼠标入口复用同一套导航：顶部「新建」填写工作目录，「会话」选择任务，「历史」选择恢复点；每次对话后的「从此分支」「带入摘录」绑定该次对话的确定位置，不会把当前最新位置误当成用户点击的旧位置。宽终端显示可点击的会话侧栏，小终端通过弹窗查看。文件变化时必须点击「保留文件并继续」才能采用当前文件。</p>
 <p><a href="../source/src/aster/ui/session_widgets.py.html"><code>session_widgets.py</code></a> 使用 Textual 原生按钮、列表与 Rich 点击动作，不增加界面依赖。侧栏按真实 worker 和该会话的交互等待状态显示工作中、等待回答、已完成、取消或失败；磁盘里 running 的旧存档显示「待恢复」。弹窗定时更新状态但保留筛选与选中条目，后台审批也不会把前台会话误标为等待。恢复历史时沿父指针重建可见对话，模型上下文仍由原有恢复和压缩规则决定。</p>
 <p>独立会话与模型启动的 Worker 不同。不同工作目录的会话可并行执行；相同目录以操作级文件锁防止多个独立执行者同时写入，父子 Worker 则遵循写入范围和单写入者规则。工具审批和追问显示所属会话与工作目录，不因切换前台而改变授权对象。不同目录的长期记忆不会自动共享。</p>
-<nav class="chapter-nav"><a href="12-plans-and-skills.html">← 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</a><a href="14-evaluation.html">14｜从“能跑”到“证明有用” →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#两类等别人回答">两类“等别人回答”</a><a href="#ask_user-是真正的等待不是占位返回">ask_user 是真正的等待，不是占位返回</a><a href="#tui-改变的是交互方式">TUI 改变的是交互方式</a><a href="#worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</a><a href="#交付范围与测试责任">交付范围与测试责任</a><a href="#消息要在明确边界生效">消息要在明确边界生效</a><a href="#离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</a><a href="#练习与核对">练习与核对</a><a href="#多个独立会话">多个独立会话</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="12-plans-and-skills.html">← 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做</a><a href="14-evaluation.html">14｜从“能跑”到“证明有用” →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#两类等别人回答">两类“等别人回答”</a><a href="#ask_user-是真正的等待不是占位返回">ask_user 是真正的等待，不是占位返回</a><a href="#tui-改变的是交互方式">TUI 改变的是交互方式</a><a href="#worker-复制运行边界不复制一个独立仓库">worker 复制运行边界，不复制一个独立仓库</a><a href="#交付范围与测试责任">交付范围与测试责任</a><a href="#点击使用子任务">点击使用子任务</a><a href="#消息要在明确边界生效">消息要在明确边界生效</a><a href="#离线实验回答问题并在子任务两轮之间补充要求">离线实验：回答问题，并在子任务两轮之间补充要求</a><a href="#练习与核对">练习与核对</a><a href="#多个独立会话">多个独立会话</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

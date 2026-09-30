@@ -26,11 +26,13 @@ Aster 关注模型提出动作之后的工程问题：如何组织上下文、�
 | 按需扩展能力 | 计划与待办、项目 Skills、带来源验证的持久 Memory、可选 Worker；通过配置与工具目录启用 |
 | 验证与审计 | 将正式测试绑定到工作区版本，保留事件轨迹、模型诊断和供应商报告的 token 用量 |
 
-默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、Worker 及依赖复用均需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
+默认使用单 Agent 和核心工具集；Memory、记忆演化、自动 Dream、模型自主 Worker 委派及依赖复用均需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
 
-Worker 使用独立上下文，共享整个任务的模型调用、工具调用与可选 token 额度，并为父任务保留收尾预算。子任务从剩余额度分配局部上限，最多 24 步/12 轮。共享工作区同一时间只允许一个写入者：写 Worker 活跃时，父任务只能进行只读操作；最终验证仍由具有严格验证要求的父任务承担。详见 [Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
+Worker 使用独立上下文，共享整个任务的模型调用、工具调用与可选 token 额度，并为父任务保留收尾预算。子任务从扣除父方保留量后的余额按并发上限分配局部额度，不另设 24 步/12 轮的固定截断。共享工作区同一时间只允许一个写入者：写 Worker 活跃时，父任务只能进行只读操作；最终验证仍由具有严格验证要求的父任务承担。详见 [Worker 交付与等待](docs/learning/13-interaction-and-workers.md)。
 
-独立调查可交给只读 Explore。子任务自动收到初始请求及当前分支的最新用户请求，以保留复现和验收条件，但不复制父会话历史；父任务补充局部分工、已知证据，并用可选的 `parent_work` 注明自己负责的部分。分工随检查点保存；子任务在局部预算耗尽前进入一次无工具交付轮，失败或取消也保存明确标注的部分结果。交付会在父任务下一轮自动送达，显式 `worker_status` 等待已返回的结果不会再重复通知；已完成子任务可用 `worker_message(resume=true)` 补问一次。实际收益取决于任务，预算、恢复和协作边界见 [扩展评估](docs/worker-readiness.md)。
+独立调查可交给只读 Explore。子任务自动收到初始请求及当前分支的最新用户请求，以保留复现和验收条件，但不复制父会话历史；父任务补充局部分工、已知证据，并用可选的 `parent_work` 注明自己负责的部分。分工随检查点保存；子任务在局部预算耗尽前进入一次无工具交付轮，失败或取消也保存明确标注的部分结果。交付会在父任务下一轮自动送达，显式 `worker_status` 等待已返回的结果不会再重复通知；已完成子任务可用 `worker_message(resume=true)` 沿原上下文继续交流，每次仍受团队余额限制。父检查点保存子会话引用，终端重启后可查看，并在明确补问时恢复；不会自动重放中断工具。实际收益取决于任务，预算、恢复和协作边界见 [扩展评估](docs/worker-readiness.md)。
+
+TUI 顶部「子任务」按钮或 `/agents` 打开可点击面板：启动只读调查/审查，查看进度、最近工具与结果，补问或取消。无需先改配置；`max_workers=0` 时只允许用户显式启动，最多两个并发子任务，模型不能自行创建新子任务。详细探索留在子会话，父方收到结论与证据；文件变化会显示 `stale_paths`，采用旧结论前需核对。
 
 多项需求可以用现有 todo 的 `acceptance` 记录验收条件，再由 `worker_start.todo_id` 关联子任务。启动失败不丢需求，交付后回到待验收，父任务用 `resolution` 记录实际检查；未处理项阻止严格完成，取消项保留交付警告。该需求跟踪同样适用于 Solo；它保留责任与状态，不保证模型判断正确。
 
@@ -132,7 +134,7 @@ TUI 默认使用简体中文，欢迎页显示 Aster 艺术字。输入任务即
 | `/context` / `/usage` | 查看上下文预算、最近请求估算和当前运行 token 用量 |
 | `/tools` / `/skills` | 查看可用工具和项目技能 |
 | `/memory` / `/working-memory` | 查看长期记忆和会话工作记忆 |
-| `/agents` / `/todos` | 查看子任务、计划与待办 |
+| `/agents` / `/todos` | 打开子任务控制面板 / 查看计划与待办 |
 | `/plan [任务]` / `/plan-exit` | 进入只读规划模式 / 返回执行模式 |
 | `/review [范围]` / `/test [目标]` | 提交代码审查 / 测试任务，会调用模型 |
 | `/stream on\|off` / `/thinking on\|off` | 开关流式输出 / 思考摘要展示 |
@@ -201,7 +203,7 @@ run_shell   run_tests   git_diff    tool_load
 | `read_parallelism` | `1` | 大于 1 时并行执行纯 `read_file` / `search` / `list_files` 批次 |
 | `reuse_environment` | `false` | 在同一 Runtime 中复用受控依赖目录，要求 `sandbox="required"` |
 | `memory_enabled` | `false` | 开启项目持久记忆；会话工作记忆始终独立保留 |
-| `max_workers` | `0` | 开启共享任务额度的 Worker，并限制同时活跃数 |
+| `max_workers` | `0` | 开启模型自主委派并限制同时活跃数；0 时面板仍可显式启动最多两个只读子任务 |
 
 默认每个任务最多 40 个工具步骤、40 个模型轮次；启用 Worker 后，这也是父子共同消耗的总额度。CLI / TUI 均可用 `--max-steps`、`--max-turns` 调整；Python 接口的 `TaskSpec.max_tokens` 可增加总 token 上限，`--context-tokens` 与 `--output-tokens` 控制单次模型请求预算。
 

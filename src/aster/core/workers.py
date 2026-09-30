@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import uuid
 from dataclasses import dataclass, field
@@ -47,12 +48,12 @@ class Worker:
     task: str
     mode: str
     runtime: Runtime
-    future: asyncio.Task
+    future: asyncio.Future
     inbox: list[str]
     delivered: bool = False
-    continuations: int = 0
     parent_policy: dict = field(default_factory=dict)
     todo_id: str = ""
+    explicit: bool = False
 
 
 class TeamBudget:
@@ -113,10 +114,78 @@ class WorkerManager:
             }
 
     def limits(self):
+        slots = self.parent.settings.max_workers or 2
         return (
-            min(24, (self.budget.remaining("tool_calls") - self.budget.reserve("tool_calls")) // 2),
-            min(12, (self.budget.remaining("model_calls") - self.budget.reserve("model_calls")) // 2),
+            (self.budget.remaining("tool_calls") - self.budget.reserve("tool_calls")) // slots,
+            (self.budget.remaining("model_calls") - self.budget.reserve("model_calls")) // slots,
         )
+
+    def _settings(self, read_only, scope):
+        return Settings.model_validate({
+            **self.parent.settings.model_dump(), "read_only": read_only,
+            "write_scope": [] if read_only else scope, "max_workers": 0,
+            "memory_enabled": False, "memory_evolution": False, "auto_dream": False,
+        })
+
+    def _runtime(self, settings):
+        from .runtime import Runtime
+
+        model = ModelClient(settings) if type(self.parent.model) is ModelClient else self.parent.model
+        runtime = Runtime(
+            self.parent.workspace.root, settings, model=model,
+            approval_callback=self.parent.approval_callback,
+            question_callback=self.parent.question_callback, hooks=self.parent.hooks,
+        )
+        runtime._managed_worker = True
+        return runtime
+
+    def _remember(self, worker):
+        self.parent.state.worker_sessions[worker.worker_id] = {
+            "task": worker.task, "mode": worker.mode, "todo_id": worker.todo_id,
+            "run_id": worker.runtime.state.run_id,
+            "parent_run_id": worker.runtime.state.parent_run_id,
+            "policy": worker.parent_policy,
+            "read_only": worker.runtime.settings.read_only,
+            "write_scope": worker.runtime.settings.write_scope,
+            "explicit": worker.explicit,
+            "pending_messages": list(worker.inbox),
+        }
+
+    def _saved(self, worker_id):
+        record = self.parent.state.worker_sessions[worker_id]
+        data = json.loads(self.parent.evidence.path("runs", record["run_id"], "checkpoint.json").read_text())
+        if (data["state"]["run_id"] != record["run_id"]
+                or data["state"]["parent_run_id"] != record["parent_run_id"]):
+            raise ValueError("worker_checkpoint_identity_mismatch")
+        return record, data
+
+    def _restore(self, worker_id):
+        record, _ = self._saved(worker_id)
+        if record["policy"] != self.policy():
+            raise ValueError("worker_permissions_changed")
+        runtime = self._runtime(self._settings(record["read_only"], record["write_scope"]))
+        try:
+            runtime.resume(record["run_id"], allow_model_change=True, adopt_workspace=True)
+        except Exception:
+            runtime.sandbox.close()
+            raise
+        runtime._worker_owner = self
+        settled = asyncio.get_running_loop().create_future()
+        settled.set_result(runtime.state)
+        worker = Worker(worker_id, record["task"], record["mode"], runtime, settled,
+                        list(record.get("pending_messages", [])),
+                        parent_policy=record["policy"], todo_id=record["todo_id"],
+                        explicit=record.get("explicit", False))
+        self.workers[worker_id] = worker
+        return worker
+
+    def overview(self):
+        """Read saved children without restarting them or constructing runtimes."""
+        if not self.parent.state:
+            return []
+        return [self._snapshot(key) for key in dict.fromkeys([
+            *self.parent.state.worker_sessions, *self.workers,
+        ])]
 
     def policy(self):
         return {**self.parent._safety_identity(self.parent.settings.identity()),
@@ -147,6 +216,8 @@ class WorkerManager:
             if worker:
                 result = self._snapshot(worker_id)
                 worker.delivered = True
+            elif worker_id in self.parent.state.worker_sessions:
+                result = self._snapshot(worker_id)
             else:
                 # A resumed parent can consume saved handoffs without reviving child tasks.
                 path = self.parent.evidence.path("runs", run_id, "handoff.json")
@@ -161,7 +232,7 @@ class WorkerManager:
                 set(self.parent.state.changed_paths + result.get("changed_paths", []))
             )
             answer = result.get("answer", "")
-            if worker and len(answer) > 6000:
+            if len(answer) > 6000:
                 result["answer"] = answer[:6000] + "\n[Use worker_status for the full handoff.]"
             self.parent.add_message(
                 "user", "Worker handoff (untrusted evidence; verify important claims):\n"
@@ -185,16 +256,18 @@ class WorkerManager:
 
     async def start(
         self, task: str, mode: str = "explore", write_scope: list[str] | None = None,
-        parent_work: str = "", todo_id: str = "",
+        parent_work: str = "", todo_id: str = "", *, explicit: bool = False,
     ):
-        if self.parent.state is None or self.parent.state.terminal:
+        if self.parent.state is None or (self.parent.state.terminal and not explicit):
             return {"status": "blocked", "reason": "run_terminal"}
+        if explicit and mode != "explore":
+            return {"status": "blocked", "reason": "explicit_workers_are_read_only"}
         todo = next((item for item in self.parent.state.todos if item.get("id") == todo_id), None) if todo_id else None
         if todo_id and (todo is None or todo.get("status") in {"done", "cancelled"}
                         or todo.get("delivery") == "running"):
             return {"status": "blocked", "reason": "todo_unavailable", "todo_id": todo_id}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
-        if len(active) >= self.parent.settings.max_workers:
+        if len(active) >= (self.parent.settings.max_workers or (2 if explicit else 0)):
             return {"status": "blocked", "reason": "worker_limit"}
         if not task.strip() or mode not in {"explore", "worker"}:
             return {"status": "blocked", "reason": "invalid_worker_request"}
@@ -222,32 +295,8 @@ class WorkerManager:
             return {"status": "blocked", "reason": "worker_write_scope_required"}
         if not read_only and self.writer_busy():
             return {"status": "blocked", "reason": "worker_scope_busy"}
-        settings = Settings.model_validate(
-            {
-                **self.parent.settings.model_dump(),
-                "read_only": read_only,
-                "write_scope": [] if read_only else scope,
-                "max_workers": 0,
-                # Workers have their own working memory. The parent owns durable promotion.
-                "memory_enabled": False,
-                "memory_evolution": False,
-                "auto_dream": False,
-            }
-        )
-        from .runtime import Runtime
-
-        model = (
-            ModelClient(settings) if type(self.parent.model) is ModelClient else self.parent.model
-        )
-        runtime = Runtime(
-            self.parent.workspace.root,
-            settings,
-            model=model,
-            approval_callback=self.parent.approval_callback,
-            question_callback=self.parent.question_callback,
-            hooks=self.parent.hooks,
-        )
-        runtime._managed_worker = True
+        settings = self._settings(read_only, scope)
+        runtime = self._runtime(settings)
         # Infer from the assignment, not from the handoff guidance appended below.
         spec = TaskSpec(prompt=task, max_steps=max_steps, max_turns=max_turns, **runtime.verifier.infer(task))
         parent_work = parent_work.strip() or "Integrate the handoff and verify the final result."
@@ -297,7 +346,8 @@ class WorkerManager:
         inbox: list[str] = []
         future = asyncio.create_task(self._run(runtime, inbox), name=f"aster-worker-{worker_id}")
         self.workers[worker_id] = Worker(worker_id, task, mode, runtime, future, inbox,
-                                         parent_policy=self.policy(), todo_id=todo_id)
+                                         parent_policy=self.policy(), todo_id=todo_id, explicit=explicit)
+        self._remember(self.workers[worker_id])
         if todo is not None:
             todo.update(acceptance=todo.get("acceptance") or task, status="in_progress",
                         owner=worker_id, worker_id=worker_id, worker_run_id=runtime.state.run_id,
@@ -332,6 +382,8 @@ class WorkerManager:
                         runtime.state.run_id, "worker_message_delivered", text=message
                     )
                 inbox.clear()
+                worker = next(w for w in self.workers.values() if w.runtime is runtime)
+                self._remember(worker)
                 state = runtime.state
                 reason = (
                     "step_limit" if state.step >= state.task.max_steps else
@@ -351,6 +403,12 @@ class WorkerManager:
                 await runtime.turn()
                 if reason and not state.terminal:
                     runtime.finish(reason)
+                if inbox and state.phase == "completed":
+                    # Guidance arriving during the final request must get a turn too.
+                    result = self._continue(worker, "\n".join(inbox), launch=False)
+                    if result["status"] != "queued":
+                        self.parent.evidence.emit(self.parent.state.run_id,
+                            "worker_message_pending", worker_id=worker.worker_id, reason=result["reason"])
             return runtime.state
         except asyncio.CancelledError:
             if not runtime.state.terminal:
@@ -419,7 +477,7 @@ class WorkerManager:
             }
         worker = self.workers.get(worker_id)
         if not worker:
-            return {"status": "missing", "worker_id": worker_id}
+            return self._snapshot(worker_id)
         if wait_seconds > 0 and not worker.future.done():
             # Return child failures/cancellation as status; caller cancellation still
             # propagates, and neither it nor the timeout cancels the child.
@@ -427,10 +485,30 @@ class WorkerManager:
         return self._snapshot(worker_id)
 
     def _snapshot(self, worker_id: str):
-        worker = self.workers[worker_id]
+        worker = self.workers.get(worker_id)
+        if not worker:
+            if not self.parent.state or worker_id not in self.parent.state.worker_sessions:
+                return {"status": "missing", "worker_id": worker_id}
+            try:
+                record, saved = self._saved(worker_id)
+                state = saved["state"]
+                status = state["phase"]
+                return self._staleness({
+                    "worker_id": worker_id, "task": record["task"], "mode": record["mode"],
+                    "run_id": record["run_id"], "todo_id": record["todo_id"],
+                    "status": "interrupted" if status in {"running", "ready"} else status,
+                    "delivery": "complete" if status == "completed" else "partial",
+                    "answer": state["final"], "stop_reason": state["stop_reason"],
+                    "steps": state["step"], "read_evidence": state["read_evidence"],
+                    "changed_paths": state["changed_paths"], "verification": state["verification"],
+                })
+            except (OSError, ValueError, KeyError):
+                return {"worker_id": worker_id, "status": "unavailable",
+                        "task": "Saved child unavailable", "delivery": "partial", "changed_paths": []}
         state = worker.runtime.state
         details = {
             "worker_id": worker_id,
+            "task": worker.task, "mode": worker.mode, "run_id": state.run_id,
             "todo_id": worker.todo_id,
             "steps": state.step,
             "changed_paths": state.changed_paths,
@@ -444,6 +522,7 @@ class WorkerManager:
                 read_evidence=state.read_evidence,
                 stop_reason=state.stop_reason,
             )
+            details = self._staleness(details)
         if worker.future.cancelled():
             return {**details, "status": "cancelled"}
         if worker.future.done():
@@ -463,43 +542,73 @@ class WorkerManager:
                 }
         return {**details, "status": state.phase}
 
-    async def message(self, worker_id: str, message: str, resume: bool = False):
-        worker = self.workers.get(worker_id)
-        if worker and resume and worker.future.done() and message.strip() and len(message) <= 8192:
-            todo = next((item for item in self.parent.state.todos if item.get("id") == worker.todo_id), None) if worker.todo_id else None
-            if worker.todo_id and (not todo or todo.get("status") in {"done", "cancelled"}
-                                   or todo.get("worker_run_id") != worker.runtime.state.run_id):
-                return {"status": "blocked", "reason": "todo_unavailable"}
-            if sum(not w.future.done() for w in self.workers.values()) >= self.parent.settings.max_workers:
-                return {"status": "blocked", "reason": "worker_limit"}
-            if worker.parent_policy != self.policy():
-                return {"status": "blocked", "reason": "worker_permissions_changed"}
-            max_steps, max_turns = self.limits()
-            if self.parent.state.terminal or worker.continuations or max_steps < 1 or max_turns < 2:
-                return {"status": "blocked", "reason": "worker_continuation_unavailable"}
-            if not worker.runtime.settings.read_only and self.writer_busy():
-                return {"status": "blocked", "reason": "worker_scope_busy"}
-            worker.runtime.continue_task(
-                message, adopt_workspace=True, max_steps=min(8, max_steps), max_turns=min(4, max_turns),
-            )
-            spec = worker.runtime.state.task
-            if worker.runtime.settings.read_only:
-                spec.require_edit = spec.require_verification = False
-            elif self.parent.settings.completion == "strict" and self.parent.state.task.require_verification:
-                spec.require_verification = False
-            worker.continuations += 1
-            if todo is not None:
-                todo.update(status="in_progress", owner=worker_id, delivery="running",
-                            worker_run_id=worker.runtime.state.run_id, resolution="")
-            worker.delivered = False
-            self.parent.state.pending_handoffs[worker_id] = worker.runtime.state.run_id
-            self.parent.evidence.emit(
-                self.parent.state.run_id, "worker_started", worker_id=worker_id,
-                child_run_id=worker.runtime.state.run_id, continuation=True,
-            )
+    def _staleness(self, details):
+        stale = []
+        for path, expected in details.get("read_evidence", {}).items():
+            try:
+                content = self.parent.workspace.read(path)
+                if hashlib.sha256(content.encode()).hexdigest() == expected:
+                    continue
+            except (OSError, ValueError):
+                pass
+            stale.append(path)
+        return {**details, "stale_paths": stale}
+
+    def _continue(self, worker, message, *, launch=True):
+        if self.parent.state.terminal and not worker.runtime.settings.read_only:
+            return {"status": "blocked", "reason": "worker_requires_active_parent"}
+        todo = next((item for item in self.parent.state.todos if item.get("id") == worker.todo_id), None) if worker.todo_id else None
+        if worker.todo_id and (not todo or todo.get("status") in {"done", "cancelled"}
+                               or todo.get("worker_run_id") != worker.runtime.state.run_id):
+            return {"status": "blocked", "reason": "todo_unavailable"}
+        capacity = self.parent.settings.max_workers or (2 if worker.explicit else 0)
+        if sum(not w.future.done() and w is not worker for w in self.workers.values()) >= capacity:
+            return {"status": "blocked", "reason": "worker_limit"}
+        if worker.parent_policy != self.policy():
+            return {"status": "blocked", "reason": "worker_permissions_changed"}
+        max_steps, max_turns = self.limits()
+        if max_steps < 1 or max_turns < 2:
+            return {"status": "blocked", "reason": "worker_continuation_unavailable"}
+        if not worker.runtime.settings.read_only and self.writer_busy(worker.runtime):
+            return {"status": "blocked", "reason": "worker_scope_busy"}
+        worker.runtime.continue_task(
+            "\n".join([*worker.inbox, message]) if launch else message,
+            adopt_workspace=True, max_steps=max_steps, max_turns=max_turns,
+        )
+        worker.inbox.clear()
+        worker.runtime.state.parent_run_id = self.parent.state.run_id
+        spec = worker.runtime.state.task
+        if worker.runtime.settings.read_only:
+            spec.require_edit = spec.require_verification = False
+        elif self.parent.settings.completion == "strict" and self.parent.state.task.require_verification:
+            spec.require_verification = False
+        if todo is not None:
+            todo.update(status="in_progress", owner=worker.worker_id, delivery="running",
+                        worker_run_id=worker.runtime.state.run_id, resolution="")
+        worker.delivered = False
+        self._remember(worker)
+        self.parent.state.pending_handoffs[worker.worker_id] = worker.runtime.state.run_id
+        self.parent.evidence.emit(
+            self.parent.state.run_id, "worker_started", worker_id=worker.worker_id,
+            child_run_id=worker.runtime.state.run_id, continuation=True,
+        )
+        if launch:
             worker.future = asyncio.create_task(self._run(worker.runtime, worker.inbox))
-            self.parent.checkpoint()
-            return {"status": "queued", "worker_id": worker_id, "continued": True}
+        worker.runtime.checkpoint()
+        self.parent.checkpoint()
+        return {"status": "queued", "worker_id": worker.worker_id, "continued": True}
+
+    async def message(self, worker_id: str, message: str, resume: bool = False):
+        if not message.strip() or len(message) > 8192:
+            return {"status": "blocked", "reason": "invalid_worker_message"}
+        worker = self.workers.get(worker_id)
+        if not worker and resume and self.parent.state and worker_id in self.parent.state.worker_sessions:
+            try:
+                worker = self._restore(worker_id)
+            except (OSError, ValueError, KeyError) as exc:
+                return {"status": "blocked", "reason": "worker_restore_blocked", "detail": str(exc)}
+        if worker and resume and worker.future.done() and message.strip() and len(message) <= 8192:
+            return self._continue(worker, message)
         reason = (
             "worker_missing"
             if not worker
@@ -514,12 +623,14 @@ class WorkerManager:
         if reason:
             return {"status": "blocked", "worker_id": worker_id, "reason": reason}
         worker.inbox.append(message)
+        self._remember(worker)
+        self.parent.checkpoint()
         return {"status": "queued", "worker_id": worker_id}
 
     async def stop(self, worker_id: str):
         worker = self.workers.get(worker_id)
         if not worker:
-            return {"status": "missing", "worker_id": worker_id}
+            return self._snapshot(worker_id)
         if worker.future.done():
             if not worker.runtime.state.final:
                 self._save_handoff(worker.runtime)

@@ -202,17 +202,116 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     assert continued.data["continued"] and continued.data["status"] == "queued"
     await worker.future
     assert worker.runtime.state.run_id != previous_run
-    assert worker.runtime.state.task.max_steps <= 8 and worker.runtime.state.task.max_turns <= 4
+    assert worker.runtime.state.task.max_steps <= parent.state.task.max_steps
+    assert worker.runtime.state.task.max_turns <= parent.state.task.max_turns
     assert worker.runtime.settings.read_only and worker.runtime.settings.max_workers == 0
     assert "Also check the license." in json.dumps(model.requests[-1])
     assert "Explain the license finding." in json.dumps(model.requests[-1])
     assert "reproduction condition iso8859-1" in model.requests[-1][1]["content"]
     assert parent.state.team_usage["model_calls"] == previous_usage["model_calls"] + 1
-    assert (await parent.workers.message(worker_id, "Again", resume=True))[
-        "reason"
-    ] == "worker_continuation_unavailable"
+    assert (await parent.workers.message(worker_id, "Again", resume=True))["continued"]
+    await worker.future
     assert (await parent.workers.start("another task"))["status"] == "running"
     await parent.workers.close()
+
+
+@pytest.mark.asyncio
+async def test_saved_child_followups_preserve_history_budget_and_branch_boundaries(tmp_path):
+    target = tmp_path / "module.py"
+    target.write_text("answer = 42\n")
+    model = CallThenFinish("read_file", {"path": "module.py"})
+    settings = Settings(max_workers=0, completion="off")
+    parent = Runtime(tmp_path, settings, model=model)
+    parent.start(TaskSpec(prompt="Investigate module.py"))
+    parent.finalize("Ready for explicit investigations.")
+    before_child_entry = parent.session_tree.cursor
+    started = await parent.workers.start("Read module.py; remember the answer", explicit=True)
+    worker_id = started["worker_id"]
+    await parent.workers.workers[worker_id].future
+    assert parent._unavailable_reason("worker_start") == "workers_disabled"
+    assert not parent._unavailable_reason("worker_status")
+    before = parent.state.team_usage["model_calls"]
+    parent_id = parent.state.run_id
+    old_child = parent.workers.overview()[0]["run_id"]
+    parent.checkpoint()
+
+    restored = Runtime(tmp_path, settings, model=model)
+    restored.resume(parent_id)
+    assert not restored.workers.workers  # Listing never starts background work.
+    assert restored.workers.overview()[0]["status"] == "completed"
+    target.write_text("answer = 43\n")
+    assert restored.workers.overview()[0]["stale_paths"] == ["module.py"]
+    for question in ("Explain the finding", "Which assumption might have changed?"):
+        assert (await restored.workers.message(worker_id, question, resume=True))["continued"]
+        await restored.workers.workers[worker_id].future
+    assert restored.state.team_usage["model_calls"] == before + 2
+    assert "Read module.py; remember the answer" in json.dumps(model.requests[-1])
+    assert "Explain the finding" in json.dumps(model.requests[-1])
+    assert "workspace edits" in json.dumps(model.requests[-1])
+    assert restored.workers.overview()[0]["run_id"] != old_child
+    # A new parent turn retains the child's handle and pending delivery on this branch.
+    restored.continue_task("Integrate the investigations", adopt_workspace=True)
+    restored.prepare_request()
+    assert not restored.state.pending_handoffs
+    assert restored.workers.overview()[0]["worker_id"] == worker_id
+    assert not restored.workers.workers
+    restored.state.team_usage["model_calls"] = restored.state.task.max_turns
+    assert (await restored.workers.message(worker_id, "Beyond budget", resume=True))["status"] == "blocked"
+    restored.finish("test_boundary")
+    restored.checkout(before_child_entry, adopt_workspace=True)
+    assert restored.workers.overview() == []
+    restored.new_session()
+    assert restored.workers.overview() == []
+
+
+@pytest.mark.asyncio
+async def test_child_restore_rejects_uncertain_effects_and_changed_permissions(tmp_path):
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"),
+                     model=CallThenFinish("list_files", {}))
+    parent.start(TaskSpec(prompt="Investigate"))
+    started = await parent.workers.start("Inspect files")
+    worker_id = started["worker_id"]
+    await parent.workers.workers[worker_id].future
+    restored = Runtime(tmp_path, parent.settings, model=parent.model)
+    restored.resume(parent.state.run_id)
+    restored.state.mode = "plan"
+    blocked = await restored.workers.message(worker_id, "Continue", resume=True)
+    assert blocked["reason"] == "worker_restore_blocked"
+    assert "permissions_changed" in blocked["detail"]
+    restored.state.mode = "work"
+    child = restored.state.worker_sessions[worker_id]["run_id"]
+    marker = restored.evidence.path("runs", child, "inflight.json")
+    marker.write_text(json.dumps({"calls": [{"call_id": "uncertain"}]}))
+    blocked = await restored.workers.message(worker_id, "Continue", resume=True)
+    assert "interrupted_tool_batch" in blocked["detail"]
+    assert not restored.workers.workers
+
+
+@pytest.mark.asyncio
+async def test_guidance_during_final_response_is_not_lost(tmp_path):
+    entered, release = asyncio.Event(), asyncio.Event()
+    requests = []
+
+    class Model:
+        async def complete(self, messages, _tools):
+            requests.append(messages)
+            if len(requests) == 1:
+                entered.set()
+                await release.wait()
+            return ModelReply(text="Finding delivered.")
+
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=Model())
+    parent.start(TaskSpec(prompt="Gather evidence"))
+    started = await parent.workers.start("Investigate", explicit=True)
+    worker_id = started["worker_id"]
+    await entered.wait()
+    assert not parent.finalize("Too early").terminal
+    assert (await parent.workers.message(worker_id, "Also address cancellation"))["status"] == "queued"
+    release.set()
+    await parent.workers.workers[worker_id].future
+    assert len(requests) == 2 and "Also address cancellation" in json.dumps(requests[-1])
+    assert not parent.state.worker_sessions[worker_id]["pending_messages"]
+    assert parent.finalize("All findings received").terminal
 
 
 @pytest.mark.asyncio

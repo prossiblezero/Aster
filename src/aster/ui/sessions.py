@@ -92,6 +92,8 @@ class SessionViews:
         worker = self.task_worker if view["runtime"] is self.runtime else view["task_worker"]
         if worker is not None and not worker.is_finished:
             return "工作中"
+        if any(not child.future.done() for child in view["runtime"].workers.workers.values()):
+            return "子任务工作中"
         state = view["runtime"].state
         return session_status(state.phase, state.stop_reason) if state else "就绪"
 
@@ -113,7 +115,7 @@ class SessionViews:
             self._sidebar_current = current
         statuses = [self._view_status(view) for view in self._views]
         self._main_query("#session-status", Static).update(Text(
-            f"会话 {current + 1} · {self._view_status(self._view())} │ 工作 {statuses.count('工作中')} · 待确认 {sum(s.startswith('等待') for s in statuses)} · 完成 {statuses.count('已完成')}",
+            f"会话 {current + 1} · {self._view_status(self._view())} │ 工作 {sum(s.endswith('工作中') for s in statuses)} · 待确认 {sum(s.startswith('等待') for s in statuses)} · 完成 {statuses.count('已完成')}",
             style="#9ca7be",
         ))
         self._main_query("#cancel-session", Button).disabled = not self.busy
@@ -155,7 +157,7 @@ class SessionViews:
     def on_button_pressed(self, event: Button.Pressed):
         event.stop()
         actions = {"show-sessions": self.action_session_list, "show-tree": self.action_session_tree,
-                   "show-help": self.action_help}
+                   "show-help": self.action_help, "show-agents": self.action_agents}
         if event.button.id in actions:
             actions[event.button.id]()
         elif event.button.id == "new-session":
