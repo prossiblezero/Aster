@@ -1,0 +1,701 @@
+[
+  {
+    "id": "django-investigate",
+    "project": "django",
+    "kind": "investigate",
+    "source_task": "swe-verified-django__django-16256",
+    "benchmark": "swebench-verified",
+    "files": [
+      {
+        "path": "django/utils/datastructures.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/datastructures.py",
+        "sha256": "b9df2a9905e9a3505fbf91b8157f09446a8f6f580b8a7258b96beb03581d2611",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/regex_helper.py",
+        "sha256": "82fd187e4a1f722088e22a6dbffe86130c8bc95660d7f1c568d4709f70ee1f87",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/functional.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/functional.py",
+        "sha256": "c74ab461890a2d7de638a78633d5551991790c29432b997d2131203627cf610e",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/__init__.py",
+        "sha256": "f796c7d5f5ec1bea4a141a16d1c66525acb70f1a6c608776b88b362df3010733",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/version.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/version.py",
+        "sha256": "5777dfdd20bd154a2766bf27a2f6113e72a8f1c74cf4275f06a3deca65cd3212",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      }
+    ],
+    "aliases": {
+      "ds": "django/utils/datastructures.py",
+      "rx": "django/utils/regex_helper.py"
+    },
+    "groups": [
+      {
+        "name": "multi-value containers",
+        "questions": [
+          {
+            "id": "d1",
+            "code": "d=ds.MultiValueDict({'k':[1,2]}); d.update({'k':3}); d.update(ds.MultiValueDict({'k':[4,5]})); result=[d['k'],d.getlist('k')]"
+          },
+          {
+            "id": "d2",
+            "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(2); b=d.setlistdefault('k',[9]); b.append(3); result=d.getlist('k')"
+          },
+          {
+            "id": "d3",
+            "code": "d=ds.CaseInsensitiveMapping([('Ab',1),('aB',2)]); result=[list(d),d['AB'],d=={'ab':2},d.copy() is d]"
+          },
+          {
+            "id": "d4",
+            "code": "d=ds.MultiValueDict({'empty':[]}); result=[d['empty'],d.get('empty','fallback'),d.getlist('missing',[7]),list(d.items())]"
+          }
+        ]
+      },
+      {
+        "name": "URL pattern normalization",
+        "questions": [
+          {
+            "id": "r1",
+            "code": "result=rx.normalize(r'^api/(?P<id>\\d+)/(?:page/(?P<page>\\d+)/)?$')"
+          },
+          {
+            "id": "r2",
+            "code": "result=rx.normalize(r'^a{2,4}b?\\d+$')"
+          },
+          {
+            "id": "r3",
+            "code": "result=rx.normalize(r'^(?P<x>\\w+)/(?P=x)/$')"
+          },
+          {
+            "id": "r4",
+            "code": "result=[rx.normalize(r'^a|b$'),rx.normalize(r'^x(?=y)z$')]"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "solo",
+        "serial",
+        "parallel"
+      ],
+      [
+        "serial",
+        "parallel",
+        "solo"
+      ]
+    ],
+    "benchmark_revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+    "source_revision": "76e37513e22f4d9a01c7f15eee36fe44388e6670"
+  },
+  {
+    "id": "django-review",
+    "project": "django",
+    "kind": "review",
+    "source_task": "swe-verified-django__django-16256",
+    "benchmark": "swebench-verified",
+    "files": [
+      {
+        "path": "django/utils/datastructures.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/datastructures.py",
+        "sha256": "b9df2a9905e9a3505fbf91b8157f09446a8f6f580b8a7258b96beb03581d2611",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/regex_helper.py",
+        "sha256": "82fd187e4a1f722088e22a6dbffe86130c8bc95660d7f1c568d4709f70ee1f87",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/functional.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/functional.py",
+        "sha256": "c74ab461890a2d7de638a78633d5551991790c29432b997d2131203627cf610e",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/__init__.py",
+        "sha256": "f796c7d5f5ec1bea4a141a16d1c66525acb70f1a6c608776b88b362df3010733",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/version.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/version.py",
+        "sha256": "5777dfdd20bd154a2766bf27a2f6113e72a8f1c74cf4275f06a3deca65cd3212",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      }
+    ],
+    "aliases": {
+      "ds": "django/utils/datastructures.py",
+      "rx": "django/utils/regex_helper.py"
+    },
+    "groups": [
+      {
+        "name": "container compatibility",
+        "questions": [
+          {
+            "id": "d1",
+            "code": "d=ds.MultiValueDict({'k':[1,2]}); result=d['k']"
+          },
+          {
+            "id": "d2",
+            "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(9); result=d.getlist('k')"
+          },
+          {
+            "id": "d3",
+            "code": "d=ds.MultiValueDict(); result=d.get('absent','fallback')"
+          },
+          {
+            "id": "d4",
+            "code": "d=ds.MultiValueDict(); result=[d.setdefault('k',4),d.getlist('k')]"
+          }
+        ]
+      },
+      {
+        "name": "regex compatibility",
+        "questions": [
+          {
+            "id": "r1",
+            "code": "result=rx.normalize(r'^item/\\d/$')"
+          },
+          {
+            "id": "r2",
+            "code": "result=rx.normalize(r'^a{2}b$')"
+          },
+          {
+            "id": "r3",
+            "code": "result=rx.normalize(r'^(?P<name>\\w+)/$')"
+          },
+          {
+            "id": "r4",
+            "code": "result=rx.normalize('')"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "django/utils/datastructures.py",
+        "old": "return list_[-1]",
+        "new": "return list_[0]"
+      },
+      {
+        "path": "django/utils/datastructures.py",
+        "old": "return self._getlist(key, default, force_list=True)",
+        "new": "return self._getlist(key, default, force_list=False)"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "old": "\"d\": \"0\",",
+        "new": "\"d\": \"9\","
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "old": "result.extend([result[-1]] * (count - 1))",
+        "new": "result.extend([result[-1]] * count)"
+      }
+    ],
+    "arm_orders": [
+      [
+        "solo",
+        "parallel",
+        "serial"
+      ],
+      [
+        "parallel",
+        "solo",
+        "serial"
+      ]
+    ],
+    "benchmark_revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+    "source_revision": "76e37513e22f4d9a01c7f15eee36fe44388e6670"
+  },
+  {
+    "id": "openlibrary-investigate",
+    "project": "openlibrary",
+    "kind": "investigate",
+    "source_task": "swe-pro-openlibrary-authors",
+    "benchmark": "swebench-pro",
+    "files": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/core/lists/engine.py",
+        "sha256": "b2bab0f44d2e3cc79fa549c9e1b2e5b3a8537adb1c159a45dde3a0dff7a075b8",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/utils/compress.py",
+        "sha256": "24cd4435ca8c8faba97058c8865cd4be7786236f2ede871b5a5710ea42cfb5de",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      }
+    ],
+    "aliases": {
+      "engine": "openlibrary/core/lists/engine.py",
+      "compress": "openlibrary/utils/compress.py"
+    },
+    "groups": [
+      {
+        "name": "list seed aggregation",
+        "questions": [
+          {
+            "id": "e1",
+            "code": "result=engine.get_seeds({'key':'/works/W','authors':[{'author':{'key':'/authors/A'}},{}],'editions':[{'key':'/books/B'}],'subjects':['Science Fiction','science_fiction',12],'subject_places':['New, York']})"
+          },
+          {
+            "id": "e2",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A B','a_b','A B'],'people':['A B']}); result=s.top_subjects()"
+          },
+          {
+            "id": "e3",
+            "code": "result=engine.reduce_seeds([(1,2,1,'2020',{'subjects':['X']}),(2,5,0,'2023',{'subjects':['X','Y']})])"
+          },
+          {
+            "id": "e4",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['B','A','B','C','A']}); result=s.top_subjects(2)"
+          }
+        ]
+      },
+      {
+        "name": "independent compression contexts",
+        "questions": [
+          {
+            "id": "c1",
+            "code": "c=compress.Compressor('book catalog '); a=c.compress('book one'); b=c.compress('book two'); result=[c.decompress(b),c.decompress(a),c.decompress(a)]"
+          },
+          {
+            "id": "c2",
+            "code": "c=compress.Compressor('书籍'); result=c.decompress(c.compress('你好'.encode('utf-8')))"
+          },
+          {
+            "id": "c3",
+            "code": "c=compress.Compressor('seed'); result=[c.decompress(c.compress('')),c.compress('same')==c.compress('same')]"
+          },
+          {
+            "id": "c4",
+            "code": "a=compress.Compressor('same seed'); b=compress.Compressor('same seed'); result=b.decompress(a.compress('independent record'))"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "serial",
+        "solo",
+        "parallel"
+      ],
+      [
+        "parallel",
+        "serial",
+        "solo"
+      ]
+    ],
+    "benchmark_revision": "2d52cb3df914a3fcf80c7f66738b3a88ae37fc50",
+    "source_revision": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+  },
+  {
+    "id": "openlibrary-review",
+    "project": "openlibrary",
+    "kind": "review",
+    "source_task": "swe-pro-openlibrary-authors",
+    "benchmark": "swebench-pro",
+    "files": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/core/lists/engine.py",
+        "sha256": "b2bab0f44d2e3cc79fa549c9e1b2e5b3a8537adb1c159a45dde3a0dff7a075b8",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/utils/compress.py",
+        "sha256": "24cd4435ca8c8faba97058c8865cd4be7786236f2ede871b5a5710ea42cfb5de",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      }
+    ],
+    "aliases": {
+      "engine": "openlibrary/core/lists/engine.py",
+      "compress": "openlibrary/utils/compress.py"
+    },
+    "groups": [
+      {
+        "name": "ranking and normalization compatibility",
+        "questions": [
+          {
+            "id": "e1",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A','A','B']}); result=s.top_subjects(1)"
+          },
+          {
+            "id": "e2",
+            "code": "result=engine.get_seeds({'key':'/works/W','subjects':['Space Science']})"
+          },
+          {
+            "id": "e3",
+            "code": "result=engine.get_seeds({'key':'/works/W','subjects':['space science']})"
+          },
+          {
+            "id": "e4",
+            "code": "result=engine.reduce_seeds([])"
+          }
+        ]
+      },
+      {
+        "name": "compression compatibility",
+        "questions": [
+          {
+            "id": "c1",
+            "code": "c=compress.Compressor('seed'); a=c.compress('first'); result=c.decompress(c.compress('second'))"
+          },
+          {
+            "id": "c2",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('你好'))"
+          },
+          {
+            "id": "c3",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('ascii'))"
+          },
+          {
+            "id": "c4",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress(''))"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "old": "subjects.sort(key=lambda s: s['count'], reverse=True)",
+        "new": "subjects.sort(key=lambda s: s['count'])"
+      },
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "old": "RE_SUBJECT.sub(\"_\", subject.lower())",
+        "new": "RE_SUBJECT.sub(\"_\", subject)"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "old": "c = self.c_context.copy()",
+        "new": "c = self.c_context"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "old": "return t.decode()",
+        "new": "return t.decode(\"ascii\")"
+      }
+    ],
+    "arm_orders": [
+      [
+        "serial",
+        "parallel",
+        "solo"
+      ],
+      [
+        "solo",
+        "serial",
+        "parallel"
+      ]
+    ],
+    "benchmark_revision": "2d52cb3df914a3fcf80c7f66738b3a88ae37fc50",
+    "source_revision": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+  },
+  {
+    "id": "session-investigate",
+    "project": "session",
+    "kind": "investigate",
+    "source_task": "terminal-session-window-debug",
+    "benchmark": "terminal-bench",
+    "files": [
+      {
+        "path": "app/types.py",
+        "asset": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "sha256": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/types.py"
+      },
+      {
+        "path": "app/events.py",
+        "asset": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "sha256": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/events.py"
+      },
+      {
+        "path": "app/sessions.py",
+        "asset": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "sha256": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/sessions.py"
+      },
+      {
+        "path": "app/merger.py",
+        "asset": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "sha256": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/merger.py"
+      },
+      {
+        "path": "app/emitter.py",
+        "asset": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "sha256": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/emitter.py"
+      },
+      {
+        "path": "app/gc.py",
+        "asset": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "sha256": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/gc.py"
+      },
+      {
+        "path": "app/__init__.py",
+        "asset": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "sha256": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/__init__.py"
+      }
+    ],
+    "aliases": {
+      "types": "app/types.py",
+      "events": "app/events.py",
+      "sessions": "app/sessions.py",
+      "merger": "app/merger.py",
+      "emitter": "app/emitter.py",
+      "gc": "app/gc.py"
+    },
+    "groups": [
+      {
+        "name": "watermarks and session assignment",
+        "questions": [
+          {
+            "id": "v1",
+            "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark"
+          },
+          {
+            "id": "v2",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.register_source('b'); before=s.watermark; s.advance_time(1); result=[before,s.watermark]"
+          },
+          {
+            "id": "s1",
+            "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); s.process_event(types.Event(b'k',0,1)); s.process_event(types.Event(b'k',10,2)); x=s.process_event(types.Event(b'k',5,3)); result=[len(s.all_sessions()),x.start,x.end,x.aggregate.result()]"
+          },
+          {
+            "id": "s2",
+            "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); x=s.process_event(types.Event(b'k',10,1)); s.process_event(types.Event(b'k',6,2)); result=[x.start,x.end,x.created_at,x.aggregate.result()]"
+          }
+        ]
+      },
+      {
+        "name": "emission and retention boundaries",
+        "questions": [
+          {
+            "id": "f1",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); result=[e.evaluate(x,15) is None,e.evaluate(x,16).value]"
+          },
+          {
+            "id": "f2",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); e.evaluate(x,16); x.aggregate.add(2); y=e.evaluate(x,17); result=[y.is_retraction,y.retracted_value,y.value,x.fire_count]"
+          },
+          {
+            "id": "g1",
+            "code": "x=types.Session(b'k',0,10,1); g=gc.GarbageCollector(7,100,5); result=[g.is_reclaimable(x,22),g.is_reclaimable(x,23)]"
+          },
+          {
+            "id": "g2",
+            "code": "x=types.Session(b'k',0,100,1); g=gc.GarbageCollector(7,20,5); result=[g.force_gc_eligible(x,21),g.force_gc_eligible(x,22)]"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "parallel",
+        "solo",
+        "serial"
+      ],
+      [
+        "solo",
+        "parallel",
+        "serial"
+      ]
+    ],
+    "benchmark_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037",
+    "source_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037"
+  },
+  {
+    "id": "session-review",
+    "project": "session",
+    "kind": "review",
+    "source_task": "terminal-session-window-debug",
+    "benchmark": "terminal-bench",
+    "files": [
+      {
+        "path": "app/types.py",
+        "asset": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "sha256": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/types.py"
+      },
+      {
+        "path": "app/events.py",
+        "asset": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "sha256": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/events.py"
+      },
+      {
+        "path": "app/sessions.py",
+        "asset": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "sha256": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/sessions.py"
+      },
+      {
+        "path": "app/merger.py",
+        "asset": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "sha256": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/merger.py"
+      },
+      {
+        "path": "app/emitter.py",
+        "asset": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "sha256": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/emitter.py"
+      },
+      {
+        "path": "app/gc.py",
+        "asset": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "sha256": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/gc.py"
+      },
+      {
+        "path": "app/__init__.py",
+        "asset": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "sha256": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/__init__.py"
+      }
+    ],
+    "aliases": {
+      "types": "app/types.py",
+      "events": "app/events.py",
+      "sessions": "app/sessions.py",
+      "merger": "app/merger.py",
+      "emitter": "app/emitter.py",
+      "gc": "app/gc.py"
+    },
+    "groups": [
+      {
+        "name": "watermark compatibility",
+        "questions": [
+          {
+            "id": "v1",
+            "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark"
+          },
+          {
+            "id": "v2",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',2,1,'a')); result=s.watermark"
+          },
+          {
+            "id": "v3",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); result=s.watermark"
+          },
+          {
+            "id": "v4",
+            "code": "s=events.EventSource(types.Clock()); s.advance_time(3); result=s.watermark"
+          }
+        ]
+      },
+      {
+        "name": "emission and collection compatibility",
+        "questions": [
+          {
+            "id": "f1",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,15) is None"
+          },
+          {
+            "id": "g1",
+            "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,22)"
+          },
+          {
+            "id": "f2",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,16).value"
+          },
+          {
+            "id": "g2",
+            "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,23)"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "app/events.py",
+        "old": "min(self._source_watermarks.values())",
+        "new": "max(self._source_watermarks.values())"
+      },
+      {
+        "path": "app/events.py",
+        "old": "if event.time > current:",
+        "new": "if event.time >= 0:"
+      },
+      {
+        "path": "app/emitter.py",
+        "old": "if watermark <= session.end + self._gap:",
+        "new": "if watermark < session.end + self._gap:"
+      },
+      {
+        "path": "app/gc.py",
+        "old": "return watermark > session.end + self._gap + self._retention",
+        "new": "return watermark >= session.end + self._gap + self._retention"
+      }
+    ],
+    "arm_orders": [
+      [
+        "parallel",
+        "serial",
+        "solo"
+      ],
+      [
+        "serial",
+        "solo",
+        "parallel"
+      ]
+    ],
+    "benchmark_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037",
+    "source_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037"
+  }
+]
