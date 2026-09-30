@@ -143,6 +143,7 @@ class WorkerManager:
         self.parent.state.worker_sessions[worker.worker_id] = {
             "task": worker.task, "mode": worker.mode, "todo_id": worker.todo_id,
             "run_id": worker.runtime.state.run_id,
+            "entry_id": worker.runtime.session_tree.cursor,
             "parent_run_id": worker.runtime.state.parent_run_id,
             "policy": worker.parent_policy,
             "read_only": worker.runtime.settings.read_only,
@@ -153,7 +154,9 @@ class WorkerManager:
 
     def _saved(self, worker_id):
         record = self.parent.state.worker_sessions[worker_id]
-        data = json.loads(self.parent.evidence.path("runs", record["run_id"], "checkpoint.json").read_text())
+        if not record.get("entry_id"):
+            raise ValueError("worker_snapshot_unavailable")
+        data = self.parent.session_tree.restore(record["entry_id"])
         if (data["state"]["run_id"] != record["run_id"]
                 or data["state"]["parent_run_id"] != record["parent_run_id"]):
             raise ValueError("worker_checkpoint_identity_mismatch")
@@ -165,7 +168,8 @@ class WorkerManager:
             raise ValueError("worker_permissions_changed")
         runtime = self._runtime(self._settings(record["read_only"], record["write_scope"]))
         try:
-            runtime.resume(record["run_id"], allow_model_change=True, adopt_workspace=True)
+            runtime.resume(record["run_id"], entry_id=record.get("entry_id"),
+                           allow_model_change=True, adopt_workspace=True)
         except Exception:
             runtime.sandbox.close()
             raise
@@ -176,7 +180,6 @@ class WorkerManager:
                         list(record.get("pending_messages", [])),
                         parent_policy=record["policy"], todo_id=record["todo_id"],
                         explicit=record.get("explicit", False))
-        self.workers[worker_id] = worker
         return worker
 
     def overview(self):
@@ -383,6 +386,7 @@ class WorkerManager:
                     )
                 inbox.clear()
                 worker = next(w for w in self.workers.values() if w.runtime is runtime)
+                runtime.checkpoint()
                 self._remember(worker)
                 state = runtime.state
                 reason = (
@@ -403,6 +407,8 @@ class WorkerManager:
                 await runtime.turn()
                 if reason and not state.terminal:
                     runtime.finish(reason)
+                self._remember(worker)
+                self.parent.checkpoint()
                 if inbox and state.phase == "completed":
                     # Guidance arriving during the final request must get a turn too.
                     result = self._continue(worker, "\n".join(inbox), launch=False)
@@ -454,6 +460,8 @@ class WorkerManager:
         if owner:
             owner._record_delivery(handoff)
         runtime.checkpoint()
+        if owner:
+            owner._remember(next(worker for worker in owner.workers.values() if worker.runtime is runtime))
         return handoff
 
     async def status(self, worker_id: str | list[str], wait_seconds: float = 0):
@@ -494,7 +502,7 @@ class WorkerManager:
                 state = saved["state"]
                 status = state["phase"]
                 return self._staleness({
-                    "worker_id": worker_id, "task": record["task"], "mode": record["mode"],
+                    "worker_id": worker_id, "task": record["task"], "mode": record["mode"], "saved": True,
                     "run_id": record["run_id"], "todo_id": record["todo_id"],
                     "status": "interrupted" if status in {"running", "ready"} else status,
                     "delivery": "complete" if status == "completed" else "partial",
@@ -504,7 +512,8 @@ class WorkerManager:
                 })
             except (OSError, ValueError, KeyError):
                 return {"worker_id": worker_id, "status": "unavailable",
-                        "task": "Saved child unavailable", "delivery": "partial", "changed_paths": []}
+                        "task": self.parent.state.worker_sessions[worker_id].get("task", ""),
+                        "reason": "worker_snapshot_unavailable", "delivery": "partial", "changed_paths": []}
         state = worker.runtime.state
         details = {
             "worker_id": worker_id,
@@ -586,6 +595,7 @@ class WorkerManager:
             todo.update(status="in_progress", owner=worker.worker_id, delivery="running",
                         worker_run_id=worker.runtime.state.run_id, resolution="")
         worker.delivered = False
+        worker.runtime.checkpoint()
         self._remember(worker)
         self.parent.state.pending_handoffs[worker.worker_id] = worker.runtime.state.run_id
         self.parent.evidence.emit(
@@ -594,7 +604,6 @@ class WorkerManager:
         )
         if launch:
             worker.future = asyncio.create_task(self._run(worker.runtime, worker.inbox))
-        worker.runtime.checkpoint()
         self.parent.checkpoint()
         return {"status": "queued", "worker_id": worker.worker_id, "continued": True}
 
@@ -606,9 +615,15 @@ class WorkerManager:
             try:
                 worker = self._restore(worker_id)
             except (OSError, ValueError, KeyError) as exc:
-                return {"status": "blocked", "reason": "worker_restore_blocked", "detail": str(exc)}
+                return {"status": "blocked", "detail": str(exc),
+                        "reason": "worker_snapshot_unavailable" if str(exc) == "worker_snapshot_unavailable" else "worker_restore_blocked"}
         if worker and resume and worker.future.done() and message.strip() and len(message) <= 8192:
-            return self._continue(worker, message)
+            result = self._continue(worker, message)
+            if result["status"] == "queued":
+                self.workers[worker_id] = worker
+            else:
+                worker.runtime.sandbox.close()
+            return result
         reason = (
             "worker_missing"
             if not worker

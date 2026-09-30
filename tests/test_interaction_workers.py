@@ -288,6 +288,70 @@ async def test_child_restore_rejects_uncertain_effects_and_changed_permissions(t
 
 
 @pytest.mark.asyncio
+async def test_parent_history_pins_child_messages_and_observation_access(tmp_path):
+    requests = []
+    class Echo:
+        async def complete(self, messages, _tools):
+            requests.append(json.dumps(messages))
+            return ModelReply(text="FUTURE_SECRET" if "FUTURE_SECRET" in requests[-1] else "Earlier findings only.")
+
+    parent = Runtime(tmp_path, Settings(completion="off", auto_dream=False), model=Echo())
+    parent.start(TaskSpec(prompt="Original investigation"))
+    parent.finalize("Ready for investigations.")
+    started = await parent.workers.start("Investigate the original request", explicit=True)
+    worker_id = started["worker_id"]
+    worker = parent.workers.workers[worker_id]
+    earlier = worker.runtime.evidence.archive_observation(worker.runtime.state.run_id, "earlier", "run_shell", "Earlier evidence")
+    worker.runtime.checkpoint()
+    parent.workers._remember(worker)
+    parent.checkpoint()
+    boundary = parent.session_tree.cursor
+    probe = Runtime(tmp_path, worker.runtime.settings, model=parent.model)
+    with pytest.raises(ValueError, match="session_snapshot_identity_mismatch"):
+        probe.resume("different-run", entry_id=worker.runtime.session_tree.cursor)
+    probe.resume(worker.runtime.state.run_id, entry_id=worker.runtime.session_tree.cursor)
+    with pytest.raises(RuntimeError, match="snapshot_requires_continuation"):
+        await probe.step(ToolCall(name="observation_read", arguments={}))
+    await parent.workers.message(worker_id, "FUTURE_SECRET")
+    future = worker.runtime.evidence.archive_observation(worker.runtime.state.run_id, "later", "run_shell", "FUTURE_TOOL_OUTPUT")
+    await worker.future
+    assert "FUTURE_SECRET" in parent.workers.overview()[0]["answer"]
+
+    parent.checkout(boundary)
+    assert "FUTURE_SECRET" not in json.dumps(parent._structured_history)
+    assert "FUTURE_SECRET" not in parent.workers.overview()[0].get("answer", "")
+    before = parent.state.team_usage["model_calls"]
+    checkpoint = worker.runtime.evidence.path("runs", worker.runtime.state.run_id, "checkpoint.json")
+    latest = checkpoint.read_bytes()
+    probe = Runtime(tmp_path, worker.runtime.settings, model=parent.model)
+    probe.resume(worker.runtime.state.run_id, entry_id=parent.state.worker_sessions[worker_id]["entry_id"])
+    probe.checkpoint()
+    assert checkpoint.read_bytes() == latest
+    parent.state.team_usage["model_calls"] = parent.state.task.max_turns
+    assert (await parent.workers.message(worker_id, "Over budget", resume=True))["status"] == "blocked"
+    await parent.workers.close()
+    assert checkpoint.read_bytes() == latest
+    parent.state.team_usage["model_calls"] = before
+    assert (await parent.workers.message(worker_id, "Explain the earlier findings", resume=True))["continued"]
+    restored = parent.workers.workers[worker_id]
+    await restored.future
+    assert "FUTURE_SECRET" not in requests[-1] and "FUTURE_TOOL_OUTPUT" not in requests[-1]
+    assert parent.state.team_usage["model_calls"] == before + 1
+    restored.runtime.continue_task("Inspect available evidence", adopt_workspace=True)
+    for observation, expected in ((earlier, "success"), (future, "blocked")):
+        result = await restored.runtime.step(ToolCall(name="observation_read", arguments={"observation_id": observation["id"]}))
+        assert result.status == expected
+    listing = await restored.runtime.step(ToolCall(name="observation_read", arguments={}))
+    assert future["id"] not in listing.content and earlier["id"] in listing.content
+    await parent.workers.close()
+    parent.finish("test_boundary")
+    parent.checkout(boundary)
+    parent.state.worker_sessions[worker_id].pop("entry_id")
+    assert parent.workers.overview()[0]["reason"] == "worker_snapshot_unavailable"
+    assert (await parent.workers.message(worker_id, "Do not guess history", resume=True))["reason"] == "worker_snapshot_unavailable"
+
+
+@pytest.mark.asyncio
 async def test_guidance_during_final_response_is_not_lost(tmp_path):
     entered, release = asyncio.Event(), asyncio.Event()
     requests = []

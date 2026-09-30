@@ -111,6 +111,7 @@ class Runtime:
         self._worker_owner: WorkerManager | None = None
         self._request_estimate = 0
         self._archive_sources: dict[str, str] = {}
+        self._snapshot_sources: dict[str, str] | None = None
         self._history_origins: list[dict] = []
         self._continued_from: str | None = None
         self._checkpoint_workspace: dict[str, str] = {}
@@ -124,6 +125,8 @@ class Runtime:
     @contextmanager
     def _operation(self):
         """One task owns transitions; run -> turn -> step may nest in that task."""
+        if self._snapshot_sources is not None:
+            raise RuntimeError("snapshot_requires_continuation: call continue_task before executing")
         task = asyncio.current_task()
         if self._operation_task is not None and self._operation_task is not task:
             raise RuntimeError("runtime_busy: await the current operation")
@@ -242,6 +245,7 @@ class Runtime:
         self.session_tree.reset()
         self._structured_history, self._pending_messages = [], []
         self._archive_sources, self._history_origins = {}, []
+        self._snapshot_sources = None
 
     def continue_task(
         self,
@@ -271,7 +275,8 @@ class Runtime:
             max_steps=max_steps,
             max_turns=max_turns,
         )
-        sources = continuation_sources(self.evidence, previous.run_id, self._archive_sources)
+        sources = (dict(self._snapshot_sources) if self._snapshot_sources is not None else
+                   continuation_sources(self.evidence, previous.run_id, self._archive_sources))
         self._preview_context(state, history, self.settings, sources)
         initial_text = (
             self.workspace.text_snapshot() if feedback is not None or drift else self._initial_text
@@ -280,6 +285,7 @@ class Runtime:
             self.workspace.mode_snapshot() if feedback is not None or drift else self._initial_modes
         )
         self.state, self._structured_history, self._archive_sources = state, history, sources
+        self._snapshot_sources = None
         self._continued_from = previous.run_id
         if feedback is not None:
             self.session_tree.turn_id = state.run_id
@@ -331,6 +337,7 @@ class Runtime:
         # boundaries are actually sent to the model; this seed is only for the task state.
         self._structured_history = []
         self._archive_sources = {}
+        self._snapshot_sources = None
         self._history_origins = []
         self._continued_from = None
         self._pending_messages = []
@@ -347,7 +354,7 @@ class Runtime:
         return self.state
 
     def checkpoint(self):
-        if not self.state or self._in_turn:
+        if not self.state or self._in_turn or self._snapshot_sources is not None:
             return
         self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
@@ -378,11 +385,18 @@ class Runtime:
         return checkout(self, entry_id, summary=summary, adopt_workspace=adopt_workspace)
 
     def resume(
-        self, run_id: str, *, allow_model_change: bool = False, adopt_workspace: bool = False
+        self, run_id: str, *, allow_model_change: bool = False, adopt_workspace: bool = False,
+        entry_id: str | None = None,
     ) -> RunState:
+        """Resume a run; a pinned historical entry must continue into a fresh run before execution."""
         self._ensure_idle()
         if self.state and not self.state.terminal:
             raise RuntimeError("active_run: finish the current run before resuming another")
+        snapshot = self.session_tree.restore(entry_id) if entry_id else None
+        if snapshot is not None:
+            if snapshot["state"]["run_id"] != run_id:
+                raise ValueError("session_snapshot_identity_mismatch")
+            snapshot["archive_sources"] = {**snapshot["archive_sources"], **snapshot.get("session_observations", {})}
         saved = load_checkpoint(
             self.evidence,
             self.workspace,
@@ -390,6 +404,7 @@ class Runtime:
             run_id,
             allow_model_change=allow_model_change,
             adopt_workspace=adopt_workspace,
+            data=snapshot,
         )
         data, state, history = saved.data, saved.state, saved.history
         sources, origins = saved.sources, saved.origins
@@ -422,6 +437,8 @@ class Runtime:
         self._pending_messages = []
         self._structured_history = history
         self._archive_sources = sources
+        # A historical child continuation may only inherit observations visible at that boundary.
+        self._snapshot_sources = dict(sources) if entry_id else None
         self._history_origins = origins
         self._continued_from = data.get("continued_from")
         self._checkpoint_workspace = data["workspace"]

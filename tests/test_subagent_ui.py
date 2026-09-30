@@ -60,6 +60,8 @@ async def test_click_start_detail_followup_and_reopen_without_parent_model_call(
         await asyncio.wait_for(asyncio.shield(child.future), 5)
         assert "调查结论" in calls[-1] and "解释这个常量" in calls[-1]
         run_id = app.runtime.state.run_id
+        child.runtime.evidence.emit(child.runtime.state.run_id, "tool_result",
+                                    call={"name": "read_file"}, outcome={"status": "success", "content": "FUTURE_TOOL_TRACE"})
         assert await pilot.click("#agent-close")
 
     reopened = AsterTui(tmp_path, Settings(completion="off", auto_dream=False, memory_enabled=False))
@@ -69,6 +71,7 @@ async def test_click_start_detail_followup_and_reopen_without_parent_model_call(
         reopened._command("/agents", "")
         await pilot.pause()
         assert "补充结论" in reopened.screen._detail
+        assert "FUTURE_TOOL_TRACE" not in reopened.screen._detail
         assert "已完成" in str(reopened.screen.query_one(OptionList).get_option_at_index(0).prompt)
         assert not reopened.runtime.workers.workers  # Inspecting saved work must not restart it.
         reopened.screen.query_one(Input).value = "重开后的追问"

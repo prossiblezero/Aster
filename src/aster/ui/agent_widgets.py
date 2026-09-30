@@ -58,7 +58,7 @@ class AgentPanel(ModalScreen):
             return "已中断"
         return {"running": "运行中", "ready": "运行中", "completed": "已完成",
                 "failed": "失败", "stopped": "已中断", "cancelled": "已中断",
-                "interrupted": "已中断", "unavailable": "不可用"}.get(row["status"], row["status"])
+                "interrupted": "已中断", "unavailable": "快照不可用"}.get(row["status"], row["status"])
 
     def refresh_agents(self):
         rows = self.runtime.workers.overview()
@@ -82,15 +82,17 @@ class AgentPanel(ModalScreen):
             text = f"{self.status_label(row)} · {row['task']}\n\n{row.get('answer') or '尚无最终结果。'}"
             if row.get("stop_reason"):
                 text += "\n停止原因：" + row["stop_reason"]
+            if row.get("reason") == "worker_snapshot_unavailable":
+                text += "\n历史子任务快照不可用，请重新发起调查。"
             if row.get("stale_paths"):
                 text += "\n文件已变化，采用结论前需重新核对：" + ", ".join(row["stale_paths"])
             if row.get("read_evidence"):
                 text += "\n已读取文件：\n" + "\n".join(row["read_evidence"])
-            key = (row.get("run_id"), row.get("steps"), row["status"])
+            key = (row.get("run_id"), row.get("steps"), row["status"], row.get("saved"))
             if key != self._events_key:
                 self._events_key = key
                 try:
-                    events = self.runtime.evidence.events(row["run_id"]) if row.get("run_id") else []
+                    events = self.runtime.evidence.events(row["run_id"]) if row.get("run_id") and not row.get("saved") else []
                     self._events = [f"{event['call']['name']} · {event['outcome']['status']}\n"
                                     + str(event['outcome'].get('content', ''))[:1200]
                                     for event in events if event["event"] == "tool_result"][-8:]
@@ -143,6 +145,7 @@ class AgentPanel(ModalScreen):
                     "worker_continuation_unavailable": "剩余预算不足，无法继续子任务。",
                     "worker_permissions_changed": "主会话权限已变化，无法继续原子任务。",
                     "worker_restore_blocked": "无法恢复，请核对历史记录与当前配置。",
+                    "worker_snapshot_unavailable": "历史子任务快照不可用，请重新发起调查。",
                 }.get(reason, reason))
             else:
                 if action != "stop":

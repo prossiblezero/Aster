@@ -92,6 +92,7 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
         tree.pending.append(("branch_summary", excerpt))
     runtime.state, runtime._structured_history = state, history
     runtime._archive_sources, runtime._history_origins = sources, saved.origins
+    runtime._snapshot_sources = None
     runtime._initial_text, runtime._initial_modes = data["initial_text"], data["initial_modes"]
     runtime._continued_from = old_run
     runtime._pending_messages = []
