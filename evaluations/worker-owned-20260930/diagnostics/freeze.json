@@ -1,0 +1,765 @@
+{
+  "frozen_at": "2026-09-30T03:41:14.208844+00:00",
+  "identity": {
+    "files": {
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/cdf-reference.json": "c0472ba109897abb89fd36fc2068aa0ec0ac8feb62448c13afca21c2fa1262d4",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/cdf-starter.json": "eacb98219a721bebc3cd627d4e6289921db29c86007332b45d48455d45e5a185",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/known-Arcsin.json": "6b6b2bad33180848d73a664661204a4ac9963f1e795f41dfbfef445e222dba00",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/known-StudentT.json": "bb59aafec47ed984a891be007e5cbb8821dfaa6fdfc30af051ab33fbef224ad1",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/math-reference.json": "902ca8d7685db36729b1c4a41b799862036f6bad5ffcbace48d1d2f61eba3432",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/preflight.json": "a53d629cb975636d450dc1d7a1c4a132adfa9fa8d708cae1d09f92911b72a9d0",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/printing-reference.json": "5b7ab14fee2e901a871e930064cdf2415cc0f7c25e415a34b68d88389bd92989",
+      "/home/dzh/Aster/artifacts/private/worker-owned-20260930/diagnostic-preflight/printing-starter.json": "0fd522b24cfe67dde9caee2dcc672a4d225f35562ff46106c99913699af1c3d7",
+      "/home/dzh/Aster/datasets/worker-owned-20260930/selection.json": "95f057474f511465cd5fca26af76374fcfc86964ad588fed110bd76fdbe29baf",
+      "/home/dzh/Aster/evaluations/worker-owned-20260930/SUPPLEMENTARY-PROTOCOL.md": "dff7392556ec4d519db729989fc4ec5aafcce1f5ea1096628ae36fee2f523104",
+      "/home/dzh/Aster/evaluations/worker-owned-20260930/diagnostics/PREFLIGHT.md": "284d7736448950327ccca7f20523dc145d286beb64fbb1a3ac2dce9ad04933cf",
+      "/home/dzh/Aster/evaluations/worker-owned-20260930/diagnostics/batch.py": "a4ef0cca1a7edf0009df701cd1feea9090accc81cae449bfeeaa8edecd63aad6",
+      "/home/dzh/Aster/evaluations/worker-owned-20260930/diagnostics/preflight.py": "79baccf32dbcd2b80cb6e1d3623b84b3d5312daf54efe3a4fae03a0ecc7fb376",
+      "/home/dzh/Aster/evaluations/worker-owned-20260930/diagnostics/public_examples.py": "354d9594fdee4faf12f792df0d628a4586e0a53e9bd2dd0ba14d8b31eace6675",
+      "/home/dzh/Aster/src/aster/safety/linux.py": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49",
+      "/tmp/aster-worker-repository-py39-20260928/bin/python": "1ac2ddcabb5c0c29c2df35d66744c6e29bbcbe4646b98820f6c2d13b26f88de7"
+    },
+    "cases": {
+      "printing": [
+        {
+          "kind": "printer",
+          "name": "str",
+          "requirement": "A - A*B - B renders as signed subtraction"
+        },
+        {
+          "kind": "printer",
+          "name": "pretty",
+          "requirement": "A - A*B - B renders as signed subtraction"
+        },
+        {
+          "kind": "printer",
+          "name": "latex",
+          "requirement": "A - A*B - B renders as signed subtraction"
+        }
+      ],
+      "cdf": [
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "1",
+          "group": "interior",
+          "support": "[0,3]",
+          "expected": 0.39182655203060723,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "S(1)/2",
+          "group": "interior",
+          "support": "[0,3]",
+          "expected": 0.26772047280123,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "2",
+          "group": "interior",
+          "support": "[0,3]",
+          "expected": 0.6081734479693928,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,3]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,3]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "3",
+          "group": "boundary",
+          "support": "[0,3]",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Arcsin",
+          "constructor": "Arcsin(\"x\", 0, 3)",
+          "point": "4",
+          "group": "boundary",
+          "support": "[0,3]",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "3",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.80428026294334,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "1",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.7749520822925555,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "4",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.8116027612526001,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "0",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Dagum",
+          "constructor": "Dagum(\"x\", S(1)/3, S(1)/5, 2)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "1",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.6321205588285577,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "S(1)/2",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.3934693402873666,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "2",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.8646647167633873,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Erlang",
+          "constructor": "Erlang(\"x\", 1, 1)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 1,
+          "expected_exact": true
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "3",
+          "group": "interior",
+          "support": "(2,infinity)",
+          "expected": 0.36787944117144233,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "S(5)/2",
+          "group": "interior",
+          "support": "(2,infinity)",
+          "expected": 0.08047231234143652,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "4",
+          "group": "interior",
+          "support": "(2,infinity)",
+          "expected": 0.6724347064556331,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "1",
+          "group": "boundary",
+          "support": "(2,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "2",
+          "group": "boundary",
+          "support": "(2,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Frechet",
+          "constructor": "Frechet(\"x\", S(4)/3, 1, 2)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "(2,infinity)",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "3",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.988655983362195,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "1",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.9414024458901339,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "5",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.997056202396072,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Gamma",
+          "constructor": "Gamma(\"x\", 0.1, 2)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "3",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.3656900086209801,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "1",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.07872333425615474,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "5",
+          "group": "interior",
+          "support": "(0,infinity)",
+          "expected": 0.5139014196258314,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "0",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "GammaInverse",
+          "constructor": "GammaInverse(\"x\", S(5)/7, 2)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "(0,infinity)",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "S(1)/3",
+          "group": "interior",
+          "support": "[0,1]",
+          "expected": 0.9999999999444088,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "S(1)/10**123",
+          "group": "interior",
+          "support": "[0,1]",
+          "expected": 0.40950999999999993,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "S(1)/2**123",
+          "group": "interior",
+          "support": "[0,1]",
+          "expected": 0.96875,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,1]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,1]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "1",
+          "group": "boundary",
+          "support": "[0,1]",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Kumaraswamy",
+          "constructor": "Kumaraswamy(\"x\", S(1)/123, 5)",
+          "point": "2",
+          "group": "boundary",
+          "support": "[0,1]",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Laplace",
+          "constructor": "Laplace(\"x\", 2, 3)",
+          "point": "5",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.8160602794142788,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Laplace",
+          "constructor": "Laplace(\"x\", 2, 3)",
+          "point": "-1",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.18393972058572117,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Laplace",
+          "constructor": "Laplace(\"x\", 2, 3)",
+          "point": "2",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.5,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Laplace",
+          "constructor": "Laplace(\"x\", 2, 3)",
+          "point": "-oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Laplace",
+          "constructor": "Laplace(\"x\", 2, 3)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Logistic",
+          "constructor": "Logistic(\"x\", 1, 0.1)",
+          "point": "2",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.9999546021312976,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Logistic",
+          "constructor": "Logistic(\"x\", 1, 0.1)",
+          "point": "0",
+          "group": "interior",
+          "support": "real",
+          "expected": 4.5397868702434395e-05,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Logistic",
+          "constructor": "Logistic(\"x\", 1, 0.1)",
+          "point": "1",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.5,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Logistic",
+          "constructor": "Logistic(\"x\", 1, 0.1)",
+          "point": "-oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Logistic",
+          "constructor": "Logistic(\"x\", 1, 0.1)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "2",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.9983250764018895,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "S(1)/2",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.06861121274927638,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "1",
+          "group": "interior",
+          "support": "[0,infinity)",
+          "expected": 0.587059945901896,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "Nakagami",
+          "constructor": "Nakagami(\"x\", S(7)/3, 1)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "[0,infinity)",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "StudentT",
+          "constructor": "StudentT(\"x\", 10)",
+          "point": "2",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.9633059826146296,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "StudentT",
+          "constructor": "StudentT(\"x\", 10)",
+          "point": "-2",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.03669401738537037,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "StudentT",
+          "constructor": "StudentT(\"x\", 10)",
+          "point": "0",
+          "group": "interior",
+          "support": "real",
+          "expected": 0.5,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "StudentT",
+          "constructor": "StudentT(\"x\", 10)",
+          "point": "-oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "StudentT",
+          "constructor": "StudentT(\"x\", 10)",
+          "point": "oo",
+          "group": "boundary",
+          "support": "real",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "2",
+          "group": "interior",
+          "support": "[0,5]",
+          "expected": 0.225,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "1",
+          "group": "interior",
+          "support": "[0,5]",
+          "expected": 0.008333333333333333,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "4",
+          "group": "interior",
+          "support": "[0,5]",
+          "expected": 0.9916666666666667,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "-1",
+          "group": "boundary",
+          "support": "[0,5]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "0",
+          "group": "boundary",
+          "support": "[0,5]",
+          "expected": 0,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "5",
+          "group": "boundary",
+          "support": "[0,5]",
+          "expected": 1,
+          "expected_exact": false
+        },
+        {
+          "kind": "cdf",
+          "name": "UniformSum",
+          "constructor": "UniformSum(\"x\", 5)",
+          "point": "6",
+          "group": "boundary",
+          "support": "[0,5]",
+          "expected": 1,
+          "expected_exact": false
+        }
+      ]
+    },
+    "timeout_seconds_per_point": 20
+  }
+}

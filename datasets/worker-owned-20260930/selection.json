@@ -1,0 +1,322 @@
+{
+  "name": "Owned Worker mixed-source development regression",
+  "created_at": "2026-09-30",
+  "status": "development_seen_not_holdout",
+  "arms": [
+    "solo",
+    "current",
+    "worker"
+  ],
+  "repeats": 2,
+  "expected_episodes": 60,
+  "difficulty_counts": {
+    "simple": 3,
+    "medium": 5,
+    "hard": 2
+  },
+  "source_count": 5,
+  "current_commit": "6ccb8be1ef994f490eaa79a3786c0fb9c18df7e4",
+  "selection_rule": "Fixed ten previously evaluated tasks; 3 simple/5 medium/2 hard across five sources. No post-outcome replacement, retry, or best-of-two selection. Each repeat is a fresh pass@1 sample.",
+  "tasks": [
+    {
+      "id": "aider-python-grade-school",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "ef8b7be878b2a4f3f57ef8419d3edfde98299b28f4fe1d719479a8c72876d306",
+      "prompt_sha256": "d5dc6c7d5980376d00993229a9328ad3231e9578590753d185e9a758b22555d5",
+      "difficulty": "simple",
+      "source": "aider-polyglot",
+      "cohort": "overhead_control",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "solo",
+          "current",
+          "worker"
+        ],
+        [
+          "current",
+          "worker",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/aider-python-grade-school/preflight.json",
+        "sha256": "1b0ef5cbba95937c7fd3ca47b64caa7ca7902e7fc6644aa0853df16e21e17d11",
+        "required_tests": 20
+      }
+    },
+    {
+      "id": "aider-python-transpose",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "b10219db43ff00e38e2b0aedc4556309f132b9fdcb9986da7492fa7ff140de10",
+      "prompt_sha256": "4107fc3ed25cb2106df05774f9e6328663bf96777712df14ab5c3090438c6c66",
+      "difficulty": "simple",
+      "source": "aider-polyglot",
+      "cohort": "overhead_control",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "worker",
+          "solo",
+          "current"
+        ],
+        [
+          "worker",
+          "current",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/aider-python-transpose/preflight.json",
+        "sha256": "26ac41d2286f35139ebf399d0c138005ceb45039ebe9cc35d18f744a7e2d00ad",
+        "required_tests": 12
+      }
+    },
+    {
+      "id": "bigcodebench-25",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "2df1f475e223b1dfb59fa2ffea814daf7dc207a044d155a7c919e71573bcb5ae",
+      "prompt_sha256": "b917c12242d9bf39b840f05cab7d9b0a9123b1b73610ecaf056fdbb443e6af45",
+      "difficulty": "simple",
+      "source": "bigcodebench",
+      "cohort": "overhead_control",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "current",
+          "solo",
+          "worker"
+        ],
+        [
+          "solo",
+          "worker",
+          "current"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/bigcodebench-25/preflight.json",
+        "sha256": "cddefcc279abc54dde29aa2d01cd8fb0ad61d8adcad4b3be8def28626f3b8e99",
+        "required_tests": 5
+      }
+    },
+    {
+      "id": "aider-python-forth",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "15db089812b24b6fa1a11127ab66de31f373d2fe95ca6ee289de69387ef34448",
+      "prompt_sha256": "12b1f8fd772c56a32bcb24cd57a03b5523ba9df3842ef7e7eb5532962ca5b19f",
+      "difficulty": "medium",
+      "source": "aider-polyglot",
+      "cohort": "coupled_control",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "solo",
+          "current",
+          "worker"
+        ],
+        [
+          "current",
+          "worker",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/aider-python-forth/preflight.json",
+        "sha256": "97a99b61c81ca1ba8070020beed380eb0fe01d31f2fb6a98bda5b81f3f8c4fdc",
+        "required_tests": 54
+      }
+    },
+    {
+      "id": "swe-verified-django__django-16256",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "24d1c341cce0744d6699809c29f28d5cbd2cda3e22b41086f97836d958becd81",
+      "prompt_sha256": "8573a7026e50e932c44f36aeeb9c57c6fd28231d65e43fb98b39afa563d4f01c",
+      "difficulty": "medium",
+      "source": "swebench-verified",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "worker",
+          "solo",
+          "current"
+        ],
+        [
+          "worker",
+          "current",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-verified-django__django-16256/preflight.json",
+        "sha256": "dcdcacbc0d9fdcf44399644667f410e40bff1fa821e5839bb408bd15fce07cbc",
+        "required_tests": 62
+      }
+    },
+    {
+      "id": "swe-verified-sympy__sympy-14248",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "16a66a21a77d0da6f870fa08b02375035cbefb9e09be54013d98a9b5f0f4e053",
+      "prompt_sha256": "056549bbb76a727325fc85b052ecb5d1c9ba9d70d702cf011b407e3877e5c383",
+      "difficulty": "medium",
+      "source": "swebench-verified",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "current",
+          "solo",
+          "worker"
+        ],
+        [
+          "solo",
+          "worker",
+          "current"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-verified-sympy__sympy-14248/preflight.json",
+        "sha256": "8e23c7a09162e18aa3499cd72eed7327f83365c1b51894c0434cb2c5c31fc058",
+        "required_tests": 435
+      }
+    },
+    {
+      "id": "terminal-kv-store-grpc",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "6f453748a2d22f03dd2d40f0cd99802ac7b96c577f190dfb202ad98d592062dd",
+      "prompt_sha256": "f4b3facc199d5b1c78db6e603ffa29ec1b93a77ff7d291e1a92b42e6bf582bed",
+      "difficulty": "medium",
+      "source": "terminal-bench",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "solo",
+          "current",
+          "worker"
+        ],
+        [
+          "current",
+          "worker",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/terminal-kv-store-grpc/preflight.json",
+        "sha256": "aa7f2981d5186cd6ffadb45b696b6bc0753b47a965c37655edbdec983d7ca0e3",
+        "required_tests": 7
+      }
+    },
+    {
+      "id": "terminal-cobol-modernization",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "ce171411acd03f77f41180722d0fe724f35c5394225e9093114cb08e1cf03db5",
+      "prompt_sha256": "a87074f1141b7345394cd88053d0debb0dc8f7de95308882c6538ee9a3b359da",
+      "difficulty": "medium",
+      "source": "terminal-bench",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "worker",
+          "solo",
+          "current"
+        ],
+        [
+          "worker",
+          "current",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/terminal-cobol-modernization/preflight.json",
+        "sha256": "7988cca5c8ae91cdff1ae3da90523227f123f7a4fcfcb01927a32cfcc73e033a",
+        "required_tests": 3
+      }
+    },
+    {
+      "id": "swe-pro-openlibrary-authors",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "d246e657d94fca999793858f00c53185d2ea67e7ed98d7cbc5ed358d791d97b3",
+      "prompt_sha256": "b1bac0666c501fe2cf9f17d5ce7de54b7a1d76fb8642d901599cbd24acedbd5a",
+      "difficulty": "hard",
+      "source": "swebench-pro",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "current",
+          "solo",
+          "worker"
+        ],
+        [
+          "solo",
+          "worker",
+          "current"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-pro-openlibrary-authors/preflight.json",
+        "sha256": "8c4f24a85e5c7da392e6f4f98b51ba94a52960cd0decd36631f6eed3975b881b",
+        "required_tests": 8
+      }
+    },
+    {
+      "id": "holdout-sympy__sympy-13878",
+      "dataset": "datasets/worker-code-v3-holdout/instances.jsonl",
+      "dataset_sha256": "114c34db313668edd18197a1fc3771a0ad5d28329ca579b91a9398dbebf79ed2",
+      "task_sha256": "66846ada32c0a2cb831e2be965a3bcf4073d33922042fd9097da872742d08ecf",
+      "prompt_sha256": "5ed83f5e24361e5ca95f9c3dfcff3ba9ce9775f1fd9a2a10ac3a4511370b6d75",
+      "difficulty": "hard",
+      "source": "swebench-verified",
+      "cohort": "opportunity",
+      "previously_evaluated": true,
+      "arm_orders": [
+        [
+          "solo",
+          "current",
+          "worker"
+        ],
+        [
+          "current",
+          "worker",
+          "solo"
+        ]
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/holdout-sympy__sympy-13878/preflight.json",
+        "sha256": "f6ffd7b14ce7221fc1401e6111845ee10b53db026169118540ec5f60395780de",
+        "required_tests": 20
+      }
+    }
+  ],
+  "unchanged_grader_files": {
+    "evaluations/worker-code-20260928/control_adapter.py": "54b8ec566a1c316499717c748efd23ed024f62607ffb72aae34bd129d67b2fa2",
+    "evaluations/worker-code-20260928/terminal_adapter.py": "63c156d2e806892d9c3d1b08f177a05abe376c71698781d5399b4a092a244399",
+    "evaluations/worker-code-20260928/repository_adapter.py": "aad91de8350953e9782b9639c3f7124bd1637f72ea88a05e71369d8f5d169c4c",
+    "evaluations/worker-code-20260928/execution_environment.py": "af64b99912a0269c2cd66a01d0d18c2e1d9fc72e4f206956d0018993ac9db9dd",
+    "src/aster/safety/linux.py": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49",
+    "artifacts/private/worker-code-20260928/official_log_parsers.py": "cd56156414f8327221e525665ace9b184f7d73e83b272d9eb3f545fb17c2d9bc"
+  },
+  "grader_support_hashes": {
+    "tools/testing.py": "3ddb536285340710a4d172f56f5b5fea785dc9adbee9dea806eee6fb8314c732",
+    "safety/runner.py": "81cb179b84e5ac6724fd462be4b68da4f24806506cdeaaffd2211bcc8417fb3a",
+    "safety/linux.py": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49",
+    "storage/workspace.py": "6a76fdffdeb4ba4fbd852aa5c170801e370aded34c835def6cf0e00bc00f66b1"
+  },
+  "model_input_policy": "Original task prompt plus unchanged legacy neutral COMMON and public adapter environment guidance only; collaboration annotations and diagnostics never enter prompts.",
+  "comparison_policy": {
+    "solo_vs_worker": "Same new commit: worker availability ablation",
+    "current_vs_worker": "Old vs new full system comparison; not a delegation-only causal ablation",
+    "current_vs_solo": "Old delegated system vs new single-agent system; descriptive system comparison"
+  }
+}
