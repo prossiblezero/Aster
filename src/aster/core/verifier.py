@@ -49,6 +49,9 @@ class Verifier:
             return VerifierResult(passed=False, reason="edit_missing")
         if task.require_verification and state.verification.state != "passed":
             return VerifierResult(passed=False, reason=f"verification_{state.verification.state}")
+        if state.pending_requirements:
+            return VerifierResult(passed=False, reason="requirements_unreviewed",
+                                  details={"todo_ids": [item["id"] for item in state.pending_requirements]})
         for name in task.required_artifacts:
             try:
                 if self.workspace.path(name).is_file():
@@ -56,6 +59,8 @@ class Verifier:
             except ValueError:
                 pass
             return VerifierResult(passed=False, reason=f"artifact_missing:{name}")
+        if state.cancelled_requirements:
+            return VerifierResult(passed=False, reason="requirements_cancelled")
         return VerifierResult(
             passed=True,
             reason="requirements_satisfied",

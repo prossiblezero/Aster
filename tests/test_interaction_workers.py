@@ -534,6 +534,9 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, pa
         )
     )
     prompt = parent.state.task.prompt
+    todo = await parent.step(ToolCall(name="todo_add", arguments={
+        "content": "Implement answer()", "acceptance": "The public answer() returns 42.",
+    }))
     started = await parent.step(
         ToolCall(
             name="worker_start",
@@ -541,6 +544,7 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, pa
                 "task": "Implement answer() = 42 in calc.py; parent integration tests cover it.",
                 "mode": "worker",
                 "write_scope": ["calc.py"],
+                "todo_id": todo.data["id"],
             },
         )
     )
@@ -574,6 +578,11 @@ async def test_worker_delivery_does_not_replace_parent_verification(tmp_path, pa
         )
     )
     assert result.status == "success", result.content
+    reviewed = await parent.step(ToolCall(name="todo_update", arguments={
+        "todo_id": todo.data["id"], "status": "done",
+        "resolution": "test_calc.py called answer() and passed after integration.",
+    }))
+    assert reviewed.status == "success"
     assert parent.finalize("Verified.").phase == "completed"
     await parent.workers.close()
 
@@ -586,6 +595,143 @@ async def test_non_strict_parent_keeps_child_task_requirements(tmp_path):
     child = parent.workers.workers[result["worker_id"]].runtime
     assert child.state.task.require_verification
     await parent.workers.close()
+
+
+@pytest.mark.parametrize("completion", ["strict", "warn", "off"])
+async def test_owned_requirement_survives_rejected_start_delivery_and_parent_resume(tmp_path, completion):
+    model = PausedModel()
+    settings = Settings(max_workers=1, completion=completion, max_final_revisions=0)
+    parent = Runtime(tmp_path, settings, model=model)
+    parent.start(TaskSpec(prompt="Inspect the project and report its files."))
+    for content in ("List files", "Review the final list"):
+        assert (await parent.step(ToolCall(name="todo_add", arguments={
+            "content": content, "acceptance": "Confirm the actual workspace file list.",
+        }))).status == "success"
+    started = await parent.workers.start("List the workspace files", todo_id="1")
+    worker = parent.workers.workers[started["worker_id"]]
+    await model.entered.wait()
+    assert (await parent.workers.start("Duplicate", todo_id="1"))["reason"] == "todo_unavailable"
+    assert (await parent.workers.start("Review", todo_id="2"))["reason"] == "worker_limit"
+    assert parent.state.todos[1]["status"] == "pending"
+    assert not parent.finalize("Too early").terminal
+    assert not worker.future.done() and not worker.future.cancelling()
+    assert (await parent.step(ToolCall(name="todo_update", arguments={
+        "todo_id": "1", "status": "done", "resolution": "Unsubstantiated early claim",
+    }))).reason == "todo_worker_running"
+    model.release.set()
+    await worker.future
+    assert parent.state.todos[0]["status"] == "pending"
+    assert parent.state.todos[0]["delivery"] == "complete"
+    assert "requirement" in parent.state.feedback.casefold()
+    restored = Runtime(tmp_path, settings, model=model)
+    restored.resume(parent.state.run_id)
+    prompt, _, _ = restored.prepare_request()
+    assert "Assigned requirement" in worker.runtime.state.task.prompt
+    assert '"todo_id": "1"' in json.dumps(prompt).replace('\\"', '"')
+    assert restored.state.todos[0]["status"] == "pending"
+    await restored.step(ToolCall(name="list_files"))
+    assert (await restored.step(ToolCall(name="todo_update", arguments={
+        "todo_id": "1", "status": "done",
+    }))).reason == "todo_resolution_required"
+    for todo_id in ("1", "2"):
+        result = await restored.step(ToolCall(name="todo_update", arguments={
+            "todo_id": todo_id, "status": "done", "resolution": "Reviewed the observed empty file list.",
+        }))
+        assert result.status == "success"
+    assert restored.finalize("Reviewed the file list").phase == "completed"
+    await parent.workers.close()
+    await restored.workers.close()
+
+
+async def test_partial_requirement_can_be_reassigned_without_stale_delivery_overwrite(tmp_path):
+    model = PausedModel()
+    parent = Runtime(tmp_path, Settings(max_workers=1), model=model)
+    parent.start(TaskSpec(prompt="demo"))
+    await parent.step(ToolCall(name="todo_add", arguments={
+        "content": "Inventory", "acceptance": "List actual files.",
+    }))
+    first = await parent.workers.start("Inventory", todo_id="1")
+    old = await parent.workers.stop(first["worker_id"])
+    assert parent.state.todos[0]["delivery"] == "partial"
+    assert parent.state.todos[0]["status"] == "pending"
+    second = await parent.workers.start("Inventory", todo_id="1")
+    worker = parent.workers.workers[second["worker_id"]]
+    parent.workers._record_delivery(old)
+    assert parent.state.todos[0]["delivery"] == "running"
+    assert parent.state.todos[0]["worker_run_id"] == worker.runtime.state.run_id
+    assert (await parent.workers.message(first["worker_id"], "Retry", resume=True))[
+        "reason"
+    ] == "todo_unavailable"
+    await parent.workers.stop(second["worker_id"])
+    # Continuing a checkpoint must not carry an orphaned running ownership lease.
+    parent.state.todos[0]["delivery"] = "running"
+    parent.finish("user_abort")
+    parent.continue_task("Continue the inventory")
+    assert parent.state.todos[0]["delivery"] == "interrupted"
+    assert parent.state.todos[0]["status"] == "pending"
+    await parent.workers.close()
+
+
+async def test_requirement_review_also_applies_to_solo_and_new_workers_preserve_tail_budget(tmp_path):
+    parent = Runtime(tmp_path, Settings(max_workers=1, output_tokens=128), model=PausedModel())
+    parent.start(TaskSpec(prompt="demo", max_tokens=10000))
+    await parent.step(ToolCall(name="todo_add", arguments={
+        "content": "Finish the requested work", "acceptance": "Check the actual result.",
+    }))
+    parent._request_estimate = 2200
+    parent.state.team_usage["charged_tokens"] = 6000
+    assert (await parent.workers.start("Inspect", todo_id="1"))[
+        "reason"
+    ] == "team_budget_reserved_for_parent"
+    assert not parent.workers.workers and parent.state.todos[0]["status"] == "pending"
+    assert not parent.finalize("Pretend complete").terminal
+    assert parent.verifier.final(parent.state).reason == "requirements_unreviewed"
+    reviewed = await parent.step(ToolCall(name="todo_update", arguments={
+        "todo_id": "1", "status": "done", "resolution": "Inspected the result directly.",
+    }))
+    assert reviewed.status == "success"
+    assert parent.finalize("Done").phase == "completed"
+    parent.start(TaskSpec(prompt="A new request", max_tokens=10000))
+    assert parent._request_estimate == 0
+    await parent.step(ToolCall(name="todo_add", arguments={
+        "content": "An unfinished requirement", "acceptance": "Check the actual result.",
+    }))
+    await parent.step(ToolCall(name="todo_update", arguments={
+        "todo_id": "1", "status": "cancelled", "resolution": "Budget exhausted.",
+    }))
+    state = parent.finalize("Partial result")
+    assert state.phase == "completed" and state.stop_reason == "completed_with_warning"
+    assert "Cancelled requirements (not verified)" in state.final
+    assert not parent.verifier.final(state).passed
+    parent.continue_task()
+    assert parent.finalize("Still partial").stop_reason == "completed_with_warning"
+    parent.continue_task("What is 2 + 2?")
+    state = parent.finalize("4")
+    assert state.stop_reason == "verified" and state.final == "4"
+    assert not state.cancelled_requirements
+
+
+async def test_training_final_waits_for_owned_work_but_budget_still_terminates(tmp_path):
+    from aster.schema import Final
+    from aster.training.env import AsterEnv
+
+    env = AsterEnv(tmp_path, Settings(max_workers=1, max_final_revisions=0))
+    env.reset(TaskSpec(prompt="demo", max_turns=6))
+    env.runtime.model = PausedModel()
+    await env.step(ToolCall(name="todo_add", arguments={
+        "content": "Inventory", "acceptance": "List actual files.",
+    }))
+    started = await env.runtime.workers.start("Inventory", todo_id="1")
+    worker = env.runtime.workers.workers[started["worker_id"]]
+    await env.runtime.model.entered.wait()
+    _, _, terminated, truncated, _ = await env.step(Final(answer="Too early"))
+    assert not terminated and not truncated and not worker.future.cancelling()
+    for _ in range(3):
+        await env.step(Final(answer="Still too early"))
+    _, reward, terminated, truncated, _ = await env.step(Final(answer="At the budget"))
+    assert truncated and not terminated and reward == -1
+    assert worker.future.done() and env.runtime.state.todos[0]["delivery"] == "partial"
+    env.close()
 
 
 @pytest.mark.asyncio

@@ -47,6 +47,8 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 `ContextBuilder` 会把计划和未完成待办放入工作流状态区；内容太长时也受全局上下文预算约束。
 完整内容仍可通过分页 `todo_list` 回读。
 
+`todo_add` 可附带 `acceptance`，把普通待办标为需要验收的交付项。关闭这类事项必须通过 `todo_update.resolution` 写明实际检查或取消原因；未处理项阻止严格完成，取消项使交付保留警告。这个规则同样适用于单 Agent，不要求启动 Worker。没有 `acceptance` 的旧待办保持原有语义；状态是模型的工作记录，不能替代独立测试。
+
 ## 写计划不等于进入计划模式
 
 `plan_enter` 将 `state.mode` 切为 `plan`，使工作区写入工具不可用。

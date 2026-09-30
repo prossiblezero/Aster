@@ -1250,6 +1250,12 @@ class Runtime:
             return state
         if self._operation_task is not None and self._operation_task is not asyncio.current_task():
             raise RuntimeError("runtime_busy: await the current operation before Final")
+        self.workers.deliver()
+        if any(item.get("delivery") == "running" for item in state.pending_requirements):
+            state.feedback = "Requirement workers are still running. Await or stop them, then review their artifacts before final delivery."
+            self.add_message("user", state.feedback, important=True)
+            self.evidence.emit(state.run_id, "requirement_wait", feedback=state.feedback)
+            return state
         self._settle_workers()
         self._refresh_observations()
         feedback = completion_feedback(state) if self.settings.completion != "off" else ""
@@ -1261,10 +1267,16 @@ class Runtime:
             return state
         result = self.verifier.final(state)
         self.evidence.emit(state.run_id, "verifier_result", result=result.model_dump())
-        if not result.passed and self.settings.completion == "strict":
+        if (not result.passed and self.settings.completion == "strict"
+                and result.reason != "requirements_cancelled"):
             state.feedback = result.reason
             self.finish("completion_requirements_failed")
             return state
+        if result.reason == "requirements_cancelled":
+            answer += "\n\nCancelled requirements (not verified):\n" + "\n".join(
+                f"- {item['content']}: {item.get('resolution', '')}"
+                for item in state.cancelled_requirements
+            )
         state.final = self.evidence.redactor.text(answer)
         state.phase = "completed"
         state.stop_reason = "verified" if result.passed else "completed_with_warning"

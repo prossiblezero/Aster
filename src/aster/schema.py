@@ -112,6 +112,17 @@ class RunState(Record):
     def terminal(self) -> bool:
         return self.phase in {"completed", "stopped", "failed"}
 
+    @property
+    def pending_requirements(self) -> list[dict[str, str]]:
+        return [item for item in self.todos if item.get("acceptance")
+                and item.get("status") not in {"done", "cancelled"}]
+
+    @property
+    def cancelled_requirements(self) -> list[dict[str, str]]:
+        return [item for item in self.todos if item.get("acceptance")
+                and item.get("status") == "cancelled"
+                and item.get("closed_in_task") == self.task.task_id]
+
 
 class ModelReply(Record):
     text: str = ""

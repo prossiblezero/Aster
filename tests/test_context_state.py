@@ -77,6 +77,15 @@ def test_large_workflow_shortens_prose_but_retains_pending_item_identity():
     ]
     assert workflow["active_skills"] == ["conventions"]
     assert state.model_dump() == original
+    for field in ("acceptance", "resolution"):
+        state = workflow_state()
+        state.todos[0][field] = "Check actual deployment behavior " * 300
+        original = state.model_dump()
+        prompt, report = builder.build(state, state.task.prompt)
+        workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
+        assert "call todo_list" in workflow["unfinished_todos"][0][field]
+        assert report.estimated_tokens <= report.budget
+        assert state.model_dump() == original
 
 
 def test_unfit_workflow_fails_explicitly_without_dropping_pending_tasks():

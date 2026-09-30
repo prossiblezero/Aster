@@ -52,6 +52,7 @@ class Worker:
     delivered: bool = False
     continuations: int = 0
     parent_policy: dict = field(default_factory=dict)
+    todo_id: str = ""
 
 
 class TeamBudget:
@@ -70,6 +71,11 @@ class TeamBudget:
         limit = task.max_turns if kind == "model_calls" else task.max_steps
         return max(2, limit // 5)
 
+    def token_reserve(self) -> int:
+        # Reserve two parent-sized requests for integration/review and final delivery.
+        return max((self.parent.state.task.max_tokens or 0) // 5,
+                   2 * self.parent._request_estimate)
+
     def admit(self, runtime: Runtime, kind: str, tokens: int = 0) -> str:
         state = self.parent.state
         child = runtime is not self.parent
@@ -77,7 +83,7 @@ class TeamBudget:
         if self.remaining(kind) <= reserve:
             return "team_" + kind + "_limit"
         if kind == "model_calls" and state.task.max_tokens is not None:
-            token_reserve = state.task.max_tokens // 5 if child else 0
+            token_reserve = self.token_reserve() if child else 0
             if state.team_usage.get("charged_tokens", 0) + tokens + token_reserve > state.task.max_tokens:
                 return "team_token_limit"
         state.team_usage[kind] = state.team_usage.get(kind, 0) + 1
@@ -97,6 +103,7 @@ class TeamBudget:
 class WorkerManager:
     def __init__(self, runtime: Runtime):
         self.parent = runtime
+        runtime._request_estimate = 0
         self.workers: dict[str, Worker] = {}
         self.budget = TeamBudget(runtime)
         if runtime.state and not runtime.state.team_usage:
@@ -123,6 +130,7 @@ class WorkerManager:
 
     def acknowledge(self, data: dict):
         for item in data.get("workers", [data]):
+            self._record_delivery(item)
             worker = self.workers.get(item.get("worker_id"))
             if worker and item.get("delivery") and item.get("run_id") == worker.runtime.state.run_id:
                 worker.delivered = True
@@ -148,6 +156,7 @@ class WorkerManager:
                     result = {"delivery": "partial", "status": "interrupted", "changed_paths": [],
                               "answer": "Worker did not persist a handoff before interruption. Inspect the workspace."}
                 result.update(worker_id=worker_id, run_id=run_id)
+            self._record_delivery(result)
             self.parent.state.changed_paths = sorted(
                 set(self.parent.state.changed_paths + result.get("changed_paths", []))
             )
@@ -164,12 +173,26 @@ class WorkerManager:
                 child_run_id=run_id, delivery=result.get("delivery", "partial"),
             )
 
+    def _record_delivery(self, result: dict):
+        if not result.get("delivery"):
+            return
+        for item in self.parent.state.todos:
+            if item.get("worker_run_id") == result.get("run_id") and item.get("delivery") == "running":
+                item.update(status="pending", owner="parent", delivery=result["delivery"])
+                self.parent.evidence.emit(self.parent.state.run_id, "requirement_delivered",
+                                          todo_id=item["id"], child_run_id=result["run_id"],
+                                          delivery=result["delivery"])
+
     async def start(
         self, task: str, mode: str = "explore", write_scope: list[str] | None = None,
-        parent_work: str = "",
+        parent_work: str = "", todo_id: str = "",
     ):
         if self.parent.state is None or self.parent.state.terminal:
             return {"status": "blocked", "reason": "run_terminal"}
+        todo = next((item for item in self.parent.state.todos if item.get("id") == todo_id), None) if todo_id else None
+        if todo_id and (todo is None or todo.get("status") in {"done", "cancelled"}
+                        or todo.get("delivery") == "running"):
+            return {"status": "blocked", "reason": "todo_unavailable", "todo_id": todo_id}
         active = [worker for worker in self.workers.values() if not worker.future.done()]
         if len(active) >= self.parent.settings.max_workers:
             return {"status": "blocked", "reason": "worker_limit"}
@@ -177,6 +200,12 @@ class WorkerManager:
             return {"status": "blocked", "reason": "invalid_worker_request"}
         max_steps, max_turns = self.limits()
         if max_steps < 1 or max_turns < 2:
+            return {"status": "blocked", "reason": "team_budget_reserved_for_parent"}
+        token_limit = self.parent.state.task.max_tokens
+        if token_limit is not None and (
+            self.parent.state.team_usage.get("charged_tokens", 0) + self.budget.token_reserve()
+            + self.parent.settings.effective_output_tokens > token_limit
+        ):
             return {"status": "blocked", "reason": "team_budget_reserved_for_parent"}
         parent_verifies = (
             self.parent.settings.completion == "strict"
@@ -229,6 +258,11 @@ class WorkerManager:
             "acceptance criteria. Complete only your assigned subtask; flag relevant gaps "
             "outside your scope in the handoff:\n" + self.parent.state.task.prompt
         )
+        if todo is not None:
+            spec.prompt += "\n\nAssigned requirement and acceptance:\n" + json.dumps({
+                "todo_id": todo_id, "requirement": todo["content"],
+                "acceptance": todo.get("acceptance") or task,
+            }, ensure_ascii=False)
         current_request = self.parent.session_tree.current_request() or self.parent.state.task.prompt
         if current_request != self.parent.state.task.prompt:
             spec.prompt += (
@@ -263,12 +297,16 @@ class WorkerManager:
         inbox: list[str] = []
         future = asyncio.create_task(self._run(runtime, inbox), name=f"aster-worker-{worker_id}")
         self.workers[worker_id] = Worker(worker_id, task, mode, runtime, future, inbox,
-                                         parent_policy=self.policy())
+                                         parent_policy=self.policy(), todo_id=todo_id)
+        if todo is not None:
+            todo.update(acceptance=todo.get("acceptance") or task, status="in_progress",
+                        owner=worker_id, worker_id=worker_id, worker_run_id=runtime.state.run_id,
+                        delivery="running", resolution="")
         self.parent.state.pending_handoffs[worker_id] = runtime.state.run_id
         self.parent.add_message(
             "user", "Work allocation (coordination record, not new authorization):\n"
             + json.dumps({"worker_id": worker_id, "assignment": task,
-                          "parent_work": parent_work}, ensure_ascii=False), important=True,
+                          "parent_work": parent_work, "todo_id": todo_id}, ensure_ascii=False), important=True,
         )
         self.parent.evidence.emit(
             self.parent.state.run_id,
@@ -276,13 +314,14 @@ class WorkerManager:
             worker_id=worker_id,
             child_run_id=runtime.state.run_id,
             task=task,
+            todo_id=todo_id,
             parent_work=parent_work,
             mode=mode,
             write_scope=settings.write_scope,
             verification_owner="parent" if parent_verifies else "worker",
         )
         self.parent.checkpoint()
-        return {"status": "running", "worker_id": worker_id, "mode": mode}
+        return {"status": "running", "worker_id": worker_id, "mode": mode, "todo_id": todo_id}
 
     async def _run(self, runtime: Runtime, inbox: list[str]):
         try:
@@ -348,7 +387,14 @@ class WorkerManager:
             "changed_paths": state.changed_paths,
             "verification": state.verification.model_dump(),
         }
+        owner = runtime._worker_owner
+        todo = next((item for item in owner.parent.state.todos
+                     if item.get("worker_run_id") == state.run_id), None) if owner else None
+        if todo:
+            handoff.update(todo_id=todo["id"], acceptance=todo["acceptance"])
         runtime.evidence.save(("runs", state.run_id, "handoff.json"), handoff)
+        if owner:
+            owner._record_delivery(handoff)
         runtime.checkpoint()
         return handoff
 
@@ -385,6 +431,7 @@ class WorkerManager:
         state = worker.runtime.state
         details = {
             "worker_id": worker_id,
+            "todo_id": worker.todo_id,
             "steps": state.step,
             "changed_paths": state.changed_paths,
             "verification": state.verification.model_dump(),
@@ -419,6 +466,10 @@ class WorkerManager:
     async def message(self, worker_id: str, message: str, resume: bool = False):
         worker = self.workers.get(worker_id)
         if worker and resume and worker.future.done() and message.strip() and len(message) <= 8192:
+            todo = next((item for item in self.parent.state.todos if item.get("id") == worker.todo_id), None) if worker.todo_id else None
+            if worker.todo_id and (not todo or todo.get("status") in {"done", "cancelled"}
+                                   or todo.get("worker_run_id") != worker.runtime.state.run_id):
+                return {"status": "blocked", "reason": "todo_unavailable"}
             if sum(not w.future.done() for w in self.workers.values()) >= self.parent.settings.max_workers:
                 return {"status": "blocked", "reason": "worker_limit"}
             if worker.parent_policy != self.policy():
@@ -437,6 +488,9 @@ class WorkerManager:
             elif self.parent.settings.completion == "strict" and self.parent.state.task.require_verification:
                 spec.require_verification = False
             worker.continuations += 1
+            if todo is not None:
+                todo.update(status="in_progress", owner=worker_id, delivery="running",
+                            worker_run_id=worker.runtime.state.run_id, resolution="")
             worker.delivered = False
             self.parent.state.pending_handoffs[worker_id] = worker.runtime.state.run_id
             self.parent.evidence.emit(

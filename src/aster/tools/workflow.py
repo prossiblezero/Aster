@@ -51,6 +51,8 @@ class WorkflowTools:
                 "priority": args["priority"],
                 "status": "pending",
             }
+            if acceptance := args.get("acceptance", "").strip():
+                item["acceptance"] = acceptance
             state.todos.append(item)
             return Outcome(
                 status="success", content=json.dumps(item, ensure_ascii=False), data=item
@@ -59,7 +61,22 @@ class WorkflowTools:
             item = next((x for x in state.todos if x["id"] == args["todo_id"]), None)
             if item is None:
                 return Outcome(status="blocked", reason="todo_not_found")
+            if item.get("delivery") == "running":
+                return Outcome(status="blocked", reason="todo_worker_running",
+                               content="Await or stop the assigned worker before reviewing or reclaiming this requirement.")
+            closing = args["status"] in {"done", "cancelled"}
+            resolution = args.get("resolution", "").strip()
+            if closing and item.get("acceptance") and not resolution:
+                return Outcome(status="blocked", reason="todo_resolution_required")
             item["status"] = args["status"]
+            if item.get("acceptance"):
+                item["resolution"] = resolution if closing else ""
+                item["closed_in_task"] = state.task.task_id if closing else ""
+                item["owner"] = "parent"
+                self.evidence.emit(state.run_id, "requirement_reviewed", todo_id=item["id"],
+                                   status=item["status"], resolution=item["resolution"],
+                                   worker_run_id=item.get("worker_run_id", ""),
+                                   verification=state.verification.model_dump())
             return Outcome(
                 status="success", content=json.dumps(item, ensure_ascii=False), data=item
             )
@@ -189,6 +206,7 @@ class WorkflowTools:
             data = await self.worker_start(
                 args["task"], args.get("mode", "explore"), args.get("write_scope", []),
                 parent_work=args.get("parent_work", ""),
+                todo_id=args.get("todo_id", ""),
             )
             return Outcome(
                 status="success" if data["status"] == "running" else "blocked",

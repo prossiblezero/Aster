@@ -92,8 +92,10 @@ class AsterEnv:
         action = ACTION.validate_python(action) if isinstance(action, dict) else action
         state.turn += 1  # An external policy decision consumes one turn, including Final.
         if isinstance(action, Final):
-            # Freeze the candidate before either completion or external reward grading.
-            await self.runtime.workers.close()
+            # Do not freeze an owned worker when Final is only a request for review.
+            self.runtime.workers.deliver()
+            if not any(item.get("delivery") == "running" for item in state.pending_requirements):
+                await self.runtime.workers.close()
             self.runtime.finalize(action.answer)
             outcome = None
             reward = -0.5

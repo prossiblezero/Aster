@@ -89,6 +89,9 @@ def prepare_continuation(
     state.usage = {}
     state.team_usage = {}
     state.pending_handoffs = {}
+    for item in state.todos:
+        if item.get("delivery") == "running":
+            item.update(status="pending", owner="parent", delivery="interrupted")
     history = deepcopy(history)
     if feedback is not None:
         inferred = verifier.infer(feedback)

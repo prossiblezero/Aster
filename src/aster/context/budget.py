@@ -85,7 +85,8 @@ class BudgetCalculator:
         workflow = workflow_state(state)
         workflow_text_limit = max(
             self.count(state.plan),
-            *(self.count(item.get("content", "")) for item in workflow["unfinished_todos"]),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
             0,
         )
         history = structured_history if structured_history is not None else []
@@ -274,9 +275,11 @@ class BudgetCalculator:
                     state.plan, token_limit=workflow_text_limit, marker=marker
                 )
                 for item in workflow["unfinished_todos"]:
-                    item["content"] = self._clip_tokens(
-                        item.get("content", ""), token_limit=workflow_text_limit, marker=marker
-                    )
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
             else:
                 raise ContextBudgetError(
                     f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"

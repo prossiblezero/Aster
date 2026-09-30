@@ -82,11 +82,13 @@ class RunTests(Record):
 class TodoAdd(Record):
     content: str = Field(min_length=1)
     priority: str = "normal"
+    acceptance: str = Field(default="", max_length=2000, description="For a required deliverable, state the observable acceptance check. Open requirements must be resolved before final delivery.")
 
 
 class TodoUpdate(Record):
     todo_id: str = Field(min_length=1)
     status: str = Field(pattern="^(pending|in_progress|done|cancelled)$")
+    resolution: str = Field(default="", max_length=2000, description="When closing a requirement, describe the actual check and result, or why it is no longer required. This is a claim, not automatic verification.")
 
 
 class PlanWrite(Record):
@@ -163,6 +165,7 @@ class WorkerStart(Record):
         description="Your separate module or check while this worker runs; avoid overlapping "
         "investigations. If no independent work remains, say you will await and integrate.",
     )
+    todo_id: str = Field(default="", description="Existing requirement todo owned by this worker. Delivery returns it for parent review; it is not marked done automatically.")
 
 
 class WorkerId(Record):
@@ -254,7 +257,7 @@ SCHEMAS = {
         WorkerStart,
         "Start a bounded task sharing this workspace and the parent's total budget. "
         "Pass the specific deliverable, known paths/facts, scope and test responsibility; "
-        "state your separate work in parent_work. The original request is included automatically. "
+        "link the requirement todo_id and state your separate work in parent_work. The original request is included automatically. "
         "Delegate substantial independent work or investigations; do small lookups directly. "
         "Finished handoffs arrive automatically at your next turn. When waiting, use one "
         "worker_status call with their ids and wait_seconds=300. For investigations request concise conclusions "

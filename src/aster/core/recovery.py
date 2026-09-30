@@ -44,6 +44,10 @@ class StallDetector:
 def completion_feedback(state: RunState) -> str:
     missing = []
     task = state.task
+    if state.pending_requirements:
+        missing.append("review open requirement todos " + ", ".join(
+            item["id"] for item in state.pending_requirements
+        ) + " via todo_update with the actual acceptance result; a worker handoff is not acceptance")
     if task.require_observation and not state.observed:
         missing.append("inspect the workspace")
     if task.require_edit and not state.changed_paths:
