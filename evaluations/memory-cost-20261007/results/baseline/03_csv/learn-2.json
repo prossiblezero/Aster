@@ -1,0 +1,308 @@
+{
+  "prompt": "补充工单 CSV 约定：列固定为 ticket_id、summary、owner，输入的其他字段不导出；编码与分隔符沿用之前约定。这一轮只确认约定，不需要写代码。\n本次演示临时标签为 TEMP-DEMO-742，仅用于这一轮，不是项目约定。",
+  "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "已确认本轮工单 CSV 约定：\n\n- 固定列顺序：`ticket_id`、`summary`、`owner`\n- 输入中的其他字段不导出\n- 编码沿用之前约定：带 UTF-8 BOM\n- 分隔符沿用之前约定：分号 `;`\n- `TEMP-DEMO-742` 仅为本轮演示临时标签，不纳入项目约定\n\n本轮不修改代码。",
+  "seconds": 9.364,
+  "foreground_seconds": 5.683,
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 5237,
+    "input_tokens_requests": 1,
+    "output_tokens": 188,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 4608,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 46,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 5425,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 2,
+    "tool_calls": 0,
+    "charged_tokens": 12082
+  },
+  "maintenance_events": [
+    {
+      "seq": 112,
+      "time": "2026-10-06T17:50:23.895647+00:00",
+      "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+      "event": "memory_maintenance",
+      "previous": "52e4244673c3a326538fef58b03afe185e4598cb4e1fe214de94bf430c613fdb",
+      "status": "started",
+      "job_id": "aa044e1550e84750893a8fa8257d08f6",
+      "reservation": 1924,
+      "hash": "407d9daf0cf6bda679541be92928941d87c4ca28b2b284c5ad8b33acb01c8b83"
+    },
+    {
+      "seq": 114,
+      "time": "2026-10-06T17:50:27.567440+00:00",
+      "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+      "event": "memory_maintenance",
+      "previous": "cbc9c2aedb5d8cb29261f64649a81e3a56ff48bd25b32519a32e63cb6be63ac0",
+      "status": "ready",
+      "job_id": "aa044e1550e84750893a8fa8257d08f6",
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 5237,
+        "input_tokens_requests": 1,
+        "output_tokens": 188,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 4608,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 46,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 5425,
+        "total_tokens_requests": 1
+      },
+      "usage_complete": true,
+      "seconds": 3.659,
+      "reason": "",
+      "hash": "79eaac1199b980f30301fecb92c87fdcac9170fcc464ca7553399df68962633a"
+    },
+    {
+      "seq": 115,
+      "time": "2026-10-06T17:50:27.577091+00:00",
+      "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+      "event": "memory_maintenance",
+      "previous": "79eaac1199b980f30301fecb92c87fdcac9170fcc464ca7553399df68962633a",
+      "status": "committed",
+      "job_id": "aa044e1550e84750893a8fa8257d08f6",
+      "receipts": [
+        {
+          "action": "replace",
+          "id": "158f07e2cd9ee29b",
+          "text": "工单 CSV 导出返回 `bytes`，编码为带 UTF-8 BOM 的格式，字段分隔符为分号 `;`；固定列顺序为 `ticket_id`、`summary`、`owner`，输入中的其他字段不导出。",
+          "when": "适用于工单 CSV 导出接口的当前项目约定。",
+          "replaces": [
+            "a24d17d3279107f6"
+          ]
+        }
+      ],
+      "rejected": [],
+      "reason": "",
+      "hash": "c78004663381140416f660f85a2a7cb800813f5d2df42f13002c8b43d69cc763"
+    }
+  ],
+  "input_tokens": 11750,
+  "output_tokens": 332,
+  "total_tokens": 12082,
+  "cache_read_input_tokens": 4608,
+  "cache_creation_input_tokens": null,
+  "uncached_input_tokens": null,
+  "reasoning_tokens": 84,
+  "usage": {
+    "usage_requests": 2,
+    "input_tokens": 11750,
+    "input_tokens_requests": 2,
+    "output_tokens": 332,
+    "output_tokens_requests": 2,
+    "cache_read_input_tokens": 4608,
+    "cache_read_input_tokens_requests": 2,
+    "reasoning_tokens": 84,
+    "reasoning_tokens_requests": 2,
+    "total_tokens": 12082,
+    "total_tokens_requests": 2
+  },
+  "model_requests": 2,
+  "usage_coverage": {
+    "input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "output_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "total_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_read_input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_creation_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "uncached_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "reasoning_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    }
+  },
+  "provider_attempts": 2,
+  "provider_attempts_with_total": 2,
+  "pending_maintenance": 0,
+  "response_models": [
+    "gpt-5.6-luna"
+  ],
+  "tools": [],
+  "recalled_ids": [
+    "a24d17d3279107f6"
+  ],
+  "memory_before": [
+    {
+      "id": "a24d17d3279107f6",
+      "text": "工单 CSV 导出返回 `bytes`，编码为带 UTF-8 BOM 的格式，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出接口的当前项目约定。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出",
+        "编码"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "401d42f4c0884959b18a7c342873d3fc",
+        "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:50:18+00:00",
+        "citations": [
+          {
+            "run_id": "401d42f4c0884959b18a7c342873d3fc",
+            "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+            "source": "user",
+            "time": "2026-10-06T17:50:07.560436+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_after": [
+    {
+      "id": "a24d17d3279107f6",
+      "text": "工单 CSV 导出返回 `bytes`，编码为带 UTF-8 BOM 的格式，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出接口的当前项目约定。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出",
+        "编码"
+      ],
+      "support": 1,
+      "contradictions": 1,
+      "retrievals": 1,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "401d42f4c0884959b18a7c342873d3fc",
+        "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:50:18+00:00",
+        "citations": [
+          {
+            "run_id": "401d42f4c0884959b18a7c342873d3fc",
+            "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+            "source": "user",
+            "time": "2026-10-06T17:50:07.560436+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": "superseded"
+    },
+    {
+      "id": "158f07e2cd9ee29b",
+      "text": "工单 CSV 导出返回 `bytes`，编码为带 UTF-8 BOM 的格式，字段分隔符为分号 `;`；固定列顺序为 `ticket_id`、`summary`、`owner`，输入中的其他字段不导出。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出接口的当前项目约定。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出",
+        "编码",
+        "字段"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+        "evidence_id": "a2abc277aa15cbae76e4c5e601d2d2314669e381f6b3ce3f0c11d9f93e330f54",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:50:27+00:00",
+        "citations": [
+          {
+            "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+            "evidence_id": "a2abc277aa15cbae76e4c5e601d2d2314669e381f6b3ce3f0c11d9f93e330f54",
+            "source": "user",
+            "time": "2026-10-06T17:50:18.216685+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "401d42f4c0884959b18a7c342873d3fc",
+            "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+            "source": "user",
+            "time": "2026-10-06T17:50:07.560436+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_audit": [
+    {
+      "event": "record",
+      "lesson_id": "a24d17d3279107f6",
+      "run_id": "401d42f4c0884959b18a7c342873d3fc",
+      "evidence_id": "1b33c0b01b34df335e06394a898f1cefe579ba1d4960c3e08709854c332c2996",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "b8bc6745b4e047b0a85668891f876089",
+      "accepted": 1,
+      "rejected": []
+    },
+    {
+      "event": "dream",
+      "status": "completed",
+      "reason": "",
+      "checked": 1,
+      "deactivated": 0
+    },
+    {
+      "event": "record",
+      "lesson_id": "158f07e2cd9ee29b",
+      "run_id": "777aa352ef1f4ea1b78a78bdd6bd3e1f",
+      "evidence_id": "a2abc277aa15cbae76e4c5e601d2d2314669e381f6b3ce3f0c11d9f93e330f54",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "aa044e1550e84750893a8fa8257d08f6",
+      "accepted": 1,
+      "rejected": []
+    }
+  ]
+}

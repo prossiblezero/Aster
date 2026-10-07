@@ -1,0 +1,6 @@
+{
+  "assets.py": "import re\n\n\ndef asset_key(name, revision):\n    \"\"\"Return the storage key for an asset name and positive revision.\"\"\"\n    if isinstance(revision, bool) or not isinstance(revision, int) or revision <= 0:\n        raise ValueError(\"revision must be a positive integer\")\n\n    normalized_name = re.sub(r\"[\\s-]+\", \"_\", name.strip().lower())\n    return f\"assets/v{revision}/{normalized_name}.bin\"\n",
+  "docs/names.md": "Asset names: trim outer whitespace, lowercase, replace each run of whitespace or hyphens with one underscore. Preserve other characters.\n",
+  "docs/revisions.md": "Asset revisions must be positive integers. Invalid revisions raise ValueError.\n",
+  "docs/storage.md": "Asset storage keys have prefix assets/v{revision}/ and extension .bin.\n"
+}

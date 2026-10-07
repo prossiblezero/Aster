@@ -1,0 +1,5 @@
+{
+  "payments.py": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef payment_cents(record):\n    if 'amount_minor' in record:\n        return record['amount_minor']\n\n    amount = Decimal(str(record['amount'])) * 100\n    return int(amount.to_integral_value(rounding=ROUND_HALF_UP))\n",
+  "refunds.py": "from payments import payment_cents\n\n\ndef refund_cents(records):\n    return sum(payment_cents(record) for record in records)\n",
+  "test_payments.py": "import unittest\nfrom payments import payment_cents\nclass PaymentTests(unittest.TestCase):\n    def test_legacy_precedence(self):\n        self.assertEqual(payment_cents({'amount_minor': 123, 'amount': '9.99'}), 123)\n    def test_decimal_rounding(self):\n        self.assertEqual(payment_cents({'amount': '1.005'}), 101)\n    def test_negative(self):\n        self.assertEqual(payment_cents({'amount': '-1.005'}), -101)\n"
+}

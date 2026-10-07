@@ -1,0 +1,3 @@
+{
+  "billing.py": "from decimal import Decimal, InvalidOperation, ROUND_DOWN\n\n\ndef invoice_amount(value):\n    \"\"\"Parse and format an invoice amount as a two-decimal string.\"\"\"\n    if not isinstance(value, str):\n        raise TypeError(\"invoice amount must be a string\")\n\n    try:\n        amount = Decimal(value)\n    except InvalidOperation as exc:\n        raise ValueError(\"invoice amount must be a valid decimal\") from exc\n\n    if not amount.is_finite():\n        raise ValueError(\"invoice amount must be finite\")\n\n    return format(amount.quantize(Decimal(\"0.01\"), rounding=ROUND_DOWN), \".2f\")\n"
+}

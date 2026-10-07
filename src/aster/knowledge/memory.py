@@ -1,10 +1,11 @@
-"""Evidence-backed project excerpts, use feedback, and reversible consolidation."""
+"""Sourced project excerpts and derived knowledge, with explicit use feedback."""
 
 from __future__ import annotations
 
 import copy
 import json
 import re
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from ..schema import Outcome
 from ..storage.evidence import EvidenceStore, atomic_json
 from ..storage.workspace import BoundaryError, Workspace, digest
 
-# Admission is deliberately conservative: exact observed excerpts, not inferred claims.
+# Both excerpts and derived claims retain source and content checks.
 _SECRET = re.compile(
     r"(?i)\b(?:api[ _-]?key|password|access[ _-]?token|(?:client[ _-]?)?secret|credential)"
     r"\s*(?:is\b|[:=])\s*\S+"
@@ -23,7 +24,7 @@ _SECRET = re.compile(
 _TRANSIENT = re.compile(
     r"(?i)\b(?:current|this|next)\s+(?:task|goal|session|run|turn|step)\b"
     r"|\b(?:today|tomorrow|yesterday|next week|last week|in progress|work in progress)\b"
-    r"|当前(?:任务|目标|会话|步骤)|本次(?:任务|运行)|今天|明天|昨天|下周|上周"
+    r"|当前(?:任务|目标|会话|步骤)|本次(?:任务|运行)|本轮|这轮|今天|明天|昨天|下周|上周"
 )
 _UNSAFE = re.compile(
     r"(?i)(?:ignore|override|bypass)\s+(?:all\s+|the\s+|previous\s+)?"
@@ -54,6 +55,7 @@ class Memory:
         self.enabled, self.evolution = enabled, evolution
         self.redactor = Redactor(secrets)
         self.last_rejection = ""
+        self._defer_save = False
         self.state = (
             json.loads(self.path.read_text())
             if self.path.exists()
@@ -71,8 +73,25 @@ class Memory:
             self.save()
 
     def save(self):
+        if self._defer_save:
+            return
         self.state["audit"] = self.state["audit"][-256:]
         atomic_json(self.path, self.state)
+
+    @contextmanager
+    def transaction(self):
+        """Publish a validated batch once; failed admission leaves old lessons intact."""
+        previous = copy.deepcopy(self.state)
+        self._defer_save = True
+        try:
+            yield
+            self._defer_save = False
+            self.save()
+        except BaseException:
+            self.state = previous
+            raise
+        finally:
+            self._defer_save = False
 
     def working_section(self, working: dict | None = None) -> str:
         return "\n".join(f"- {k}: {v['summary']}" for k, v in (working or {}).items())
@@ -107,30 +126,40 @@ class Memory:
         evidence_type="tool_result",
         observation: str | None = None,
         sources: dict[str, str] | None = None,
+        kind: str = "excerpt",
+        when: str = "",
+        citations: list[dict] | None = None,
     ):
-        """Store a grounded excerpt; Runtime authenticates the cited trace event first."""
+        """Runtime authenticates sources; derived knowledge is a model claim, not proof."""
         self.last_rejection = ""
         if not self.enabled:
             self.last_rejection = "disabled"
             return None
         text = text.strip()
         tags = list(dict.fromkeys(str(tag).strip() for tag in tags))[:16]
-        lesson_id = digest(normalized(text))[:16]
+        when = when.strip()
+        identity = normalized(text) if kind == "excerpt" else f"{kind}:{normalized(when)}:{normalized(text)}"
+        lesson_id = digest(identity)[:16]
         lesson = next((x for x in self.state["lessons"] if x["id"] == lesson_id), None)
         sources = dict(sources or (lesson.get("sources", {}) if lesson else {}))
-        reason = self._content_rejection(text + "\n" + "\n".join(tags))
+        reason = self._content_rejection(text + "\n" + when + "\n" + "\n".join(tags))
+        if not reason and kind not in {"excerpt", "fact", "procedure"}:
+            reason = "memory_kind"
+        if not reason and kind != "excerpt" and (not when or len(when) > 200):
+            reason = "memory_scope_required"
         if not reason and (
             not run_id
             or not evidence_id
             or evidence_type
-            not in {"tool_result", "verifier_pass", "user_confirmed", "paired_eval"}
+            not in {"tool_result", "verifier_pass", "user_confirmed", "paired_eval", "derived"}
+            or (kind != "excerpt" and not citations)
         ):
             reason = "provenance"
         if not reason and (
             not text
             or len(text) > 1000
             or not observation
-            or normalized(text) not in normalized(observation)
+            or (kind == "excerpt" and normalized(text) not in normalized(observation))
         ):
             reason = "unsupported_excerpt"
         if not reason and not self._sources_current(sources):
@@ -145,6 +174,8 @@ class Memory:
             lesson = {
                 "id": lesson_id,
                 "text": text,
+                "kind": kind,
+                "when": when,
                 "tags": tags,
                 "support": 0,
                 "contradictions": 0,
@@ -166,12 +197,17 @@ class Memory:
             "unverified_legacy",
         }:
             lesson["inactive_reason"] = ""
+        # Adding evidence for the same knowledge must not erase its original authority.
+        citations = list(citations or [])
+        citations.extend(item for item in lesson["provenance"].get("citations", []) if item not in citations)
         lesson["provenance"] = {
             "run_id": run_id,
             "evidence_id": evidence_id,
             "evidence_type": evidence_type,
             "at": now(),
         }
+        if citations:
+            lesson["provenance"]["citations"] = citations
         self.state["audit"].append(
             {
                 "event": "record",
@@ -185,7 +221,7 @@ class Memory:
         self.save()
         return copy.deepcopy(lesson)
 
-    def retrieve(self, query: str, limit: int = 3):
+    def retrieve(self, query: str, limit: int = 3, *, track: bool = True):
         if not self.enabled or limit <= 0:
             return []
         # Adjacent Chinese pairs handle ordinary rephrasing without a tokenizer
@@ -198,11 +234,11 @@ class Memory:
             if (
                 item.get("inactive_reason")
                 or item["contradictions"]
-                or self._content_rejection(item["text"] + " " + " ".join(item["tags"]))
+                or self._content_rejection(item["text"] + " " + item.get("when", "") + " " + " ".join(item["tags"]))
                 or not self._sources_current(item.get("sources", {}))
             ):
                 continue
-            hay = (item["text"] + " " + " ".join(item["tags"])).casefold()
+            hay = (item["text"] + " " + item.get("when", "") + " " + " ".join(item["tags"])).casefold()
             overlap = sum(w in hay for w in words)
             if overlap:
                 confidence = (item["support"] + 1) / (item["support"] + 2)
@@ -216,11 +252,12 @@ class Memory:
         ranked.sort(key=lambda x: x[0], reverse=True)
         selected = [copy.deepcopy(x[1]) for x in ranked[:limit]]
         selected_ids = {x["id"] for x in selected}
-        for item in self.state["lessons"]:
-            if item["id"] in selected_ids:
-                item["retrievals"] += 1
-        if selected_ids:
-            self.save()
+        if track:
+            for item in self.state["lessons"]:
+                if item["id"] in selected_ids:
+                    item["retrievals"] += 1
+            if selected_ids:
+                self.save()
         return selected
 
     def record_use(self, lesson_ids, success: bool):
@@ -279,7 +316,9 @@ class Memory:
             reason = item.get("inactive_reason", "")
             if not reason:
                 checked += 1
-                reason = self._content_rejection(item["text"])
+                reason = self._content_rejection(
+                    item["text"] + " " + item.get("when", "") + " " + " ".join(item["tags"])
+                )
                 if not reason and not self._sources_current(item.get("sources", {})):
                     reason = "stale_source"
                 if not reason and item["contradictions"]:
@@ -305,44 +344,78 @@ def store_excerpt(
     evidence_id: str,
     tags=(),
     lesson_id: str | None = None,
+    kind: str = "excerpt",
+    when: str = "",
+    evidence_ids=(),
 ) -> Outcome:
-    """Authenticate a current-run read before admitting or replacing a project excerpt."""
-    event = next(
-        (
-            row
-            for row in evidence.events(run_id)
-            if row["event"] == "tool_result"
-            and (
-                row["hash"] == evidence_id
-                or row.get("outcome", {}).get("evidence_id") == evidence_id
-            )
-            and row["outcome"]["status"] == "success"
-        ),
-        None,
-    )
-    if event is None or event["call"]["name"] != "read_file":
-        return Outcome(status="blocked", reason="memory_provenance")
+    """Authenticate current-run sources for excerpts or scoped model-derived knowledge."""
     if lesson_id is not None and not any(
         item["id"] == lesson_id for item in memory.state["lessons"]
     ):
         return Outcome(status="blocked", reason="memory_not_found")
-    observed = event["outcome"]
-    data = observed.get("data", {})
-    if not data.get("source_sha256") or not data.get("path"):
+    references = list(dict.fromkeys([evidence_id, *evidence_ids]))
+    if len(references) > 5 or (kind == "excerpt" and len(references) != 1):
         return Outcome(status="blocked", reason="memory_provenance")
+    rows = evidence.events(run_id)
+    observations, citations, sources = [], [], {}
+    for reference in references:
+        if reference == "user" and kind != "excerpt":
+            event = next((row for row in reversed(rows)
+                          if row["event"] in {"run_started", "run_continued"}), None)
+            content = (event.get("feedback") if event and event["event"] == "run_continued"
+                       else event.get("task", {}).get("prompt") if event else None)
+            if not content:
+                return Outcome(status="blocked", reason="memory_provenance")
+            observations.append(content)
+            citations.append({"run_id": run_id, "evidence_id": event["hash"], "source": "user",
+                              "time": event["time"]})
+            continue
+        event = next((row for row in rows if row["event"] == "tool_result"
+                      and reference in {row["hash"], row.get("outcome", {}).get("evidence_id")}), None)
+        if event is None:
+            return Outcome(status="blocked", reason="memory_provenance")
+        observed, call = event["outcome"], event["call"]
+        tool = call["name"]
+        if tool == "read_file" and observed["status"] == "success":
+            data = observed.get("data", {})
+            if not data.get("source_sha256") or not data.get("path"):
+                return Outcome(status="blocked", reason="memory_provenance")
+            if not memory._sources_current({data["path"]: data["source_sha256"]}):
+                return Outcome(status="blocked", reason="stale_source",
+                               content="A cited file changed. Read it again and replace every stale citation.")
+            sources[data["path"]] = data["source_sha256"]
+        elif not (kind in {"fact", "procedure"} and tool in {"run_tests", "run_shell"}
+                  and (observed["status"] == "success"
+                       or (observed["status"] == "error"
+                           and observed.get("exit_code") is not None))):
+            return Outcome(status="blocked", reason="memory_provenance",
+                           content="Excerpts require read_file; synthesized knowledge requires kind=fact or procedure and when. Cite actual current-run read_file, run_tests or run_shell results, or user.")
+        observation = observed["content"] or observed.get("reason", "")
+        if tool in {"run_tests", "run_shell"}:
+            observation = call["arguments"]["command"] + "\n" + observation
+        observations.append(observation)
+        citations.append({"run_id": run_id, "evidence_id": reference, "source": tool,
+                          "status": observed["status"], "time": event["time"]})
     lesson = memory.record(
         text,
         run_id=run_id,
-        evidence_id=evidence_id,
+        evidence_id=citations[0]["evidence_id"],
         tags=tags,
-        observation=observed["content"],
-        sources={data["path"]: data["source_sha256"]},
+        observation="\n".join(observations),
+        sources=sources,
+        kind=kind, when=when, citations=citations,
+        evidence_type="tool_result" if kind == "excerpt" else "derived",
     )
     if lesson and lesson_id is not None and lesson["id"] != lesson_id:
         memory.discard(lesson_id, reason="superseded")
+    hints = {
+        "transient": "Save only durable knowledge; omit temporary task instructions from text and when.",
+        "unsupported_excerpt": "Copy exact read_file text without display line numbers, or use kind=fact/procedure with when for synthesis.",
+        "memory_scope_required": "Provide when: the durable situation in which this knowledge applies (at most 200 characters).",
+    }
     return Outcome(
         status="success" if lesson else "blocked",
         reason="" if lesson else memory.last_rejection,
-        content=json.dumps(lesson or {}, ensure_ascii=False),
+        content=hints.get(memory.last_rejection, json.dumps(lesson or {}, ensure_ascii=False)),
         data=lesson or {},
     )

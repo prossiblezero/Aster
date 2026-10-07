@@ -152,9 +152,9 @@ def main(argv=None):
                 adopt_workspace=args.adopt_workspace,
             )
             runtime.continue_task(args.prompt, adopt_workspace=args.adopt_workspace, **task_limits)
-            state = asyncio.run(runtime.run())
+            state = asyncio.run(_run_terminal(runtime))
         else:
-            state = asyncio.run(runtime.run(TaskSpec(prompt=args.prompt, **task_limits)))
+            state = asyncio.run(_run_terminal(runtime, TaskSpec(prompt=args.prompt, **task_limits)))
     except (OSError, ValueError, RuntimeError) as exc:
         print(runtime.evidence.redactor.text(f"Aster: {exc}"), file=sys.stderr)
         return 1
@@ -168,9 +168,18 @@ def main(argv=None):
             terminal.run_status(runtime.state, root=Path(args.cwd))
         if settings.reuse_environment:
             runtime.sandbox.close()
-    if state.final:
-        print(runtime.evidence.redactor.text(state.final))
     return 0 if state.phase == "completed" else 1
+
+
+async def _run_terminal(runtime, task=None):
+    try:
+        state = await runtime.run(task)
+        if state.final:
+            print(runtime.evidence.redactor.text(state.final), flush=True)
+        await runtime.maintenance.drain(timeout=15)
+        return state
+    finally:
+        await runtime.maintenance.close()
 
 
 def tui_main(argv=None):
@@ -254,6 +263,10 @@ class Terminal:
                 file=sys.stderr,
                 flush=True,
             )
+        elif row["event"] == "memory_maintenance" and row.get("receipts"):
+            for item in row["receipts"]:
+                text = item.get("text") or ", ".join(item.get("ids", []))
+                print(self.redactor.text(f"[记忆已更新] {text}"), file=sys.stderr, flush=True)
 
     def end_preview(self):
         if self._stream_active:

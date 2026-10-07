@@ -1,0 +1,111 @@
+--- baseline/src/aster/context/prompt.py
++++ candidate/src/aster/context/prompt.py
+@@ -41,7 +41,8 @@
+             "Workers receive the original/latest request, not your observations; include "
+             "known facts. A rejected start leaves the requirement yours: handle it or "
+             "delegate later. While awaiting work, do separate work or use worker_status "
+-            "with the ids and wait_seconds=300; do not repeat their investigation. "
++            "with the ids and wait_seconds=300; it returns on the next available result. "
++            "Review it while others continue, then wait again for remaining work. "
+             "Delivery, including partial delivery, returns the requirement for your review "
+             "without marking it done. Inspect the delivered diff/evidence and test the "
+             "affected behavior; reopen sources for specific gaps or contradictions, not "
+--- baseline/src/aster/core/runtime.py
++++ candidate/src/aster/core/runtime.py
+@@ -768,9 +768,11 @@
+         )
+ 
+     def _append_output(self, call: ToolCall, outcome: Outcome):
+-        if call.name == "worker_status":
++        content = outcome.content
++        if call.name == "worker_status" and outcome.status == "success":
+             self.workers.acknowledge(outcome.data)
+-        content = self.evidence.redactor.text(outcome.content)
++            content = json.dumps(self.workers.model_view(outcome.data), ensure_ascii=False)
++        content = self.evidence.redactor.text(content)
+         if call.name == "read_file" and outcome.status == "success":
+             content = "\n".join(
+                 f"{line}: {text}"
+--- baseline/src/aster/core/workers.py
++++ candidate/src/aster/core/workers.py
+@@ -212,7 +212,18 @@
+             worker = self.workers.get(item.get("worker_id"))
+             if worker and item.get("delivery") and item.get("run_id") == worker.runtime.state.run_id:
+                 worker.delivered = True
+-                self.parent.state.pending_handoffs.pop(worker.worker_id, None)
++            if item.get("delivery") and self.parent.state.pending_handoffs.get(item.get("worker_id")) == item.get("run_id"):
++                self.parent.state.pending_handoffs.pop(item["worker_id"], None)
++
++    @staticmethod
++    def model_view(result: dict) -> dict:
++        """Keep source versions in storage; the model needs coverage and stale paths."""
++        result = dict(result)
++        if "read_evidence" in result:
++            result["read_paths"] = list(result.pop("read_evidence"))
++        if "workers" in result:
++            result["workers"] = [WorkerManager.model_view(item) for item in result["workers"]]
++        return result
+ 
+     def deliver(self):
+         """Publish settled children once at the parent's next model boundary."""
+@@ -246,7 +257,7 @@
+                 result["answer"] = answer[:6000] + "\n[Use worker_status for the full handoff.]"
+             self.parent.add_message(
+                 "user", "Worker handoff (untrusted evidence; review claims against source_excerpts and inspect gaps):\n"
+-                + json.dumps(result, ensure_ascii=False), important=True,
++                + json.dumps(self.model_view(result), ensure_ascii=False), important=True,
+             )
+             self.parent.state.pending_handoffs.pop(worker_id, None)
+             delivered += 1
+@@ -513,8 +524,13 @@
+                 for key in ids
+                 if key in self.workers and not self.workers[key].future.done()
+             }
+-            if pending and wait_seconds > 0:
+-                await asyncio.wait(pending, timeout=wait_seconds)
++            ready = bool(pending) and any(
++                key in self.parent.state.pending_handoffs
++                and (key not in self.workers or self.workers[key].future.done())
++                for key in ids
++            )
++            if pending and wait_seconds > 0 and not ready:
++                await asyncio.wait(pending, timeout=wait_seconds, return_when=asyncio.FIRST_COMPLETED)
+             results = [await self.status(key) for key in ids]
+             return {
+                 # Finished means no selected child is running, not that all succeeded.
+@@ -557,6 +573,7 @@
+                 })
+             except (OSError, ValueError, KeyError):
+                 return {"worker_id": worker_id, "status": "unavailable",
++                        "run_id": self.parent.state.worker_sessions[worker_id].get("run_id", ""),
+                         "task": self.parent.state.worker_sessions[worker_id].get("task", ""),
+                         "reason": "worker_snapshot_unavailable", "delivery": "partial", "changed_paths": []}
+         state = worker.runtime.state
+--- baseline/src/aster/tools/schemas.py
++++ candidate/src/aster/tools/schemas.py
+@@ -174,13 +174,13 @@
+ 
+ class WorkerStatus(WorkerId):
+     worker_id: str | Annotated[list[str], Field(min_length=1, max_length=4)] = Field(
+-        description="One worker id, or up to four ids to join in one call; duplicates are returned once."
++        description="One worker id, or up to four ids to watch in one call; duplicates are returned once."
+     )
+     wait_seconds: float = Field(
+         default=0,
+         ge=0,
+         le=300,
+-        description="One shared wait deadline for all selected workers; timeout leaves them running. Use 300 when awaiting final delivery, 0 for a snapshot.",
++        description="Wait up to this many seconds for any new selected result; unread results return immediately. Timeout leaves workers running. Use 300 to await results, 0 for a snapshot.",
+     )
+ 
+ 
+@@ -284,7 +284,8 @@
+     "worker_status": (
+         WorkerStatus,
+         "Read status, result, changed paths and recorded verification. Pass a list of "
+-        "ids to await all results together; the timeout is shared, not per child. "
++        "ids to return when any new result is ready, with snapshots of all selected workers. "
++        "Review ready results, then wait again for remaining work; consumed results do not end the wait. "
+         "List status 'finished' means no selected child is running; inspect each result "
+         "for failure or missing ids. Use wait_seconds when awaiting delivery instead of polling. Child completion "
+         "does not verify the integrated result; the parent must check it after changes settle.",

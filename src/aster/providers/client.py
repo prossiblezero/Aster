@@ -18,8 +18,9 @@ from .usage import RequestAccounting
 
 
 class ModelClient:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, *, max_attempts: int = 3):
         self.settings = settings
+        self.max_attempts = max(1, min(3, max_attempts))
         self.last_usage: dict[str, int] = {}
         self.last_diagnostics: dict[str, Any] = {}
         self.redaction_secrets = [settings.api_key.get_secret_value()]
@@ -77,7 +78,7 @@ class ModelClient:
         redactor = Redactor([*self.redaction_secrets, secret])
         empty_retries = 0
         async with httpx.AsyncClient(timeout=self.settings.request_timeout) as client:
-            for attempt in range(1, 4):
+            for attempt in range(1, self.max_attempts + 1):
                 started = time.monotonic()
                 data, response, usage = None, None, {}
                 delay = retry_delay(attempt)
@@ -155,7 +156,7 @@ class ModelClient:
                 )
                 category = error.details["category"]
                 retry, empty_retries = retry_request(category, attempt, empty_retries)
-                if not retry:
+                if not retry or attempt >= self.max_attempts:
                     raise error
                 if response is not None:
                     try:

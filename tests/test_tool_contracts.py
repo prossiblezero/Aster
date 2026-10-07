@@ -17,6 +17,15 @@ VISIBILITY = json.loads(
 )
 
 
+async def test_worker_status_rejects_unknown_wait_mode(tmp_path):
+    runtime = Runtime(tmp_path, Settings(max_workers=1, completion="off"))
+    runtime.start(TaskSpec(prompt="inspect"))
+    outcome = await runtime.step(ToolCall(name="worker_status", arguments={
+        "worker_id": ["missing"], "wait_seconds": 300, "wait_for": "either",
+    }))
+    assert outcome.reason == "invalid_arguments"
+
+
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
 async def test_repository_test_result_contract(tmp_path, case):
     for name, content in case["files"].items():
@@ -176,14 +185,16 @@ async def test_disabled_capabilities_hidden_in_schema_and_checked_at_execution(
     runtime.start(TaskSpec(prompt="look around"))
     runtime.state.mode = case.get("mode", "work")
     disabled = {name for names in case["unavailable"].values() for name in names}
-    available = set(SCHEMAS) - disabled
+    available = set(SCHEMAS) - disabled - {"worker_finish"}
     tools = {tool["name"]: tool for tool in runtime.tool_definitions()}
-    assert tools.keys() == (available if profile == "all" else available & CORE_TOOLS)
-    catalog = tools["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
-    assert set(catalog) == available
+    direct = CORE_TOOLS | ({"worker_start"} if runtime.settings.max_workers else set())
+    assert tools.keys() == (available - {"tool_load"} if profile == "all" else available & direct)
+    if profile == "core":
+        catalog = tools["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
+        assert set(catalog) == available - tools.keys()
     # Earlier loading (including a resumed loaded_tools list) cannot bypass configuration.
     runtime.state.loaded_tools = list(SCHEMAS)
-    assert {tool["name"] for tool in runtime.tool_definitions()} == available
+    assert {tool["name"] for tool in runtime.tool_definitions()} == available - {"tool_load"}
     runtime.state.loaded_tools = []
     if disabled:
         outcome = await runtime.step(

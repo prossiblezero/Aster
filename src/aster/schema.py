@@ -104,8 +104,11 @@ class RunState(Record):
     read_evidence: dict[str, str] = Field(default_factory=dict)
     used_call_ids: list[str] = Field(default_factory=list)
     usage: dict[str, int] = Field(default_factory=dict)
+    memory_usage: dict[str, int] = Field(default_factory=dict)
     team_usage: dict[str, int] = Field(default_factory=dict)
     pending_handoffs: dict[str, str] = Field(default_factory=dict)
+    worker_reads: dict[str, str] = Field(default_factory=dict)
+    handoff_sources: list[dict[str, Any]] = Field(default_factory=list)
     worker_sessions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     loaded_tools: list[str] = Field(default_factory=list)
 

@@ -73,6 +73,8 @@ class ReadFile(Record):
 
 项目原生 Python 入口也可通过 `run_tests` 执行，例如 `python tests/runtests.py ...` 和 `python bin/test ...`。运行器在隔离副本内捕获 unittest、pytest 或 SymPy 的真实框架结果，生成统一测试证据；只有退出码或打印“passed”的脚本不能通过正式验证。SymPy 的额外测试子进程会关闭，以在当前隔离进程收集 reporter 结果，不关闭 Aster 沙箱。零测试、全部跳过、失败、运行器错误仍不能证明通过。
 
+对于没有现成测试的小改动，可以把临时 Python 测试放进同一次 `run_tests.code`，省去先创建临时文件、再请求模型调用测试的往返。例如，`command="pytest -q"` 配合 `code="from calculator import add\ndef test_add(): assert add(2, 3) == 5\n"`。源码写入隔离副本，实际导入项目实现，完成后不留下测试文件；也支持 `python -m unittest` 的 `TestCase`，不支持和 `discover` 混用。需要长期维护的回归测试仍应写进项目。`.tmp` 不会带入下一次沙箱调用，不能先写在那里再指望 `run_tests` 读到。实现及通过、失败、伪造输出和只读边界见 [test_inline_verification.py](../../tests/test_inline_verification.py)。
+
 ## 两种分类，不要交叉理解
 
 `CORE_TOOLS` 是**展示策略**：默认包含文件列表、读取、搜索、写入、补丁、命令、测试、差异和 `tool_load`，最多 9 项。

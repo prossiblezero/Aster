@@ -109,12 +109,14 @@ async def test_workspace_adoption_is_explicit_and_does_not_rewind_files(tmp_path
 async def test_past_boundary_cannot_read_future_observations(tmp_path):
     r = make(tmp_path)
     r.start(TaskSpec(prompt="read evidence"))
+    r.state.memory_usage = {"calls": 1, "total_tokens": 130}
     early = r.evidence.archive_observation(r.state.run_id, "early", "read_file", "ancestor fact")
     r.checkpoint()
     entry = r.session_tree.cursor
     late = r.evidence.archive_observation(r.state.run_id, "late", "read_file", "SIBLING_SECRET")
     r.checkpoint()
     r.checkout(entry)
+    assert r.state.memory_usage == {}
     assert early["id"] in r._archive_sources and late["id"] not in r._archive_sources
     from aster.sessions.lifecycle import read_session_observation
     args = dict(offset=0, limit=1000, query="", observation_id=late["id"])

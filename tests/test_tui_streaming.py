@@ -98,6 +98,23 @@ async def test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools(t
         assert not app.query_one("#prompt").disabled
 
 
+async def test_tui_shows_actual_save_status_added_after_model_reply(tmp_path):
+    class Claim:
+        async def complete(self, messages, tools):
+            return ModelReply(text="已记住项目约定。")
+
+    app = AsterTui(tmp_path, Settings(completion="off", auto_dream=False))
+    app.runtime.model = Claim()
+    async with app.run_test() as pilot:
+        app.query_one("#prompt").value = "Invoice amounts use Decimal."
+        await pilot.press("enter")
+        await app.task_worker.wait()
+        await pilot.pause()
+        text = "\n".join(line.text for line in app.query_one("#log").lines)
+        assert text.count("已记住项目约定") == 1
+        assert "尚未写入长期记忆" in text
+
+
 @pytest.mark.smoke
 async def test_real_sse_adapter_streams_reasoning_and_text_into_tui(tmp_path, monkeypatch):
     import json

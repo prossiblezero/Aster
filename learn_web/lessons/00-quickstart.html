@@ -107,6 +107,7 @@ aster<span class="w"> </span>--cwd<span class="w"> </span>/tmp/aster-learning-de
 </pre></div>
 </div>
 <p><code>.env</code> 默认从<strong>启动命令时的当前目录</strong>读取，<code>--cwd</code> 决定 Agent 的工作区，两者不同。这里从项目根启动，因而会用项目的 <code>.env</code>。也可以通过 <code>--env-file</code> 显式指定。</p>
+<p>日常启动默认开启项目记忆、记忆演化与自动整理，不需要添加记忆配置。Aster 可以保存有出处的项目约定，并在任务结束后自动提炼遗漏的约定与经过测试的修复经验；有价值才保存，提交成功后再告知用户。前台可以继续执行，CLI 会先输出答案，再等待维护最多 15 秒，剩余材料留到下次。上面的离线实验显式关闭了部分能力，目的是看清循环。存储与召回见 <a href="10-layered-memory.html">第 10 章</a>，修复经验和反馈维护见 <a href="11-memory-evolution.html">第 11 章</a>。</p>
 <p><code>aster '任务内容'</code> 执行一次任务后退出；<code>aster --tui</code>、<code>aster-tui</code> 仍可显式启动 TUI。非交互输入下需要提供任务文本，避免程序等待输入；<code>--resume</code> 与 <code>--rl-smoke</code> 保持专用执行路径。</p>
 <p>单次 CLI 启动时会打印输入预算及来源，交互界面则在欢迎页和 <code>/context</code> 命令中显示。交互入口默认启用 Responses 流式，可用 <code>--no-stream</code> 关闭。通常让 Aster 根据模型配置自动选择预算；学习实验里的小预算只用来制造上下文压力，详见 <a href="06-context-budget.html">第 06 章</a>。</p>
 <h2 id="源码怎么读">源码怎么读</h2>

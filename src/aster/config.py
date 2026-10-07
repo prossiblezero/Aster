@@ -122,9 +122,9 @@ class Settings(Record):
     max_recovery: int = Field(default=1, ge=0, le=5)
     max_final_revisions: int = Field(default=2, ge=0, le=5)
     completion: Literal["off", "warn", "soft", "strict"] = "strict"
-    memory_enabled: bool = False
-    memory_evolution: bool = False
-    auto_dream: bool = False
+    memory_enabled: bool = True
+    memory_evolution: bool = True
+    auto_dream: bool = True
     tool_profile: Literal["core", "all"] = "core"
     max_workers: int = Field(default=0, ge=0, le=4)
     read_parallelism: int = Field(default=1, ge=1, le=8)

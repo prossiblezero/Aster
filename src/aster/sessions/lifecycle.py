@@ -87,7 +87,9 @@ def prepare_continuation(
     state.phase, state.stop_reason, state.final, state.feedback = "running", "", "", ""
     state.step = state.turn = state.final_revisions = 0
     state.usage = {}
+    state.memory_usage = {}
     state.team_usage = {}
+    state.handoff_sources = []
     # Explicit child conversations may finish after the parent's last answer.
     # Keep their pending deliveries on this branch for the next user turn.
     for item in state.todos:

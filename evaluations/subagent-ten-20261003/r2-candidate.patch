@@ -1,0 +1,111 @@
+--- baseline/src/aster/context/prompt.py
++++ candidate/src/aster/context/prompt.py
+@@ -28,7 +28,7 @@
+         )
+     if workers_available:
+         system += (
+-            "\nWorker capability: load worker_status with tool_load to inspect existing children; "
++            "\nWorker capability: worker_status is available when you have existing children; "
+             "worker_start creates new children only when exposed in the tool catalog. "
+             "Honor explicit user requests to delegate independent investigations or reviews. "
+             "Delegate an existing requirement using todo_id when it yields a usable "
+@@ -38,9 +38,12 @@
+             "and tightly coupled edits are usually cheaper to do yourself. First inspect "
+             "enough to define the interface, then assign the artifact and acceptance check "
+             "before doing the delegated work. State separate parent work in parent_work. "
++            "Usually keep one independent work package for yourself and delegate one other "
++            "package. Add workers only for further substantial independent deliverables. "
+             "Workers receive the original/latest request, not your observations; include "
+             "known facts. A rejected start leaves the requirement yours: handle it or "
+-            "delegate later. While children run, do independent work if available. Otherwise "
++            "delegate later. While children run, do the independent work stated in parent_work. "
++            "If none remains, "
+             "use worker_status with the ids and wait_seconds=300: choose wait_for=all if only "
+             "final integration remains, or default any if an early result unlocks useful work. "
+             "Delivery, including partial delivery, returns the requirement for your review "
+@@ -49,7 +52,11 @@
+             "to redo the whole exploration. source_excerpts are captured source observations, "
+             "distinct from model conclusions. Use current source_excerpts and the child's "
+             "cited findings for synthesis. Check each claim against its selected source range; "
+-            "ask the same child about missing facts or inspect only the missing range. "
++            "independently trace boundary-sensitive claims and compare structured results to "
++            "the exact requested expression: types, nesting, ordering and exceptions. A correct "
++            "explanation can accompany a wrongly shaped value. Preserve literal data when "
++            "integrating reports. For a single-symbol citation field, name one actual symbol. "
++            "Ask the same child about missing facts or inspect only the missing range. "
+             "Do not reread a file merely to satisfy the observation gate. Read the target "
+             "yourself before editing, and keep final integration tests with the parent. "
+             "Cite delegated findings as such. "
+@@ -73,6 +80,8 @@
+             "Cite already-read paths, symbols and the line numbers supplied by read_file; "
+             "do not guess line numbers or reread just to add them. Preserve requested "
+             "item IDs and output format so the parent can integrate without reconstructing them. "
++            "Check structured values against the requested expression, including types and "
++            "nesting; honor single-symbol citation fields and put other references in prose. "
+             "Follow the assigned test responsibility; do not repeatedly run absent tests "
+             "or retry blocked commands unchanged. If execution is unavailable, report "
+             "the static findings and the specific check needed from the parent. Finish "
+--- baseline/src/aster/core/runtime.py
++++ candidate/src/aster/core/runtime.py
+@@ -1456,6 +1456,8 @@
+         )
+         if state and state.parent_run_id:
+             selected = set(selected) | {"worker_finish"}
++        if state and state.worker_sessions:
++            selected = set(selected) | {"worker_status"}
+         return sorted(name for name in selected if not self._unavailable_reason(name, state=state))
+ 
+     def tool_definitions(self, *, state=None):
+--- baseline/src/aster/tools/schemas.py
++++ candidate/src/aster/tools/schemas.py
+@@ -193,6 +193,9 @@
+     resume: bool = Field(default=False, description="Continue a finished or saved worker in its own context, within the remaining team budget.")
+ 
+ 
++HANDOFF_SOURCE_CHARACTERS = 8000
++
++
+ class HandoffSource(Record):
+     evidence_id: str = Field(min_length=1, description="Copy source_ref (12 characters) or the full evidence_id from a successful read_file. Short references must uniquely match this worker's authorized reads.")
+     start: int = Field(ge=1, description="First supporting source line, within that read.")
+@@ -202,7 +205,7 @@
+ 
+ class WorkerFinish(Record):
+     answer: str | dict[str, Any] = Field(description="Complete assigned answer; use an object for a requested JSON object, or text for prose.")
+-    sources: list[HandoffSource] = Field(default_factory=list, max_length=4, description="Select already-read supporting ranges; at most 4000 source characters total. No need to reread to select them.")
++    sources: list[HandoffSource] = Field(default_factory=list, max_length=4, description=f"Select already-read supporting ranges; at most {HANDOFF_SOURCE_CHARACTERS} source characters total. Prefer short implementation ranges over docstrings. No need to reread to select them.")
+ 
+ 
+ class ImageRead(Record):
+@@ -234,7 +237,7 @@
+     ),
+     "run_shell": (
+         RunShell,
+-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
++        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
+         "process",
+     ),
+     "run_tests": (
+--- baseline/src/aster/tools/workflow.py
++++ candidate/src/aster/tools/workflow.py
+@@ -14,7 +14,7 @@
+ from ..sessions.lifecycle import read_session_observation
+ from ..storage.evidence import EvidenceStore
+ from ..storage.workspace import Workspace
+-from .schemas import SCHEMAS
++from .schemas import HANDOFF_SOURCE_CHARACTERS, SCHEMAS
+ from .workspace import text_page
+ 
+ 
+@@ -269,9 +269,9 @@
+                 sources.append({**selection, "path": data["path"], "content": content,
+                                 "source_sha256": data["source_sha256"], "truncated": False})
+             sizes = [len(item["content"]) for item in sources]
+-            if sum(sizes) > 4000:
++            if sum(sizes) > HANDOFF_SOURCE_CHARACTERS:
+                 return Outcome(status="blocked", reason="handoff_source_too_large",
+-                               content=f"Selected {sum(sizes)} source characters; limit 4000. Per selection: "
++                               content=f"Selected {sum(sizes)} source characters; limit {HANDOFF_SOURCE_CHARACTERS}. Per selection: "
+                                + ", ".join(f"{index}={size}" for index, size in enumerate(sizes, 1))
+                                + ". Narrow the ranges; no reread is needed.")
+             answer = args["answer"]

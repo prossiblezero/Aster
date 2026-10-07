@@ -1,0 +1,46 @@
+{
+  "purpose": "Check explicit-request storage and optional learning after a verified repair.",
+  "limitations": "Previously seen tasks; the repair prompt ensures a failing execution opportunity. No remember instruction or seeded memories. Not part of the ten-task pair.",
+  "script_sha256": "4cff95a1a685577cfa65080022020d5303303192fd98ecf1a681a76218f1be97",
+  "cases": [
+    {
+      "id": "02_money",
+      "focus": "user_convention",
+      "files": {
+        "billing.py": "def invoice_amount(value):\n    raise NotImplementedError\n"
+      },
+      "learn": [
+        "项目发票金额约定：输入十进制字符串，使用 Decimal 从原字符串构造；向零截断到两位小数（ROUND_DOWN），输出固定两位的字符串。负数也是向零截断。请记住，不必实现 billing.py。"
+      ],
+      "reuse": "实现 billing.py 的 invoice_amount(value)，按照项目发票金额约定处理字符串输入，并验证。",
+      "setup": "from billing import invoice_amount as f",
+      "checks": {
+        "truncate": "assert f('12.999') == '12.99'",
+        "negative": "assert f('-12.999') == '-12.99'",
+        "decimal_precision": "assert f('9007199254740993.019') == '9007199254740993.01' and f('2') == '2.00'"
+      }
+    },
+    {
+      "id": "07_repair_transfer",
+      "focus": "procedure_transfer",
+      "learn_edit": true,
+      "files": {
+        "payments.py": "def payment_cents(record):\n    return round(float(record['amount']) * 100)\n",
+        "test_payments.py": "import unittest\nfrom payments import payment_cents\nclass PaymentTests(unittest.TestCase):\n    def test_legacy_precedence(self):\n        self.assertEqual(payment_cents({'amount_minor': 123, 'amount': '9.99'}), 123)\n    def test_decimal_rounding(self):\n        self.assertEqual(payment_cents({'amount': '1.005'}), 101)\n    def test_negative(self):\n        self.assertEqual(payment_cents({'amount': '-1.005'}), -101)\n"
+      },
+      "learn": [
+        "修复 payments.py，使 test_payments.py 通过。先运行现有测试确认问题，再修复并验证。"
+      ],
+      "reuse_files": {
+        "refunds.py": "def refund_cents(records):\n    return sum(round(float(r['amount']) * 100) for r in records)\n"
+      },
+      "reuse": "退款数据复用项目支付记录格式。修复 refunds.py 的 refund_cents(records)，返回所有记录的整数分总和，并验证。",
+      "setup": "from refunds import refund_cents as f",
+      "checks": {
+        "legacy_precedence": "assert f([{'amount_minor': 123, 'amount': '9.99'}, {'amount_minor': 0}]) == 123",
+        "decimal_rounding": "assert f([{'amount': '1.005'}, {'amount': '-1.005'}, {'amount': '2.005'}]) == 201",
+        "empty_input": "assert f([]) == 0"
+      }
+    }
+  ]
+}

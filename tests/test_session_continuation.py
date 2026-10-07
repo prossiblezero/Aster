@@ -168,7 +168,9 @@ def test_old_explicit_capabilities_restore_without_rewriting_checkpoint(tmp_path
     checkpoint.write_text(json.dumps(data))
     before = checkpoint.read_bytes()
     with pytest.raises(ValueError, match="runtime_identity_mismatch:.*auto_dream.*max_workers.*memory_enabled.*memory_evolution"):
-        Runtime(tmp_path, Settings()).resume(state.run_id, allow_model_change=True)
+        Runtime(tmp_path, Settings(memory_enabled=False, memory_evolution=False, auto_dream=False)).resume(
+            state.run_id, allow_model_change=True
+        )
     assert checkpoint.read_bytes() == before
     restored = Runtime(tmp_path, settings)
     restored.resume(state.run_id)

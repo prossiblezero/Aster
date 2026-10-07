@@ -1,0 +1,3 @@
+{
+  "exports.py": "import csv\nimport io\n\n\n_TICKET_FIELDS = (\"ticket_id\", \"summary\", \"owner\")\n\n\ndef export_tickets(rows):\n    \"\"\"Export ticket dictionaries as UTF-8 CSV bytes.\"\"\"\n    output = io.StringIO(newline=\"\")\n    writer = csv.DictWriter(\n        output,\n        fieldnames=_TICKET_FIELDS,\n        extrasaction=\"ignore\",\n        lineterminator=\"\\r\\n\",\n    )\n    writer.writeheader()\n    writer.writerows(rows)\n    return output.getvalue().encode(\"utf-8\")\n"
+}

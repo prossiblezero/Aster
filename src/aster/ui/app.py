@@ -291,6 +291,10 @@ if App is not None:
                 self._write(row["text"], style="markdown")
             elif event == "worker_started":
                 self._write(f"  › 子任务已启动：{row['worker_id']}")
+            elif event == "memory_maintenance" and row.get("receipts"):
+                for item in row["receipts"]:
+                    text = item.get("text") or "已停用：" + ", ".join(item.get("ids", []))
+                    self._write(f"  ✓ 已沉淀经验：{text}", style="#a5c9a2")
             elif event == "provider_attempt" and row.get("classification") not in {
                 "success",
                 "cancelled",
@@ -601,6 +605,12 @@ if App is not None:
                     raise ValueError("没有可继续的会话，请先输入任务。")
                 started = True
                 state = await runtime.run()
+                last_reply = next((row["text"] for row in reversed(runtime.evidence.events(state.run_id))
+                                   if row["event"] == "model_reply" and row.get("text")), "")
+                if state.final and state.final != last_reply:
+                    # Runtime may append actual save status or partial-delivery information.
+                    extra = state.final[len(last_reply):].strip() if state.final.startswith(last_reply) else state.final
+                    self._session_write(runtime, extra, style="markdown")
                 if not state.final:
                     self._session_write(runtime, f"任务已停止：{state.stop_reason}\n{state.feedback}")
             except asyncio.CancelledError:
@@ -680,6 +690,7 @@ if App is not None:
                     with suppress(WorkerCancelled, WorkerFailed):
                         await worker.wait()
                 await view["runtime"].workers.close()
+                await view["runtime"].maintenance.close()
                 view["runtime"].sandbox.close()
 
         async def action_quit(self) -> None:

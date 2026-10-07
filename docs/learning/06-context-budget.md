@@ -46,6 +46,12 @@ flowchart TD
 工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
 工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。
 
+消息按“系统规则、任务与已确认历史、动态状态和记忆”的顺序排列，记忆更新不插入稳定前缀。普通父任务进入预算收尾时保留工具定义，靠执行入口的 `handoff_only` 阻止新动作；模型即使再次请求工具也不能继续执行。这样避免单纯为了最终答复就修改工具前缀。子任务沿用原有交接目录；正常按需加载工具、历史压缩或版本升级仍可能影响缓存，不能承诺每次都命中。设计依据见[一日降耗方案](../cost-optimization-20261007.md)。
+
+这里的“稳定”是同一版本、同一任务中，变化的记忆不改写前面的系统规则和已有消息。升级修改系统提示或工具 schema 后，新请求与旧版本的前缀不同，可能需要重新建立缓存。缓存通常只能利用第一次变化之前的连续前缀：压缩早期历史、增减工具定义仍会影响它，后台记忆放在末尾也不代表整个请求永远不变。
+
+实测应同时看 `缓存输入 token / 全部输入 token`、未缓存输入和输出，不能只追求命中比例。减少无效调用可能同时减少缓存 token 和总成本。当前真实对照使用 Responses，缓存数取供应商返回的 usage；Chat 和 Anthropic 的缓存效果没有在这组实验中验证。
+
 [Runtime.prepare_request()](../../src/aster/core/runtime.py) 的入口如下，节选：
 
 ```python
@@ -189,7 +195,12 @@ async def main():
         runtime.add_message("assistant", "旧的探索思路。" * 200, native=False)
         wide_prompt, _, wide = runtime.prepare_request()
         assert not wide.compacted
-        assert json.loads(runtime._structured_history[-1]["output"])["content"] == outcome.content
+        # 模型看到的读取结果带行号，正文仍然完整。
+        numbered = "\n".join(
+            f"{number}: {line}"
+            for number, line in enumerate(outcome.content.splitlines(), outcome.data["start"])
+        )
+        assert json.loads(runtime._structured_history[-1]["output"])["content"] == numbered
 
         # 调小的是实验预算；日常使用可以省略 context_tokens。
         settings.context_tokens = 4096
@@ -217,8 +228,8 @@ asyncio.run(main())
 以下是一次示意执行记录；当前实现显示 `deterministic-v7`，计数也可能变化：
 
 ```text
-压缩前本地估算: 9449
-压缩后本地估算: 2617 / 3584
+压缩前本地估算: 13325
+压缩后本地估算: 3067 / 3584
 移除旧消息: 1
 调用和结果仍然成组: 2
 策略版本: deterministic-v7
@@ -226,7 +237,7 @@ asyncio.run(main())
 
 每次生成的调用 ID、证据标识不同，工具描述和依赖版本也可能变化，
 token 数会略有变化；重要的是断言一直成立。
-第一次读完日志时，正文没有被固定工具上限提前切掉；第二次预算变小后，
+第一次读完日志时，模型看到的是带行号的完整正文，没有被固定工具上限提前切掉；第二次预算变小后，
 旧的普通消息被移除，日志留下有界摘录与归档引用，调用和结果仍是一组。
 
 命令输出还受 `run_shell` 的 4 MiB 捕获上限和 8192 字符预览上限约束；超过捕获上限的内容不会靠归档恢复。上下文预算裁剪是另一层：它针对已捕获的请求内容重新计数和收缩，不等于扩大命令捕获能力。

@@ -1,0 +1,98 @@
+--- before/src/aster/context/prompt.py
++++ candidate/src/aster/context/prompt.py
+@@ -40,9 +40,9 @@
+             "before doing the delegated work. State separate parent work in parent_work. "
+             "Workers receive the original/latest request, not your observations; include "
+             "known facts. A rejected start leaves the requirement yours: handle it or "
+-            "delegate later. While awaiting work, do separate work or use worker_status "
+-            "with the ids and wait_seconds=300; it returns on the next available result. "
+-            "Review it while others continue, then wait again for remaining work. "
++            "delegate later. While children run, do independent work if available. Otherwise "
++            "use worker_status with the ids and wait_seconds=300: choose wait_for=all if only "
++            "final integration remains, or default any if an early result unlocks useful work. "
+             "Delivery, including partial delivery, returns the requirement for your review "
+             "without marking it done. Inspect the delivered diff/evidence and test the "
+             "affected behavior; reopen sources for specific gaps or contradictions, not "
+--- before/src/aster/core/workers.py
++++ candidate/src/aster/core/workers.py
+@@ -516,7 +516,7 @@
+             owner._remember(next(worker for worker in owner.workers.values() if worker.runtime is runtime))
+         return handoff
+ 
+-    async def status(self, worker_id: str | list[str], wait_seconds: float = 0):
++    async def status(self, worker_id: str | list[str], wait_seconds: float = 0, wait_for: str = "any"):
+         if isinstance(worker_id, list):
+             ids = list(dict.fromkeys(worker_id))
+             pending = {
+@@ -529,8 +529,11 @@
+                 and (key not in self.workers or self.workers[key].future.done())
+                 for key in ids
+             )
+-            if pending and wait_seconds > 0 and not ready:
+-                await asyncio.wait(pending, timeout=wait_seconds, return_when=asyncio.FIRST_COMPLETED)
++            if pending and wait_seconds > 0 and (wait_for == "all" or not ready):
++                await asyncio.wait(
++                    pending, timeout=wait_seconds,
++                    return_when=asyncio.ALL_COMPLETED if wait_for == "all" else asyncio.FIRST_COMPLETED,
++                )
+             results = [await self.status(key) for key in ids]
+             return {
+                 # Finished means no selected child is running, not that all succeeded.
+--- before/src/aster/tools/schemas.py
++++ candidate/src/aster/tools/schemas.py
+@@ -1,7 +1,7 @@
+ """Tool parameter contracts, descriptions, effects and model-visible definitions."""
+ from __future__ import annotations
+ 
+-from typing import Annotated, Any
++from typing import Annotated, Any, Literal
+ 
+ from pydantic import Field, model_validator
+ 
+@@ -180,7 +180,11 @@
+         default=0,
+         ge=0,
+         le=300,
+-        description="Wait up to this many seconds for any new selected result; unread results return immediately. Timeout leaves workers running. Use 300 to await results, 0 for a snapshot.",
++        description="Shared wait deadline in seconds. Timeout leaves workers running. Use 300 to await results, 0 for an immediate snapshot regardless of wait_for.",
++    )
++    wait_for: Literal["any", "all"] = Field(
++        default="any",
++        description="any returns on the next unread result so you can act on it; all waits for every selected worker to stop when only final integration remains. Same behavior for one id.",
+     )
+ 
+ 
+@@ -272,7 +276,7 @@
+         "link the requirement todo_id and state your separate work in parent_work. The original request is included automatically. "
+         "Delegate substantial independent work or investigations; do small lookups directly. "
+         "Finished handoffs arrive automatically at your next turn. When waiting, use one "
+-        "worker_status call with their ids and wait_seconds=300. For investigations request concise conclusions "
++        "worker_status call with their ids and wait_seconds=300; use wait_for=all if only integration remains. For investigations request concise conclusions "
+         "with source paths and evidence, and inspect gaps rather than repeating every read. "
+         "Only one agent writes at a time: a writing worker needs a nonempty write_scope; "
+         "while it runs do read-only work, then inspect its changes and verify the integrated result. "
+@@ -284,8 +288,9 @@
+     "worker_status": (
+         WorkerStatus,
+         "Read status, result, changed paths and recorded verification. Pass a list of "
+-        "ids to return when any new result is ready, with snapshots of all selected workers. "
+-        "Review ready results, then wait again for remaining work; consumed results do not end the wait. "
++        "ids for snapshots of all selected workers. Default wait_for=any returns when a new result is ready; "
++        "unread results return immediately, consumed results do not end the wait. Use wait_for=all "
++        "when only final integration remains; use any when an early result unlocks useful work. "
+         "List status 'finished' means no selected child is running; inspect each result "
+         "for failure or missing ids. Use wait_seconds when awaiting delivery instead of polling. Child completion "
+         "does not verify the integrated result; the parent must check it after changes settle.",
+--- before/src/aster/tools/workflow.py
++++ candidate/src/aster/tools/workflow.py
+@@ -258,7 +258,9 @@
+             return Outcome(status="success", content="Worker answer and supporting sources submitted.",
+                            data={"answer": answer, "source_excerpts": sources})
+         if name == "worker_status":
+-            data = await self.worker_status(args["worker_id"], args.get("wait_seconds", 0))
++            data = await self.worker_status(
++                args["worker_id"], args.get("wait_seconds", 0), wait_for=args.get("wait_for", "any")
++            )
+             return Outcome(
+                 status="success" if data["status"] != "missing" else "blocked",
+                 content=json.dumps(data, ensure_ascii=False),

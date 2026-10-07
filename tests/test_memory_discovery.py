@@ -58,9 +58,9 @@ def test_storage_guidance_is_conditioned_on_memory_capability(tmp_path, enabled)
     runtime.start(TaskSpec(prompt="Implement the requested feature"))
     messages, _, _ = runtime.prepare_request()
     system, observations = messages[0]["content"], messages[-1]["content"]
-    assert ("durable project conventions" in system) is enabled
+    assert ("memory_store saves" in system) is enabled
     assert ("Memory capability:" in system) is enabled
     assert "Memory capability:" not in observations
     if enabled:
-        assert "read_file" in system and "exact excerpt" in system
-        assert "Saving is optional" in system
+        assert "read_file excerpts" in system and "when=scope" in system
+        assert "Save selectively unless requested" in system

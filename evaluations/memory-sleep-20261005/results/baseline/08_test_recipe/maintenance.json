@@ -1,0 +1,69 @@
+{
+  "jobs": [],
+  "pending": [],
+  "memory_state": {
+    "schema": 2,
+    "lessons": [
+      {
+        "id": "a2a657e953740d15",
+        "text": "当测试脚本从位于 src/ 的模块导入内容时，直接运行可能因未配置导入路径而报 ModuleNotFoundError（失败证据 a0b72eb4...）。适用时使用 PYTHONPATH=src python -m unittest discover -s checks -p 'test_names.py'，并通过 run_tests 获取正式验证；本次该命令报告 Ran 2 tests, OK（通过证据 175a988d...）。",
+        "kind": "procedure",
+        "when": "适用于仓库采用 src/ 源码布局、测试脚本直接导入源码模块的本地 unittest 验证。",
+        "tags": [
+          "测试",
+          "PYTHONPATH",
+          "src布局"
+        ],
+        "support": 1,
+        "contradictions": 0,
+        "retrievals": 3,
+        "successful_uses": 0,
+        "failed_uses": 0,
+        "provenance": {
+          "run_id": "c89bb8dbd83643c3b2cb932a5fabe13a",
+          "evidence_id": "a0b72eb40945065c9239ea94844ecdb5512cc43ec0a7e16b6c9c847f34c1acf3",
+          "evidence_type": "derived",
+          "at": "2026-10-06T15:52:23+00:00",
+          "citations": [
+            {
+              "evidence_id": "a0b72eb40945065c9239ea94844ecdb5512cc43ec0a7e16b6c9c847f34c1acf3",
+              "source": "run_tests",
+              "status": "error"
+            },
+            {
+              "evidence_id": "175a988d41c90c3fedc23f450820e3425c8e85852c59e1c309389204a2b6e2b7",
+              "source": "run_tests",
+              "status": "success"
+            }
+          ]
+        },
+        "sources": {},
+        "inactive_reason": ""
+      }
+    ],
+    "snapshots": {},
+    "audit": [
+      {
+        "event": "record",
+        "lesson_id": "a2a657e953740d15",
+        "run_id": "c89bb8dbd83643c3b2cb932a5fabe13a",
+        "evidence_id": "a0b72eb40945065c9239ea94844ecdb5512cc43ec0a7e16b6c9c847f34c1acf3",
+        "outcome": "support"
+      },
+      {
+        "event": "dream",
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 0
+      },
+      {
+        "event": "dream",
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 0
+      }
+    ]
+  }
+}

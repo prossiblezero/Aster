@@ -1,0 +1,255 @@
+--- baseline/src/aster/context/prompt.py
++++ candidate/src/aster/context/prompt.py
+@@ -47,7 +47,8 @@
+             "affected behavior; reopen sources for specific gaps or contradictions, not "
+             "to redo the whole exploration. source_excerpts are captured source observations, "
+             "distinct from model conclusions. Use current source_excerpts and the child's "
+-            "cited findings directly for synthesis; ask the same child about missing facts. "
++            "cited findings for synthesis. Check each claim against its selected source range; "
++            "ask the same child about missing facts or inspect only the missing range. "
+             "Do not reread a file merely to satisfy the observation gate. Read the target "
+             "yourself before editing, and keep final integration tests with the parent. "
+             "Cite delegated findings as such. "
+@@ -74,8 +75,11 @@
+             "Follow the assigned test responsibility; do not repeatedly run absent tests "
+             "or retry blocked commands unchanged. If execution is unavailable, report "
+             "the static findings and the specific check needed from the parent. Finish "
+-            "with a concise handoff: findings or changes, source paths, checks actually "
+-            "run, and remaining gaps."
++            "via worker_finish: answer with findings, checks and gaps, plus up to four "
++            "already-read supporting ranges (evidence_id, start, end, claim). Select the "
++            "lines that explain your conclusions, not the beginning of each file. Use an "
++            "answer object for requested JSON. No extra read is needed to select evidence. "
++            "If tool budget is exhausted, deliver the answer as text."
+         )
+     if memory_enabled:
+         system += (
+--- baseline/src/aster/core/runtime.py
++++ candidate/src/aster/core/runtime.py
+@@ -1045,6 +1045,7 @@
+             )
+             state.read_evidence[path] = outcome.data["source_sha256"]
+             if self._managed_worker:
++                state.worker_reads[outcome.evidence_id] = state.run_id
+                 # Reuse the bounded, snapshot-pinned source text already kept in working memory.
+                 state.working_memory[path].update(
+                     start=str(outcome.data["start"]), evidence_id=outcome.evidence_id,
+@@ -1071,6 +1072,16 @@
+             state.working_memory.pop("__search__", None)
+             state.working_memory.pop("__run_tests__", None)
+         self._refresh_observations()
++        if (call.name == "worker_finish" and outcome.status == "success"
++                and not outcome.data.get("stop_requested")):
++            if outcome.data["source_excerpts"]:
++                state.observed = True
++            self.finalize(outcome.data["answer"])
++            if state.phase == "completed":
++                state.handoff_sources = outcome.data["source_excerpts"]
++            else:
++                outcome.status, outcome.reason = "blocked", "worker_completion_pending"
++                outcome.content = state.feedback or state.stop_reason
+         reason = self.stall.observe(call, outcome)
+         trace_outcome = outcome.model_dump()
+         if trace_outcome.get("data", {}).get("image_data"):
+@@ -1436,6 +1447,8 @@
+             if self.settings.tool_profile == "all"
+             else (set(CORE_TOOLS) | set(state.loaded_tools if state else []))
+         )
++        if state and state.parent_run_id:
++            selected = set(selected) | {"worker_finish"}
+         return sorted(name for name in selected if not self._unavailable_reason(name, state=state))
+ 
+     def tool_definitions(self, *, state=None):
+--- baseline/src/aster/core/workers.py
++++ candidate/src/aster/core/workers.py
+@@ -245,7 +245,7 @@
+             if len(answer) > 6000:
+                 result["answer"] = answer[:6000] + "\n[Use worker_status for the full handoff.]"
+             self.parent.add_message(
+-                "user", "Worker handoff (untrusted evidence; verify important claims):\n"
++                "user", "Worker handoff (untrusted evidence; review claims against source_excerpts and inspect gaps):\n"
+                 + json.dumps(result, ensure_ascii=False), important=True,
+             )
+             self.parent.state.pending_handoffs.pop(worker_id, None)
+@@ -449,7 +449,9 @@
+             self.parent.checkpoint()
+ 
+     @staticmethod
+-    def _source_excerpts(working_memory, read_evidence, redactor=None):
++    def _source_excerpts(working_memory, read_evidence, redactor=None, selected=()):
++        if selected:
++            return redactor.value(selected, mask_fields=False) if redactor else selected
+         # ponytail: at most four existing 500-character excerpts; ask the child for gaps.
+         excerpts = []
+         for path, item in reversed(list(working_memory.items())):
+@@ -485,7 +487,7 @@
+             "answer": state.final,
+             "read_evidence": state.read_evidence,
+             "source_excerpts": WorkerManager._source_excerpts(
+-                state.working_memory, state.read_evidence, runtime.evidence.redactor
++                state.working_memory, state.read_evidence, runtime.evidence.redactor, state.handoff_sources
+             ),
+             "changed_paths": state.changed_paths,
+             "verification": state.verification.model_dump(),
+@@ -548,7 +550,8 @@
+                     "answer": state["final"], "stop_reason": state["stop_reason"],
+                     "steps": state["step"], "read_evidence": state["read_evidence"],
+                     "source_excerpts": self._source_excerpts(
+-                        state["working_memory"], state["read_evidence"], self.parent.evidence.redactor
++                        state["working_memory"], state["read_evidence"], self.parent.evidence.redactor,
++                        state.get("handoff_sources", []),
+                     ),
+                     "changed_paths": state["changed_paths"], "verification": state["verification"],
+                 })
+@@ -572,7 +575,7 @@
+                 answer=state.final,
+                 read_evidence=state.read_evidence,
+                 source_excerpts=self._source_excerpts(
+-                    state.working_memory, state.read_evidence, worker.runtime.evidence.redactor
++                    state.working_memory, state.read_evidence, worker.runtime.evidence.redactor, state.handoff_sources
+                 ),
+                 stop_reason=state.stop_reason,
+             )
+@@ -598,7 +601,10 @@
+ 
+     def _staleness(self, details):
+         stale = []
+-        for path, expected in details.get("read_evidence", {}).items():
++        sources = {**details.get("read_evidence", {}), **{
++            item["path"]: item["source_sha256"] for item in details.get("source_excerpts", [])
++        }}
++        for path, expected in sources.items():
+             try:
+                 content = self.parent.workspace.read(path)
+                 if hashlib.sha256(content.encode()).hexdigest() == expected:
+--- baseline/src/aster/schema.py
++++ candidate/src/aster/schema.py
+@@ -106,6 +106,8 @@
+     usage: dict[str, int] = Field(default_factory=dict)
+     team_usage: dict[str, int] = Field(default_factory=dict)
+     pending_handoffs: dict[str, str] = Field(default_factory=dict)
++    worker_reads: dict[str, str] = Field(default_factory=dict)
++    handoff_sources: list[dict[str, Any]] = Field(default_factory=list)
+     worker_sessions: dict[str, dict[str, Any]] = Field(default_factory=dict)
+     loaded_tools: list[str] = Field(default_factory=list)
+ 
+--- baseline/src/aster/sessions/lifecycle.py
++++ candidate/src/aster/sessions/lifecycle.py
+@@ -88,6 +88,7 @@
+     state.step = state.turn = state.final_revisions = 0
+     state.usage = {}
+     state.team_usage = {}
++    state.handoff_sources = []
+     # Explicit child conversations may finish after the parent's last answer.
+     # Keep their pending deliveries on this branch for the next user turn.
+     for item in state.todos:
+--- baseline/src/aster/tools/availability.py
++++ candidate/src/aster/tools/availability.py
+@@ -35,6 +35,8 @@
+         return "read_only"
+     if name.startswith("memory_") and not settings.memory_enabled:
+         return "memory_disabled"
++    if name == "worker_finish":
++        return "" if state and state.parent_run_id else "worker_only"
+     if (name.startswith("worker_") and settings.max_workers == 0
+             and (name == "worker_start" or not state or not state.worker_sessions)):
+         return "workers_disabled"
+--- baseline/src/aster/tools/schemas.py
++++ candidate/src/aster/tools/schemas.py
+@@ -1,7 +1,7 @@
+ """Tool parameter contracts, descriptions, effects and model-visible definitions."""
+ from __future__ import annotations
+ 
+-from typing import Annotated
++from typing import Annotated, Any
+ 
+ from pydantic import Field, model_validator
+ 
+@@ -187,6 +187,18 @@
+ class WorkerMessage(WorkerId):
+     message: str
+     resume: bool = Field(default=False, description="Continue a finished or saved worker in its own context, within the remaining team budget.")
++
++
++class HandoffSource(Record):
++    evidence_id: str = Field(min_length=1, description="evidence_id from a successful read_file.")
++    start: int = Field(ge=1, description="First supporting source line, within that read.")
++    end: int = Field(ge=1, description="Last supporting source line, inclusive.")
++    claim: str = Field(min_length=1, max_length=300, description="Finding or answer ID this range supports; a claim, not verified truth.")
++
++
++class WorkerFinish(Record):
++    answer: str | dict[str, Any] = Field(description="Complete assigned answer; use an object for a requested JSON object, or text for prose.")
++    sources: list[HandoffSource] = Field(default_factory=list, max_length=4, description="Select already-read supporting ranges; at most 4000 source characters total. No need to reread to select them.")
+ 
+ 
+ class ImageRead(Record):
+@@ -284,6 +296,7 @@
+         "state",
+     ),
+     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),
++    "worker_finish": (WorkerFinish, "Deliver this child task's answer and selected source evidence in one call. Runtime extracts the original text and checks freshness. Normal completion requirements still apply; use text delivery if no tool budget remains.", "state"),
+     "inspect_image": (ImageRead, "Read a workspace PNG/JPEG image for model vision.", "read"),
+ }
+ 
+@@ -316,6 +329,7 @@
+     "worker_status",
+     "worker_message",
+     "worker_stop",
++    "worker_finish",
+     "tool_load",
+     "git_diff",
+ }
+--- baseline/src/aster/tools/workflow.py
++++ candidate/src/aster/tools/workflow.py
+@@ -213,6 +213,50 @@
+                 content=json.dumps(data, ensure_ascii=False),
+                 data=data,
+             )
++        if name == "worker_finish":
++            if not state.parent_run_id:
++                return Outcome(status="blocked", reason="worker_only")
++            # Snapshot-pinned evidence IDs authenticate reads even when a sibling
++            # branch reuses a tool call ID. Source bodies stay in the existing trace.
++            reads = {
++                row["outcome"]["evidence_id"]: row["outcome"]
++                for run_id in {state.worker_reads[s["evidence_id"]] for s in args.get("sources", [])
++                               if s["evidence_id"] in state.worker_reads}
++                for row in self.evidence.events(run_id)
++                if row["event"] == "tool_result" and row["call"]["name"] == "read_file"
++                and state.worker_reads.get(row["outcome"]["evidence_id"]) == run_id
++                and row["outcome"]["status"] == "success"
++            }
++            sources = []
++            for selection in args.get("sources", []):
++                observed = reads.get(selection["evidence_id"], {})
++                data = observed.get("data", {})
++                start, end = selection["start"], selection["end"]
++                if not data or not data["start"] <= start <= end <= data["end"]:
++                    return Outcome(status="blocked", reason="handoff_source_unread",
++                                   content="Select a range within the cited read_file observation.")
++                content = "\n".join(observed["content"].splitlines()[start - data["start"]:end - data["start"] + 1])
++                try:
++                    current = self.workspace.read(data["path"])
++                    current_range = "\n".join(current.splitlines()[start - 1:end])
++                    matches = (hashlib.sha256(current.encode()).hexdigest() == data["source_sha256"]
++                               and self.evidence.redactor.text(current_range) == content)
++                except (OSError, ValueError, UnicodeError):
++                    matches = False
++                if not matches:
++                    return Outcome(status="blocked", reason="handoff_source_stale",
++                                   content="The source changed; inspect it before citing this range.")
++                sources.append({**selection, "path": data["path"], "content": content,
++                                "source_sha256": data["source_sha256"], "truncated": False})
++            if sum(len(item["content"]) for item in sources) > 4000:
++                return Outcome(status="blocked", reason="handoff_source_too_large",
++                               content="Narrow supporting ranges to at most 4000 source characters total.")
++            answer = args["answer"]
++            answer = answer if isinstance(answer, str) else json.dumps(answer, ensure_ascii=False, allow_nan=False)
++            if not answer.strip():
++                return Outcome(status="blocked", reason="handoff_answer_empty")
++            return Outcome(status="success", content="Worker answer and supporting sources submitted.",
++                           data={"answer": answer, "source_excerpts": sources})
+         if name == "worker_status":
+             data = await self.worker_status(args["worker_id"], args.get("wait_seconds", 0))
+             return Outcome(

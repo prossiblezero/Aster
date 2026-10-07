@@ -1,0 +1,834 @@
+{
+  "groups": {
+    "before": {
+      "behavior_pass": 3,
+      "behavior_facts": 38,
+      "parse_errors": 1,
+      "citation_only": 3
+    },
+    "candidate": {
+      "behavior_pass": 3,
+      "behavior_facts": 36,
+      "parse_errors": 1,
+      "citation_only": 0
+    }
+  },
+  "accounting": {
+    "model_requests": 104,
+    "requests_without_usage": 2,
+    "requests_failed_without_diagnostics": 1,
+    "http_attempts": 103,
+    "http_success": 102,
+    "http_without_usage": 1,
+    "reported_tokens": 1110696,
+    "http_incomplete_response": 1
+  },
+  "cases": [
+    {
+      "task": "django-handoff",
+      "arm": "before",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-handoff",
+      "arm": "candidate",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-handoff",
+      "arm": "candidate",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": false,
+      "behavior_facts": 6,
+      "citation_only": 0,
+      "problems": [
+        {
+          "id": "e4",
+          "check": {
+            "id": "e4",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "e4",
+            "observed": [
+              [
+                {
+                  "key": "subject:b",
+                  "name": "B",
+                  "count": 2
+                },
+                {
+                  "key": "subject:a",
+                  "name": "A",
+                  "count": 1
+                },
+                {
+                  "key": "subject:c",
+                  "name": "C",
+                  "count": 1
+                }
+              ],
+              [
+                {
+                  "key": "subject:b",
+                  "name": "B",
+                  "count": 2
+                },
+                {
+                  "key": "subject:a",
+                  "name": "A",
+                  "count": 1
+                }
+              ]
+            ],
+            "evidence": {
+              "path": "openlibrary/core/lists/engine.py",
+              "symbol": "SubjectProcessor.top_subjects",
+              "line": 105
+            },
+            "reason": "Subjects sort by descending count with stable insertion order for ties; slicing with limits 0 and -1 produces the two shown lists."
+          },
+          "expected_observed": [
+            [],
+            [
+              {
+                "key": "subject:b",
+                "name": "B",
+                "count": 2
+              },
+              {
+                "key": "subject:a",
+                "name": "A",
+                "count": 1
+              }
+            ]
+          ]
+        },
+        {
+          "id": "c4",
+          "check": {
+            "id": "c4",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "c4",
+            "observed": [
+              true,
+              [
+                "",
+                "a"
+              ]
+            ],
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.decompress",
+              "line": 57
+            },
+            "reason": "Each compression starts from the same copied context, so identical inputs produce identical blocks. Reversing the blocks decompresses the empty block first, followed by a."
+          },
+          "expected_observed": [
+            true,
+            [
+              "",
+              "a",
+              "a"
+            ]
+          ]
+        }
+      ],
+      "request_errors": [
+        {
+          "role": "child",
+          "error_type": "SSLError",
+          "seconds": 4.257246037945151,
+          "diagnostics": 0
+        }
+      ],
+      "complete_transport": false,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-handoff",
+      "arm": "before",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 1,
+      "problems": [
+        {
+          "id": "c1",
+          "check": {
+            "id": "c1",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "c1",
+            "observed": [
+              true,
+              "目录\né"
+            ],
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.compress / Compressor.decompress",
+              "line": 53
+            },
+            "reason": "Both the string and its UTF-8 bytes become the same encoded payload, so their compressed bytes compare equal; decompress decodes the payload back to the original Unicode string."
+          },
+          "expected_observed": [
+            true,
+            "目录\né"
+          ]
+        },
+        {
+          "id": "c4",
+          "check": {
+            "id": "c4",
+            "correct": false,
+            "evidence": false,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "c4",
+            "observed": [
+              true,
+              [
+                "",
+                "a"
+              ]
+            ],
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.compress / Compressor.decompress",
+              "line": 53
+            },
+            "reason": "Each compression call copies the same compressor context, so identical 'a' inputs produce equal blocks; reversing [a,a,empty] and independently decompressing yields ['', 'a']."
+          },
+          "expected_observed": [
+            true,
+            [
+              "",
+              "a",
+              "a"
+            ]
+          ]
+        }
+      ],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-handoff",
+      "arm": "before",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-handoff",
+      "arm": "candidate",
+      "repeat": 1,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": false,
+      "behavior_facts": 6,
+      "citation_only": 0,
+      "problems": [
+        {
+          "id": "s1",
+          "check": {
+            "id": "s1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "s1",
+            "observed": [
+              2,
+              false,
+              {
+                "sum": 10,
+                "count": 1,
+                "max": 10
+              },
+              {
+                "sum": 10,
+                "count": 1,
+                "max": 10
+              }
+            ],
+            "evidence": {
+              "path": "app/sessions.py",
+              "symbol": "SessionManager.process_event",
+              "line": 33
+            },
+            "reason": "The events have different keys, so each creates a separate session with its single event as the aggregate."
+          },
+          "expected_observed": [
+            2,
+            false,
+            {
+              "sum": 2,
+              "count": 1,
+              "max": 2
+            },
+            {
+              "sum": 3,
+              "count": 1,
+              "max": 3
+            }
+          ]
+        },
+        {
+          "id": "g2",
+          "check": {
+            "id": "g2",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "g2",
+            "observed": [
+              [],
+              []
+            ],
+            "evidence": {
+              "path": "app/gc.py",
+              "symbol": "GarbageCollector.collect",
+              "line": 42
+            },
+            "reason": "At both watermarks, neither session exceeds its retention boundary or maximum lifetime."
+          },
+          "expected_observed": [
+            [
+              "b"
+            ],
+            [
+              "a",
+              "b"
+            ]
+          ]
+        }
+      ],
+      "request_errors": [
+        {
+          "role": "child",
+          "error_type": "ProviderError",
+          "seconds": 24.51608825707808,
+          "diagnostics": 1
+        }
+      ],
+      "complete_transport": false,
+      "non_success_attempt_seconds": 24.505393
+    },
+    {
+      "task": "django-handoff",
+      "arm": "candidate",
+      "repeat": 2,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-handoff",
+      "arm": "before",
+      "repeat": 2,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 2,
+      "problems": [
+        {
+          "id": "d1",
+          "check": {
+            "id": "d1",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "d1",
+            "observed": [
+              [
+                1,
+                2,
+                3
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                1,
+                2
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/datastructures.py",
+              "symbol": "MultiValueDict.__copy__ / MultiValueDict.__deepcopy__",
+              "line": 95
+            },
+            "reason": "The shallow and deep copies retain independent value lists, so appendlist changes only the original."
+          },
+          "expected_observed": [
+            [
+              1,
+              2,
+              3
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              1,
+              2
+            ]
+          ]
+        },
+        {
+          "id": "d4",
+          "check": {
+            "id": "d4",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "d4",
+            "observed": [
+              [
+                "b",
+                "c"
+              ],
+              2,
+              false
+            ],
+            "evidence": {
+              "path": "django/utils/datastructures.py",
+              "symbol": "OrderedSet.__init__ / add / discard / remove",
+              "line": 10
+            },
+            "reason": "Duplicates are removed while insertion order is preserved; c is added, missing is discarded, and a is removed."
+          },
+          "expected_observed": [
+            [
+              "b",
+              "c"
+            ],
+            2,
+            false
+          ]
+        },
+        {
+          "id": "r3",
+          "check": {
+            "id": "r3",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "r3",
+            "observed": [
+              [
+                "item/%(pk)s%(pk)s/",
+                [
+                  "pk",
+                  "pk"
+                ]
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/regex_helper.py",
+              "symbol": "normalize",
+              "line": 166
+            },
+            "reason": "The optional non-capturing page segment is removed at its zero minimum, and the two-digit named group is duplicated by its quantifier."
+          },
+          "expected_observed": [
+            [
+              "item/%(pk)s/",
+              [
+                "pk"
+              ]
+            ]
+          ]
+        }
+      ],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-handoff",
+      "arm": "before",
+      "repeat": 2,
+      "parse_error": true,
+      "id_contract_valid": false,
+      "behavior_pass": false,
+      "behavior_facts": 0,
+      "citation_only": 0,
+      "problems": [
+        {
+          "id": "e1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            "/works/X",
+            "/authors/A",
+            "/authors/A",
+            "/books/B",
+            "/books/B",
+            "subject:x_y",
+            "person:x_y"
+          ]
+        },
+        {
+          "id": "e2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            {
+              "key": "subject:a_b",
+              "name": "a_b",
+              "count": 3
+            },
+            {
+              "key": "place:a_b",
+              "name": "A B",
+              "count": 1
+            },
+            {
+              "key": "time:a_b",
+              "name": "A B",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "e3",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "works": 3,
+            "editions": 3,
+            "ebooks": 1,
+            "last_update": "2025",
+            "subjects": [
+              {
+                "key": "time:now",
+                "name": "Now",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "id": "e4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [],
+            [
+              {
+                "key": "subject:b",
+                "name": "B",
+                "count": 2
+              },
+              {
+                "key": "subject:a",
+                "name": "A",
+                "count": 1
+              }
+            ]
+          ]
+        },
+        {
+          "id": "c1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            true,
+            "目录\né"
+          ]
+        },
+        {
+          "id": "c2",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "exception": "UnicodeDecodeError"
+          }
+        },
+        {
+          "id": "c3",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "exception": "AttributeError"
+          }
+        },
+        {
+          "id": "c4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            true,
+            [
+              "",
+              "a",
+              "a"
+            ]
+          ]
+        }
+      ],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-handoff",
+      "arm": "candidate",
+      "repeat": 2,
+      "parse_error": true,
+      "id_contract_valid": false,
+      "behavior_pass": false,
+      "behavior_facts": 0,
+      "citation_only": 0,
+      "problems": [
+        {
+          "id": "e1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            "/works/X",
+            "/authors/A",
+            "/authors/A",
+            "/books/B",
+            "/books/B",
+            "subject:x_y",
+            "person:x_y"
+          ]
+        },
+        {
+          "id": "e2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            {
+              "key": "subject:a_b",
+              "name": "a_b",
+              "count": 3
+            },
+            {
+              "key": "place:a_b",
+              "name": "A B",
+              "count": 1
+            },
+            {
+              "key": "time:a_b",
+              "name": "A B",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "e3",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "works": 3,
+            "editions": 3,
+            "ebooks": 1,
+            "last_update": "2025",
+            "subjects": [
+              {
+                "key": "time:now",
+                "name": "Now",
+                "count": 2
+              }
+            ]
+          }
+        },
+        {
+          "id": "e4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [],
+            [
+              {
+                "key": "subject:b",
+                "name": "B",
+                "count": 2
+              },
+              {
+                "key": "subject:a",
+                "name": "A",
+                "count": 1
+              }
+            ]
+          ]
+        },
+        {
+          "id": "c1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            true,
+            "目录\né"
+          ]
+        },
+        {
+          "id": "c2",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "exception": "UnicodeDecodeError"
+          }
+        },
+        {
+          "id": "c3",
+          "check": {},
+          "answer": null,
+          "expected_observed": {
+            "exception": "AttributeError"
+          }
+        },
+        {
+          "id": "c4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            true,
+            [
+              "",
+              "a",
+              "a"
+            ]
+          ]
+        }
+      ],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-handoff",
+      "arm": "candidate",
+      "repeat": 2,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-handoff",
+      "arm": "before",
+      "repeat": 2,
+      "parse_error": false,
+      "id_contract_valid": true,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "problems": [],
+      "request_errors": [],
+      "complete_transport": true,
+      "non_success_attempt_seconds": 0
+    }
+  ],
+  "supplemental_complete_transport": {
+    "pairs": [
+      {
+        "task": "django-handoff",
+        "repeat": 1,
+        "token_ratio": 1.253905047312137,
+        "trace_seconds_ratio": 0.5317150661412844,
+        "seconds_ratio": null
+      },
+      {
+        "task": "django-handoff",
+        "repeat": 2,
+        "token_ratio": 0.8870617617377794,
+        "trace_seconds_ratio": 0.44652376391391646,
+        "seconds_ratio": 0.4467924168571496
+      },
+      {
+        "task": "openlibrary-handoff",
+        "repeat": 2,
+        "token_ratio": 1.023221077593508,
+        "trace_seconds_ratio": 1.0086865095859494,
+        "seconds_ratio": 1.0086893067196467
+      },
+      {
+        "task": "session-handoff",
+        "repeat": 2,
+        "token_ratio": 1.0588438630078707,
+        "trace_seconds_ratio": 1.4156335473950723,
+        "seconds_ratio": 1.4153953247670925
+      }
+    ],
+    "token_ratio_median": 1.0410324703006895,
+    "trace_seconds_ratio_median": 0.7702007878636169,
+    "seconds_ratio_median": 1.0086893067196467
+  }
+}

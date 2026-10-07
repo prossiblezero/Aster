@@ -244,6 +244,7 @@ class WorkspaceTools:
             args.command,
             args.timeout,
             runner=SandboxRunner,
+            code=args.code,
         )
 
     @staticmethod

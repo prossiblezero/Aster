@@ -7,11 +7,11 @@
 <h2 id="问题记住所有聊天不等于用好记忆">问题：记住所有聊天，不等于用好记忆</h2>
 <p>假设 Agent 已经读到 <code>config.txt</code> 中的 <code>Service port is 8123.</code>。它接下来需要改测试、看日志、回复用户。若每次查端口都重新读文件，会增加工具调用；若一直保留完整文件正文，又会占用上下文。等到任务结束，下次重新启动时，这个项目事实是否还值得继续使用？</p>
 <p>这里其实有三种不同需求。历史要保留“刚才发生了什么”，工作记忆要快速提供“当前已经知道什么”，长期记忆要回答“以前留下的哪些信息现在仍然适用”。Aster 分开管理这三件事。</p>
-<figure class="diagram" data-edge-count="9"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">messages：记录本次工具输出</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">RunState.working_memory：短期摘录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选摘录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选摘录</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="G">.aster/memory/state.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">.aster/memory/state.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">后续任务按关键词召回</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">后续任务按关键词召回</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">来源文件仍然一致？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">来源文件仍然一致？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="J">加入当前模型输入</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> read_file 成功</span><span class="diagram-key"><code>B</code> messages：记录本次工具输出</span><span class="diagram-key"><code>C</code> RunState.working_memory：短期摘录</span><span class="diagram-key"><code>D</code> _collect_step：观察与来源指纹</span><span class="diagram-key"><code>E</code> memory_store / store_excerpt：认证候选摘录</span><span class="diagram-key"><code>F</code> 来源真实、内容合规、文件未变？</span><span class="diagram-key"><code>G</code> .aster/memory/state.json</span><span class="diagram-key"><code>H</code> 后续任务按关键词召回</span><span class="diagram-key"><code>I</code> 来源文件仍然一致？</span><span class="diagram-key"><code>J</code> 加入当前模型输入</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+<figure class="diagram" data-edge-count="9"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">messages：记录本次工具输出</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">RunState.working_memory：短期摘录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="G">.aster/memory/state.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">.aster/memory/state.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">后续任务按关键词召回</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">后续任务按关键词召回</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">来源文件仍然一致？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">来源文件仍然一致？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="J">加入当前模型输入</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> read_file 成功</span><span class="diagram-key"><code>B</code> messages：记录本次工具输出</span><span class="diagram-key"><code>C</code> RunState.working_memory：短期摘录</span><span class="diagram-key"><code>D</code> _collect_step：观察与来源指纹</span><span class="diagram-key"><code>E</code> memory_store / store_excerpt：认证候选知识</span><span class="diagram-key"><code>F</code> 来源真实、内容合规、文件未变？</span><span class="diagram-key"><code>G</code> .aster/memory/state.json</span><span class="diagram-key"><code>H</code> 后续任务按关键词召回</span><span class="diagram-key"><code>I</code> 来源文件仍然一致？</span><span class="diagram-key"><code>J</code> 加入当前模型输入</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
     A[read_file 成功] --&gt; B[messages：记录本次工具输出]
     A --&gt; C[RunState.working_memory：短期摘录]
     A --&gt; D[_collect_step：观察与来源指纹]
-    D --&gt; E[memory_store / store_excerpt：认证候选摘录]
+    D --&gt; E[memory_store / store_excerpt：认证候选知识]
     E --&gt; F{来源真实、内容合规、文件未变？}
     F --&gt;|是| G[.aster/memory/state.json]
     G --&gt; H[后续任务按关键词召回]
@@ -43,7 +43,7 @@
 </tr>
 <tr>
 <td><code>Memory.state[&quot;lessons&quot;]</code></td>
-<td>保存经过校验的跨运行项目摘录</td>
+<td>保存有出处的项目摘录、事实与操作经验</td>
 <td>工作区的 <code>.aster/memory/state.json</code></td>
 <td>不替代任务状态或检查点</td>
 </tr>
@@ -51,15 +51,44 @@
 </table>
 <p><code>RunState</code> 是运行状态对象。<code>working_memory</code> 的唯一所有者就是它，<code>Memory</code> 类没有第二份持久化的 working memory。<code>Memory.remember_file()</code> 只负责向那张工作便笺写入内容；模块级 <code>store_excerpt()</code> 才负责跨运行来源认证。</p>
 <p>当前调用模型所需的原生工具历史由 Runtime 单独维护；<code>messages</code> 不能简单拿来替代完整的调用/结果协议。有关这部分，回看<a href="02-model-protocols.html">模型协议</a>与<a href="07-context-archives.html">上下文归档</a>。</p>
+<h3 id="长期记忆存原始文档还是提炼出的知识">长期记忆存原始文档，还是提炼出的知识</h3>
+<p>两种都支持，但不会把整份文档或全部聊天自动搬进记忆。原文件留在工作区，交互与执行事件由运行记录保存；长期记忆保存前台或后台模型提炼的短条目，每条正文最多 1,000 字符：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>保存什么</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>excerpt</code></td>
+<td>成功读取过的文件原文片段</td>
+<td><code>Service port is 8123.</code></td>
+</tr>
+<tr>
+<td><code>fact</code></td>
+<td>从真实来源归纳的事实或项目约定</td>
+<td>用户约定“报表日期按 Asia/Shanghai 解释”，适用条件为“生成本项目报表”</td>
+</tr>
+<tr>
+<td><code>procedure</code></td>
+<td>可复用的处理方法，写明适用条件</td>
+<td>修复支付精度后，记录该项目的字段优先级与舍入规则</td>
+</tr>
+</tbody>
+</table>
+<p>上图展示文件来源的路径；事实和方法还可以引用当前运行中的真实用户请求、测试或 Shell 执行结果。模型负责归纳，Runtime 负责认证来源与检查准入。它仍是本地 JSON 中的小型知识集合，没有把交互历史重建成知识图谱；研究取舍见<a href="../source/docs/memory-knowledge-design.md">记忆设计说明（Markdown 原文下载）</a>。</p>
 <h2 id="顺着一次-read_file-读源码">顺着一次 read_file 读源码</h2>
-<p>从 <a href="../source/src/aster/core/runtime.py.html">Runtime._collect_step</a> 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 <code>memory.py</code> 的 <code>store_excerpt</code> 中完成：</p>
+<p>从 <a href="../source/src/aster/core/runtime.py.html">Runtime._collect_step</a> 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，前台工具入库在 <code>memory.py</code> 的 <code>store_excerpt</code> 中认证，后台跨任务入库则由 <code>maintenance.py</code> 核对事件来源：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">outcome</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"read_file"</span><span class="p">:</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">call</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">"path"</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">remember_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">outcome</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">working_memory</span><span class="p">)</span>
     <span class="n">state</span><span class="o">.</span><span class="n">read_evidence</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">outcome</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"source_sha256"</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>这里的 <code>outcome</code> 是工具结果。<code>_collect_step</code> 负责把本次观察写入运行状态；长期入库时再由 <code>memory.store_excerpt</code> 认证原文摘录、证据和来源指纹。<code>content</code> 是展示给模型的文本，<code>data</code> 是程序消费的结构化信息；<code>source_sha256</code> 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。</p>
+<p>这里的 <code>outcome</code> 是工具结果。<code>_collect_step</code> 负责把本次观察写入运行状态；长期入库时再由 <code>memory.store_excerpt</code> 认证知识来源，原文类型还要检查摘录是否确实出现在读取结果中。<code>content</code> 是展示给模型的文本，<code>data</code> 是程序消费的结构化信息；<code>source_sha256</code> 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。</p>
 <p>继续到 <a href="../source/src/aster/knowledge/memory.py.html">Memory.remember_file</a>：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">remember_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">working</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">working</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -84,13 +113,28 @@
 <tbody>
 <tr>
 <td><code>text</code></td>
-<td>想保存的项目摘录</td>
+<td>想保存的项目知识</td>
 <td><code>Service port is 8123.</code></td>
 </tr>
 <tr>
+<td><code>kind</code></td>
+<td><code>excerpt</code> 原文、<code>fact</code> 事实、<code>procedure</code> 方法</td>
+<td>默认为 <code>excerpt</code></td>
+</tr>
+<tr>
+<td><code>when</code></td>
+<td>派生知识必填的适用条件</td>
+<td><code>配置报表日期时</code></td>
+</tr>
+<tr>
 <td><code>evidence_id</code></td>
-<td>当前运行中一次成功读取的证据标识</td>
-<td><code>read_file</code> 返回的 <code>Outcome.evidence_id</code></td>
+<td>当前运行的真实来源</td>
+<td>读取证据 ID；派生知识也可用 <code>user</code></td>
+</tr>
+<tr>
+<td><code>evidence_ids</code></td>
+<td>组合观察时的补充证据，最多四个</td>
+<td>读取、用户或执行结果的引用</td>
 </tr>
 <tr>
 <td><code>tags</code></td>
@@ -99,8 +143,8 @@
 </tr>
 </tbody>
 </table>
-<p>Runtime 不会因为模型写了一个 <code>evidence_id</code> 就相信它。<code>WorkflowTools.execute()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>：它在本 run 中找到对应的成功 <code>read_file</code>，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。</p>
-<p><code>store_excerpt</code> 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。</p>
+<p>Runtime 不会因为模型写了一个 <code>evidence_id</code> 就相信它。<code>WorkflowTools.execute()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>（保留兼容名称）：它在本 run 中认证来源。原文摘录只接受成功 <code>read_file</code>；<code>fact</code> 与 <code>procedure</code> 都还接受真实用户请求，以及实际执行的测试或 Shell 结果。<code>evidence_id=&quot;user&quot;</code> 会解析为本次运行的真实用户事件，不能用 Runtime 自动生成的纠偏提示冒充用户约定。</p>
+<p><code>excerpt</code> 必须是观察中的原文，比较时归一化空白；<code>fact</code> 与 <code>procedure</code> 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。认证来源不等于证明归纳正确，没有另一个模型替它做语义验证。</p>
 <p>通过检查后的记录包含：</p>
 <table>
 <thead>
@@ -112,15 +156,15 @@
 <tbody>
 <tr>
 <td><code>id</code></td>
-<td>由归一化文本计算的稳定标识，用于去重和更新</td>
+<td>由归一化文本计算；派生知识还包含类型和适用条件，用于去重和更新</td>
 </tr>
 <tr>
-<td><code>text</code>、<code>tags</code></td>
-<td>摘录正文和召回关键词</td>
+<td><code>text</code>、<code>tags</code>、<code>kind</code>、<code>when</code></td>
+<td>知识正文、召回关键词、类型与适用条件</td>
 </tr>
 <tr>
 <td><code>provenance</code></td>
-<td>来源运行、证据标识、证据类型和记录时间</td>
+<td>来源运行、证据标识、类型、时间和多个来源的引用</td>
 </tr>
 <tr>
 <td><code>sources</code></td>
@@ -136,7 +180,7 @@
 </tr>
 </tbody>
 </table>
-<p>这是一份轻量项目知识库，当前最多保留 64 条记录。它没有向量数据库，也没有用另一个 LLM 判断语义是否一致。</p>
+<p>这是一份轻量项目知识库，当前最多保留 64 条记录。它没有向量数据库。后台会提出提炼与合并候选，但没有额外语义裁判证明候选一定正确。</p>
 <h3 id="更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</h3>
 <table>
 <thead>
@@ -148,15 +192,15 @@
 <tbody>
 <tr>
 <td><code>memory_store</code></td>
-<td>根据当前运行的读取证据保存摘录</td>
+<td>根据当前运行的真实来源保存知识</td>
 </tr>
 <tr>
 <td><code>memory_retrieve</code></td>
-<td>查询仍然有效的相关摘录</td>
+<td>查询仍然有效的相关知识</td>
 </tr>
 <tr>
 <td><code>memory_update</code></td>
-<td>用新的读取证据替换指定 <code>lesson_id</code> 的内容</td>
+<td>新知识准入成功后替换指定 <code>lesson_id</code></td>
 </tr>
 <tr>
 <td><code>memory_discard</code></td>
@@ -164,10 +208,11 @@
 </tr>
 </tbody>
 </table>
-<p><code>lesson_id</code> 就是条目的 <code>id</code>。更新仍需要 <code>text</code> 和 <code>evidence_id</code>，不能随意改写事实；新文本生成新 ID 时，旧条目被标记为 <code>superseded</code>，表示已被替代。丢弃也保留原记录，并不是物理删除文件。模型可以调用这些工具维护内容，下一章的自动机制则主要维护排序与有效状态。</p>
+<p><code>lesson_id</code> 就是条目的 <code>id</code>。更新仍需要 <code>text</code> 和 <code>evidence_id</code>，不能随意改写事实；新文本生成新 ID 时，旧条目被标记为 <code>superseded</code>，表示已被替代。比如用户纠正报表时区，模型可引用新请求更新旧约定；新知识未通过准入时，旧条目不会先被停用。丢弃也保留原记录，并不是物理删除文件。下一章解释任务后的自动提炼、并行整理和使用反馈如何维护排序与有效状态。</p>
+<p>除了工具写入，默认的自动学习还会从已结束任务中提炼遗漏知识。原始对话保存在 trace，待整理队列只记任务 ID 和证据引用；最多处理三个任务、提交三项修改，用户不必说“请记住”。更新保留新旧来源，旧条目停用后不再占用召回名额。具体调度与成本见<a href="11-memory-evolution.html">下一章</a>。</p>
 <h2 id="召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</h2>
 <p><code>Memory.retrieve(query, limit=3)</code> 先过滤已停用、有反证、不合规或来源失效的记录，再按关键词重合与可靠度排序。<code>query</code> 是查询文本，<code>limit</code> 是最多返回多少条。</p>
-<p>Runtime 构造输入时会根据任务文本自动召回最多三条；模型也可以先通过 <code>tool_load</code> 加载 <code>memory_retrieve</code>，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权。</p>
+<p>Runtime 构造输入时会结合初始任务和最近一次真实用户请求，自动召回最多三条；恢复提醒、反思等内部 <code>role=user</code> 消息不再改变检索查询。模型也可以先通过 <code>tool_load</code> 加载 <code>memory_retrieve</code>，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权。</p>
 <p>关键词方案适合小型项目知识库，但它不是语义检索器。中文分词、同义表达和复杂相关性不是当前实现的强项。判断是否需要升级检索，应先看实际漏召回的任务。</p>
 <h2 id="离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</h2>
 <p>在项目根目录激活环境：</p>
@@ -261,8 +306,8 @@
 </ol>
 </details>
 <h2 id="本章的验收点与边界">本章的验收点与边界</h2>
-<p>能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 <a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a> 与 <a href="../source/tests/test_runtime_repairs.py.html">test_runtime_repairs.py</a>，重点搜索 <code>disabled_durable_memory</code> 和 <code>memory_cannot_launder</code>。</p>
-<p>实验验证的是存储、隔离和失效机制，没有测模型任务成功率；<code>Settings.memory_enabled</code> 默认是 <code>False</code>，关闭它不影响本 run 的 <code>working_memory</code>，自动召回只在显式开启并满足未重复召回等条件时发生。跨运行记忆的收益应使用同题的开关对照，观察重复读取、额外调用和正确率；参见<a href="14-evaluation.html">评测章节</a>。</p>
+<p>能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 <a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a> 与 <a href="../source/tests/test_runtime_repairs.py.html">test_runtime_repairs.py</a>，重点搜索 <code>disabled_durable_memory</code> 和 <code>memory_cannot_launder</code>。归纳、用户纠正和执行经验的跨会话用例见 <a href="../source/tests/test_memory_knowledge.py.html">test_memory_knowledge.py</a>。</p>
+<p>实验验证的是存储、隔离和失效机制，没有测模型任务成功率；<code>Settings.memory_enabled</code> 默认是 <code>True</code>，普通用户无需配置即可使用项目记忆。显式关闭它不影响本 run 的 <code>working_memory</code>。启用后，每次构造请求按初始任务与最近用户反馈召回，并重新检查来源。跨运行记忆的收益应使用同题对照，观察重复读取、额外调用和正确率；参见<a href="14-evaluation.html">评测章节</a>。</p>
 <p>下一章继续处理另一种老化：文件没变，某条建议却连续使用失败。Aster 如何调整它的排序，何时停用，以及停错了如何恢复？</p>
 <p><a href="09-checkpoint-resume.html">上一章：检查点与恢复</a> · <a href="../index.html">目录</a> · <a href="11-memory-evolution.html">下一章：记忆自进化</a></p>
-<nav class="chapter-nav"><a href="09-checkpoint-resume.html">← 09｜检查点与恢复：继续一个任务之前先确认世界没变</a><a href="11-memory-evolution.html">11｜记忆自进化：让使用结果影响下一次选择 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题记住所有聊天不等于用好记忆">问题：记住所有聊天，不等于用好记忆</a><a href="#三种信息放在哪里">三种信息放在哪里</a><a href="#顺着一次-read_file-读源码">顺着一次 read_file 读源码</a><a href="#文件改了工作便笺也要失效">文件改了，工作便笺也要失效</a><a href="#跨运行保存模型提出候选runtime-检查出处">跨运行保存：模型提出候选，Runtime 检查出处</a><a href="#更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</a><a href="#召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</a><a href="#离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</a><a href="#练习记住看过的还是猜到的">练习：记住“看过的”还是“猜到的”</a><a href="#本章的验收点与边界">本章的验收点与边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="09-checkpoint-resume.html">← 09｜检查点与恢复：继续一个任务之前先确认世界没变</a><a href="11-memory-evolution.html">11｜记忆自进化：让使用结果影响下一次选择 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题记住所有聊天不等于用好记忆">问题：记住所有聊天，不等于用好记忆</a><a href="#三种信息放在哪里">三种信息放在哪里</a><a href="#长期记忆存原始文档还是提炼出的知识">长期记忆存原始文档，还是提炼出的知识</a><a href="#顺着一次-read_file-读源码">顺着一次 read_file 读源码</a><a href="#文件改了工作便笺也要失效">文件改了，工作便笺也要失效</a><a href="#跨运行保存模型提出候选runtime-检查出处">跨运行保存：模型提出候选，Runtime 检查出处</a><a href="#更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</a><a href="#召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</a><a href="#离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</a><a href="#练习记住看过的还是猜到的">练习：记住“看过的”还是“猜到的”</a><a href="#本章的验收点与边界">本章的验收点与边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

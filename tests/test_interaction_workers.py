@@ -167,7 +167,9 @@ async def test_worker_steering_and_concurrency_slot_reuse(tmp_path):
     parent.start(TaskSpec(prompt="demo: preserve reproduction condition iso8859-1"))
     prompt, tools, report = parent.prepare_request()
     assert "Worker capability:" in prompt[0]["content"]
-    assert "worker_start" not in {t["name"] for t in tools}
+    assert "worker_start" in {t["name"] for t in tools}
+    catalog = next(t for t in tools if t["name"] == "tool_load")
+    assert "worker_start" not in catalog["parameters"]["properties"]["names"]["items"]["enum"]
     preview = parent._preview_context(parent.state, [], parent.settings, {})
     assert preview.estimated_tokens == report.estimated_tokens
     started = await parent.workers.start("demo")
@@ -223,6 +225,7 @@ async def test_saved_child_followups_preserve_history_budget_and_branch_boundari
     settings = Settings(max_workers=0, completion="off")
     parent = Runtime(tmp_path, settings, model=model)
     parent.start(TaskSpec(prompt="Investigate module.py"))
+    assert "worker_status" not in {tool["name"] for tool in parent.tool_definitions()}
     parent.finalize("Ready for explicit investigations.")
     before_child_entry = parent.session_tree.cursor
     started = await parent.workers.start("Read module.py; remember the answer", explicit=True)
@@ -230,6 +233,9 @@ async def test_saved_child_followups_preserve_history_budget_and_branch_boundari
     await parent.workers.workers[worker_id].future
     assert parent._unavailable_reason("worker_start") == "workers_disabled"
     assert not parent._unavailable_reason("worker_status")
+    assert "worker_status" in {tool["name"] for tool in parent.tool_definitions()}
+    loader = next(tool for tool in parent.tool_definitions() if tool["name"] == "tool_load")
+    assert "worker_status" not in loader["parameters"]["properties"]["names"]["items"]["enum"]
     before = parent.state.team_usage["model_calls"]
     parent_id = parent.state.run_id
     old_child = parent.workers.overview()[0]["run_id"]
@@ -237,6 +243,7 @@ async def test_saved_child_followups_preserve_history_budget_and_branch_boundari
 
     restored = Runtime(tmp_path, settings, model=model)
     restored.resume(parent_id)
+    assert "worker_status" in {tool["name"] for tool in restored.tool_definitions()}
     assert not restored.workers.workers  # Listing never starts background work.
     assert restored.workers.overview()[0]["status"] == "completed"
     target.write_text("answer = 43\n")
@@ -260,6 +267,7 @@ async def test_saved_child_followups_preserve_history_budget_and_branch_boundari
     restored.finish("test_boundary")
     restored.checkout(before_child_entry, adopt_workspace=True)
     assert restored.workers.overview() == []
+    assert "worker_status" not in {tool["name"] for tool in restored.tool_definitions()}
     restored.new_session()
     assert restored.workers.overview() == []
 
@@ -375,11 +383,13 @@ async def test_guidance_during_final_response_is_not_lost(tmp_path):
     await parent.workers.workers[worker_id].future
     assert len(requests) == 2 and "Also address cancellation" in json.dumps(requests[-1])
     assert not parent.state.worker_sessions[worker_id]["pending_messages"]
+    parent.prepare_request()
     assert parent.finalize("All findings received").terminal
 
 
 @pytest.mark.asyncio
-async def test_worker_status_waits_without_cancelling_child(tmp_path):
+@pytest.mark.parametrize("wait_for", ["any", "all"])
+async def test_worker_status_waits_without_cancelling_child(tmp_path, wait_for):
     model = PausedModel()
     parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=model)
     parent.start(TaskSpec(prompt="demo"))
@@ -387,11 +397,11 @@ async def test_worker_status_waits_without_cancelling_child(tmp_path):
     worker_id = started["worker_id"]
     await model.entered.wait()
 
-    timed_out = await parent.workers.status(worker_id, wait_seconds=0.01)
+    timed_out = await parent.workers.status(worker_id, wait_seconds=0.01, wait_for=wait_for)
     assert timed_out["status"] == "running"
     assert not parent.workers.workers[worker_id].future.cancelled()
 
-    waiter = asyncio.create_task(parent.workers.status(worker_id, wait_seconds=60))
+    waiter = asyncio.create_task(parent.workers.status(worker_id, wait_seconds=60, wait_for=wait_for))
     await asyncio.sleep(0)
     waiter.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -399,13 +409,14 @@ async def test_worker_status_waits_without_cancelling_child(tmp_path):
     assert not parent.workers.workers[worker_id].future.done()
 
     model.release.set()
-    finished = await parent.workers.status(worker_id, wait_seconds=1)
+    finished = await parent.workers.status(worker_id, wait_seconds=1, wait_for=wait_for)
     assert finished["status"] == "completed"
     await parent.workers.close()
 
 
 @pytest.mark.asyncio
-async def test_worker_status_joins_results_with_one_deadline_and_preserves_cancellation(tmp_path):
+@pytest.mark.parametrize("wait_for", ["any", "all"])
+async def test_worker_status_uses_one_deadline_and_preserves_cancellation(tmp_path, wait_for):
     model = PausedModel()
     parent = Runtime(tmp_path, Settings(max_workers=2, completion="off"), model=model)
     parent.start(TaskSpec(prompt="demo"))
@@ -413,11 +424,11 @@ async def test_worker_status_joins_results_with_one_deadline_and_preserves_cance
     second = (await parent.workers.start("demo"))["worker_id"]
     await model.entered.wait()
     ids = [first, "missing", second, first]
-    partial = await parent.workers.status(ids, wait_seconds=0.01)
+    partial = await parent.workers.status(ids, wait_seconds=0.01, wait_for=wait_for)
     assert partial["status"] == "running"
     assert [r["worker_id"] for r in partial["workers"]] == ids[:3]
     assert partial["workers"][1]["status"] == "missing"
-    waiting = asyncio.create_task(parent.workers.status(ids, wait_seconds=300))
+    waiting = asyncio.create_task(parent.workers.status(ids, wait_seconds=300, wait_for=wait_for))
     await asyncio.sleep(0)
     waiting.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -425,10 +436,11 @@ async def test_worker_status_joins_results_with_one_deadline_and_preserves_cance
     assert all(not w.future.done() for w in parent.workers.workers.values())
     await parent.workers.stop(second)
     model.release.set()
+    await parent.workers.workers[first].future
     outcome = await parent.step(
         ToolCall(
             name="worker_status",
-            arguments={"worker_id": ids, "wait_seconds": 300},
+            arguments={"worker_id": ids, "wait_seconds": 300, "wait_for": wait_for},
         )
     )
     assert outcome.status == "success" and outcome.data["status"] == "finished"
@@ -438,6 +450,104 @@ async def test_worker_status_joins_results_with_one_deadline_and_preserves_cance
     assert all(worker.delivered for worker in parent.workers.workers.values())
     assert not parent.state.terminal
     await parent.workers.close()
+
+
+@pytest.mark.parametrize("wait_for", [None, "all"])
+async def test_worker_status_waits_for_requested_completions(tmp_path, wait_for):
+    fast, slow = PausedModel(), PausedModel()
+    parent = Runtime(tmp_path, Settings(max_workers=2, completion="off"), model=fast)
+    parent.start(TaskSpec(prompt="Inspect two independent modules"))
+    first = (await parent.workers.start("Inspect first module"))["worker_id"]
+    second = (await parent.workers.start("Inspect second module"))["worker_id"]
+    parent.workers.workers[second].runtime.model = slow
+    await asyncio.gather(fast.entered.wait(), slow.entered.wait())
+
+    def query():
+        return parent.step(ToolCall(name="worker_status", arguments={
+            "worker_id": [first, second], "wait_seconds": 300,
+            **({"wait_for": wait_for} if wait_for else {}),
+        }))
+
+    try:
+        waiting = asyncio.create_task(query())
+        await asyncio.sleep(0)
+        fast.release.set()
+        await parent.workers.workers[first].future
+        await asyncio.sleep(0)
+        if wait_for == "all":
+            assert not waiting.done(), "all must keep waiting after the first completion"
+            assert first in parent.state.pending_handoffs
+        else:
+            result = await asyncio.wait_for(waiting, 2)
+            assert result.data["status"] == "running"
+            assert [item["status"] for item in result.data["workers"]] == ["completed", "running"]
+            assert first not in parent.state.pending_handoffs
+            assert second in parent.state.pending_handoffs
+            assert not parent.finalize("Only one result reviewed").terminal
+            waiting = asyncio.create_task(query())
+            await asyncio.sleep(0)
+            assert not waiting.done(), "An already consumed result must not end the next wait"
+        assert not parent.workers.workers[second].future.done()
+        slow.release.set()
+        result = await asyncio.wait_for(waiting, 2)
+        assert result.data["status"] == "finished"
+        assert not parent.state.pending_handoffs
+        assert parent.finalize("Both results reviewed").phase == "completed"
+    finally:
+        await parent.workers.close()
+
+
+@pytest.mark.parametrize("saved", ["live", "restored", "unavailable"])
+async def test_worker_status_delivers_already_ready_result_once(tmp_path, saved):
+    model = PausedModel()
+    model.release.set()
+    parent = Runtime(tmp_path, Settings(max_workers=2, completion="off"), model=model)
+    parent.start(TaskSpec(prompt="Inspect modules"))
+    first = (await parent.workers.start("Inspect first module"))["worker_id"]
+    await parent.workers.workers[first].future
+    if saved != "live":
+        original = parent
+        parent = Runtime(tmp_path, original.settings, model=model)
+        parent.resume(original.state.run_id)
+        await original.workers.close()
+        if saved == "unavailable":
+            parent.state.worker_sessions[first].pop("entry_id")
+    slow = PausedModel()
+    second = (await parent.workers.start("Inspect second module"))["worker_id"]
+    parent.workers.workers[second].runtime.model = slow
+    await slow.entered.wait()
+    try:
+        snapshot = await asyncio.wait_for(parent.workers.status([first, second], 300), 2)
+        assert snapshot["status"] == "running"
+        assert snapshot["workers"][0]["status"] == ("unavailable" if saved == "unavailable" else "completed")
+        assert first in parent.state.pending_handoffs  # UI polling does not consume delivery.
+        immediate = await parent.workers.status([first, second], wait_for="all")
+        assert immediate == snapshot  # Zero seconds is a snapshot even for all.
+        partial = await parent.workers.status([first, second], 0.01, wait_for="all")
+        assert partial == snapshot and not parent.workers.workers[second].future.done()
+        waiting_all = asyncio.create_task(parent.workers.status([first, second], 300, wait_for="all"))
+        await asyncio.sleep(0)
+        assert not waiting_all.done(), "An unread ready result must not release an all waiter"
+        waiting_all.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await waiting_all
+        assert first in parent.state.pending_handoffs
+        assert not parent.workers.workers[second].future.done()
+        result = await asyncio.wait_for(parent.step(ToolCall(name="worker_status", arguments={
+            "worker_id": [first, second], "wait_seconds": 300,
+        })), 2)
+        assert result.status == "success" and first not in parent.state.pending_handoffs
+        prompt, _, _ = parent.prepare_request()
+        assert "Worker handoff (untrusted evidence" not in json.dumps(prompt)
+        waiting = asyncio.create_task(parent.workers.status([first, second], 300))
+        await asyncio.sleep(0)
+        assert not waiting.done()
+        await parent.workers.stop(second)
+        result = await asyncio.wait_for(waiting, 2)
+        assert result["status"] == "finished"
+        assert result["workers"][1]["status"] == "cancelled"
+    finally:
+        await parent.workers.close()
 
 
 @pytest.mark.asyncio
@@ -478,7 +588,7 @@ async def test_waiting_tool_returns_child_failure_without_aborting_parent(tmp_pa
     await parent.workers.close()
 
 
-@pytest.mark.parametrize("boundary", ["sequential", "parallel", "invalid_batch", "turn"])
+@pytest.mark.parametrize("boundary", ["sequential", "parallel", "invalid_batch", "turn", "team_tools", "team_tools_sequential"])
 async def test_worker_budget_delivers_one_tool_free_partial_handoff(tmp_path, boundary):
     (tmp_path / "target.py").write_text("answer = 42\n")
     calls = [ToolCall(name="read_file", arguments={"path": "target.py"}) for _ in range(3)]
@@ -496,20 +606,26 @@ async def test_worker_budget_delivers_one_tool_free_partial_handoff(tmp_path, bo
             )
 
     parent = Runtime(tmp_path, Settings(
-        max_workers=1, completion="off", read_parallelism=1 if boundary == "sequential" else 2,
+        max_workers=1, completion="off", read_parallelism=1 if "sequential" in boundary else 2,
     ), model=Model())
     parent.start(TaskSpec(prompt="Inspect the repository"))
     started = await parent.workers.start("Inspect target.py")
     worker = parent.workers.workers[started["worker_id"]]
     worker.runtime.state.task.max_steps = 12 if boundary == "turn" else 2
     worker.runtime.state.task.max_turns = 2 if boundary == "turn" else 12
+    if boundary.startswith("team_tools"):
+        parent.state.task.max_steps = 4
+        worker.runtime.state.task.max_steps = 12
     result = await asyncio.wait_for(worker.future, 5)
     delivered = await parent.workers.status(worker.worker_id)
     assert len(requests) == 2 and requests[0][1] and requests[1][1] == []
     assert "PARTIAL handoff" in json.dumps(requests[1][0])
     assert result.step == (1 if boundary == "turn" else 2)
     assert result.phase == "stopped" and delivered["delivery"] == "partial"
-    assert result.stop_reason == ("turn_limit" if boundary == "turn" else "step_limit")
+    assert result.stop_reason == (
+        "team_tool_calls_limit" if boundary.startswith("team_tools") else
+        "turn_limit" if boundary == "turn" else "step_limit"
+    )
     assert delivered["answer"] == result.final == "Partial: the assignment needs further investigation."
     outputs = [json.loads(item["output"]) for item in worker.runtime._structured_history
                if item.get("type") == "function_call_output"]
@@ -601,10 +717,11 @@ async def test_team_budget_covers_children_parent_and_checkpoint_restore(tmp_pat
                 entered.set()
                 await release.wait()
                 return ModelReply(text="Findings delivered.", usage={"total_tokens": billed_tokens})
+            deliver = not tools or "only final delivery is permitted" in json.dumps(messages)
             return ModelReply(
                 calls=[ToolCall(name="read_file", arguments={"path": "target.py"})
-                       for _ in range(6 if limit == "tool_calls" else 1)] if tools else [],
-                text="Partial findings." if not tools else "", usage={"total_tokens": 7},
+                       for _ in range(6 if limit == "tool_calls" else 1)] if not deliver else [],
+                text="Partial findings." if deliver else "", usage={"total_tokens": 7},
             )
 
     settings = Settings(max_workers=2, completion="off", read_parallelism=2)
@@ -623,6 +740,8 @@ async def test_team_budget_covers_children_parent_and_checkpoint_restore(tmp_pat
         await asyncio.wait_for(entered.wait(), 5)
         await wait_until(second.future.done)
         assert len(requests) == 1 and not first.future.done()
+        # A tight budget can rebuild the first request as a smaller partial handoff.
+        billed_tokens = first.runtime._request_estimate
         assert parent.state.team_usage["charged_tokens"] == billed_tokens
         assert second.runtime.state.stop_reason == "team_token_limit"
         release.set()
@@ -643,7 +762,10 @@ async def test_team_budget_covers_children_parent_and_checkpoint_restore(tmp_pat
     else:
         await parent.turn()
         assert len(requests) == 1
-    assert parent.state.stop_reason == f"team_{'token' if limit == 'tokens' else limit}_limit"
+    # The last model call now delivers an answer; satisfied requirements can complete.
+    assert parent.state.stop_reason == (
+        "verified" if limit == "model_calls" else f"team_{'token' if limit == 'tokens' else limit}_limit"
+    )
     assert parent.state.team_usage.get("charged_tokens", 0) == len(requests) * billed_tokens
     assert parent.state.team_usage.get("model_calls", 0) == len(requests)
     assert all(worker.runtime.state.final for worker in parent.workers.workers.values())
@@ -653,6 +775,145 @@ async def test_team_budget_covers_children_parent_and_checkpoint_restore(tmp_pat
     assert restored.state.task.max_tokens == parent.state.task.max_tokens
     await restored.turn()
     assert restored.state.team_usage == parent.state.team_usage
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
+async def test_worker_handoff_carries_line_anchored_source_evidence(tmp_path):
+    (tmp_path / "module.py").write_text("first = 1\nanswer = 42\nlast = 3\n")
+
+    class Model:
+        def __init__(self):
+            self.requests = []
+
+        async def complete(self, messages, tools):
+            self.requests.append((messages, tools))
+            if len(self.requests) == 1:
+                return ModelReply(calls=[ToolCall(name="read_file", arguments={
+                    "path": "module.py", "start": 2, "end": 2,
+                })])
+            return ModelReply(text="answer is 42")
+
+    model = Model()
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="strict"), model=model)
+    parent.start(TaskSpec(prompt="Investigate module.py", require_observation=True))
+    started = await parent.workers.start("Read module.py and report the answer")
+    worker = parent.workers.workers[started["worker_id"]]
+    await worker.future
+    status = await parent.workers.status(worker.worker_id)
+    excerpt = status["source_excerpts"][0]
+    assert excerpt["path"] == "module.py"
+    assert excerpt["start"] == excerpt["end"] == 2
+    assert excerpt["content"] == "answer = 42"
+    assert not parent.state.observed  # UI polling must not consume model evidence.
+    prompt, _, _ = parent.prepare_request()
+    rendered = json.dumps(prompt, ensure_ascii=False)
+    assert "Worker handoff" in rendered and "answer = 42" in rendered
+    assert "2: answer = 42" in rendered
+    assert "source_sha256" not in rendered
+    assert len(excerpt["source_sha256"]) == 64
+    assert parent.state.observed and not parent.state.read_evidence
+    assert parent.state.verification.state == "missing"
+    assert parent.state.step == 0
+    assert parent.finalize("Delegated finding: module.py:2 sets answer to 42.").phase == "completed"
+    await parent.workers.close()
+
+
+@pytest.mark.asyncio
+async def test_read_file_history_includes_line_metadata_without_changing_file_content(tmp_path):
+    (tmp_path / "module.py").write_text("first = 1\nanswer = 42\n")
+    runtime = Runtime(tmp_path, Settings(completion="off"), model=CallThenFinish("read_file", {}))
+    runtime.start(TaskSpec(prompt="Inspect module.py"))
+    result = await runtime.step(ToolCall(name="read_file", arguments={
+        "path": "module.py", "start": 2, "end": 2,
+    }))
+    assert result.content == "answer = 42"
+    output = next(item for item in runtime._structured_history
+                  if item.get("type") == "function_call_output")
+    payload = json.loads(output["output"])
+    assert payload["content"] == "2: answer = 42"
+    assert payload["start"] == payload["end"] == 2
+    assert payload["evidence_id"] == result.evidence_id and "source_ref" not in payload
+    assert (tmp_path / "module.py").read_text() == "first = 1\nanswer = 42\n"
+
+
+@pytest.mark.parametrize("delivery", ["auto", "status", "saved"])
+async def test_worker_evidence_is_snapshot_pinned_and_never_edit_authority(tmp_path, delivery):
+    target = tmp_path / "module.py"
+    target.write_text("answer = 42\n")
+    settings = Settings(max_workers=1, approval="auto", max_final_revisions=0)
+    parent = Runtime(tmp_path, settings, model=CallThenFinish("read_file", {"path": "module.py"}))
+    parent.start(TaskSpec(prompt="Inspect module.py"))
+    started = await parent.workers.start("Inspect module.py")
+    worker = parent.workers.workers[started["worker_id"]]
+    await worker.future
+    boundary = parent.session_tree.cursor
+    # A later child checkpoint must not leak into the saved parent snapshot.
+    worker.runtime.state.working_memory["module.py"]["summary"] = "FUTURE_SOURCE"
+    worker.runtime.checkpoint()
+    if delivery == "saved":
+        parent = Runtime(tmp_path, settings, model=parent.model)
+        parent.resume(parent_run := worker.runtime.state.parent_run_id, entry_id=boundary)
+        assert parent.state.run_id == parent_run
+    else:
+        worker.runtime.state.working_memory["module.py"]["summary"] = "answer = 42"
+    if delivery == "status":
+        await parent.step(ToolCall(name="worker_status", arguments={"worker_id": worker.worker_id}))
+    else:
+        prompt, _, _ = parent.prepare_request()
+        assert "FUTURE_SOURCE" not in json.dumps(prompt)
+    assert parent.state.observed
+    if delivery == "saved":
+        parent.continue_task()
+    blocked = await parent.step(ToolCall(name="patch_file", arguments={
+        "path": "module.py", "old_text": "42", "new_text": "99",
+    }))
+    assert blocked.reason == "fresh_read_required"
+    assert parent.state.verification.state == "missing"
+    await parent.workers.close()
+
+    stale = Runtime(tmp_path, settings, model=parent.model)
+    target.write_text("answer = 99\n")
+    stale.resume(parent_run_id := worker.runtime.state.parent_run_id, entry_id=boundary, adopt_workspace=True)
+    assert stale.state.run_id == parent_run_id
+    status = stale.workers.overview()[0]
+    assert status["stale_paths"] == ["module.py"]
+    assert status["source_excerpts"][0]["content"] == "answer = 42"
+    stale.prepare_request()
+    assert not stale.state.observed and not stale.verifier.final(stale.state).passed
+
+
+async def test_autonomous_worker_and_late_delivery_block_premature_final(tmp_path):
+    model = PausedModel()
+    parent = Runtime(tmp_path, Settings(max_workers=1, completion="off"), model=model)
+    parent.start(TaskSpec(prompt="Inventory"))
+    started = await parent.workers.start("List files")
+    worker = parent.workers.workers[started["worker_id"]]
+    await model.entered.wait()
+    assert not parent.finalize("Premature").terminal
+    assert not worker.future.cancelling()
+    model.release.set()
+    await worker.future
+    assert not parent.finalize("Did not see the new handoff").terminal
+    assert "after your last observation" in parent.state.feedback
+    parent.prepare_request()
+    assert parent.finalize("Reviewed the handoff").phase == "completed"
+    await parent.workers.close()
+
+
+async def test_token_exhausted_followup_does_not_replace_child_snapshot(tmp_path):
+    parent = Runtime(tmp_path, Settings(max_workers=1, output_tokens=128, completion="off"),
+                     model=CallThenFinish("list_files", {}))
+    parent.start(TaskSpec(prompt="Inventory", max_tokens=50000))
+    started = await parent.workers.start("List files")
+    worker = parent.workers.workers[started["worker_id"]]
+    await worker.future
+    record = dict(parent.state.worker_sessions[worker.worker_id])
+    parent.state.team_usage["charged_tokens"] = parent.state.task.max_tokens
+    result = await parent.workers.message(worker.worker_id, "Follow up", resume=True)
+    assert result["reason"] == "worker_continuation_unavailable"
+    assert parent.state.worker_sessions[worker.worker_id] == record
+    assert worker.runtime.state.run_id == record["run_id"]
     await parent.workers.close()
 
 

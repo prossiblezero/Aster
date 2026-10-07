@@ -1,7 +1,7 @@
 """Tool parameter contracts, descriptions, effects and model-visible definitions."""
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
 
@@ -77,6 +77,8 @@ class RunShell(Record):
 class RunTests(Record):
     command: str = Field(default="pytest -q", min_length=1)
     timeout: int = Field(default=60, ge=1, le=120)
+    code: str = Field(default="", max_length=65536, description="Temporary pytest functions or unittest.TestCase code (no discover); sandbox only. Omit for existing tests.")
+    memory_ids: list[str] = Field(default_factory=list, max_length=8, description="Applied and tested memory IDs.")
 
 
 class TodoAdd(Record):
@@ -99,6 +101,9 @@ class MemoryStore(Record):
     text: str = Field(min_length=1, max_length=1000)
     tags: list[str] = Field(default_factory=list)
     evidence_id: str = Field(min_length=1)
+    kind: Literal["excerpt", "fact", "procedure"] = "excerpt"
+    when: str = Field(default="", max_length=200, description="For facts/procedures, state when this project knowledge applies.")
+    evidence_ids: list[str] = Field(default_factory=list, max_length=4, description="Optional additional current-run evidence IDs supporting the knowledge.")
 
 
 class Empty(Record):
@@ -109,10 +114,8 @@ class MemoryQuery(Record):
     query: str
 
 
-class MemoryChange(Record):
+class MemoryChange(MemoryStore):
     lesson_id: str
-    text: str
-    evidence_id: str
 
 
 class MemoryDiscard(Record):
@@ -153,19 +156,17 @@ class AskUser(Record):
 class WorkerStart(Record):
     task: str = Field(
         description=(
-            "Bounded assignment: target files, interfaces, acceptance criteria, "
-            "known facts and test responsibility. The original request is supplied "
-            "automatically; workers do not inherit your conversation or observations."
+            "Target files, interfaces, acceptance checks, known facts and test responsibility. "
+            "Child receives the original request, not your observations."
         )
     )
     mode: str = Field(default="explore", pattern="^(explore|worker)$")
     write_scope: list[str] = Field(default_factory=list)
     parent_work: str = Field(
         default="", max_length=2000,
-        description="Your separate module or check while this worker runs; avoid overlapping "
-        "investigations. If no independent work remains, say you will await and integrate.",
+        description="Independent work you will do, or state that you will await and integrate.",
     )
-    todo_id: str = Field(default="", description="Existing requirement todo owned by this worker. Delivery returns it for parent review; it is not marked done automatically.")
+    todo_id: str = Field(default="", description="Existing requirement returned for your review on delivery; not automatically done.")
 
 
 class WorkerId(Record):
@@ -174,19 +175,38 @@ class WorkerId(Record):
 
 class WorkerStatus(WorkerId):
     worker_id: str | Annotated[list[str], Field(min_length=1, max_length=4)] = Field(
-        description="One worker id, or up to four ids to join in one call; duplicates are returned once."
+        description="One worker id, or up to four ids to watch in one call; duplicates are returned once."
     )
     wait_seconds: float = Field(
         default=0,
         ge=0,
         le=300,
-        description="One shared wait deadline for all selected workers; timeout leaves them running. Use 300 when awaiting final delivery, 0 for a snapshot.",
+        description="Shared wait deadline in seconds. Timeout leaves workers running. Use 300 to await results, 0 for an immediate snapshot regardless of wait_for.",
+    )
+    wait_for: Literal["any", "all"] = Field(
+        default="any",
+        description="any returns on the next unread result so you can act on it; all waits for every selected worker to stop when only final integration remains. Same behavior for one id.",
     )
 
 
 class WorkerMessage(WorkerId):
     message: str
     resume: bool = Field(default=False, description="Continue a finished or saved worker in its own context, within the remaining team budget.")
+
+
+HANDOFF_SOURCE_CHARACTERS = 8000
+
+
+class HandoffSource(Record):
+    evidence_id: str = Field(min_length=1, description="Copy source_ref (12 characters) or the full evidence_id from a successful read_file. Short references must uniquely match this worker's authorized reads.")
+    start: int = Field(ge=1, description="First supporting source line, within that read.")
+    end: int = Field(ge=1, description="Last supporting source line, inclusive.")
+    claim: str = Field(min_length=1, max_length=300, description="Finding or answer ID this range supports; a claim, not verified truth.")
+
+
+class WorkerFinish(Record):
+    answer: str | dict[str, Any] = Field(description="Complete assigned answer; use an object for a requested JSON object, or text for prose.")
+    sources: list[HandoffSource] = Field(default_factory=list, max_length=4, description=f"Select already-read supporting ranges; at most {HANDOFF_SOURCE_CHARACTERS} source characters total. Prefer short implementation ranges over docstrings. No need to reread to select them.")
 
 
 class ImageRead(Record):
@@ -218,12 +238,12 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. Shell syntax may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, python <workspace test script> (e.g. tests/runtests.py or bin/test), node --test, or go test. Native Python scripts must run unittest, pytest or SymPy tests: Aster captures framework results, not printed summaries or exit 0 alone. SymPy bin/test runs without its extra subprocess inside the existing sandbox. Use command names without a .venv/bin/ path. Python accepts a workspace-relative PYTHONPATH prefix such as PYTHONPATH=.; other environment assignments may require approval. With reuse_environment enabled, the trusted Python test runner automatically exposes installed project .venv dependencies; keep them installed until verification finishes. Tests should exercise the actual implementation or public entry point and assert requested behavior, including boundary cases; a passing report does not prove coverage. Node requires declared node:test cases; omit --test-reporter and --test-reporter-destination (reserved). Use run_shell for npm scripts, build/syntax/browser checks and compound commands; these do not update formal test evidence.",
+        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
         "process",
     ),
     "observation_read": (
@@ -234,9 +254,9 @@ SCHEMAS = {
     "todo_add": (TodoAdd, "Add a bounded task item.", "state"),
     "todo_update": (TodoUpdate, "Update a task item by id.", "state"),
     "plan_write": (PlanWrite, "Write the current plan artifact.", "state"),
-    "memory_store": (MemoryStore, "Save an exact project excerpt (at most 1000 characters) from this run's successful read_file using its evidence_id. Summaries and shell observations are not accepted; source must remain current.", "state"),
-    "memory_retrieve": (MemoryQuery, "Retrieve sourced project excerpts relevant to a query; stale sources are excluded.", "read"),
-    "memory_update": (MemoryChange, "Replace a saved excerpt with exact text from this run's successful read_file evidence; the source must remain current.", "state"),
+    "memory_store": (MemoryStore, "Save durable project knowledge (at most 1000 characters), not a task transcript. excerpt requires exact read_file text; fact/procedure allow grounded synthesis with when (applicability). Extract only the lasting rule: omit one-turn instructions, pending work and temporary status from text and when. Preserve conditions and uncertainty; use query tags in the user's language. Cite current-run evidence IDs, or 'user' for the latest actual user request; evidence_ids adds supporting sources. Both facts and procedures may cite run_tests/run_shell outcomes. Use memory_update for a correction to an existing recalled entry. Sources are authenticated, conclusions remain untrusted.", "state"),
+    "memory_retrieve": (MemoryQuery, "Retrieve sourced project knowledge relevant to a query; stale sources are excluded.", "read"),
+    "memory_update": (MemoryChange, "Replace a memory using new current-run evidence; same admission rules as memory_store. Supersedes the old entry only after the replacement is admitted.", "state"),
     "memory_discard": (MemoryDiscard, "Deactivate a stale or harmful lesson.", "state"),
     "todo_list": (
         TextPage,
@@ -255,24 +275,17 @@ SCHEMAS = {
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (
         WorkerStart,
-        "Start a bounded task sharing this workspace and the parent's total budget. "
-        "Pass the specific deliverable, known paths/facts, scope and test responsibility; "
-        "link the requirement todo_id and state your separate work in parent_work. The original request is included automatically. "
-        "Delegate substantial independent work or investigations; do small lookups directly. "
-        "Finished handoffs arrive automatically at your next turn. When waiting, use one "
-        "worker_status call with their ids and wait_seconds=300. For investigations request concise conclusions "
-        "with source paths and evidence, and inspect gaps rather than repeating every read. "
-        "Only one agent writes at a time: a writing worker needs a nonempty write_scope; "
-        "while it runs do read-only work, then inspect its changes and verify the integrated result. "
-        "When the parent has a strict verification requirement, workers can hand off "
-        "without passing tests: the parent's test gate still applies. Avoid duplicating "
-        "their work. Small tasks can be cheaper to do directly.",
+        "Start substantial independent work with a shared team budget. Use explore for "
+        "read-only tasks or worker with write_scope for edits. Keep small lookups local. "
+        "Handoffs arrive automatically; parent verifies integration.",
         "state",
     ),
     "worker_status": (
         WorkerStatus,
         "Read status, result, changed paths and recorded verification. Pass a list of "
-        "ids to await all results together; the timeout is shared, not per child. "
+        "ids for snapshots of all selected workers. Default wait_for=any returns when a new result is ready; "
+        "unread results return immediately, consumed results do not end the wait. Use wait_for=all "
+        "when only final integration remains; use any when an early result unlocks useful work. "
         "List status 'finished' means no selected child is running; inspect each result "
         "for failure or missing ids. Use wait_seconds when awaiting delivery instead of polling. Child completion "
         "does not verify the integrated result; the parent must check it after changes settle.",
@@ -284,6 +297,7 @@ SCHEMAS = {
         "state",
     ),
     "worker_stop": (WorkerId, "Cancel a worker and its active tool.", "state"),
+    "worker_finish": (WorkerFinish, "Deliver this child task's answer and selected source evidence in one call. Runtime extracts the original text and checks freshness. Normal completion requirements still apply; use text delivery if no tool budget remains.", "state"),
     "inspect_image": (ImageRead, "Read a workspace PNG/JPEG image for model vision.", "read"),
 }
 
@@ -316,6 +330,7 @@ WORKFLOW_TOOLS = {
     "worker_status",
     "worker_message",
     "worker_stop",
+    "worker_finish",
     "tool_load",
     "git_diff",
 }
@@ -325,14 +340,17 @@ def definitions(
     names: list[str] | None = None, *, available: list[str] | None = None
 ) -> list[dict]:
     selected = list(SCHEMAS) if names is None else names
+    unloaded = sorted(set(SCHEMAS if available is None else available) - set(selected))
     result = []
     for name in selected:
+        if name == "tool_load" and not unloaded:
+            continue
         model, description, _effect = SCHEMAS[name]
         schema = model.model_json_schema()
+        if name == "run_tests" and available is not None and "memory_store" not in available:
+            schema["properties"].pop("memory_ids")
         if name == "tool_load":
-            schema["properties"]["names"]["items"]["enum"] = sorted(
-                SCHEMAS if available is None else available
-            )
+            schema["properties"]["names"]["items"]["enum"] = unloaded
         schema.setdefault("additionalProperties", False)
         result.append(
             {

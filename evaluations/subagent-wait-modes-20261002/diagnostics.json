@@ -1,0 +1,1683 @@
+{
+  "summary": {
+    "solo": {
+      "episodes": 12,
+      "passed": 7,
+      "facts": 83,
+      "behavior_pass": 7,
+      "behavior_facts": 83,
+      "citation_only": 0,
+      "parse_errors": 1,
+      "malformed_completed_answers": 0,
+      "requests_without_usage": 1,
+      "failed_requests_without_diagnostics": 1,
+      "seconds": 621.375164006371,
+      "median_seconds": 49.03380289603956,
+      "tokens": 358451,
+      "model_calls": 32,
+      "parent_model_calls": 32,
+      "parent_tools": {
+        "read_file": 59,
+        "run_shell": 4,
+        "search": 5,
+        "list_files": 9
+      },
+      "subsequent_wait_modes": {},
+      "coordination_calls": 0,
+      "parent_input_tokens": 337974,
+      "parent_read_lines": 5221,
+      "repeated_read_lines": 0,
+      "early_waits": 0,
+      "early_parent_replies": 0,
+      "workers_started": 0,
+      "workers_completed": 0,
+      "finish_attempts": 0,
+      "finish_accepted": 0,
+      "rejected_handoffs": {},
+      "median_latency": {
+        "first_child_terminal_seconds": null,
+        "first_child_completed_seconds": null,
+        "last_child_completed_seconds": null,
+        "first_receipt_seconds": null,
+        "receipt_delay_seconds": null,
+        "first_parent_reply_seconds": 6.410332,
+        "first_parent_request_seconds": 0.058306437684223056
+      }
+    },
+    "any": {
+      "episodes": 12,
+      "passed": 8,
+      "facts": 90,
+      "behavior_pass": 9,
+      "behavior_facts": 93,
+      "citation_only": 3,
+      "parse_errors": 0,
+      "malformed_completed_answers": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "seconds": 2040.7894460717216,
+      "median_seconds": 134.09006050392054,
+      "tokens": 2095034,
+      "model_calls": 184,
+      "parent_model_calls": 70,
+      "parent_tools": {
+        "worker_status": 16,
+        "tool_load": 13,
+        "worker_message": 26,
+        "read_file": 26,
+        "run_shell": 3,
+        "git_diff": 1
+      },
+      "subsequent_wait_modes": {
+        "all": 3,
+        "any": 1
+      },
+      "coordination_calls": 42,
+      "parent_input_tokens": 788867,
+      "parent_read_lines": 2318,
+      "repeated_read_lines": 2311,
+      "early_waits": 12,
+      "early_parent_replies": 41,
+      "workers_started": 33,
+      "workers_completed": 32,
+      "finish_attempts": 37,
+      "finish_accepted": 25,
+      "rejected_handoffs": {
+        "handoff_source_unread": 8,
+        "handoff_source_too_large": 4
+      },
+      "median_latency": {
+        "first_child_terminal_seconds": 47.1965265,
+        "first_child_completed_seconds": 47.1965265,
+        "last_child_completed_seconds": 95.2791895,
+        "first_receipt_seconds": 47.306588500000004,
+        "receipt_delay_seconds": 0.08128349999999429,
+        "first_parent_reply_seconds": 58.575708500000005,
+        "initial_wait_seconds": 47.14036317775026,
+        "first_parent_request_seconds": 47.42172433109954
+      }
+    },
+    "all": {
+      "episodes": 12,
+      "passed": 9,
+      "facts": 86,
+      "behavior_pass": 10,
+      "behavior_facts": 87,
+      "citation_only": 1,
+      "parse_errors": 1,
+      "malformed_completed_answers": 1,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "seconds": 1726.5425206208602,
+      "median_seconds": 127.20458095194772,
+      "tokens": 1449076,
+      "model_calls": 124,
+      "parent_model_calls": 15,
+      "parent_tools": {
+        "worker_status": 12,
+        "read_file": 12
+      },
+      "subsequent_wait_modes": {},
+      "coordination_calls": 12,
+      "parent_input_tokens": 183759,
+      "parent_read_lines": 1121,
+      "repeated_read_lines": 1034,
+      "early_waits": 0,
+      "early_parent_replies": 0,
+      "workers_started": 24,
+      "workers_completed": 24,
+      "finish_attempts": 39,
+      "finish_accepted": 24,
+      "rejected_handoffs": {
+        "handoff_source_too_large": 6,
+        "handoff_source_unread": 9
+      },
+      "median_latency": {
+        "first_child_terminal_seconds": 40.129594499999996,
+        "first_child_completed_seconds": 40.129594499999996,
+        "last_child_completed_seconds": 97.3641975,
+        "first_receipt_seconds": 97.4785235,
+        "receipt_delay_seconds": 38.67947899999999,
+        "first_parent_reply_seconds": 127.122217,
+        "initial_wait_seconds": 97.38166882307269,
+        "first_parent_request_seconds": 97.63791297143325
+      }
+    }
+  },
+  "pairs": {
+    "all_vs_any": {
+      "median_seconds_ratio": 0.8492094356119211,
+      "median_tokens_ratio": 0.5819451123916337,
+      "token_pairs": 12,
+      "completed_pairs": 12,
+      "completed_only_median_seconds_ratio": 0.8492094356119211,
+      "faster": 8,
+      "cheaper": 9,
+      "wins": 4,
+      "losses": 3,
+      "cases": [
+        {
+          "task": "django-investigate",
+          "repeat": 1,
+          "seconds_ratio": 1.0704053521302468,
+          "tokens_ratio": 1.9435966086568497,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "django-investigate",
+          "repeat": 2,
+          "seconds_ratio": 0.8142639935759834,
+          "tokens_ratio": 0.5748652601106344,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "django-review",
+          "repeat": 1,
+          "seconds_ratio": 0.955028382010384,
+          "tokens_ratio": 0.6831331173485479,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "django-review",
+          "repeat": 2,
+          "seconds_ratio": 1.2884415018036384,
+          "tokens_ratio": 1.1424368703311274,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 1,
+          "seconds_ratio": 0.5317665717412787,
+          "tokens_ratio": 0.3787367405978785,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 2,
+          "seconds_ratio": 0.5355783259849307,
+          "tokens_ratio": 0.3870076855500087,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 1,
+          "seconds_ratio": 0.8841548776478586,
+          "tokens_ratio": 0.5285268893347496,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 2,
+          "seconds_ratio": 0.5042657544365672,
+          "tokens_ratio": 0.40161772782773286,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 1,
+          "seconds_ratio": 1.2821817947000722,
+          "tokens_ratio": 0.7629737062371923,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 2,
+          "seconds_ratio": 0.7367524297684567,
+          "tokens_ratio": 0.5890249646726331,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "session-review",
+          "repeat": 1,
+          "seconds_ratio": 1.2596249643539161,
+          "tokens_ratio": 1.1170427343719342,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "session-review",
+          "repeat": 2,
+          "seconds_ratio": 0.5978500887564275,
+          "tokens_ratio": 0.5074720061882284,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        }
+      ]
+    },
+    "any_vs_solo": {
+      "median_seconds_ratio": 4.01356246253842,
+      "median_tokens_ratio": 6.120507399577167,
+      "token_pairs": 11,
+      "completed_pairs": 11,
+      "completed_only_median_seconds_ratio": 3.306190876739569,
+      "faster": 1,
+      "cheaper": 0,
+      "wins": 2,
+      "losses": 1,
+      "cases": [
+        {
+          "task": "django-investigate",
+          "repeat": 1,
+          "seconds_ratio": 5.505552499645349,
+          "tokens_ratio": 3.101378893865432,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": false
+        },
+        {
+          "task": "django-investigate",
+          "repeat": 2,
+          "seconds_ratio": 5.939952172400184,
+          "tokens_ratio": 4.906626782404434,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": false
+        },
+        {
+          "task": "django-review",
+          "repeat": 1,
+          "seconds_ratio": 2.3923617112820255,
+          "tokens_ratio": 3.181229478292594,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "django-review",
+          "repeat": 2,
+          "seconds_ratio": 41.426888700952006,
+          "tokens_ratio": null,
+          "both_completed": false,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 1,
+          "seconds_ratio": 2.228946887573181,
+          "tokens_ratio": 5.9876271652460815,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 2,
+          "seconds_ratio": 3.306190876739569,
+          "tokens_ratio": 10.841621991559256,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 1,
+          "seconds_ratio": 4.930738763546568,
+          "tokens_ratio": 6.1685372808348,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 2,
+          "seconds_ratio": 5.114148866154769,
+          "tokens_ratio": 6.792113700826243,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 1,
+          "seconds_ratio": 1.0418848992606071,
+          "tokens_ratio": 6.723003783836228,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": false
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 2,
+          "seconds_ratio": 0.8537260804443272,
+          "tokens_ratio": 6.120507399577167,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "session-review",
+          "repeat": 1,
+          "seconds_ratio": 2.7475939767891173,
+          "tokens_ratio": 3.5633582235646166,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "session-review",
+          "repeat": 2,
+          "seconds_ratio": 4.720934048337272,
+          "tokens_ratio": 6.889941246347963,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        }
+      ]
+    },
+    "all_vs_solo": {
+      "median_seconds_ratio": 2.700650488052064,
+      "median_tokens_ratio": 3.4964523068032234,
+      "token_pairs": 11,
+      "completed_pairs": 11,
+      "completed_only_median_seconds_ratio": 2.5788901362924492,
+      "faster": 1,
+      "cheaper": 0,
+      "wins": 4,
+      "losses": 2,
+      "cases": [
+        {
+          "task": "django-investigate",
+          "repeat": 1,
+          "seconds_ratio": 5.89317286205444,
+          "tokens_ratio": 6.027829500276785,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "django-investigate",
+          "repeat": 2,
+          "seconds_ratio": 4.836689177548912,
+          "tokens_ratio": 2.82064928153273,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "django-review",
+          "repeat": 1,
+          "seconds_ratio": 2.284773334309266,
+          "tokens_ratio": 2.1732032105071144,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "django-review",
+          "repeat": 2,
+          "seconds_ratio": 53.376122692906776,
+          "tokens_ratio": null,
+          "both_completed": false,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 1,
+          "seconds_ratio": 1.1852794449981836,
+          "tokens_ratio": 2.267734396480616,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-investigate",
+          "repeat": 2,
+          "seconds_ratio": 1.7707241751508287,
+          "tokens_ratio": 4.195791034561424,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 1,
+          "seconds_ratio": 4.359536728197069,
+          "tokens_ratio": 3.260237820785051,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "openlibrary-review",
+          "repeat": 2,
+          "seconds_ratio": 2.5788901362924492,
+          "tokens_ratio": 2.7278332716734495,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": false
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 1,
+          "seconds_ratio": 1.3358858500048691,
+          "tokens_ratio": 5.129475114000194,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": true
+        },
+        {
+          "task": "session-investigate",
+          "repeat": 2,
+          "seconds_ratio": 0.628984764124059,
+          "tokens_ratio": 3.6051316548145302,
+          "both_completed": true,
+          "passed_before": false,
+          "passed_after": false
+        },
+        {
+          "task": "session-review",
+          "repeat": 1,
+          "seconds_ratio": 3.4609379650720267,
+          "tokens_ratio": 3.9804234135973378,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        },
+        {
+          "task": "session-review",
+          "repeat": 2,
+          "seconds_ratio": 2.822410839811679,
+          "tokens_ratio": 3.4964523068032234,
+          "both_completed": true,
+          "passed_before": true,
+          "passed_after": true
+        }
+      ]
+    }
+  },
+  "accounting": {
+    "completed_parents": 35,
+    "http_attempts": 340,
+    "classifications": {
+      "success": 339,
+      "transport": 1
+    },
+    "response_models": {
+      "gpt-5.6-luna": 339,
+      "": 1
+    },
+    "unknown_usage": 1,
+    "non_success_attempt_seconds": 120.00297,
+    "requests_without_usage": 1,
+    "failed_requests_without_diagnostics": [
+      {
+        "error_type": "SSLError",
+        "seconds": 2.3960811998695135
+      }
+    ],
+    "usage_matches": true,
+    "source_unchanged": true,
+    "workspace_unchanged": true,
+    "runner_errors": [
+      {
+        "task": "django-review",
+        "arm": "solo",
+        "repeat": 2,
+        "error": "SSLError: [SSL] record layer failure (_ssl.c:2580)"
+      }
+    ],
+    "trace_chains_valid": true,
+    "frozen_order_verified": true
+  },
+  "cases": [
+    {
+      "task": "django-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "r4",
+          "check": {
+            "id": "r4",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "r4",
+            "observed": [
+              [
+                [
+                  "",
+                  []
+                ],
+                [
+                  "xz",
+                  []
+                ]
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/regex_helper.py",
+              "symbol": "normalize",
+              "line": 41
+            },
+            "reason": "Disjunction is caught as an unsupported construct and yields an empty result form; the look-ahead is ignored, leaving xz."
+          },
+          "expected_observed": [
+            [
+              [
+                "",
+                []
+              ]
+            ],
+            [
+              [
+                "xz",
+                []
+              ]
+            ]
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-investigate",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "r1",
+          "check": {
+            "id": "r1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "r1",
+            "observed": [
+              [
+                "api/%(id)s0/",
+                [
+                  "id"
+                ]
+              ],
+              [
+                "api/%(id)s0/page/%(page)s0/",
+                [
+                  "id",
+                  "page"
+                ]
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/regex_helper.py",
+              "symbol": "normalize",
+              "line": 174
+            },
+            "reason": "Named captures become placeholders, each \\d+ contributes the minimum one representative 0, and the optional non-capturing group containing a capture becomes absent and present forms."
+          },
+          "expected_observed": [
+            [
+              "api/%(id)s/",
+              [
+                "id"
+              ]
+            ],
+            [
+              "api/%(id)s/page/%(page)s/",
+              [
+                "id",
+                "page"
+              ]
+            ]
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 120.00297
+    },
+    {
+      "task": "django-investigate",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": false,
+      "behavior_facts": 0,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "d1",
+          "check": {},
+          "answer": null,
+          "expected_observed": 1,
+          "expected_regression": true
+        },
+        {
+          "id": "d2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            1,
+            9
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "d3",
+          "check": {},
+          "answer": null,
+          "expected_observed": "fallback",
+          "expected_regression": false
+        },
+        {
+          "id": "d4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            4,
+            [
+              4
+            ]
+          ],
+          "expected_regression": false
+        },
+        {
+          "id": "r1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "item/9/",
+              []
+            ]
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "r2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "aaab",
+              []
+            ]
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "r3",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "%(name)s/",
+              [
+                "name"
+              ]
+            ]
+          ],
+          "expected_regression": false
+        },
+        {
+          "id": "r4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "",
+              []
+            ]
+          ],
+          "expected_regression": false
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 3,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "c1",
+          "check": {
+            "id": "c1",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "c1",
+            "observed": [
+              "book two",
+              "book one",
+              "book one"
+            ],
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.compress and Compressor.decompress",
+              "line": 49
+            },
+            "reason": "Each compress call copies the fixed compressor context, so records are independently encoded; each decompress call copies the fixed decompressor context and restores the original text, regardless of call order or repetition."
+          },
+          "expected_observed": [
+            "book two",
+            "book one",
+            "book one"
+          ],
+          "expected_regression": null
+        },
+        {
+          "id": "c3",
+          "check": {
+            "id": "c3",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "c3",
+            "observed": [
+              "",
+              true
+            ],
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.compress and Compressor.decompress",
+              "line": 49
+            },
+            "reason": "Empty text round-trips to an empty string. Each compression starts from a copied unchanged context, making repeated compression of the same text byte-identical."
+          },
+          "expected_observed": [
+            "",
+            true
+          ],
+          "expected_regression": null
+        },
+        {
+          "id": "c4",
+          "check": {
+            "id": "c4",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "c4",
+            "observed": "independent record",
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.__init__, Compressor.compress, and Compressor.decompress",
+              "line": 37
+            },
+            "reason": "Both instances initialize equivalent compressor/decompressor contexts from the same seed; compression and decompression each use copies of those contexts, so one instance can decode the other instance's record."
+          },
+          "expected_observed": "independent record",
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "s1",
+          "check": {
+            "id": "s1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "s1",
+            "observed": [
+              1,
+              0,
+              10,
+              {
+                "sum": 6,
+                "count": 3,
+                "max": 3
+              }
+            ],
+            "evidence": {
+              "path": "app/sessions.py",
+              "symbol": "SessionManager.process_event",
+              "line": 37
+            },
+            "reason": "At gap 5, events at 0 and 10 are separate; event 5 inclusively matches both, bridges them, and produces one session spanning 0 to 10 with values 1, 2, and 3 aggregated."
+          },
+          "expected_observed": [
+            1,
+            0,
+            10,
+            {
+              "sum": 9,
+              "count": 4,
+              "max": 3
+            }
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "f1",
+          "check": {
+            "id": "f1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "f1",
+            "observed": [
+              true,
+              4
+            ],
+            "evidence": {
+              "path": "app/emitter.py",
+              "symbol": "Emitter.evaluate",
+              "line": 20
+            },
+            "reason": "Emission requires watermark to be strictly greater than end plus gap, so watermark 15 does not emit and 16 emits the aggregate value 4."
+          },
+          "expected_observed": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            }
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "any",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "solo",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "all",
+      "repeat": 1,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-investigate",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "r4",
+          "check": {
+            "id": "r4",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "r4",
+            "observed": [
+              [
+                "",
+                []
+              ],
+              [
+                "xz",
+                []
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/regex_helper.py",
+              "symbol": "normalize",
+              "line": 85
+            },
+            "reason": "Alternation returns the empty normalized result, while the look-ahead assertion is ignored and the surrounding x and z remain."
+          },
+          "expected_observed": [
+            [
+              [
+                "",
+                []
+              ]
+            ],
+            [
+              [
+                "xz",
+                []
+              ]
+            ]
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "r4",
+          "check": {
+            "id": "r4",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "r4",
+            "observed": [
+              [
+                "",
+                []
+              ],
+              [
+                "xz",
+                []
+              ]
+            ],
+            "evidence": {
+              "path": "django/utils/regex_helper.py",
+              "symbol": "normalize",
+              "line": 85
+            },
+            "reason": "Alternation is caught as an unsupported construct and returns an empty normalized form; the look-ahead is ignored, leaving xz."
+          },
+          "expected_observed": [
+            [
+              [
+                "",
+                []
+              ]
+            ],
+            [
+              [
+                "xz",
+                []
+              ]
+            ]
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": false,
+      "behavior_facts": 0,
+      "citation_only": 0,
+      "requests_without_usage": 1,
+      "failed_requests_without_diagnostics": 1,
+      "problems": [
+        {
+          "id": "d1",
+          "check": {},
+          "answer": null,
+          "expected_observed": 1,
+          "expected_regression": true
+        },
+        {
+          "id": "d2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            1,
+            9
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "d3",
+          "check": {},
+          "answer": null,
+          "expected_observed": "fallback",
+          "expected_regression": false
+        },
+        {
+          "id": "d4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            4,
+            [
+              4
+            ]
+          ],
+          "expected_regression": false
+        },
+        {
+          "id": "r1",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "item/9/",
+              []
+            ]
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "r2",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "aaab",
+              []
+            ]
+          ],
+          "expected_regression": true
+        },
+        {
+          "id": "r3",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "%(name)s/",
+              [
+                "name"
+              ]
+            ]
+          ],
+          "expected_regression": false
+        },
+        {
+          "id": "r4",
+          "check": {},
+          "answer": null,
+          "expected_observed": [
+            [
+              "",
+              []
+            ]
+          ],
+          "expected_regression": false
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "django-review",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "c1",
+          "check": {
+            "id": "c1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "c1",
+            "observed": {
+              "exception": "zlib.error"
+            },
+            "evidence": {
+              "path": "openlibrary/utils/compress.py",
+              "symbol": "Compressor.compress",
+              "line": 52
+            },
+            "reason": "The candidate reuses self.c_context; after the first compression finishes the stream with Z_FINISH, the second compression raises zlib.error. The baseline copied the context for each call.",
+            "regression": true
+          },
+          "expected_observed": {
+            "exception": "error"
+          },
+          "expected_regression": true
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": false,
+      "behavior_facts": 6,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "v1",
+          "check": {
+            "id": "v1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "v1",
+            "observed": 0,
+            "evidence": {
+              "path": "app/events.py",
+              "symbol": "EventSource._recompute_watermark",
+              "line": 46
+            },
+            "reason": "Registered sources start at watermark 0. After ingesting times 9 and 4, the global watermark is the minimum of 9 and 4, but source b remains at 0 because its event time 4 is applied after registration? Actually both registered sources are a and b, so the minimum is 4; however source a is updated to 9 and source b to 4, yielding 4."
+          },
+          "expected_observed": 4,
+          "expected_regression": null
+        },
+        {
+          "id": "f1",
+          "check": {
+            "id": "f1",
+            "correct": false,
+            "evidence": true,
+            "observed": false,
+            "regression": true
+          },
+          "answer": {
+            "id": "f1",
+            "observed": [
+              true,
+              4
+            ],
+            "evidence": {
+              "path": "app/emitter.py",
+              "symbol": "Emitter.evaluate",
+              "line": 20
+            },
+            "reason": "A session fires only when watermark is strictly greater than end plus gap. At 15 it returns None because 15 is equal to 10 plus 5; at 16 it emits the aggregate value 4."
+          },
+          "expected_observed": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            }
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-investigate",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 1,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [
+        {
+          "id": "v2",
+          "check": {
+            "id": "v2",
+            "correct": false,
+            "evidence": false,
+            "observed": true,
+            "regression": true
+          },
+          "answer": {
+            "id": "v2",
+            "observed": [
+              9,
+              0
+            ],
+            "evidence": {
+              "path": "app/events.py",
+              "symbol": "EventSource.register_source",
+              "line": 26
+            },
+            "reason": "Registering source b adds watermark 0 without recomputing the global watermark, so before is 9. advance_time recomputes it as min(9,0), yielding 0."
+          },
+          "expected_observed": [
+            9,
+            0
+          ],
+          "expected_regression": null
+        }
+      ],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "all",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "solo",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    },
+    {
+      "task": "session-review",
+      "arm": "any",
+      "repeat": 2,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "requests_without_usage": 0,
+      "failed_requests_without_diagnostics": 0,
+      "problems": [],
+      "non_success_attempt_seconds": 0
+    }
+  ],
+  "continuations": [
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 1,
+      "run_id": "194e964670df4ea0af5df745628b9391",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "any",
+      "repeat": 1,
+      "run_id": "58e06e0350a7440caf3570b0a4a659a3",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "django-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "36ec1b929cd3460b9d0596278072ce2b",
+      "phase": "stopped",
+      "stop_reason": "team_token_limit"
+    },
+    {
+      "task": "django-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "8fb1904b458141219726a373ce543f80",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "484f00f76bb0442897599e8cc2f1aeb5",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "84aa707e28bd4a38862b042692eac902",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "e19b438eb1964e4381f2a6d94ba43a33",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "5075412bceec4e82990ab7c01f29cdb1",
+      "phase": "completed",
+      "stop_reason": "verified"
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "any",
+      "repeat": 2,
+      "run_id": "b45e183cd5564785aa8058628cdfdb3c",
+      "phase": "completed",
+      "stop_reason": "verified"
+    }
+  ]
+}

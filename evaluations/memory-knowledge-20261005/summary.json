@@ -1,0 +1,482 @@
+{
+  "baseline": {
+    "tasks": 10,
+    "episodes": 21,
+    "task_success": 4,
+    "pipeline_success": 4,
+    "learning_completed": 11,
+    "learning_episodes": 11,
+    "functional_success": 5,
+    "constraint_passed": 17,
+    "constraint_total": 30,
+    "learning_tokens_reported": 418533,
+    "reuse_tokens_reported": 1320700,
+    "total_tokens_reported": 1739233,
+    "usage_complete": false,
+    "requests_with_total_usage": 187,
+    "model_requests": 189,
+    "provider_attempts": 187,
+    "provider_attempts_with_total": 187,
+    "provider_usage_complete": true,
+    "reuse_tool_calls": 187,
+    "reuse_document_reads": 5,
+    "reuse_failed_tests": 0,
+    "tasks_recalling_learning": 3,
+    "successful_tasks_recalling_learning": 2,
+    "user_convention_success": 0,
+    "user_convention_functional_success": 0,
+    "user_convention_tasks": 5,
+    "unrelated_memory_feedback": 1,
+    "details": [
+      {
+        "id": "01_timezone",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "timezone": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "day_boundary": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "explicit_offset": {
+              "passed": false,
+              "error": "AssertionError: "
+            }
+          }
+        },
+        "reuse_tokens": 175313,
+        "learned_memories": 0
+      },
+      {
+        "id": "02_money",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "truncate": {
+              "passed": false,
+              "error": "ValueError: invalid invoice amount"
+            },
+            "negative": {
+              "passed": false,
+              "error": "ValueError: invalid invoice amount"
+            },
+            "decimal_precision": {
+              "passed": false,
+              "error": "ValueError: invalid invoice amount"
+            }
+          }
+        },
+        "reuse_tokens": 174143,
+        "learned_memories": 0
+      },
+      {
+        "id": "03_csv",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "encoding": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "columns": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "escaping": {
+              "passed": false,
+              "error": "AssertionError: "
+            }
+          }
+        },
+        "reuse_tokens": 162633,
+        "learned_memories": 0
+      },
+      {
+        "id": "04_correction",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "new_rule": {
+              "passed": true
+            },
+            "old_rule_removed": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "unchanged_and_other": {
+              "passed": false,
+              "error": "AssertionError: "
+            }
+          }
+        },
+        "reuse_tokens": 178471,
+        "learned_memories": 0
+      },
+      {
+        "id": "05_document_synthesis",
+        "passed": false,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "combined_convention": {
+              "passed": true
+            },
+            "preserve_other_chars": {
+              "passed": true
+            },
+            "invalid_revision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 176987,
+        "learned_memories": 1
+      },
+      {
+        "id": "06_stale_source",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_timeout": {
+              "passed": true
+            },
+            "new_retry_count": {
+              "passed": true
+            },
+            "schema": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 74318,
+        "learned_memories": 1
+      },
+      {
+        "id": "07_repair_transfer",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "legacy_precedence": {
+              "passed": true
+            },
+            "decimal_rounding": {
+              "passed": true
+            },
+            "empty_input": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 94153,
+        "learned_memories": 1
+      },
+      {
+        "id": "08_test_recipe",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "normalization": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 40139,
+        "learned_memories": 1
+      },
+      {
+        "id": "09_scope",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "analytics_scope": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "api_scope": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "unknown_scope": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 177654,
+        "learned_memories": 0
+      },
+      {
+        "id": "10_feedback_isolation",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "collapse_spaces": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 66889,
+        "learned_memories": 1
+      }
+    ]
+  },
+  "knowledge": {
+    "tasks": 10,
+    "episodes": 21,
+    "task_success": 7,
+    "pipeline_success": 6,
+    "learning_completed": 10,
+    "learning_episodes": 11,
+    "functional_success": 8,
+    "constraint_passed": 25,
+    "constraint_total": 30,
+    "learning_tokens_reported": 601745,
+    "reuse_tokens_reported": 1166425,
+    "total_tokens_reported": 1768170,
+    "usage_complete": false,
+    "requests_with_total_usage": 193,
+    "model_requests": 195,
+    "provider_attempts": 193,
+    "provider_attempts_with_total": 193,
+    "provider_usage_complete": true,
+    "reuse_tool_calls": 168,
+    "reuse_document_reads": 5,
+    "reuse_failed_tests": 0,
+    "tasks_recalling_learning": 5,
+    "successful_tasks_recalling_learning": 4,
+    "user_convention_success": 2,
+    "user_convention_functional_success": 3,
+    "user_convention_tasks": 5,
+    "unrelated_memory_feedback": 0,
+    "details": [
+      {
+        "id": "01_timezone",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "timezone": {
+              "passed": true
+            },
+            "day_boundary": {
+              "passed": true
+            },
+            "explicit_offset": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 135766,
+        "learned_memories": 1
+      },
+      {
+        "id": "02_money",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "truncate": {
+              "passed": false,
+              "error": "ValueError: invoice amount must be a non-negative decimal with at most two decimals"
+            },
+            "negative": {
+              "passed": false,
+              "error": "ValueError: invoice amount must be a non-negative decimal with at most two decimals"
+            },
+            "decimal_precision": {
+              "passed": false,
+              "error": "ValueError: invoice amount must be a non-negative decimal with at most two decimals"
+            }
+          }
+        },
+        "reuse_tokens": 160992,
+        "learned_memories": 0
+      },
+      {
+        "id": "03_csv",
+        "passed": false,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "encoding": {
+              "passed": true
+            },
+            "columns": {
+              "passed": true
+            },
+            "escaping": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 174388,
+        "learned_memories": 1
+      },
+      {
+        "id": "04_correction",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "new_rule": {
+              "passed": true
+            },
+            "old_rule_removed": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "unchanged_and_other": {
+              "passed": false,
+              "error": "AssertionError: "
+            }
+          }
+        },
+        "reuse_tokens": 94045,
+        "learned_memories": 0
+      },
+      {
+        "id": "05_document_synthesis",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "combined_convention": {
+              "passed": true
+            },
+            "preserve_other_chars": {
+              "passed": true
+            },
+            "invalid_revision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 139139,
+        "learned_memories": 0
+      },
+      {
+        "id": "06_stale_source",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_timeout": {
+              "passed": true
+            },
+            "new_retry_count": {
+              "passed": true
+            },
+            "schema": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 125740,
+        "learned_memories": 0
+      },
+      {
+        "id": "07_repair_transfer",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "legacy_precedence": {
+              "passed": true
+            },
+            "decimal_rounding": {
+              "passed": true
+            },
+            "empty_input": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 90401,
+        "learned_memories": 0
+      },
+      {
+        "id": "08_test_recipe",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "normalization": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 60144,
+        "learned_memories": 2
+      },
+      {
+        "id": "09_scope",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "analytics_scope": {
+              "passed": true
+            },
+            "api_scope": {
+              "passed": true
+            },
+            "unknown_scope": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 138562,
+        "learned_memories": 1
+      },
+      {
+        "id": "10_feedback_isolation",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "collapse_spaces": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 47248,
+        "learned_memories": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "client.py": "def client_options():\n    return {\"timeout\": 13, \"retries\": 0}\n",
+  "test_client.py": "import unittest\n\nfrom client import client_options\n\n\nclass ClientOptionsTests(unittest.TestCase):\n    def test_returns_documented_options(self):\n        options = client_options()\n\n        self.assertIs(type(options), dict)\n        self.assertEqual(options, {\"timeout\": 13, \"retries\": 0})\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+  "docs/client.md": "Client timeout is 13 seconds; retry count is 0. client_options returns a dict with timeout and retries.\n"
+}

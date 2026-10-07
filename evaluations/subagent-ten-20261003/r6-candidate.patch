@@ -1,0 +1,65 @@
+--- a/src/aster/core/runtime.py
++++ b/src/aster/core/runtime.py
+@@ -565,8 +565,16 @@
+             validate_archive=validate_archive,
+             redact_history=self.evidence.redact_history,
+         )
++        self._request_estimate = report.estimated_tokens + self.settings.effective_output_tokens
++        team = self._team
++        token_limit = team.parent.state.task.max_tokens
++        if (self._managed_worker and not self._handoff_reason and token_limit is not None
++                and team.parent.state.team_usage.get("charged_tokens", 0)
++                + team.budget.token_reserve() + 2 * self._request_estimate > token_limit):
++            # ponytail: two current-sized requests; context growth still faces hard admission.
++            self._begin_handoff("team_token_limit")
++            return self.prepare_request()
+         self.checkpoint()
+-        self._request_estimate = report.estimated_tokens + self.settings.effective_output_tokens
+         payload = request_payload(
+             prompt,
+             tool_defs,
+@@ -592,6 +600,15 @@
+             request_sha256=request_hash,
+         )
+         return prompt, tool_defs, report
++
++    def _begin_handoff(self, reason):
++        self._handoff_reason = reason
++        self.add_message(
++            "user", "Your work budget is exhausted or nearly exhausted. No more tools are available. "
++            "Return a concise PARTIAL handoff using only observed facts: findings, "
++            "paths/symbols, changes, checks actually run, and remaining gaps. "
++            "Do not claim the assignment is complete.", important=True,
++        )
+ 
+     def _redact_skill_snapshots(self, state):
+         redact_skill_snapshots(state, self.evidence.redactor)
+@@ -757,6 +774,8 @@
+             self._in_turn = False
+             self.checkpoint()
+             self.evidence.path("runs", state.run_id, "inflight.json").unlink(missing_ok=True)
++        if self._handoff_reason and not tool_defs and not state.terminal:
++            self.finish(self._handoff_reason)
+         return state
+ 
+     def _mark_inflight(self, calls: list[ToolCall]) -> None:
+--- a/src/aster/core/workers.py
++++ b/src/aster/core/workers.py
+@@ -436,16 +436,8 @@
+                 if self.budget.remaining("model_calls") <= self.budget.reserve("model_calls") + 1:
+                     reason = reason or "team_model_calls_limit"
+                 if reason:
+-                    runtime._handoff_reason = reason
+-                    runtime.add_message(
+-                        "user", "Your work budget is exhausted. No more tools are available. "
+-                        "Return a concise PARTIAL handoff using only observed facts: findings, "
+-                        "paths/symbols, changes, checks actually run, and remaining gaps. "
+-                        "Do not claim the assignment is complete.", important=True,
+-                    )
++                    runtime._begin_handoff(reason)
+                 await runtime.turn()
+-                if reason and not state.terminal:
+-                    runtime.finish(reason)
+                 self._remember(worker)
+                 self.parent.checkpoint()
+                 if inbox and state.phase == "completed":

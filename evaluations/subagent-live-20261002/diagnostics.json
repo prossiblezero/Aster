@@ -1,0 +1,817 @@
+{
+  "summary": {
+    "baseline_parallel": {
+      "behavior_pass": 5,
+      "behavior_facts": 46,
+      "citation_only": 1,
+      "value_errors": 2,
+      "classification_errors": 0,
+      "parse_errors": 0,
+      "model_calls": 59,
+      "parent_model_calls": 7,
+      "tool_calls": 106,
+      "workers_started": 12,
+      "workers_completed": 12,
+      "selected_characters": 19213,
+      "http_classifications": {
+        "success": 59,
+        "transport": 1
+      },
+      "non_success_attempt_seconds": 120.002876,
+      "rejected_handoffs": {
+        "handoff_source_too_large": 2,
+        "handoff_source_unread": 4
+      },
+      "median_seconds": 106.91499563702382
+    },
+    "candidate_solo": {
+      "behavior_pass": 3,
+      "behavior_facts": 44,
+      "citation_only": 0,
+      "value_errors": 4,
+      "classification_errors": 1,
+      "parse_errors": 0,
+      "model_calls": 19,
+      "parent_model_calls": 19,
+      "tool_calls": 46,
+      "workers_started": 0,
+      "workers_completed": 0,
+      "selected_characters": 0,
+      "http_classifications": {
+        "success": 19
+      },
+      "non_success_attempt_seconds": 0,
+      "rejected_handoffs": {},
+      "median_seconds": 39.75699497689493
+    },
+    "candidate_parallel": {
+      "behavior_pass": 6,
+      "behavior_facts": 48,
+      "citation_only": 3,
+      "value_errors": 0,
+      "classification_errors": 0,
+      "parse_errors": 0,
+      "model_calls": 74,
+      "parent_model_calls": 23,
+      "tool_calls": 112,
+      "workers_started": 13,
+      "workers_completed": 13,
+      "selected_characters": 24675,
+      "http_classifications": {
+        "success": 74
+      },
+      "non_success_attempt_seconds": 0,
+      "rejected_handoffs": {
+        "handoff_source_too_large": 3,
+        "handoff_source_unread": 3
+      },
+      "median_seconds": 101.23599630966783
+    },
+    "candidate_overlap": {
+      "behavior_pass": 5,
+      "behavior_facts": 47,
+      "citation_only": 3,
+      "value_errors": 1,
+      "classification_errors": 0,
+      "parse_errors": 0,
+      "model_calls": 57,
+      "parent_model_calls": 34,
+      "tool_calls": 91,
+      "workers_started": 6,
+      "workers_completed": 6,
+      "selected_characters": 16046,
+      "http_classifications": {
+        "success": 57
+      },
+      "non_success_attempt_seconds": 0,
+      "rejected_handoffs": {
+        "handoff_source_too_large": 1
+      },
+      "median_seconds": 86.76851683505811
+    }
+  },
+  "pairs": {
+    "candidate_parallel_vs_baseline_parallel": {
+      "wins": 2,
+      "losses": 2,
+      "ties": 2,
+      "median_seconds_ratio": 1.1175302565793652,
+      "median_tokens_ratio": 1.2119899218346264
+    },
+    "candidate_parallel_vs_candidate_solo": {
+      "wins": 1,
+      "losses": 0,
+      "ties": 5,
+      "median_seconds_ratio": 2.998553087802158,
+      "median_tokens_ratio": 3.6634587646887318
+    },
+    "candidate_overlap_vs_candidate_solo": {
+      "wins": 1,
+      "losses": 1,
+      "ties": 4,
+      "median_seconds_ratio": 1.7431463940384337,
+      "median_tokens_ratio": 3.4081864196480103
+    }
+  },
+  "accounting": {
+    "http_attempts": 210,
+    "http_without_total_usage": 1,
+    "classifications": {
+      "success": 209,
+      "transport": 1
+    },
+    "response_models": {
+      "gpt-5.6-luna": 209,
+      "": 1
+    },
+    "provider_errors": {},
+    "usage_matches": true,
+    "source_unchanged": true,
+    "workspace_unchanged": true,
+    "completed_parents": 24,
+    "runner_errors": []
+  },
+  "cases": [
+    {
+      "task": "django-investigate",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": false,
+      "behavior_facts": 6,
+      "citation_only": 0,
+      "value_errors": [
+        "d3",
+        "r4"
+      ],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 9,
+        "parent": 1
+      },
+      "http_classifications": {
+        "success": 10
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "django-investigate",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "parent": 9,
+        "child": 5
+      },
+      "http_classifications": {
+        "success": 14
+      },
+      "parent_tools_before_last_child_completed": [
+        "read_file",
+        "read_file",
+        "search",
+        "read_file",
+        "read_file",
+        "run_shell",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "django-investigate",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        },
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 12,
+        "parent": 3
+      },
+      "http_classifications": {
+        "success": 15
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "django-investigate",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": false,
+      "behavior_facts": 6,
+      "citation_only": 0,
+      "value_errors": [
+        "d3",
+        "r4"
+      ],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 5
+      },
+      "http_classifications": {
+        "success": 5
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "django-review",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 9,
+        "parent": 1
+      },
+      "http_classifications": {
+        "success": 10,
+        "transport": 1
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "django-review",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "parent": 7,
+        "child": 3
+      },
+      "http_classifications": {
+        "success": 10
+      },
+      "parent_tools_before_last_child_completed": [
+        "list_files",
+        "read_file",
+        "read_file",
+        "read_file",
+        "list_files",
+        "read_file",
+        "read_file",
+        "run_shell"
+      ]
+    },
+    {
+      "task": "django-review",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        },
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 8,
+        "parent": 3
+      },
+      "http_classifications": {
+        "success": 11
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "django-review",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 3
+      },
+      "http_classifications": {
+        "success": 3
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 7,
+        "parent": 1
+      },
+      "http_classifications": {
+        "success": 8
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 1,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "parent": 5,
+        "child": 5
+      },
+      "http_classifications": {
+        "success": 10
+      },
+      "parent_tools_before_last_child_completed": [
+        "read_file",
+        "read_file",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        },
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 9,
+        "parent": 7
+      },
+      "http_classifications": {
+        "success": 16
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status",
+        "tool_load",
+        "worker_message",
+        "worker_message",
+        "worker_message",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 2
+      },
+      "http_classifications": {
+        "success": 2
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 12,
+        "parent": 2
+      },
+      "http_classifications": {
+        "success": 14
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 2,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 4,
+        "child": 3
+      },
+      "http_classifications": {
+        "success": 7
+      },
+      "parent_tools_before_last_child_completed": [
+        "list_files",
+        "read_file",
+        "read_file",
+        "read_file",
+        "list_files",
+        "run_shell"
+      ]
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 2,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        },
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 6,
+        "parent": 5
+      },
+      "http_classifications": {
+        "success": 11
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status",
+        "git_diff",
+        "read_file",
+        "read_file",
+        "read_file",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "value_errors": [
+        "e1"
+      ],
+      "classification_errors": [
+        "e1"
+      ],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 3
+      },
+      "http_classifications": {
+        "success": 3
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 6,
+        "parent": 1
+      },
+      "http_classifications": {
+        "success": 7
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "value_errors": [
+        "f1"
+      ],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 3,
+        "child": 3
+      },
+      "http_classifications": {
+        "success": 6
+      },
+      "parent_tools_before_last_child_completed": [
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file"
+      ]
+    },
+    {
+      "task": "session-investigate",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 1,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 5,
+        "parent": 2
+      },
+      "http_classifications": {
+        "success": 7
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status"
+      ]
+    },
+    {
+      "task": "session-investigate",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": false,
+      "behavior_facts": 7,
+      "citation_only": 0,
+      "value_errors": [
+        "s1"
+      ],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 2
+      },
+      "http_classifications": {
+        "success": 2
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "session-review",
+      "arm": "baseline_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 1,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "finished",
+          "batch": true,
+          "active": 0,
+          "delivered": 2
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 9,
+        "parent": 1
+      },
+      "http_classifications": {
+        "success": 10
+      },
+      "parent_tools_before_last_child_completed": []
+    },
+    {
+      "task": "session-review",
+      "arm": "candidate_overlap",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "parent": 6,
+        "child": 4
+      },
+      "http_classifications": {
+        "success": 10
+      },
+      "parent_tools_before_last_child_completed": [
+        "list_files",
+        "git_diff",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "read_file",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "session-review",
+      "arm": "candidate_parallel",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [
+        {
+          "status": "running",
+          "batch": true,
+          "active": 1,
+          "delivered": 1
+        },
+        {
+          "status": "completed",
+          "batch": false,
+          "active": 0,
+          "delivered": 1
+        }
+      ],
+      "model_calls_by_role": {
+        "child": 11,
+        "parent": 3
+      },
+      "http_classifications": {
+        "success": 14
+      },
+      "parent_tools_before_last_child_completed": [
+        "worker_status",
+        "tool_load"
+      ]
+    },
+    {
+      "task": "session-review",
+      "arm": "candidate_solo",
+      "parse_error": false,
+      "behavior_pass": true,
+      "behavior_facts": 8,
+      "citation_only": 0,
+      "value_errors": [],
+      "classification_errors": [],
+      "waits": [],
+      "model_calls_by_role": {
+        "parent": 4
+      },
+      "http_classifications": {
+        "success": 4
+      },
+      "parent_tools_before_last_child_completed": []
+    }
+  ]
+}

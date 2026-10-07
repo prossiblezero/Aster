@@ -299,15 +299,16 @@ async def test_core_catalog_loads_optional_schema_then_executes_tool(tmp_path):
             self.turn += 1
             by_name = {tool["name"]: tool for tool in tools}
             if self.turn == 1:
-                assert set(by_name) == CORE_TOOLS
+                assert set(by_name) == CORE_TOOLS | {"worker_start"}
                 catalog = by_name["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
-                assert set(catalog) == set(SCHEMAS) - {"ask_user"}
-                assert set(SCHEMAS) - CORE_TOOLS - {"ask_user"} <= set(catalog)
+                assert set(catalog) == set(SCHEMAS) - CORE_TOOLS - {"ask_user", "worker_finish", "worker_start"}
                 return ModelReply(
                     calls=[ToolCall(name="tool_load", arguments={"names": ["todo_add"]})]
                 )
             if self.turn == 2:
                 assert "todo_add" in by_name and "todo_list" not in by_name
+                catalog = by_name["tool_load"]["parameters"]["properties"]["names"]["items"]["enum"]
+                assert "todo_add" not in catalog
                 assert "content" in by_name["todo_add"]["parameters"]["properties"]
                 return ModelReply(
                     calls=[

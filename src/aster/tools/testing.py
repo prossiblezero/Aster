@@ -57,6 +57,7 @@ async def run_tests(
     timeout: int,
     *,
     runner: type[SandboxRunner] = SandboxRunner,
+    code: str = "",
 ) -> Outcome:
     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
     argv = shlex.split(command)
@@ -94,6 +95,9 @@ async def run_tests(
     node = argv[:2] == ["node", "--test"]
     go = argv[:2] == ["go", "test"]
     options = argv[2:] if native or node or go else argv[3:] if argv[0] == "python" else argv[1:]
+    if code and (native or node or go or (unittest and "discover" in options)):
+        return Outcome(status="blocked", reason="inline_test_command_not_supported",
+                       content="With code, use pytest, python -m pytest, or python -m unittest without discover.")
     if node and any(option.startswith("--test-reporter") for option in options):
         return Outcome(
             status="blocked", reason="test_reporter_reserved",
@@ -112,6 +116,11 @@ async def run_tests(
             copied = target / source.relative_to(workspace.root)
             copied.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, copied)
+        if code:
+            # Temporary tests share the existing sandbox/report path, never the user's files.
+            inline_name = "__aster_inline_" + target.name.replace("-", "_") + ".py"
+            (target / inline_name).write_text(code, encoding="utf-8")
+            options.append(inline_name)
         report = "__aster_result_" + target.name + ".xml"
         if node:
             command = [

@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import inspect
 import json
+import re
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
@@ -14,6 +15,7 @@ from pathlib import Path
 
 from ..config import Settings
 from ..context import ContextBudgetError, ContextBuilder, ContextHistoryError
+from ..knowledge.maintenance import MemoryMaintenance
 from ..knowledge.memory import Memory
 from ..knowledge.skills import Skills
 from ..messages import history_groups
@@ -75,6 +77,7 @@ class Runtime:
         approval_callback: Callable[[ToolCall, Decision], bool | Awaitable[bool]] | None = None,
         question_callback: Callable[[str], str | None | Awaitable[str | None]] | None = None,
         hooks: Hooks | None = None,
+        memory_model=None,
     ):
         self.workspace = Workspace(root)
         self.settings = settings
@@ -117,6 +120,7 @@ class Runtime:
         self._checkpoint_workspace: dict[str, str] = {}
         self._environment_generation = self.sandbox.environment_generation
         self.workers = WorkerManager(self)
+        self.maintenance = MemoryMaintenance(self, memory_model)
 
     @property
     def _team(self):
@@ -153,6 +157,7 @@ class Runtime:
                 ).state
                 if memory_state != self.memory.state:
                     self.memory.state = memory_state
+                self.maintenance.pulse(owned=True, start=False)
             yield
         except asyncio.CancelledError:
             self.finish("cancelled")
@@ -161,6 +166,8 @@ class Runtime:
             if owner:
                 self._operation_task = None
                 try:
+                    if lease is not None:
+                        self.maintenance.pulse(owned=True, start=bool(self.state and self.state.terminal))
                     if self.state and self.state.phase in {"stopped", "failed"}:
                         # Refresh final usage after cancellation settles.
                         self.report(VerifierResult(passed=False, reason=self.state.stop_reason))
@@ -518,6 +525,8 @@ class Runtime:
         """One budgeted policy observation for autonomous calls and external rollouts."""
         state = self.state
         assert state is not None
+        if self._operation_task is not None:
+            self.maintenance.pulse(owned=True, start=False)
         self.workers.deliver()
         # Settings are mutable; the counted request must use the provider's current model limits.
         self.context.budget = self.settings.effective_context_tokens
@@ -565,8 +574,26 @@ class Runtime:
             validate_archive=validate_archive,
             redact_history=self.evidence.redact_history,
         )
-        self.checkpoint()
         self._request_estimate = report.estimated_tokens + self.settings.effective_output_tokens
+        team = self._team
+        token_limit = team.parent.state.task.max_tokens
+        if (self._managed_worker and not self._handoff_reason and token_limit is not None
+                and team.parent.state.team_usage.get("charged_tokens", 0)
+                + team.budget.token_reserve() + 2 * self._request_estimate > token_limit):
+            # ponytail: two current-sized requests; context growth still faces hard admission.
+            self._begin_handoff("team_token_limit")
+            return self.prepare_request()
+        if (not self._managed_worker and not self._handoff_reason and (state.turn or state.step)
+                and (team.budget.remaining("model_calls") <= 1
+                     or (token_limit is not None and state.team_usage.get("charged_tokens", 0)
+                         + 2 * self._request_estimate > token_limit))):
+            self._begin_handoff("team_token_limit" if token_limit is not None
+                                and state.team_usage.get("charged_tokens", 0)
+                                + 2 * self._request_estimate > token_limit else "team_model_calls_limit")
+            return self.prepare_request()
+        if self._operation_task is not None and not self._handoff_reason:
+            self.maintenance.pulse(owned=True)
+        self.checkpoint()
         payload = request_payload(
             prompt,
             tool_defs,
@@ -593,6 +620,17 @@ class Runtime:
         )
         return prompt, tool_defs, report
 
+    def _begin_handoff(self, reason):
+        self._handoff_reason = reason
+        self.add_message(
+            "user", "Your work budget is exhausted or nearly exhausted. Do not call tools; only final delivery is permitted. "
+            + ("Return a concise PARTIAL handoff" if self._managed_worker else
+               "Deliver the result now, clearly marking incomplete work") + " using only observed facts: findings, "
+            "paths/symbols, changes, checks actually run, and remaining gaps. "
+            + ("Do not claim completion." if self._managed_worker else
+               "Claim completion only when the requested work and checks are satisfied."), important=True,
+        )
+
     def _redact_skill_snapshots(self, state):
         redact_skill_snapshots(state, self.evidence.redactor)
 
@@ -608,6 +646,7 @@ class Runtime:
     async def _model_turn(self, prompt, tool_defs):
         state = self.state
         assert state is not None
+        handoff_request = bool(self._handoff_reason)
         reservation = self._request_estimate
         reason = self._team.budget.admit(self, "model_calls", reservation)
         if reason:
@@ -717,7 +756,13 @@ class Runtime:
         if not reply.calls:
             if reply.text:
                 if self._handoff_reason:
+                    if not self._managed_worker and self.verifier.final(state).passed:
+                        self.finalize(reply.text)
+                        if state.terminal:
+                            return state
                     state.final = self.evidence.redactor.text(reply.text)
+                    if not self._managed_worker:
+                        state.final += "\n\n任务未全部完成：预算不足，以上仅为已完成的工作与检查。"
                     self.finish(self._handoff_reason)
                     return state
                 return self.finalize(reply.text)
@@ -757,6 +802,12 @@ class Runtime:
             self._in_turn = False
             self.checkpoint()
             self.evidence.path("runs", state.run_id, "inflight.json").unlink(missing_ok=True)
+        if handoff_request and not state.terminal:
+            if not self._managed_worker:
+                state.final = ("任务未全部完成：预算不足，已停止继续执行。\n"
+                               + "已修改文件：" + (", ".join(state.changed_paths) or "无")
+                               + "；验证状态：" + state.verification.state + "。")
+            self.finish(self._handoff_reason)
         return state
 
     def _mark_inflight(self, calls: list[ToolCall]) -> None:
@@ -768,15 +819,33 @@ class Runtime:
         )
 
     def _append_output(self, call: ToolCall, outcome: Outcome):
-        if call.name == "worker_status":
+        content = outcome.content
+        if call.name == "worker_status" and outcome.status == "success":
             self.workers.acknowledge(outcome.data)
+            content = json.dumps(self.workers.model_view(outcome.data), ensure_ascii=False)
+        content = self.evidence.redactor.text(content)
+        if call.name == "read_file" and outcome.status == "success":
+            content = "\n".join(
+                f"{line}: {text}"
+                for line, text in enumerate(content.splitlines(), outcome.data["start"])
+            )
         output = json.dumps(
             {
                 "status": outcome.status,
                 "reason": outcome.reason,
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
-                "content": self.evidence.redactor.text(outcome.content),
+                "content": content,
+                **(
+                    {key: outcome.data[key] for key in ("path", "start", "end", "source_sha256")}
+                    if call.name == "read_file" and outcome.status == "success"
+                    else {}
+                ),
+                **(
+                    {"source_ref": outcome.evidence_id[:12]}
+                    if self._managed_worker and call.name == "read_file" and outcome.status == "success"
+                    else {}
+                ),
                 **(
                     {"observation": outcome.data["observation"]}
                     if "observation" in outcome.data
@@ -1029,8 +1098,17 @@ class Runtime:
             state.observed = True
         if outcome.status == "success" and call.name == "read_file":
             path = call.arguments["path"]
-            self.memory.remember_file(path, outcome.content, state.working_memory)
+            self.memory.remember_file(
+                path, self.evidence.redactor.text(outcome.content), state.working_memory
+            )
             state.read_evidence[path] = outcome.data["source_sha256"]
+            if self._managed_worker:
+                state.worker_reads[outcome.evidence_id] = state.run_id
+                # Reuse the bounded, snapshot-pinned source text already kept in working memory.
+                state.working_memory[path].update(
+                    start=str(outcome.data["start"]), evidence_id=outcome.evidence_id,
+                    characters=str(len(self.evidence.redactor.text(outcome.content))),
+                )
         elif outcome.status == "success" and call.name in {"search", "run_tests"}:
             self.memory.remember_file(f"__{call.name}__", outcome.content, state.working_memory)
         if outcome.status == "success" and call.name == "memory_retrieve":
@@ -1042,8 +1120,10 @@ class Runtime:
             and call.name == "run_tests"
             and (outcome.status == "success" or outcome.reason == "tests_failed")
         ):
-            self.memory.record_use(state.recalled_ids, success=outcome.status == "success")
-            state.recalled_ids = []
+            applied = set(call.arguments.get("memory_ids", [])) & set(state.recalled_ids)
+            if applied:
+                self.memory.record_use(applied, success=outcome.status == "success")
+                state.recalled_ids = sorted(set(state.recalled_ids) - applied)
         if outcome.changed_paths:
             state.changed_paths = sorted(set(state.changed_paths + outcome.changed_paths))
             for path in outcome.changed_paths:
@@ -1052,6 +1132,16 @@ class Runtime:
             state.working_memory.pop("__search__", None)
             state.working_memory.pop("__run_tests__", None)
         self._refresh_observations()
+        if (call.name == "worker_finish" and outcome.status == "success"
+                and not outcome.data.get("stop_requested")):
+            if outcome.data["source_excerpts"]:
+                state.observed = True
+            self.finalize(outcome.data["answer"])
+            if state.phase == "completed":
+                state.handoff_sources = outcome.data["source_excerpts"]
+            else:
+                outcome.status, outcome.reason = "blocked", "worker_completion_pending"
+                outcome.content = state.feedback or state.stop_reason
         reason = self.stall.observe(call, outcome)
         trace_outcome = outcome.model_dump()
         if trace_outcome.get("data", {}).get("image_data"):
@@ -1078,8 +1168,44 @@ class Runtime:
                 self.add_message("user", state.feedback, important=True)
             else:
                 self.finish("stall_recovery_exhausted")
+        if not state.terminal:
+            self._reflect_repair(call, outcome)
         self.checkpoint()
         return outcome
+
+    def _reflect_repair(self, call: ToolCall, outcome: Outcome):
+        """One optional learning opportunity after verification, within the normal loop."""
+        if (not self.memory.enabled or not self.memory.evolution or self._managed_worker
+                or (self.maintenance.enabled and self.maintenance.can_generate)
+                or call.name != "run_tests" or outcome.status != "success"
+                or self.state.verification.state != "passed"):
+            return
+        rows = self.evidence.events(self.state.run_id)
+        if any(row["event"] == "memory_reflection" for row in rows):
+            return
+        failures = [row for row in rows if row["event"] == "tool_result"
+                    and row["call"]["name"] in {"run_tests", "run_shell"}
+                    and row["outcome"]["status"] == "error"
+                    and row["outcome"].get("exit_code") not in {None, 0}
+                    and row["outcome"]["reason"] != "no_tests_collected"][-3:]
+        if not failures:
+            return
+        references = [row["outcome"]["evidence_id"] for row in failures]
+        feedback = (
+            "Verification passed after earlier execution failures. If a reusable cause and "
+            "fix are established, save at most one scoped procedure via memory_store "
+            "(tool_load); update an existing lesson if appropriate. Describe the failure, "
+            "cause, remedy and when it applies; cite the relevant failure and passing "
+            "verification. Do not assume an unrelated passing test proves a repair. "
+            "Skip incidental typos, transient failures and lessons already covered. "
+            "If saving, briefly tell the user what went wrong, what fixed it, and the "
+            "actual storage outcome; claim saved only after tool success. "
+            f"Failure evidence IDs: {', '.join(references)}. "
+            f"Passing evidence ID: {outcome.evidence_id}."
+        )
+        self.evidence.emit(self.state.run_id, "memory_reflection",
+                           failures=references, verification=outcome.evidence_id)
+        self.add_message("user", feedback, important=True)
 
     def _refresh_observations(self):
         """Drop stale read summaries even when another writer edited an already-touched path."""
@@ -1267,12 +1393,20 @@ class Runtime:
             return state
         if self._operation_task is not None and self._operation_task is not asyncio.current_task():
             raise RuntimeError("runtime_busy: await the current operation before Final")
-        self.workers.deliver()
-        if (any(worker.explicit and not worker.future.done() for worker in self.workers.workers.values())
+        delivered = self.workers.deliver()
+        if (any(not worker.future.done() for worker in self.workers.workers.values())
                 or any(item.get("delivery") == "running" for item in state.pending_requirements)):
-            state.feedback = "Requirement or user-started workers are still running. Await them with worker_status(wait_seconds=300) or stop them, then review their artifacts before final delivery."
+            state.feedback = (
+                "Worker requirement(s) are still running. Await them with "
+                "worker_status(wait_seconds=300) or explicitly stop them, then review "
+                "their artifacts before final delivery."
+            )
             self.add_message("user", state.feedback, important=True)
             self.evidence.emit(state.run_id, "requirement_wait", feedback=state.feedback)
+            return state
+        if delivered:
+            state.feedback = "New worker handoffs arrived after your last observation. Review them before final delivery."
+            self.add_message("user", state.feedback, important=True)
             return state
         self._settle_workers()
         self._refresh_observations()
@@ -1295,6 +1429,7 @@ class Runtime:
                 f"- {item['content']}: {item.get('resolution', '')}"
                 for item in state.cancelled_requirements
             )
+        answer = self._memory_confirmation(answer)
         state.final = self.evidence.redactor.text(answer)
         state.phase = "completed"
         state.stop_reason = "verified" if result.passed else "completed_with_warning"
@@ -1303,6 +1438,24 @@ class Runtime:
         self._auto_dream()
         self.report(result)
         return state
+
+    def _memory_confirmation(self, answer):
+        """Correct common save claims using committed events, without another model call."""
+        claims_save = re.search(
+            r"已(?:经)?(?:记住|沉淀)|已(?:经)?(?:保存|记录).{0,24}(?:记忆|规则|约定|经验)"
+            r"|\b(?:saved|stored|recorded|remembered)\b.{0,48}\b(?:memory|rule|convention|lesson)\b",
+            answer, re.IGNORECASE,
+        )
+        if not claims_save:
+            return answer
+        events = self.evidence.events(self.state.run_id)
+        saved = any(
+            row["event"] == "tool_result" and row["call"]["name"] == "memory_store"
+            and row["outcome"]["status"] == "success" for row in events
+        ) or any(row["event"] == "memory_maintenance" and row.get("receipts") for row in events)
+        if not saved:
+            answer += "\n\n记忆保存状态：本次尚未写入长期记忆；如后台整理后成功保存，会另行显示记录内容。"
+        return answer
 
     def finish(self, reason: str, *, failed: bool = False):
         if not self.state or self.state.terminal:
@@ -1357,6 +1510,8 @@ class Runtime:
                 "changed_paths": self.state.changed_paths,
                 "verification": self.state.verification.model_dump(),
                 "usage": self.state.usage,
+                "memory_usage": self.state.memory_usage,
+                "team_usage": self.state.team_usage,
             },
         )
 
@@ -1372,14 +1527,9 @@ class Runtime:
     def _memory_text(self, query: str) -> str:
         if not self.settings.memory_enabled:
             return ""
-        latest = next(
-            (
-                item["content"]
-                for item in reversed(self._structured_history)
-                if item.get("role") == "user" and isinstance(item.get("content"), str)
-            ),
-            "",
-        )
+        latest = next((row.get("feedback") or row.get("task", {}).get("prompt", "")
+                       for row in reversed(self.evidence.events(self.state.run_id))
+                       if row["event"] in {"run_started", "run_continued"}), "") if self.state else ""
         query = query + "\n" + latest
         lessons = self.memory.retrieve(query, limit=3)
         if self.state:
@@ -1392,7 +1542,8 @@ class Runtime:
                 ids=[item["id"] for item in lessons],
             )
         return "\n".join(
-            f"- {x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
+            f"- [{x['id']}; {x.get('kind', 'excerpt')}; {x.get('when') or 'project excerpt'}] "
+            f"{x['text']} (evidence: {x['provenance'].get('evidence_id', '')})" for x in lessons
         )
 
     def _unavailable_reason(self, name, *, state=None):
@@ -1409,6 +1560,12 @@ class Runtime:
             if self.settings.tool_profile == "all"
             else (set(CORE_TOOLS) | set(state.loaded_tools if state else []))
         )
+        if self.settings.max_workers > 0:
+            selected = set(selected) | {"worker_start"}
+        if state and state.parent_run_id:
+            selected = set(selected) | {"worker_finish"}
+        if state and state.worker_sessions:
+            selected = set(selected) | {"worker_status"}
         return sorted(name for name in selected if not self._unavailable_reason(name, state=state))
 
     def tool_definitions(self, *, state=None):
@@ -1416,7 +1573,8 @@ class Runtime:
         return definitions(self._tool_names(state=state), available=available)
 
     def _request_tool_definitions(self, settings, *, state=None):
-        if self._handoff_reason:
+        # Parent delivery keeps the cacheable catalog; _execute_batch still denies all calls.
+        if self._handoff_reason and self._managed_worker:
             return []
         tools = self.tool_definitions(state=state)
         if self.evidence.redactor.value(tools, mask_fields=False) != tools:
@@ -1433,6 +1591,7 @@ class Runtime:
             result = self.memory.dream()
             if self.state:
                 self.evidence.emit(self.state.run_id, "memory_dream", **result)
+                self.maintenance.enqueue()
         except Exception as exc:
             if self.state:
                 self.evidence.emit(

@@ -1,0 +1,4 @@
+{
+  "retry.py": "\"\"\"Helpers for deciding whether an HTTP response should be retried.\"\"\"\n\n\n_RETRYABLE_STATUSES = frozenset({408, 429, 500, 502, 503, 504})\n\n\ndef should_retry(status):\n    \"\"\"Return whether *status* represents a transient HTTP failure.\"\"\"\n    return status in _RETRYABLE_STATUSES\n\n",
+  "test_retry.py": "import unittest\n\nfrom retry import should_retry\n\n\nclass ShouldRetryTest(unittest.TestCase):\n    def test_retryable_statuses(self):\n        for status in (408, 429, 500, 502, 503, 504):\n            with self.subTest(status=status):\n                self.assertIs(should_retry(status), True)\n\n    def test_non_retryable_statuses(self):\n        for status in (100, 200, 400, 401, 404, 425, 501, 505, 599, 600, None, \"503\"):\n            with self.subTest(status=status):\n                self.assertIs(should_retry(status), False)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"
+}

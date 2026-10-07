@@ -1,0 +1,6 @@
+{
+  "checks/test_names.py": "import unittest\nfrom names import normalize_name\nclass NameTests(unittest.TestCase):\n    def test_name(self):\n        self.assertEqual(normalize_name('  Ada   LOVELACE  '), 'ada_lovelace')\n    def test_empty(self):\n        self.assertEqual(normalize_name('   '), '')\n",
+  "checks/test_owners.py": "import unittest\nfrom owners import normalize_owner\nclass OwnerTests(unittest.TestCase):\n    def test_owner(self):\n        self.assertEqual(normalize_owner('  Grace   HOPPER '), 'grace_hopper')\n",
+  "src/names.py": "def normalize_name(value):\n    return '_'.join(value.lower().split())\n",
+  "src/owners.py": "def normalize_owner(value):\n    return '_'.join(value.lower().split())\n"
+}

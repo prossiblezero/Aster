@@ -57,6 +57,7 @@ async def test_worker_edits_count_without_polling_but_never_leak_into_the_next_r
     runtime.start(TaskSpec(prompt="demo", require_edit=True))
     started = await runtime.workers.start("demo", mode="worker", write_scope=["child.txt"])
     await runtime.workers.workers[started["worker_id"]].future
+    runtime.prepare_request()  # Consume the child handoff before final synthesis.
     assert runtime.finalize("Done.").phase == "completed"
     assert runtime.state.changed_paths == ["child.txt"]
 
@@ -197,7 +198,7 @@ async def test_finish_cancels_live_worker_and_disallows_spawning_after_terminal(
     await entered.wait()
     with pytest.raises(RuntimeError, match="runtime_busy"):
         runtime.resume(state.run_id)
-    runtime.finalize("No more work.")
+    runtime.finish("user_stop")
     await runtime.workers.close()
     worker = runtime.workers.workers[response["worker_id"]]
     assert worker.future.cancelled() and worker.runtime.state.terminal

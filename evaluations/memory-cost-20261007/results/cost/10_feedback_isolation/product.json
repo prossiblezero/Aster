@@ -1,0 +1,5 @@
+{
+  "cleaning.py": "def normalize_spaces(value):\n    return ' '.join(value.split())\n",
+  "project.md": "Project narrative summaries use French. This convention concerns prose, not string processing behavior.\n",
+  "test_cleaning.py": "import unittest\nfrom cleaning import normalize_spaces\nclass CleaningTests(unittest.TestCase):\n    def test_spaces(self):\n        self.assertEqual(normalize_spaces('  one   two  '), 'one two')\n\n    def test_all_whitespace_runs(self):\n        self.assertEqual(normalize_spaces('\\t one\\n\\n two \\r\\t three  '), 'one two three')\n        self.assertEqual(normalize_spaces(' \\t\\n '), '')\n"
+}

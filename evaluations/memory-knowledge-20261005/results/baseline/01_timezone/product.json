@@ -1,0 +1,3 @@
+{
+  "report.py": "\"\"\"Formatting helpers for report output.\"\"\"\n\nfrom datetime import datetime, timezone\n\n\ndef report_time(iso_timestamp):\n    \"\"\"Format an ISO 8601 timestamp as a UTC report timestamp.\n\n    Report timestamps use second precision and an explicit UTC marker.  A\n    timezone is required so that the result does not depend on the host's\n    local timezone.\n    \"\"\"\n    timestamp = datetime.fromisoformat(iso_timestamp)\n    if timestamp.tzinfo is None or timestamp.utcoffset() is None:\n        raise ValueError(\"report_time requires a timezone-aware ISO timestamp\")\n\n    return timestamp.astimezone(timezone.utc).strftime(\"%Y-%m-%d %H:%M:%S UTC\")\n"
+}

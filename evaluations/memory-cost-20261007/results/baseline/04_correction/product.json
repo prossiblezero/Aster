@@ -1,0 +1,4 @@
+{
+  "retry.py": "def should_retry(status):\n    return status in {429, 502, 503}\n",
+  "test_retry.py": "import unittest\n\nfrom retry import should_retry\n\n\nclass ShouldRetryTests(unittest.TestCase):\n    def test_current_retry_policy(self):\n        expected = {\n            429: True,\n            502: True,\n            503: True,\n            500: False,\n            200: False,\n            501: False,\n            504: False,\n            None: False,\n            \"503\": False,\n        }\n        for status, retry in expected.items():\n            with self.subTest(status=status):\n                result = should_retry(status)\n                self.assertIs(type(result), bool)\n                self.assertIs(result, retry)\n"
+}

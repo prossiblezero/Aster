@@ -1,0 +1,1451 @@
+{
+  "episodes": 40,
+  "planned": 40,
+  "propagation": {
+    "child_correct_preserved": 76
+  },
+  "diagnostics": [
+    {
+      "task": "django-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "d3",
+          "expected": [
+            [
+              "aB"
+            ],
+            2,
+            true,
+            true
+          ],
+          "parent": [
+            [
+              "aB",
+              2
+            ],
+            2,
+            true,
+            true
+          ],
+          "child": []
+        },
+        {
+          "id": "r4",
+          "expected": [
+            [
+              [
+                "",
+                []
+              ]
+            ],
+            [
+              [
+                "xz",
+                []
+              ]
+            ]
+          ],
+          "parent": [
+            [
+              [
+                "",
+                []
+              ]
+            ],
+            [
+              "xz",
+              []
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 605,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "d3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        },
+        {
+          "id": "r4",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "django-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        3245
+      ],
+      "child_tools": {
+        "search": 2,
+        "read_file": 3,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0
+      ],
+      "parent_tool_load_requests": [
+        "worker_status"
+      ],
+      "parent_lines_before_first_handoff": 699,
+      "parent_child_overlap_before_first_handoff": 258,
+      "failed_checks": []
+    },
+    {
+      "task": "django-review",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        2096
+      ],
+      "child_tools": {
+        "list_files": 2,
+        "read_file": 3,
+        "run_shell": 2,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [
+        {
+          "id": "r2",
+          "expected": [
+            [
+              "aaab",
+              []
+            ]
+          ],
+          "parent": [
+            [
+              "aab",
+              []
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [
+        0,
+        30,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 955,
+      "parent_child_overlap_before_first_handoff": 280,
+      "failed_checks": [
+        {
+          "id": "r2",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "django-review",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 1386,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 195,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "c4",
+          "correct": false,
+          "evidence": false,
+          "observed": true,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        2884
+      ],
+      "child_tools": {
+        "read_file": 1,
+        "search": 3,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        300
+      ],
+      "parent_tool_load_requests": [
+        "worker_status",
+        "worker_message"
+      ],
+      "parent_lines_before_first_handoff": 195,
+      "parent_child_overlap_before_first_handoff": 106,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1500
+      ],
+      "child_tools": {
+        "list_files": 2,
+        "read_file": 3,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        1,
+        300
+      ],
+      "parent_tool_load_requests": [
+        "worker_status"
+      ],
+      "parent_lines_before_first_handoff": 428,
+      "parent_child_overlap_before_first_handoff": 250,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 428,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "v1",
+          "expected": 4,
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "v2",
+          "expected": [
+            9,
+            0
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "s1",
+          "expected": [
+            1,
+            0,
+            10,
+            {
+              "sum": 9,
+              "count": 4,
+              "max": 3
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "s2",
+          "expected": [
+            6,
+            10,
+            1,
+            {
+              "sum": 3,
+              "count": 2,
+              "max": 2
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "f1",
+          "expected": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "f2",
+          "expected": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            },
+            {
+              "sum": 6,
+              "count": 2,
+              "max": 4
+            },
+            2
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "g1",
+          "expected": [
+            false,
+            true
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "g2",
+          "expected": [
+            false,
+            true
+          ],
+          "parent": null,
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 324,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        0
+      ],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "v1",
+          "expected": 4,
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "v2",
+          "expected": [
+            9,
+            0
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "s1",
+          "expected": [
+            1,
+            0,
+            10,
+            {
+              "sum": 9,
+              "count": 4,
+              "max": 3
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "s2",
+          "expected": [
+            6,
+            10,
+            1,
+            {
+              "sum": 3,
+              "count": 2,
+              "max": 2
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "f1",
+          "expected": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            }
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "f2",
+          "expected": [
+            true,
+            {
+              "sum": 4,
+              "count": 1,
+              "max": 4
+            },
+            {
+              "sum": 6,
+              "count": 2,
+              "max": 4
+            },
+            2
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "g1",
+          "expected": [
+            false,
+            true
+          ],
+          "parent": null,
+          "child": []
+        },
+        {
+          "id": "g2",
+          "expected": [
+            false,
+            true
+          ],
+          "parent": null,
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 0,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "session-review",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1591
+      ],
+      "child_tools": {
+        "list_files": 2,
+        "read_file": 4,
+        "search": 1,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 462,
+      "parent_child_overlap_before_first_handoff": 205,
+      "failed_checks": []
+    },
+    {
+      "task": "session-review",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 462,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "boltons-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "i3",
+          "expected": {
+            "exception": "TypeError"
+          },
+          "parent": [
+            [],
+            [
+              [
+                1,
+                2,
+                0
+              ],
+              [
+                2,
+                0,
+                0
+              ]
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 894,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "i3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "boltons-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        3157
+      ],
+      "child_tools": {
+        "search": 4,
+        "read_file": 4,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [
+        {
+          "id": "i3",
+          "expected": {
+            "exception": "TypeError"
+          },
+          "parent": [
+            [],
+            [
+              [
+                1,
+                2,
+                0
+              ],
+              [
+                2,
+                0,
+                0
+              ]
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 439,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "i3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "more-itertools-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1511
+      ],
+      "child_tools": {
+        "search": 4,
+        "read_file": 5,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 231,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "more-itertools-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "m4",
+          "expected": [
+            [
+              [],
+              [
+                1
+              ],
+              [],
+              [
+                2
+              ],
+              []
+            ],
+            [
+              [],
+              [
+                0
+              ],
+              [
+                1
+              ],
+              [
+                0
+              ],
+              [
+                0,
+                2,
+                0
+              ]
+            ]
+          ],
+          "parent": [
+            [
+              [],
+              [
+                1
+              ],
+              [],
+              [],
+              [
+                2
+              ],
+              []
+            ],
+            [
+              [],
+              [
+                0
+              ],
+              [
+                1
+              ],
+              [
+                0
+              ],
+              [
+                0,
+                2,
+                0
+              ]
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 440,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "m4",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "cachetools-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 826,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "cachetools-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {
+        "handoff_source_range": 1
+      },
+      "selected_source_characters": [
+        2743
+      ],
+      "child_tools": {
+        "list_files": 1,
+        "read_file": 4,
+        "search": 2,
+        "run_shell": 1,
+        "worker_finish": 2
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        30
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 686,
+      "parent_child_overlap_before_first_handoff": 611,
+      "failed_checks": []
+    },
+    {
+      "task": "itsdangerous-investigate",
+      "arm": "team",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [
+        500
+      ],
+      "child_tools": {
+        "read_file": 2,
+        "run_shell": 4,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 753,
+      "parent_child_overlap_before_first_handoff": 266,
+      "failed_checks": []
+    },
+    {
+      "task": "itsdangerous-investigate",
+      "arm": "solo",
+      "repeat": 1,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 913,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "django-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {
+        "handoff_source_unknown": 1
+      },
+      "selected_source_characters": [
+        5080
+      ],
+      "child_tools": {
+        "list_files": 1,
+        "read_file": 2,
+        "search": 1,
+        "run_shell": 1,
+        "worker_finish": 2
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        30,
+        60
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 693,
+      "parent_child_overlap_before_first_handoff": 321,
+      "failed_checks": []
+    },
+    {
+      "task": "django-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 693,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "django-review",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 1052,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "django-review",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1242
+      ],
+      "child_tools": {
+        "list_files": 1,
+        "read_file": 3,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 1213,
+      "parent_child_overlap_before_first_handoff": 520,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        3098
+      ],
+      "child_tools": {
+        "read_file": 1,
+        "search": 3,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 195,
+      "parent_child_overlap_before_first_handoff": 106,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 195,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "c4",
+          "correct": false,
+          "evidence": false,
+          "observed": true,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 380,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "openlibrary-review",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1660
+      ],
+      "child_tools": {
+        "read_file": 2,
+        "git_diff": 1,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0
+      ],
+      "parent_tool_load_requests": [
+        "worker_status"
+      ],
+      "parent_lines_before_first_handoff": 428,
+      "parent_child_overlap_before_first_handoff": 212,
+      "failed_checks": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        2839
+      ],
+      "child_tools": {
+        "read_file": 4,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 324,
+      "parent_child_overlap_before_first_handoff": 239,
+      "failed_checks": []
+    },
+    {
+      "task": "session-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 324,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "session-review",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 462,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "session-review",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1591
+      ],
+      "child_tools": {
+        "list_files": 1,
+        "read_file": 4,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 462,
+      "parent_child_overlap_before_first_handoff": 205,
+      "failed_checks": []
+    },
+    {
+      "task": "boltons-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        2864
+      ],
+      "child_tools": {
+        "search": 6,
+        "read_file": 5,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 1398,
+      "parent_child_overlap_before_first_handoff": 371,
+      "failed_checks": []
+    },
+    {
+      "task": "boltons-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "d3",
+          "expected": [
+            3,
+            [
+              [
+                "a",
+                1
+              ],
+              [
+                "b",
+                2
+              ]
+            ],
+            [
+              1
+            ],
+            [
+              [
+                "b",
+                2
+              ]
+            ]
+          ],
+          "parent": [
+            3,
+            [
+              [
+                "a",
+                1
+              ],
+              [
+                "b",
+                2
+              ]
+            ],
+            [
+              1
+            ],
+            []
+          ],
+          "child": []
+        },
+        {
+          "id": "d4",
+          "expected": [
+            {
+              "b": 2,
+              "c": 1
+            },
+            {
+              "2": "b",
+              "1": "c"
+            }
+          ],
+          "parent": [
+            {
+              "a": 1,
+              "b": 2,
+              "c": 1
+            },
+            {
+              "2": "b",
+              "1": "c"
+            }
+          ],
+          "child": []
+        },
+        {
+          "id": "i3",
+          "expected": {
+            "exception": "TypeError"
+          },
+          "parent": [
+            [],
+            [
+              [
+                1,
+                2,
+                0
+              ],
+              [
+                2,
+                0,
+                0
+              ]
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 973,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "d3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        },
+        {
+          "id": "d4",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        },
+        {
+          "id": "i3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "more-itertools-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 495,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "more-itertools-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        1436
+      ],
+      "child_tools": {
+        "search": 4,
+        "read_file": 6,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 830,
+      "parent_child_overlap_before_first_handoff": 260,
+      "failed_checks": []
+    },
+    {
+      "task": "cachetools-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        3059
+      ],
+      "child_tools": {
+        "search": 4,
+        "read_file": 5,
+        "run_shell": 1,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [
+        {
+          "id": "k3",
+          "expected": [
+            true,
+            false
+          ],
+          "parent": [
+            [
+              true,
+              false
+            ]
+          ],
+          "child": []
+        }
+      ],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 346,
+      "parent_child_overlap_before_first_handoff": 197,
+      "failed_checks": [
+        {
+          "id": "k3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "cachetools-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [
+        {
+          "id": "c3",
+          "expected": [
+            [
+              [
+                "a",
+                [
+                  1,
+                  2,
+                  3
+                ]
+              ],
+              [
+                "b",
+                [
+                  4,
+                  5,
+                  6
+                ]
+              ]
+            ],
+            5
+          ],
+          "parent": {
+            "exception": "AttributeError"
+          },
+          "child": []
+        }
+      ],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 857,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": [
+        {
+          "id": "c3",
+          "correct": false,
+          "evidence": true,
+          "observed": false,
+          "regression": true
+        }
+      ]
+    },
+    {
+      "task": "itsdangerous-investigate",
+      "arm": "solo",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [],
+      "child_tools": {},
+      "propagation": {},
+      "behavior_failures": [],
+      "parent_status_waits": [],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 753,
+      "parent_child_overlap_before_first_handoff": 0,
+      "failed_checks": []
+    },
+    {
+      "task": "itsdangerous-investigate",
+      "arm": "team",
+      "repeat": 2,
+      "finish_errors": {},
+      "selected_source_characters": [
+        2679
+      ],
+      "child_tools": {
+        "read_file": 1,
+        "run_shell": 2,
+        "worker_finish": 1
+      },
+      "propagation": {
+        "child_correct_preserved": 4
+      },
+      "behavior_failures": [],
+      "parent_status_waits": [
+        0,
+        300
+      ],
+      "parent_tool_load_requests": [],
+      "parent_lines_before_first_handoff": 753,
+      "parent_child_overlap_before_first_handoff": 266,
+      "failed_checks": []
+    }
+  ]
+}

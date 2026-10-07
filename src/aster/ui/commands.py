@@ -129,7 +129,18 @@ def inspect_command(command: str, runtime, *, settings, activity, root_path, con
             f"长期记忆：{'开启' if settings.memory_enabled else '关闭'} · {len(lessons)} 条\n位置：{runtime.memory.path}"
         )
         for item in lessons[-20:]:
-            write(f"  {item['id']} · {item.get('text', '')[:300]}")
+            status = item.get("inactive_reason") or "生效"
+            write(f"  {item['id']} · {status} · {item.get('kind', 'excerpt')} · {item.get('text', '')[:300]}")
+            if item.get("when"):
+                write(f"    适用：{item['when']}")
+            write(f"    来源任务：{item.get('provenance', {}).get('run_id', '')}")
+        recent = next((item for item in reversed(runtime.memory.state.get("audit", []))
+                       if item["event"] == "consolidated"), None)
+        if recent:
+            write(f"最近整理：保存 {recent['accepted']} 项，跳过 {len(recent['rejected'])} 项。")
+        if state and state.memory_usage:
+            write(f"本任务整理开销：{state.memory_usage.get('calls', 0)} 次调用，"
+                  f"{state.memory_usage.get('total_tokens', 0)} 个已报告 token。")
     elif command == "/working-memory":
         write(
             runtime.memory.working_section(state.working_memory)

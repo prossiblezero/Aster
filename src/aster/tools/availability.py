@@ -35,6 +35,8 @@ def unavailable_reason(
         return "read_only"
     if name.startswith("memory_") and not settings.memory_enabled:
         return "memory_disabled"
+    if name == "worker_finish":
+        return "" if state and state.parent_run_id else "worker_only"
     if (name.startswith("worker_") and settings.max_workers == 0
             and (name == "worker_start" or not state or not state.worker_sessions)):
         return "workers_disabled"

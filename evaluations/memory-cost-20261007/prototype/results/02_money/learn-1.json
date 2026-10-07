@@ -1,0 +1,206 @@
+{
+  "prompt": "项目发票金额的输入是十进制字符串，用 Decimal 从原字符串构造；用 ROUND_DOWN 向零截断到两位，输出固定两位字符串，负数也向零截断。这一轮只确认约定，不需要写代码。\n本次演示临时标签为 TEMP-DEMO-742，仅用于这一轮，不是项目约定。",
+  "run_id": "90eb2bc4172947c6b840f3050db2457b",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "已确认本轮约定：\n\n- 输入为十进制字符串。\n- 使用 `Decimal` 从原始字符串构造，避免先转为二进制浮点数。\n- 使用 `ROUND_DOWN` 截断到两位小数；对正数和负数均按向零处理。\n- 输出固定两位小数字符串。\n- `TEMP-DEMO-742` 仅为本轮演示临时标签，不作为项目约定。\n- 本轮不修改代码。",
+  "seconds": 9.18,
+  "foreground_seconds": 5.079,
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 5026,
+    "input_tokens_requests": 1,
+    "output_tokens": 134,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 0,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 30,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 5160,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 2,
+    "tool_calls": 0,
+    "charged_tokens": 11851
+  },
+  "maintenance_events": [
+    {
+      "seq": 117,
+      "time": "2026-10-06T17:46:44.822426+00:00",
+      "run_id": "90eb2bc4172947c6b840f3050db2457b",
+      "event": "memory_maintenance",
+      "previous": "583234aed8410b12f087db378d4969342659bf12c1551ec4e835661edf14224f",
+      "status": "started",
+      "job_id": "495cc19daa1b40799cf68b2c17e1287a",
+      "reservation": 1671,
+      "hash": "1ecbaae0f3f534ec6ff099dbc690975006ed0eca2b1af791fd827716ed348dcd"
+    },
+    {
+      "seq": 119,
+      "time": "2026-10-06T17:46:48.915184+00:00",
+      "run_id": "90eb2bc4172947c6b840f3050db2457b",
+      "event": "memory_maintenance",
+      "previous": "d0d3d998247b45e02c39fa7b94baddc1f491bb5e637c0ce4b8f4c53090669460",
+      "status": "ready",
+      "job_id": "495cc19daa1b40799cf68b2c17e1287a",
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 5026,
+        "input_tokens_requests": 1,
+        "output_tokens": 134,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 30,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 5160,
+        "total_tokens_requests": 1
+      },
+      "usage_complete": true,
+      "seconds": 4.081,
+      "reason": "",
+      "hash": "4acb5ea9f2660201e0dc6303398bce70f6355a209c8840a8b34edef1bacc44ec"
+    },
+    {
+      "seq": 120,
+      "time": "2026-10-06T17:46:48.924360+00:00",
+      "run_id": "90eb2bc4172947c6b840f3050db2457b",
+      "event": "memory_maintenance",
+      "previous": "4acb5ea9f2660201e0dc6303398bce70f6355a209c8840a8b34edef1bacc44ec",
+      "status": "committed",
+      "job_id": "495cc19daa1b40799cf68b2c17e1287a",
+      "receipts": [
+        {
+          "action": "store",
+          "id": "2966938173536239",
+          "text": "项目发票金额输入为十进制字符串；必须从原字符串构造 Decimal，使用 ROUND_DOWN 截断到两位小数并输出固定两位字符串。ROUND_DOWN 对负数也按向零截断。",
+          "when": "处理项目发票金额的解析、截断或格式化时",
+          "replaces": []
+        }
+      ],
+      "rejected": [],
+      "reason": "",
+      "hash": "430036179921c84226086ea1cbd0fe4f634c57e4e2ccc8864846df4646ef208c"
+    }
+  ],
+  "input_tokens": 11571,
+  "output_tokens": 280,
+  "total_tokens": 11851,
+  "cache_read_input_tokens": 0,
+  "cache_creation_input_tokens": null,
+  "uncached_input_tokens": null,
+  "reasoning_tokens": 64,
+  "usage": {
+    "usage_requests": 2,
+    "input_tokens": 11571,
+    "input_tokens_requests": 2,
+    "output_tokens": 280,
+    "output_tokens_requests": 2,
+    "cache_read_input_tokens": 0,
+    "cache_read_input_tokens_requests": 2,
+    "reasoning_tokens": 64,
+    "reasoning_tokens_requests": 2,
+    "total_tokens": 11851,
+    "total_tokens_requests": 2
+  },
+  "model_requests": 2,
+  "usage_coverage": {
+    "input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "output_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "total_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_read_input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_creation_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "uncached_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "reasoning_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    }
+  },
+  "provider_attempts": 2,
+  "provider_attempts_with_total": 2,
+  "pending_maintenance": 0,
+  "response_models": [
+    "gpt-5.6-luna"
+  ],
+  "tools": [],
+  "recalled_ids": [],
+  "memory_before": [],
+  "memory_after": [
+    {
+      "id": "2966938173536239",
+      "text": "项目发票金额输入为十进制字符串；必须从原字符串构造 Decimal，使用 ROUND_DOWN 截断到两位小数并输出固定两位字符串。ROUND_DOWN 对负数也按向零截断。",
+      "kind": "fact",
+      "when": "处理项目发票金额的解析、截断或格式化时",
+      "tags": [],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "90eb2bc4172947c6b840f3050db2457b",
+        "evidence_id": "6e68ff3e23072983bb75a36aa5dd032cb0826db944805afa81988b88c467ac59",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:46:48+00:00",
+        "citations": [
+          {
+            "run_id": "90eb2bc4172947c6b840f3050db2457b",
+            "evidence_id": "6e68ff3e23072983bb75a36aa5dd032cb0826db944805afa81988b88c467ac59",
+            "source": "user",
+            "time": "2026-10-06T17:46:39.747018+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_audit": [
+    {
+      "event": "record",
+      "lesson_id": "2966938173536239",
+      "run_id": "90eb2bc4172947c6b840f3050db2457b",
+      "evidence_id": "6e68ff3e23072983bb75a36aa5dd032cb0826db944805afa81988b88c467ac59",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "495cc19daa1b40799cf68b2c17e1287a",
+      "accepted": 1,
+      "rejected": [],
+      "fingerprints": [
+        "a81678cbd59d4e3b7614c12f51b184948b55f9cd3a3dc9ba57316534d3ccf74d"
+      ],
+      "result_revision": "224b20a3281d83348eecd028ad173872cde1ac14e637ff60cfbb06066eed59cf"
+    }
+  ]
+}

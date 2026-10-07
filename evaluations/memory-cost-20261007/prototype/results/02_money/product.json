@@ -1,0 +1,3 @@
+{
+  "billing.py": "from decimal import Decimal, InvalidOperation, ROUND_DOWN\n\n\n_CENT = Decimal(\"0.01\")\n\n\ndef invoice_amount(value):\n    \"\"\"Return an invoice amount truncated to cents as a fixed-point string.\"\"\"\n    if not isinstance(value, str):\n        raise TypeError(\"invoice amount must be a string\")\n\n    try:\n        amount = Decimal(value)\n    except InvalidOperation as exc:\n        raise ValueError(\"invalid invoice amount\") from exc\n\n    if not amount.is_finite():\n        raise ValueError(\"invoice amount must be finite\")\n\n    return format(amount.quantize(_CENT, rounding=ROUND_DOWN), \".2f\")\n"
+}

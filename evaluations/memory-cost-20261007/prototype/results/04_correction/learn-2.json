@@ -1,0 +1,312 @@
+{
+  "prompt": "更正项目 HTTP 重试规则：现在只允许 429、502、503，500 已不再允许。这一轮只确认新约定，不需要写代码。\n本次演示临时标签为 TEMP-DEMO-742，仅用于这一轮，不是项目约定。",
+  "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "已确认本轮新约定：\n\n- HTTP 重试仅允许 `429`、`502`、`503`\n- `500` 不再允许重试\n- `TEMP-DEMO-742` 仅为本轮演示临时标签，不作为项目约定\n\n本轮不修改代码。",
+  "seconds": 11.861,
+  "foreground_seconds": 5.292,
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 5072,
+    "input_tokens_requests": 1,
+    "output_tokens": 145,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 4608,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 44,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 5217,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 2,
+    "tool_calls": 0,
+    "charged_tokens": 11958
+  },
+  "maintenance_events": [
+    {
+      "seq": 77,
+      "time": "2026-10-06T17:49:17.398024+00:00",
+      "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+      "event": "memory_maintenance",
+      "previous": "9fe7d4a7e0565afb2c8e743cc123a1e762c9e79881cb92e67bd5b17db5db4b39",
+      "status": "started",
+      "job_id": "50f2a4c770864a88b519cd363161cce9",
+      "reservation": 1736,
+      "hash": "79c169a6c5862cf831a872f9bfef7db7b2caf654ad4eb85433bc3094a76924b1"
+    },
+    {
+      "seq": 79,
+      "time": "2026-10-06T17:49:23.957926+00:00",
+      "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+      "event": "memory_maintenance",
+      "previous": "93a6d2229a54e3a6a851da3268b01ceebd339280b95a6268a07431f8436d0619",
+      "status": "ready",
+      "job_id": "50f2a4c770864a88b519cd363161cce9",
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 5072,
+        "input_tokens_requests": 1,
+        "output_tokens": 145,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 4608,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 44,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 5217,
+        "total_tokens_requests": 1
+      },
+      "usage_complete": true,
+      "seconds": 6.547,
+      "reason": "",
+      "hash": "688d005c61d3df5a3f84023123f008c3f5bbb12392d364c94f82af3b143e06cb"
+    },
+    {
+      "seq": 80,
+      "time": "2026-10-06T17:49:23.967895+00:00",
+      "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+      "event": "memory_maintenance",
+      "previous": "688d005c61d3df5a3f84023123f008c3f5bbb12392d364c94f82af3b143e06cb",
+      "status": "committed",
+      "job_id": "50f2a4c770864a88b519cd363161cce9",
+      "receipts": [
+        {
+          "action": "replace",
+          "id": "f96f586e7a7e8b41",
+          "text": "项目 HTTP 重试只允许状态码 429、502、503；500 及其他状态码不属于重试范围。",
+          "when": "适用于本项目的 HTTP 重试策略",
+          "replaces": [
+            "ab041e27eaf18392"
+          ]
+        }
+      ],
+      "rejected": [],
+      "reason": "",
+      "hash": "8114bc569e7532bc066772fb937dc7bb2991918c63eb19787f0126ecd5063b86"
+    }
+  ],
+  "input_tokens": 11692,
+  "output_tokens": 266,
+  "total_tokens": 11958,
+  "cache_read_input_tokens": 10240,
+  "cache_creation_input_tokens": null,
+  "uncached_input_tokens": null,
+  "reasoning_tokens": 94,
+  "usage": {
+    "usage_requests": 2,
+    "input_tokens": 11692,
+    "input_tokens_requests": 2,
+    "output_tokens": 266,
+    "output_tokens_requests": 2,
+    "cache_read_input_tokens": 10240,
+    "cache_read_input_tokens_requests": 2,
+    "reasoning_tokens": 94,
+    "reasoning_tokens_requests": 2,
+    "total_tokens": 11958,
+    "total_tokens_requests": 2
+  },
+  "model_requests": 2,
+  "usage_coverage": {
+    "input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "output_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "total_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_read_input_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    },
+    "cache_creation_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "uncached_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 2,
+      "complete": false
+    },
+    "reasoning_tokens": {
+      "reported_requests": 2,
+      "model_requests": 2,
+      "complete": true
+    }
+  },
+  "provider_attempts": 2,
+  "provider_attempts_with_total": 2,
+  "pending_maintenance": 0,
+  "response_models": [
+    "gpt-5.6-luna"
+  ],
+  "tools": [],
+  "recalled_ids": [
+    "ab041e27eaf18392"
+  ],
+  "memory_before": [
+    {
+      "id": "ab041e27eaf18392",
+      "text": "项目 HTTP 重试只允许状态码 500、502、503；其他状态码不属于重试范围。",
+      "kind": "fact",
+      "when": "适用于本项目的 HTTP 重试策略",
+      "tags": [
+        "project-convention",
+        "http",
+        "retry"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+        "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:49:12+00:00",
+        "citations": [
+          {
+            "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+            "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+            "source": "user",
+            "time": "2026-10-06T17:48:59.911489+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_after": [
+    {
+      "id": "ab041e27eaf18392",
+      "text": "项目 HTTP 重试只允许状态码 500、502、503；其他状态码不属于重试范围。",
+      "kind": "fact",
+      "when": "适用于本项目的 HTTP 重试策略",
+      "tags": [
+        "project-convention",
+        "http",
+        "retry"
+      ],
+      "support": 1,
+      "contradictions": 1,
+      "retrievals": 1,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+        "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:49:12+00:00",
+        "citations": [
+          {
+            "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+            "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+            "source": "user",
+            "time": "2026-10-06T17:48:59.911489+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": "superseded"
+    },
+    {
+      "id": "f96f586e7a7e8b41",
+      "text": "项目 HTTP 重试只允许状态码 429、502、503；500 及其他状态码不属于重试范围。",
+      "kind": "fact",
+      "when": "适用于本项目的 HTTP 重试策略",
+      "tags": [
+        "project-convention",
+        "http",
+        "retry"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+        "evidence_id": "ebe2f1c4e4e3ac783d9784048fd61614b3efd2ef74dce80fd4a88167eb8c4fa6",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:49:23+00:00",
+        "citations": [
+          {
+            "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+            "evidence_id": "ebe2f1c4e4e3ac783d9784048fd61614b3efd2ef74dce80fd4a88167eb8c4fa6",
+            "source": "user",
+            "time": "2026-10-06T17:49:12.109804+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+            "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+            "source": "user",
+            "time": "2026-10-06T17:48:59.911489+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_audit": [
+    {
+      "event": "record",
+      "lesson_id": "ab041e27eaf18392",
+      "run_id": "8ffa64e654d84f5e96dc13531c2a32c3",
+      "evidence_id": "6774d7dcbd9c744480477c4a4ac5bc80ebb67d6c7b2527eab641fdd6a91edf42",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "f2f7f8f155ad4dbea12a733f180fa56a",
+      "accepted": 1,
+      "rejected": [],
+      "fingerprints": [
+        "c13b545210a143cdc2e97e04b6801c66face5ba51f5897f43acbf5de3260253f"
+      ],
+      "result_revision": "bc1286fbc5c668255b25384d0152e606165b9a56d6247dde5ba661520a59aa35"
+    },
+    {
+      "event": "dream",
+      "status": "completed",
+      "reason": "",
+      "checked": 1,
+      "deactivated": 0
+    },
+    {
+      "event": "record",
+      "lesson_id": "f96f586e7a7e8b41",
+      "run_id": "755d0170b9234d8f9a813d7a37b975a3",
+      "evidence_id": "ebe2f1c4e4e3ac783d9784048fd61614b3efd2ef74dce80fd4a88167eb8c4fa6",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "50f2a4c770864a88b519cd363161cce9",
+      "accepted": 1,
+      "rejected": [],
+      "fingerprints": [
+        "0fb8b951255499f9c566cf68d802ed9ebba44203ecb1754f49af85c098bb951a"
+      ],
+      "result_revision": "542c81b06420b0ddfc14cbe4930f7ac1e8524797678a58c1235d8beb3f67d685"
+    }
+  ]
+}

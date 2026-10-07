@@ -1,0 +1,3 @@
+{
+  "report.py": "from datetime import datetime\nfrom zoneinfo import ZoneInfo\n\n\n_REPORT_TIMEZONE = ZoneInfo(\"Asia/Shanghai\")\n\n\ndef report_time(iso_timestamp):\n    \"\"\"Format an aware ISO 8601 timestamp using the report timezone.\"\"\"\n    timestamp = datetime.fromisoformat(iso_timestamp)\n    if timestamp.tzinfo is None:\n        raise ValueError(\"iso_timestamp must include a timezone\")\n\n    return timestamp.astimezone(_REPORT_TIMEZONE).strftime(\"%Y-%m-%d %H:%M\")\n"
+}

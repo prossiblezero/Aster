@@ -14,7 +14,7 @@ from ..sessions.checkpoint import redact_skill_snapshots
 from ..sessions.lifecycle import read_session_observation
 from ..storage.evidence import EvidenceStore
 from ..storage.workspace import Workspace
-from .schemas import SCHEMAS
+from .schemas import HANDOFF_SOURCE_CHARACTERS, SCHEMAS
 from .workspace import text_page
 
 
@@ -147,6 +147,8 @@ class WorkflowTools:
                 self.memory, self.evidence, state.run_id,
                 text=args["text"], evidence_id=args["evidence_id"], tags=args.get("tags", []),
                 lesson_id=args["lesson_id"] if name == "memory_update" else None,
+                kind=args.get("kind", "excerpt"), when=args.get("when", ""),
+                evidence_ids=args.get("evidence_ids", []),
             )
         if name == "memory_discard":
             found = self.memory.discard(args["lesson_id"])
@@ -213,8 +215,77 @@ class WorkflowTools:
                 content=json.dumps(data, ensure_ascii=False),
                 data=data,
             )
+        if name == "worker_finish":
+            if not state.parent_run_id:
+                return Outcome(status="blocked", reason="worker_only")
+            selections = []
+            for index, selection in enumerate(args.get("sources", []), 1):
+                reference = selection["evidence_id"]
+                matching_ids = ([reference] if reference in state.worker_reads else [
+                    key for key in state.worker_reads if len(reference) == 12 and key.startswith(reference)
+                ])
+                if len(matching_ids) != 1:
+                    ambiguous = len(matching_ids) > 1
+                    return Outcome(status="blocked",
+                                   reason="handoff_source_ambiguous" if ambiguous else "handoff_source_unknown",
+                                   content=f"Source {index}: " + (
+                                       "ambiguous source_ref; use the full evidence_id from read_file."
+                                       if ambiguous else
+                                       "unknown reference. Copy source_ref (12 characters) or the exact full evidence_id "
+                                       "from this worker's successful read_file output."
+                                   ))
+                selections.append({**selection, "evidence_id": matching_ids[0]})
+            # Snapshot-pinned evidence IDs authenticate reads even when a sibling
+            # branch reuses a tool call ID. Source bodies stay in the existing trace.
+            reads = {
+                row["outcome"]["evidence_id"]: row["outcome"]
+                for run_id in {state.worker_reads[s["evidence_id"]] for s in selections}
+                for row in self.evidence.events(run_id)
+                if row["event"] == "tool_result" and row["call"]["name"] == "read_file"
+                and state.worker_reads.get(row["outcome"]["evidence_id"]) == run_id
+                and row["outcome"]["status"] == "success"
+            }
+            sources = []
+            for index, selection in enumerate(selections, 1):
+                observed = reads.get(selection["evidence_id"], {})
+                data = observed.get("data", {})
+                start, end = selection["start"], selection["end"]
+                if not data:
+                    return Outcome(status="blocked", reason="handoff_source_unread",
+                                   content=f"Source {index}: successful read_file observation unavailable; read the source again.")
+                if not data["start"] <= start <= end <= data["end"]:
+                    return Outcome(status="blocked", reason="handoff_source_range",
+                                   content=f"Source {index} ({data['path']}): requested {start}-{end}; "
+                                   f"available lines {data['start']}-{data['end']}. Select start <= end within this range.")
+                content = "\n".join(observed["content"].splitlines()[start - data["start"]:end - data["start"] + 1])
+                try:
+                    current = self.workspace.read(data["path"])
+                    current_range = "\n".join(current.splitlines()[start - 1:end])
+                    matches = (hashlib.sha256(current.encode()).hexdigest() == data["source_sha256"]
+                               and self.evidence.redactor.text(current_range) == content)
+                except (OSError, ValueError, UnicodeError):
+                    matches = False
+                if not matches:
+                    return Outcome(status="blocked", reason="handoff_source_stale",
+                                   content=f"Source {index} ({data['path']}) changed; read it again before citing this range.")
+                sources.append({**selection, "path": data["path"], "content": content,
+                                "source_sha256": data["source_sha256"], "truncated": False})
+            sizes = [len(item["content"]) for item in sources]
+            if sum(sizes) > HANDOFF_SOURCE_CHARACTERS:
+                return Outcome(status="blocked", reason="handoff_source_too_large",
+                               content=f"Selected {sum(sizes)} source characters; limit {HANDOFF_SOURCE_CHARACTERS}. Per selection: "
+                               + ", ".join(f"{index}={size}" for index, size in enumerate(sizes, 1))
+                               + ". Narrow the ranges; no reread is needed.")
+            answer = args["answer"]
+            answer = answer if isinstance(answer, str) else json.dumps(answer, ensure_ascii=False, allow_nan=False)
+            if not answer.strip():
+                return Outcome(status="blocked", reason="handoff_answer_empty")
+            return Outcome(status="success", content="Worker answer and supporting sources submitted.",
+                           data={"answer": answer, "source_excerpts": sources})
         if name == "worker_status":
-            data = await self.worker_status(args["worker_id"], args.get("wait_seconds", 0))
+            data = await self.worker_status(
+                args["worker_id"], args.get("wait_seconds", 0), wait_for=args.get("wait_for", "any")
+            )
             return Outcome(
                 status="success" if data["status"] != "missing" else "blocked",
                 content=json.dumps(data, ensure_ascii=False),

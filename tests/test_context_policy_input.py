@@ -2,11 +2,32 @@
 
 import json
 
+import pytest
+
 from aster.config import Settings
 from aster.context import ContextBuilder
+from aster.core.runtime import Runtime
 from aster.messages import history_groups
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 from aster.training.env import AsterEnv
+
+
+@pytest.mark.parametrize("read_only,output_tokens", [(False, 512), (True, 1024)])
+@pytest.mark.parametrize("memory_enabled", [False, True])
+@pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+def test_opted_in_worker_fits_small_context(tmp_path, read_only, output_tokens, memory_enabled, protocol):
+    runtime = Runtime(tmp_path, Settings(
+        max_workers=1, tool_profile="core", context_tokens=4096, output_tokens=output_tokens,
+        approval="auto", read_only=read_only, memory_enabled=memory_enabled, auto_dream=False,
+        protocol=protocol,
+    ))
+    try:
+        runtime.start(TaskSpec(prompt="Inspect source."))
+        prompt, tools, report = runtime.prepare_request()
+        assert prompt and "worker_start" in {tool["name"] for tool in tools}
+        assert report.estimated_tokens <= 4096 - output_tokens
+    finally:
+        runtime.sandbox.close()
 
 
 async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_path):

@@ -55,6 +55,7 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
         # Selecting history is not another billed execution of the ancestor.
         state.step = state.turn = state.final_revisions = 0
         state.usage = {}
+        state.memory_usage = {}
         state.final = state.feedback = ""
         state.verification = Verification()
         state.read_evidence = {}

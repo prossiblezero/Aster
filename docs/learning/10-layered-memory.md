@@ -17,7 +17,7 @@ flowchart TD
     A[read_file 成功] --> B[messages：记录本次工具输出]
     A --> C[RunState.working_memory：短期摘录]
     A --> D[_collect_step：观察与来源指纹]
-    D --> E[memory_store / store_excerpt：认证候选摘录]
+    D --> E[memory_store / store_excerpt：认证候选知识]
     E --> F{来源真实、内容合规、文件未变？}
     F -->|是| G[.aster/memory/state.json]
     G --> H[后续任务按关键词召回]
@@ -31,15 +31,27 @@ flowchart TD
 |---|---|---|---|
 | `RunState.messages` | 保存本次运行的消息记录 | 随运行保存到检查点 | 不负责长期知识筛选 |
 | `RunState.working_memory` | 按路径保存近期读文件、搜索、测试的简短结果 | 当前运行；通过检查点恢复 | 不保存完整原文，不等于消息协议历史 |
-| `Memory.state["lessons"]` | 保存经过校验的跨运行项目摘录 | 工作区的 `.aster/memory/state.json` | 不替代任务状态或检查点 |
+| `Memory.state["lessons"]` | 保存有出处的项目摘录、事实与操作经验 | 工作区的 `.aster/memory/state.json` | 不替代任务状态或检查点 |
 
 `RunState` 是运行状态对象。`working_memory` 的唯一所有者就是它，`Memory` 类没有第二份持久化的 working memory。`Memory.remember_file()` 只负责向那张工作便笺写入内容；模块级 `store_excerpt()` 才负责跨运行来源认证。
 
 当前调用模型所需的原生工具历史由 Runtime 单独维护；`messages` 不能简单拿来替代完整的调用/结果协议。有关这部分，回看[模型协议](02-model-protocols.md)与[上下文归档](07-context-archives.md)。
 
+### 长期记忆存原始文档，还是提炼出的知识
+
+两种都支持，但不会把整份文档或全部聊天自动搬进记忆。原文件留在工作区，交互与执行事件由运行记录保存；长期记忆保存前台或后台模型提炼的短条目，每条正文最多 1,000 字符：
+
+| 类型 | 保存什么 | 示例 |
+|---|---|---|
+| `excerpt` | 成功读取过的文件原文片段 | `Service port is 8123.` |
+| `fact` | 从真实来源归纳的事实或项目约定 | 用户约定“报表日期按 Asia/Shanghai 解释”，适用条件为“生成本项目报表” |
+| `procedure` | 可复用的处理方法，写明适用条件 | 修复支付精度后，记录该项目的字段优先级与舍入规则 |
+
+上图展示文件来源的路径；事实和方法还可以引用当前运行中的真实用户请求、测试或 Shell 执行结果。模型负责归纳，Runtime 负责认证来源与检查准入。它仍是本地 JSON 中的小型知识集合，没有把交互历史重建成知识图谱；研究取舍见[记忆设计说明](../memory-knowledge-design.md)。
+
 ## 顺着一次 read_file 读源码
 
-从 [Runtime._collect_step](../../src/aster/core/runtime.py) 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，长期入库的来源认证则在 `memory.py` 的 `store_excerpt` 中完成：
+从 [Runtime._collect_step](../../src/aster/core/runtime.py) 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，前台工具入库在 `memory.py` 的 `store_excerpt` 中认证，后台跨任务入库则由 `maintenance.py` 核对事件来源：
 
 ```python
 if outcome.status == "success" and call.name == "read_file":
@@ -48,7 +60,7 @@ if outcome.status == "success" and call.name == "read_file":
     state.read_evidence[path] = outcome.data["source_sha256"]
 ```
 
-这里的 `outcome` 是工具结果。`_collect_step` 负责把本次观察写入运行状态；长期入库时再由 `memory.store_excerpt` 认证原文摘录、证据和来源指纹。`content` 是展示给模型的文本，`data` 是程序消费的结构化信息；`source_sha256` 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。
+这里的 `outcome` 是工具结果。`_collect_step` 负责把本次观察写入运行状态；长期入库时再由 `memory.store_excerpt` 认证知识来源，原文类型还要检查摘录是否确实出现在读取结果中。`content` 是展示给模型的文本，`data` 是程序消费的结构化信息；`source_sha256` 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。
 
 继续到 [Memory.remember_file](../../src/aster/knowledge/memory.py)：
 
@@ -74,43 +86,48 @@ def remember_file(self, path: str, summary: str, working: dict | None = None):
 
 | 参数 | 含义 | 示例 |
 |---|---|---|
-| `text` | 想保存的项目摘录 | `Service port is 8123.` |
-| `evidence_id` | 当前运行中一次成功读取的证据标识 | `read_file` 返回的 `Outcome.evidence_id` |
+| `text` | 想保存的项目知识 | `Service port is 8123.` |
+| `kind` | `excerpt` 原文、`fact` 事实、`procedure` 方法 | 默认为 `excerpt` |
+| `when` | 派生知识必填的适用条件 | `配置报表日期时` |
+| `evidence_id` | 当前运行的真实来源 | 读取证据 ID；派生知识也可用 `user` |
+| `evidence_ids` | 组合观察时的补充证据，最多四个 | 读取、用户或执行结果的引用 |
 | `tags` | 便于关键词召回的标签，可省略 | `["service", "port"]` |
 
-Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`WorkflowTools.execute()` 委托 `memory.py` 模块级的 `store_excerpt`：它在本 run 中找到对应的成功 `read_file`，认证当时的原文、来源指纹和当前有效性，再记录跨运行摘录。
+Runtime 不会因为模型写了一个 `evidence_id` 就相信它。`WorkflowTools.execute()` 委托 `memory.py` 模块级的 `store_excerpt`（保留兼容名称）：它在本 run 中认证来源。原文摘录只接受成功 `read_file`；`fact` 与 `procedure` 都还接受真实用户请求，以及实际执行的测试或 Shell 结果。`evidence_id="user"` 会解析为本次运行的真实用户事件，不能用 Runtime 自动生成的纠偏提示冒充用户约定。
 
-`store_excerpt` 继续检查：候选是否是观察结果中的原文摘录，是否含敏感信息、临时任务状态或绕过权限的指令，以及来源文件现在是否仍一致。比较摘录时会归一化空白，所以换行与连续空格不会制造无意义的差异。没有证据支持的自由总结会被拒绝。
+`excerpt` 必须是观察中的原文，比较时归一化空白；`fact` 与 `procedure` 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。认证来源不等于证明归纳正确，没有另一个模型替它做语义验证。
 
 通过检查后的记录包含：
 
 | 字段 | 含义 |
 |---|---|
-| `id` | 由归一化文本计算的稳定标识，用于去重和更新 |
-| `text`、`tags` | 摘录正文和召回关键词 |
-| `provenance` | 来源运行、证据标识、证据类型和记录时间 |
+| `id` | 由归一化文本计算；派生知识还包含类型和适用条件，用于去重和更新 |
+| `text`、`tags`、`kind`、`when` | 知识正文、召回关键词、类型与适用条件 |
+| `provenance` | 来源运行、证据标识、类型、时间和多个来源的引用 |
 | `sources` | `文件路径 → 读取时内容指纹`，用于检查事实是否过期 |
 | `inactive_reason` | 停用原因；空字符串表示没有被停用 |
 | `support` 等计数 | 支持证据与使用反馈，下一章展开 |
 
-这是一份轻量项目知识库，当前最多保留 64 条记录。它没有向量数据库，也没有用另一个 LLM 判断语义是否一致。
+这是一份轻量项目知识库，当前最多保留 64 条记录。它没有向量数据库。后台会提出提炼与合并候选，但没有额外语义裁判证明候选一定正确。
 
 ### 更新和删除也要有清楚的语义
 
 | 工具 | 做什么 |
 |---|---|
-| `memory_store` | 根据当前运行的读取证据保存摘录 |
-| `memory_retrieve` | 查询仍然有效的相关摘录 |
-| `memory_update` | 用新的读取证据替换指定 `lesson_id` 的内容 |
+| `memory_store` | 根据当前运行的真实来源保存知识 |
+| `memory_retrieve` | 查询仍然有效的相关知识 |
+| `memory_update` | 新知识准入成功后替换指定 `lesson_id` |
 | `memory_discard` | 将指定 `lesson_id` 标记为停用 |
 
-`lesson_id` 就是条目的 `id`。更新仍需要 `text` 和 `evidence_id`，不能随意改写事实；新文本生成新 ID 时，旧条目被标记为 `superseded`，表示已被替代。丢弃也保留原记录，并不是物理删除文件。模型可以调用这些工具维护内容，下一章的自动机制则主要维护排序与有效状态。
+`lesson_id` 就是条目的 `id`。更新仍需要 `text` 和 `evidence_id`，不能随意改写事实；新文本生成新 ID 时，旧条目被标记为 `superseded`，表示已被替代。比如用户纠正报表时区，模型可引用新请求更新旧约定；新知识未通过准入时，旧条目不会先被停用。丢弃也保留原记录，并不是物理删除文件。下一章解释任务后的自动提炼、并行整理和使用反馈如何维护排序与有效状态。
+
+除了工具写入，默认的自动学习还会从已结束任务中提炼遗漏知识。原始对话保存在 trace，待整理队列只记任务 ID 和证据引用；最多处理三个任务、提交三项修改，用户不必说“请记住”。更新保留新旧来源，旧条目停用后不再占用召回名额。具体调度与成本见[下一章](11-memory-evolution.md)。
 
 ## 召回：相关只是第一步，还要检查是否过期
 
 `Memory.retrieve(query, limit=3)` 先过滤已停用、有反证、不合规或来源失效的记录，再按关键词重合与可靠度排序。`query` 是查询文本，`limit` 是最多返回多少条。
 
-Runtime 构造输入时会根据任务文本自动召回最多三条；模型也可以先通过 `tool_load` 加载 `memory_retrieve`，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权。
+Runtime 构造输入时会结合初始任务和最近一次真实用户请求，自动召回最多三条；恢复提醒、反思等内部 `role=user` 消息不再改变检索查询。模型也可以先通过 `tool_load` 加载 `memory_retrieve`，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权。
 
 关键词方案适合小型项目知识库，但它不是语义检索器。中文分词、同义表达和复杂相关性不是当前实现的强项。判断是否需要升级检索，应先看实际漏召回的任务。
 
@@ -216,9 +233,9 @@ asyncio.run(main())
 
 ## 本章的验收点与边界
 
-能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 [test_memory_evolution.py](../../tests/test_memory_evolution.py) 与 [test_runtime_repairs.py](../../tests/test_runtime_repairs.py)，重点搜索 `disabled_durable_memory` 和 `memory_cannot_launder`。
+能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 [test_memory_evolution.py](../../tests/test_memory_evolution.py) 与 [test_runtime_repairs.py](../../tests/test_runtime_repairs.py)，重点搜索 `disabled_durable_memory` 和 `memory_cannot_launder`。归纳、用户纠正和执行经验的跨会话用例见 [test_memory_knowledge.py](../../tests/test_memory_knowledge.py)。
 
-实验验证的是存储、隔离和失效机制，没有测模型任务成功率；`Settings.memory_enabled` 默认是 `False`，关闭它不影响本 run 的 `working_memory`，自动召回只在显式开启并满足未重复召回等条件时发生。跨运行记忆的收益应使用同题的开关对照，观察重复读取、额外调用和正确率；参见[评测章节](14-evaluation.md)。
+实验验证的是存储、隔离和失效机制，没有测模型任务成功率；`Settings.memory_enabled` 默认是 `True`，普通用户无需配置即可使用项目记忆。显式关闭它不影响本 run 的 `working_memory`。启用后，每次构造请求按初始任务与最近用户反馈召回，并重新检查来源。跨运行记忆的收益应使用同题对照，观察重复读取、额外调用和正确率；参见[评测章节](14-evaluation.md)。
 
 下一章继续处理另一种老化：文件没变，某条建议却连续使用失败。Aster 如何调整它的排序，何时停用，以及停错了如何恢复？
 

@@ -1,0 +1,265 @@
+{
+  "prompt": "阅读 docs/ 下三份资产规范，简要说明资产键的构造方式。本轮只阅读，不需要写代码。\n本次演示临时标签为 TEMP-DEMO-742，仅用于这一轮，不是项目约定。",
+  "run_id": "64005df7b6a6484dbad004bae1244ca5",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "三份规范合起来，资产键可概括为：\n\n`assets/v{revision}/{normalized_name}.bin`\n\n其中：\n\n- `normalized_name`：资产名去除首尾空白、转为小写，并将每段连续的空白或连字符替换为一个下划线；其他字符保持不变。\n- `revision`：必须是正整数，否则抛出 `ValueError`。\n- 存储键固定使用 `assets/v{revision}/` 前缀，并以 `.bin` 结尾。",
+  "seconds": 21.859,
+  "foreground_seconds": 18.456,
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 5162,
+    "input_tokens_requests": 1,
+    "output_tokens": 207,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 0,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 77,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 5369,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 4,
+    "tool_calls": 4,
+    "charged_tokens": 26594
+  },
+  "maintenance_events": [
+    {
+      "seq": 221,
+      "time": "2026-10-06T17:50:08.683804+00:00",
+      "run_id": "64005df7b6a6484dbad004bae1244ca5",
+      "event": "memory_maintenance",
+      "previous": "e7efbeed2f8ebd5329766720ffd53ce4f760ae627d482522b7ef211b295cb134",
+      "status": "started",
+      "job_id": "1cbf12bcb6e64dac967392bc79732505",
+      "reservation": 1814,
+      "hash": "4a7acfd6b23cd8b780ffd151187341a07ed803b39cf3f283552fc6c63e29c3a2"
+    },
+    {
+      "seq": 223,
+      "time": "2026-10-06T17:50:12.073695+00:00",
+      "run_id": "64005df7b6a6484dbad004bae1244ca5",
+      "event": "memory_maintenance",
+      "previous": "73c797179246e212590c9020b2b24803298224209a253ec5aefe3549f6ec9a05",
+      "status": "ready",
+      "job_id": "1cbf12bcb6e64dac967392bc79732505",
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 5162,
+        "input_tokens_requests": 1,
+        "output_tokens": 207,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 77,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 5369,
+        "total_tokens_requests": 1
+      },
+      "usage_complete": true,
+      "seconds": 3.376,
+      "reason": "",
+      "hash": "f8114ed01ec8a4637313b6b3bf50d6b0ef7541e82e76f58f03634069f339a6fe"
+    },
+    {
+      "seq": 224,
+      "time": "2026-10-06T17:50:12.087632+00:00",
+      "run_id": "64005df7b6a6484dbad004bae1244ca5",
+      "event": "memory_maintenance",
+      "previous": "f8114ed01ec8a4637313b6b3bf50d6b0ef7541e82e76f58f03634069f339a6fe",
+      "status": "committed",
+      "job_id": "1cbf12bcb6e64dac967392bc79732505",
+      "receipts": [
+        {
+          "action": "store",
+          "id": "3491b4d695390c41",
+          "text": "Asset key conventions: normalize asset names by trimming outer whitespace, lowercasing, and replacing each run of whitespace or hyphens with one underscore while preserving other characters; revisions must be positive integers, with invalid revisions raising ValueError; storage keys use the form `assets/v{revision}/` plus the `.bin` extension.",
+          "when": "When constructing or validating asset names, revisions, and storage keys according to the project assets documentation.",
+          "replaces": []
+        }
+      ],
+      "rejected": [],
+      "reason": "",
+      "hash": "9a744ca8ee434ff52c1290d0766b41e962e5560baeb4b90c9f41f1e9037fb995"
+    }
+  ],
+  "input_tokens": 25851,
+  "output_tokens": 743,
+  "total_tokens": 26594,
+  "cache_read_input_tokens": 16896,
+  "cache_creation_input_tokens": null,
+  "uncached_input_tokens": null,
+  "reasoning_tokens": 306,
+  "usage": {
+    "usage_requests": 4,
+    "input_tokens": 25851,
+    "input_tokens_requests": 4,
+    "output_tokens": 743,
+    "output_tokens_requests": 4,
+    "cache_read_input_tokens": 16896,
+    "cache_read_input_tokens_requests": 4,
+    "reasoning_tokens": 306,
+    "reasoning_tokens_requests": 4,
+    "total_tokens": 26594,
+    "total_tokens_requests": 4
+  },
+  "model_requests": 4,
+  "usage_coverage": {
+    "input_tokens": {
+      "reported_requests": 4,
+      "model_requests": 4,
+      "complete": true
+    },
+    "output_tokens": {
+      "reported_requests": 4,
+      "model_requests": 4,
+      "complete": true
+    },
+    "total_tokens": {
+      "reported_requests": 4,
+      "model_requests": 4,
+      "complete": true
+    },
+    "cache_read_input_tokens": {
+      "reported_requests": 4,
+      "model_requests": 4,
+      "complete": true
+    },
+    "cache_creation_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 4,
+      "complete": false
+    },
+    "uncached_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 4,
+      "complete": false
+    },
+    "reasoning_tokens": {
+      "reported_requests": 4,
+      "model_requests": 4,
+      "complete": true
+    }
+  },
+  "provider_attempts": 4,
+  "provider_attempts_with_total": 4,
+  "pending_maintenance": 0,
+  "response_models": [
+    "gpt-5.6-luna"
+  ],
+  "tools": [
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": "docs",
+        "limit": 200,
+        "offset": 0
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "docs/names.md",
+        "start": 1,
+        "end": 240
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "docs/revisions.md",
+        "start": 1,
+        "end": 240
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "docs/storage.md",
+        "start": 1,
+        "end": 240
+      },
+      "status": "success",
+      "reason": ""
+    }
+  ],
+  "recalled_ids": [],
+  "memory_before": [],
+  "memory_after": [
+    {
+      "id": "3491b4d695390c41",
+      "text": "Asset key conventions: normalize asset names by trimming outer whitespace, lowercasing, and replacing each run of whitespace or hyphens with one underscore while preserving other characters; revisions must be positive integers, with invalid revisions raising ValueError; storage keys use the form `assets/v{revision}/` plus the `.bin` extension.",
+      "kind": "fact",
+      "when": "When constructing or validating asset names, revisions, and storage keys according to the project assets documentation.",
+      "tags": [],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "64005df7b6a6484dbad004bae1244ca5",
+        "evidence_id": "39438d47d73698af54803f22ff639871ab3f2d33b25dc67a6fa4fce59ccae7dd",
+        "evidence_type": "derived",
+        "at": "2026-10-06T17:50:12+00:00",
+        "citations": [
+          {
+            "run_id": "64005df7b6a6484dbad004bae1244ca5",
+            "evidence_id": "39438d47d73698af54803f22ff639871ab3f2d33b25dc67a6fa4fce59ccae7dd",
+            "source": "read_file",
+            "time": "2026-10-06T17:50:00.134459+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "64005df7b6a6484dbad004bae1244ca5",
+            "evidence_id": "ac97704f6c0c99f801c38ce2916447d9db5c41da404abb720f19cd833681950c",
+            "source": "read_file",
+            "time": "2026-10-06T17:50:00.136573+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "64005df7b6a6484dbad004bae1244ca5",
+            "evidence_id": "9136c4175c7fcc6d65a06f419268761ab28457a904ddef1c4078d1350a3bdb31",
+            "source": "read_file",
+            "time": "2026-10-06T17:50:00.138772+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {
+        "docs/names.md": "5b6c2cddcf44b597c5f70c89d4eb8ef0cddb6522cbf367d987e2bceccd0048a8",
+        "docs/revisions.md": "23541635eafc30bf6e97babfe57dba3347208456644f272dc0963344e0925a14",
+        "docs/storage.md": "ba31fe5c97d8c6dbb0c633093099536ccc026e569be8b233f5fead021b44561f"
+      },
+      "inactive_reason": ""
+    }
+  ],
+  "memory_audit": [
+    {
+      "event": "record",
+      "lesson_id": "3491b4d695390c41",
+      "run_id": "64005df7b6a6484dbad004bae1244ca5",
+      "evidence_id": "39438d47d73698af54803f22ff639871ab3f2d33b25dc67a6fa4fce59ccae7dd",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "1cbf12bcb6e64dac967392bc79732505",
+      "accepted": 1,
+      "rejected": [],
+      "fingerprints": [
+        "2ae8bd5cf10a378c3d0768eeccbf8776d604f5389aaa9d83a4d58b19696576ed"
+      ],
+      "result_revision": "1374454d204194770241b5c49cb445eda7136c5bb30382b528ce568cc692ea5b"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "exports.py": "import csv\nimport io\n\n\n_TICKET_COLUMNS = (\"ticket_id\", \"summary\", \"owner\")\n\n\ndef export_tickets(rows):\n    \"\"\"Return ticket rows as the project's semicolon-delimited CSV bytes.\"\"\"\n    buffer = io.StringIO(newline=\"\")\n    writer = csv.writer(buffer, delimiter=\";\", lineterminator=\"\\r\\n\")\n    writer.writerow(_TICKET_COLUMNS)\n\n    for row in rows:\n        writer.writerow(row.get(column, \"\") for column in _TICKET_COLUMNS)\n\n    return buffer.getvalue().encode(\"utf-8-sig\")\n"
+}

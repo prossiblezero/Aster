@@ -1,0 +1,122 @@
+{"episode": "results/cost/01_timezone/learn-1", "phase": "completed", "tokens": 11707, "tools": 0}
+{"episode": "results/cost/01_timezone/learn-2", "phase": "completed", "tokens": 6700, "tools": 0}
+{"episode": "results/cost/01_timezone/reuse", "phase": "completed", "tokens": 53914, "tools": 9}
+{"case": "01_timezone", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"timezone": {"passed": true}, "day_boundary": {"passed": true}, "explicit_offset": {"passed": true}}}}
+{"episode": "results/cost/02_money/learn-1", "phase": "completed", "tokens": 11851, "tools": 0}
+{"episode": "results/cost/02_money/reuse", "phase": "completed", "tokens": 49383, "tools": 8}
+{"case": "02_money", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"truncate": {"passed": true}, "negative": {"passed": true}, "decimal_precision": {"passed": true}}}}
+{"episode": "results/cost/03_csv/learn-1", "phase": "completed", "tokens": 11736, "tools": 0}
+{"episode": "results/cost/03_csv/learn-2", "phase": "completed", "tokens": 12030, "tools": 0}
+{"episode": "results/cost/03_csv/reuse", "phase": "completed", "tokens": 54836, "tools": 9}
+{"case": "03_csv", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"encoding": {"passed": true}, "columns": {"passed": true}, "escaping": {"passed": true}}}}
+{"episode": "results/cost/04_correction/learn-1", "phase": "completed", "tokens": 11711, "tools": 0}
+{"episode": "results/cost/04_correction/learn-2", "phase": "completed", "tokens": 11958, "tools": 0}
+{"episode": "results/cost/04_correction/reuse", "phase": "completed", "tokens": 46569, "tools": 9}
+{"case": "04_correction", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"new_rule": {"passed": true}, "old_rule_removed": {"passed": true}, "unchanged_and_other": {"passed": true}}}}
+{"episode": "results/cost/05_document_synthesis/learn-1", "phase": "completed", "tokens": 26594, "tools": 4}
+{"episode": "results/cost/05_document_synthesis/learn-2", "phase": "completed", "tokens": 21337, "tools": 4}
+{"episode": "results/cost/05_document_synthesis/reuse", "phase": "completed", "tokens": 59225, "tools": 13}
+{"case": "05_document_synthesis", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"combined_convention": {"passed": true}, "preserve_other_chars": {"passed": true}, "invalid_revision": {"passed": true}}}}
+{"episode": "results/cost/06_stale_source/learn-1", "phase": "completed", "tokens": 18730, "tools": 1}
+{"episode": "results/cost/06_stale_source/reuse", "phase": "completed", "tokens": 51706, "tools": 9}
+{"case": "06_stale_source", "arm": "cost", "passed": true, "checks": {"passed": true, "checks": {"new_timeout": {"passed": true}, "new_retry_count": {"passed": true}, "schema": {"passed": true}}}}
+Traceback (most recent call last):
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/dzh/Aster/evaluations/memory-cost-20261007/run.py", line 171, in main
+    await episode(root, settings, prompt, saved.with_suffix(""),
+  File "/home/dzh/Aster/evaluations/memory-cost-20261007/run.py", line 55, in episode
+    await asyncio.wait_for(runtime.run(TaskSpec(
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/tasks.py", line 520, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/core/runtime.py", line 467, in run
+    return await self._run(max_steps=max_steps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/core/runtime.py", line 479, in _run
+    await self.turn()
+  File "/tmp/aster-cost-source-cost/src/aster/core/runtime.py", line 497, in turn
+    return await self._turn()
+           ^^^^^^^^^^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/core/runtime.py", line 522, in _turn
+    return await self._model_turn(prompt, tool_defs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/core/runtime.py", line 668, in _model_turn
+    reply = await self.model.complete(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/providers/client.py", line 55, in complete
+    return await complete_responses(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/aster-cost-source-cost/src/aster/providers/streaming.py", line 179, in complete_responses
+    async with client.stream(
+               ^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_client.py", line 1583, in stream
+    response = await self.send(
+               ^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/http_proxy.py", line 343, in handle_async_request
+    return await self._connection.handle_async_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/http11.py", line 136, in handle_async_request
+    raise exc
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/http11.py", line 106, in handle_async_request
+    ) = await self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/http11.py", line 177, in _receive_response_headers
+    event = await self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_async/http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/httpcore/_backends/anyio.py", line 35, in read
+    return await self._stream.receive(max_bytes=max_bytes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/anyio/streams/tls.py", line 254, in receive
+    data = await self._call_sslobject_method(self._ssl_object.read, max_bytes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/anyio/streams/tls.py", line 194, in _call_sslobject_method
+    data = await self.transport_stream.receive()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1407, in receive
+    await self._protocol.read_event.wait()
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/locks.py", line 212, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dzh/Aster/evaluations/memory-cost-20261007/run.py", line 207, in <module>
+    asyncio.run(main(parser.parse_args()))
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/home/dzh/.conda/envs/aster/lib/python3.12/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt

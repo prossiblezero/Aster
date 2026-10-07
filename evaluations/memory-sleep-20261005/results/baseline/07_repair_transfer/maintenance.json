@@ -1,0 +1,70 @@
+{
+  "jobs": [],
+  "pending": [],
+  "memory_state": {
+    "schema": 2,
+    "lessons": [
+      {
+        "id": "2fab66bfe15a931a",
+        "text": "处理金额转换为最小货币单位时，避免先转 float：若记录包含 amount_minor，应显式优先返回；否则从字符串构造 Decimal，并使用 ROUND_HALF_UP 量化到整数，以正确处理正负半单位边界。适用于支付金额兼容旧字段及十进制舍入场景；原测试因浮点精度和未实现旧字段优先而失败，修复后专门测试通过。",
+        "kind": "procedure",
+        "when": "项目中需要将十进制支付金额转换为整数最小货币单位，并兼容 amount_minor 旧字段时",
+        "tags": [
+          "payments",
+          "Decimal",
+          "舍入",
+          "amount_minor"
+        ],
+        "support": 1,
+        "contradictions": 0,
+        "retrievals": 11,
+        "successful_uses": 0,
+        "failed_uses": 0,
+        "provenance": {
+          "run_id": "1bdf4f10fa3844a490041165d0ba01c1",
+          "evidence_id": "b1954d36da6401ada6095db510d98dfdc84e561ebf9034dbc05ea7b31bf74c74",
+          "evidence_type": "derived",
+          "at": "2026-10-06T15:45:31+00:00",
+          "citations": [
+            {
+              "evidence_id": "b1954d36da6401ada6095db510d98dfdc84e561ebf9034dbc05ea7b31bf74c74",
+              "source": "run_tests",
+              "status": "error"
+            },
+            {
+              "evidence_id": "4b9247ef29fbe81c537d448576e4a99e88e81f198043dc42c502b2a1f8409fb4",
+              "source": "run_tests",
+              "status": "success"
+            }
+          ]
+        },
+        "sources": {},
+        "inactive_reason": ""
+      }
+    ],
+    "snapshots": {},
+    "audit": [
+      {
+        "event": "record",
+        "lesson_id": "2fab66bfe15a931a",
+        "run_id": "1bdf4f10fa3844a490041165d0ba01c1",
+        "evidence_id": "b1954d36da6401ada6095db510d98dfdc84e561ebf9034dbc05ea7b31bf74c74",
+        "outcome": "support"
+      },
+      {
+        "event": "dream",
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 0
+      },
+      {
+        "event": "dream",
+        "status": "completed",
+        "reason": "",
+        "checked": 1,
+        "deactivated": 0
+      }
+    ]
+  }
+}

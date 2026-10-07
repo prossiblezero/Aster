@@ -52,7 +52,9 @@ async def test_manual_recall_survives_observation_and_setup_errors_do_not_punish
         lesson = runtime.memory.state["lessons"][0]
         assert runtime.state.recalled_ids == [lesson["id"]]
         _, _, _, _, info = await env.step(
-            ToolCall(name="run_tests", arguments={"command": case["command"]})
+            ToolCall(name="run_tests", arguments={
+                "command": case["command"], "memory_ids": [lesson["id"]],
+            })
         )
         assert info["outcome"]["reason"] == case["reason"]
         assert lesson["failed_uses"] == 0 and lesson["successful_uses"] == 0
@@ -60,7 +62,9 @@ async def test_manual_recall_survives_observation_and_setup_errors_do_not_punish
             "def test_ok():\n    assert 2 + 2 == 4\n"
         )
         _, _, _, _, info = await env.step(
-            ToolCall(name="run_tests", arguments={"command": "python -m pytest -q"})
+            ToolCall(name="run_tests", arguments={
+                "command": "python -m pytest -q", "memory_ids": [lesson["id"]],
+            })
         )
         assert info["outcome"]["status"] == "success"
         assert lesson["successful_uses"] == 1 and lesson["failed_uses"] == 0

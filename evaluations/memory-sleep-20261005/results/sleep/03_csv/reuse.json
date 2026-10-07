@@ -1,0 +1,621 @@
+{
+  "prompt": "实现 exports.py 的 export_tickets(rows)，输入字典列表，输出遵循项目工单 CSV 约定的 bytes。请验证。",
+  "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "已实现 `exports.py` 的 `export_tickets(rows)`：\n\n- 固定输出列：`ticket_id;summary;owner`\n- 分号分隔，CRLF 换行\n- UTF-8 BOM，返回 `bytes`\n- 忽略输入中的额外字段\n- 缺失字段输出为空\n- 正确处理分号、引号和换行等特殊字符\n\n验证结果：\n\n- `pytest -q test_exports_verification.py`：`2 passed`\n- 覆盖空输入、BOM、列顺序、字段过滤及 CSV 转义\n- 仓库原有 `pytest -q` 未收集到测试用例。",
+  "seconds": 100.037,
+  "foreground_seconds": 96.014,
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 5664,
+    "input_tokens_requests": 1,
+    "output_tokens": 302,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 0,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 109,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 5966,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 16,
+    "tool_calls": 22,
+    "charged_tokens": 155065
+  },
+  "maintenance_events": [
+    {
+      "seq": 1665,
+      "time": "2026-10-06T15:34:13.409874+00:00",
+      "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+      "event": "memory_maintenance",
+      "previous": "54a120c7a34d123dce1f1cedfbd5f426ff74310f62abf3d65d23fc2f90ddd937",
+      "status": "started",
+      "job_id": "bed138d70b104f52b976e9d3f0d11491",
+      "reservation": 2384,
+      "hash": "d51a6e39f2ae89555a31b6657d8c31856f805cddd51b69c27e4f656c8d5de5d6"
+    },
+    {
+      "seq": 1667,
+      "time": "2026-10-06T15:34:17.387718+00:00",
+      "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+      "event": "memory_maintenance",
+      "previous": "720d5a054d8c2441375626e222ec7dbe094f88d26374787bdaca6afcdc0ab2b6",
+      "status": "ready",
+      "job_id": "bed138d70b104f52b976e9d3f0d11491",
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 5664,
+        "input_tokens_requests": 1,
+        "output_tokens": 302,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 109,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 5966,
+        "total_tokens_requests": 1
+      },
+      "usage_complete": true,
+      "seconds": 3.952,
+      "reason": "",
+      "hash": "437697774608d7fb23b72631abace8fc6b0b2c9a22e77b256dda045f0a708ec8"
+    },
+    {
+      "seq": 1668,
+      "time": "2026-10-06T15:34:17.428439+00:00",
+      "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+      "event": "memory_maintenance",
+      "previous": "437697774608d7fb23b72631abace8fc6b0b2c9a22e77b256dda045f0a708ec8",
+      "status": "committed",
+      "job_id": "bed138d70b104f52b976e9d3f0d11491",
+      "receipts": [
+        {
+          "action": "replace",
+          "id": "8e0dbcbd839951f1",
+          "text": "工单 CSV 导出由 `exports.py` 的 `export_tickets(rows)` 实现：固定输出 `ticket_id`、`summary`、`owner` 三列并按此顺序排列；使用分号 `;` 分隔、CRLF 换行；返回带 UTF-8 BOM 的 `bytes`。输入中的额外字段会忽略，缺失字段为空值，CSV 特殊字符按标准规则转义。",
+          "when": "适用于工单 CSV 导出；截至 2026-10-06，验证脚本 2 项测试通过。",
+          "replaces": [
+            "faf6187ce7e69d0a"
+          ]
+        }
+      ],
+      "rejected": [],
+      "reason": "",
+      "hash": "2e491965288141c8c01a307644b0e33833e6ca33c388fbf72a200ebfeb6eec00"
+    }
+  ],
+  "input_tokens": 151294,
+  "output_tokens": 3771,
+  "total_tokens": 155065,
+  "cache_read_input_tokens": 82944,
+  "cache_creation_input_tokens": null,
+  "uncached_input_tokens": null,
+  "reasoning_tokens": 1376,
+  "usage": {
+    "usage_requests": 16,
+    "input_tokens": 151294,
+    "input_tokens_requests": 16,
+    "output_tokens": 3771,
+    "output_tokens_requests": 16,
+    "cache_read_input_tokens": 82944,
+    "cache_read_input_tokens_requests": 16,
+    "reasoning_tokens": 1376,
+    "reasoning_tokens_requests": 16,
+    "total_tokens": 155065,
+    "total_tokens_requests": 16
+  },
+  "model_requests": 16,
+  "usage_coverage": {
+    "input_tokens": {
+      "reported_requests": 16,
+      "model_requests": 16,
+      "complete": true
+    },
+    "output_tokens": {
+      "reported_requests": 16,
+      "model_requests": 16,
+      "complete": true
+    },
+    "total_tokens": {
+      "reported_requests": 16,
+      "model_requests": 16,
+      "complete": true
+    },
+    "cache_read_input_tokens": {
+      "reported_requests": 16,
+      "model_requests": 16,
+      "complete": true
+    },
+    "cache_creation_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 16,
+      "complete": false
+    },
+    "uncached_input_tokens": {
+      "reported_requests": 0,
+      "model_requests": 16,
+      "complete": false
+    },
+    "reasoning_tokens": {
+      "reported_requests": 16,
+      "model_requests": 16,
+      "complete": true
+    }
+  },
+  "provider_attempts": 16,
+  "provider_attempts_with_total": 16,
+  "response_models": [
+    "gpt-5.6-luna"
+  ],
+  "tools": [
+    {
+      "name": "tool_load",
+      "arguments": {
+        "names": [
+          "todo_add",
+          "todo_update",
+          "todo_list"
+        ]
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "todo_add",
+      "arguments": {
+        "content": "确认项目 CSV 约定及 exports.py 现状",
+        "acceptance": "读取实现、调用方和测试，明确列顺序、编码、分隔符及缺失字段行为",
+        "priority": "high"
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": ".",
+        "limit": 200
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "search",
+      "arguments": {
+        "path": ".",
+        "pattern": "export_tickets",
+        "limit": 50
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "search",
+      "arguments": {
+        "path": ".",
+        "pattern": "ticket_id",
+        "limit": 100
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "search",
+      "arguments": {
+        "path": ".",
+        "pattern": "csv",
+        "limit": 100
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "exports.py",
+        "start": 1,
+        "end": 200
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "git_diff",
+      "arguments": {},
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "search",
+      "arguments": {
+        "path": ".",
+        "pattern": "owner",
+        "limit": 50
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "search",
+      "arguments": {
+        "path": ".",
+        "pattern": "summary",
+        "limit": 50
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "todo_update",
+      "arguments": {
+        "todo_id": "1",
+        "status": "done",
+        "resolution": "已读取 exports.py，并结合仓库上下文确认固定列为 ticket_id、summary、owner；额外字段忽略，分隔符为分号，返回 UTF-8 BOM bytes。仓库无其他调用方或测试，缺失字段将按 csv.DictWriter 默认输出空字段处理。"
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "patch_file",
+      "arguments": {
+        "path": "exports.py",
+        "old_text": "def export_tickets(rows):\n    raise NotImplementedError\n",
+        "new_text": "import csv\nimport io\n\n\n_FIELDNAMES = (\"ticket_id\", \"summary\", \"owner\")\n\n\ndef export_tickets(rows):\n    \"\"\"Export ticket rows using the project's semicolon-delimited CSV format.\"\"\"\n    output = io.StringIO(newline=\"\")\n    writer = csv.DictWriter(\n        output,\n        fieldnames=_FIELDNAMES,\n        delimiter=\";\",\n        lineterminator=\"\\r\\n\",\n        extrasaction=\"ignore\",\n    )\n    writer.writeheader()\n    writer.writerows(rows)\n    return output.getvalue().encode(\"utf-8-sig\")\n"
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "read_file",
+      "arguments": {
+        "path": "exports.py",
+        "start": 1,
+        "end": 200
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "run_shell",
+      "arguments": {
+        "command": "python -m py_compile exports.py && python -c 'from exports import export_tickets; rows=[{\"owner\":\"张三\",\"ticket_id\":42,\"summary\":\"修复;他说 \\\"现在\\\"\\n重试\",\"extra\":\"忽略\"},{\"ticket_id\":\"T-2\",\"summary\":\"无 owner\"}]; actual=export_tickets(rows); expected=\"\\ufeffticket_id;summary;owner\\r\\n42;\\\"修复;他说 \\\"\\\"现在\\\"\\\"\\n重试\\\";张三\\r\\nT-2;无 owner;\\r\\n\".encode(\"utf-8\"); assert isinstance(actual, bytes); assert actual == expected, repr(actual); assert export_tickets([]) == \"\\ufeffticket_id;summary;owner\\r\\n\".encode(\"utf-8\"); print(\"export_tickets behavioral checks passed\")'",
+        "timeout": 30
+      },
+      "status": "blocked",
+      "reason": "approval_unavailable"
+    },
+    {
+      "name": "run_tests",
+      "arguments": {
+        "command": "pytest -q",
+        "timeout": 60
+      },
+      "status": "error",
+      "reason": "no_tests_collected"
+    },
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": ".tmp/test_exports_verification.py",
+        "content": "from exports import export_tickets\n\n\ndef test_export_tickets_format_and_escaping():\n    rows = [\n        {\n            \"owner\": \"张三\",\n            \"ticket_id\": 42,\n            \"summary\": '修复;他说 \"现在\"\\n重试',\n            \"extra\": \"忽略\",\n        },\n        {\"ticket_id\": \"T-2\", \"summary\": \"无 owner\"},\n    ]\n    expected = (\n        '\\ufeffticket_id;summary;owner\\r\\n'\n        '42;\"修复;他说 \"\"现在\"\"\\n重试\";张三\\r\\n'\n        'T-2;无 owner;\\r\\n'\n    ).encode(\"utf-8\")\n    assert export_tickets(rows) == expected\n\n\ndef test_export_tickets_empty_rows_has_header():\n    assert export_tickets([]) == \"\\ufeffticket_id;summary;owner\\r\\n\".encode(\"utf-8\")\n"
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "run_tests",
+      "arguments": {
+        "command": "pytest -q .tmp/test_exports_verification.py",
+        "timeout": 60
+      },
+      "status": "error",
+      "reason": "test_runner_error"
+    },
+    {
+      "name": "list_files",
+      "arguments": {
+        "path": ".",
+        "limit": 50
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "git_diff",
+      "arguments": {},
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": "test_exports_verification.py",
+        "content": "from exports import export_tickets\n\n\ndef test_export_tickets_format_and_escaping():\n    rows = [\n        {\"owner\": \"张三\", \"ticket_id\": 42, \"summary\": '修复;他说 \"现在\"\\n重试', \"extra\": \"忽略\"},\n        {\"ticket_id\": \"T-2\", \"summary\": \"无 owner\"},\n    ]\n    expected = (\n        '\\ufeffticket_id;summary;owner\\r\\n'\n        '42;\"修复;他说 \"\"现在\"\"\\n重试\";张三\\r\\n'\n        'T-2;无 owner;\\r\\n'\n    ).encode(\"utf-8\")\n    assert export_tickets(rows) == expected\n\n\ndef test_export_tickets_empty_rows_has_header():\n    assert export_tickets([]) == \"\\ufeffticket_id;summary;owner\\r\\n\".encode(\"utf-8\")\n"
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "run_tests",
+      "arguments": {
+        "command": "pytest -q test_exports_verification.py",
+        "timeout": 60
+      },
+      "status": "success",
+      "reason": ""
+    },
+    {
+      "name": "git_diff",
+      "arguments": {},
+      "status": "success",
+      "reason": ""
+    }
+  ],
+  "recalled_ids": [
+    "faf6187ce7e69d0a"
+  ],
+  "memory_before": [
+    {
+      "id": "aae4d13c29eba8f4",
+      "text": "工单 CSV 导出约定返回带 UTF-8 BOM 的 `bytes`，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出；截至 2026-10-06 已由用户确认。",
+      "tags": [],
+      "support": 1,
+      "contradictions": 1,
+      "retrievals": 1,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+        "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+        "evidence_type": "derived",
+        "at": "2026-10-06T15:32:20+00:00",
+        "citations": [
+          {
+            "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+            "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+            "source": "user",
+            "time": "2026-10-06T15:32:10.661638+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": "superseded"
+    },
+    {
+      "id": "faf6187ce7e69d0a",
+      "text": "工单 CSV 导出固定仅包含 `ticket_id`、`summary`、`owner` 三列；输入中的其他字段不导出。输出返回带 UTF-8 BOM 的 `bytes`，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出；截至 2026-10-06 已由用户确认。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+        "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+        "evidence_type": "derived",
+        "at": "2026-10-06T15:32:37+00:00",
+        "citations": [
+          {
+            "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+            "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+            "source": "user",
+            "time": "2026-10-06T15:32:20.023728+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+            "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+            "source": "user",
+            "time": "2026-10-06T15:32:10.661638+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": ""
+    }
+  ],
+  "memory_after": [
+    {
+      "id": "aae4d13c29eba8f4",
+      "text": "工单 CSV 导出约定返回带 UTF-8 BOM 的 `bytes`，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出；截至 2026-10-06 已由用户确认。",
+      "tags": [],
+      "support": 1,
+      "contradictions": 1,
+      "retrievals": 1,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+        "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+        "evidence_type": "derived",
+        "at": "2026-10-06T15:32:20+00:00",
+        "citations": [
+          {
+            "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+            "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+            "source": "user",
+            "time": "2026-10-06T15:32:10.661638+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": "superseded"
+    },
+    {
+      "id": "faf6187ce7e69d0a",
+      "text": "工单 CSV 导出固定仅包含 `ticket_id`、`summary`、`owner` 三列；输入中的其他字段不导出。输出返回带 UTF-8 BOM 的 `bytes`，字段分隔符为分号 `;`。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出；截至 2026-10-06 已由用户确认。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出"
+      ],
+      "support": 1,
+      "contradictions": 1,
+      "retrievals": 15,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+        "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+        "evidence_type": "derived",
+        "at": "2026-10-06T15:32:37+00:00",
+        "citations": [
+          {
+            "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+            "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+            "source": "user",
+            "time": "2026-10-06T15:32:20.023728+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+            "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+            "source": "user",
+            "time": "2026-10-06T15:32:10.661638+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {},
+      "inactive_reason": "superseded"
+    },
+    {
+      "id": "8e0dbcbd839951f1",
+      "text": "工单 CSV 导出由 `exports.py` 的 `export_tickets(rows)` 实现：固定输出 `ticket_id`、`summary`、`owner` 三列并按此顺序排列；使用分号 `;` 分隔、CRLF 换行；返回带 UTF-8 BOM 的 `bytes`。输入中的额外字段会忽略，缺失字段为空值，CSV 特殊字符按标准规则转义。",
+      "kind": "fact",
+      "when": "适用于工单 CSV 导出；截至 2026-10-06，验证脚本 2 项测试通过。",
+      "tags": [
+        "工单",
+        "CSV",
+        "导出"
+      ],
+      "support": 1,
+      "contradictions": 0,
+      "retrievals": 0,
+      "successful_uses": 0,
+      "failed_uses": 0,
+      "provenance": {
+        "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+        "evidence_id": "7b90db0dc00bacd556b9697b5fcea2089f0587a1fa8fe31f933c99970bbc3414",
+        "evidence_type": "derived",
+        "at": "2026-10-06T15:34:17+00:00",
+        "citations": [
+          {
+            "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+            "evidence_id": "7b90db0dc00bacd556b9697b5fcea2089f0587a1fa8fe31f933c99970bbc3414",
+            "source": "user",
+            "time": "2026-10-06T15:32:37.402789+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+            "evidence_id": "6b3e2d2a6721d6f856326a8c8bd252ef0d9d0222911267ac2f504754f807e91d",
+            "source": "read_file",
+            "time": "2026-10-06T15:33:18.312172+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+            "evidence_id": "260606457df6f5b35197950969e6906b495625fcc8a167e5fd431e6b5c3bfa83",
+            "source": "run_tests",
+            "time": "2026-10-06T15:34:02.958661+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+            "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+            "source": "user",
+            "time": "2026-10-06T15:32:20.023728+00:00",
+            "status": "success"
+          },
+          {
+            "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+            "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+            "source": "user",
+            "time": "2026-10-06T15:32:10.661638+00:00",
+            "status": "success"
+          }
+        ]
+      },
+      "sources": {
+        "exports.py": "14f461811b2dedfd5394d3b9dde14a58a4e39bb4790ac4f83821317b07932acf"
+      },
+      "inactive_reason": ""
+    }
+  ],
+  "memory_audit": [
+    {
+      "event": "record",
+      "lesson_id": "aae4d13c29eba8f4",
+      "run_id": "378efff2cbbf4a4a8d75e554c78138d8",
+      "evidence_id": "983d0c38d5993ad062d4c4942fb4fe05f5c9f6073716f377828d07e07f2682fe",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "39d7d8b09cb54f4e8f62a7f2142f188b",
+      "accepted": 1,
+      "rejected": []
+    },
+    {
+      "event": "dream",
+      "status": "completed",
+      "reason": "",
+      "checked": 1,
+      "deactivated": 0
+    },
+    {
+      "event": "record",
+      "lesson_id": "faf6187ce7e69d0a",
+      "run_id": "4d8ef67faa3a4ed49960bd069ce2d667",
+      "evidence_id": "11c1a4b791fa1c8e070b046784e01527a0754bed74da2c782dd3dec75f803ebe",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "f7bb75975c5e46ed984d70f1027f77a5",
+      "accepted": 1,
+      "rejected": []
+    },
+    {
+      "event": "dream",
+      "status": "completed",
+      "reason": "",
+      "checked": 1,
+      "deactivated": 0
+    },
+    {
+      "event": "record",
+      "lesson_id": "8e0dbcbd839951f1",
+      "run_id": "a7a122805e884ddbbb9801aae63d3b95",
+      "evidence_id": "7b90db0dc00bacd556b9697b5fcea2089f0587a1fa8fe31f933c99970bbc3414",
+      "outcome": "support"
+    },
+    {
+      "event": "consolidated",
+      "job_id": "bed138d70b104f52b976e9d3f0d11491",
+      "accepted": 1,
+      "rejected": []
+    }
+  ]
+}

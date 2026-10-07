@@ -34,6 +34,9 @@
 <p>注意最后参与计数的不是只有聊天消息。
 工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
 工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。</p>
+<p>消息按“系统规则、任务与已确认历史、动态状态和记忆”的顺序排列，记忆更新不插入稳定前缀。普通父任务进入预算收尾时保留工具定义，靠执行入口的 <code>handoff_only</code> 阻止新动作；模型即使再次请求工具也不能继续执行。这样避免单纯为了最终答复就修改工具前缀。子任务沿用原有交接目录；正常按需加载工具、历史压缩或版本升级仍可能影响缓存，不能承诺每次都命中。设计依据见<a href="../source/docs/cost-optimization-20261007.md">一日降耗方案（Markdown 原文下载）</a>。</p>
+<p>这里的“稳定”是同一版本、同一任务中，变化的记忆不改写前面的系统规则和已有消息。升级修改系统提示或工具 schema 后，新请求与旧版本的前缀不同，可能需要重新建立缓存。缓存通常只能利用第一次变化之前的连续前缀：压缩早期历史、增减工具定义仍会影响它，后台记忆放在末尾也不代表整个请求永远不变。</p>
+<p>实测应同时看 <code>缓存输入 token / 全部输入 token</code>、未缓存输入和输出，不能只追求命中比例。减少无效调用可能同时减少缓存 token 和总成本。当前真实对照使用 Responses，缓存数取供应商返回的 usage；Chat 和 Anthropic 的缓存效果没有在这组实验中验证。</p>
 <p><a href="../source/src/aster/core/runtime.py.html">Runtime.prepare_request()</a> 的入口如下，节选：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">budget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">settings</span><span class="o">.</span><span class="n">effective_context_tokens</span>
@@ -184,7 +187,12 @@
         <span class="n">runtime</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span><span class="s2">"assistant"</span><span class="p">,</span> <span class="s2">"旧的探索思路。"</span> <span class="o">*</span> <span class="mi">200</span><span class="p">,</span> <span class="n">native</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">wide_prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">wide</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">wide</span><span class="o">.</span><span class="n">compacted</span>
-        <span class="k">assert</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"output"</span><span class="p">])[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="n">outcome</span><span class="o">.</span><span class="n">content</span>
+        <span class="c1"># 模型看到的读取结果带行号，正文仍然完整。</span>
+        <span class="n">numbered</span> <span class="o">=</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">number</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">"</span>
+            <span class="k">for</span> <span class="n">number</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">outcome</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">splitlines</span><span class="p">(),</span> <span class="n">outcome</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"start"</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">"output"</span><span class="p">])[</span><span class="s2">"content"</span><span class="p">]</span> <span class="o">==</span> <span class="n">numbered</span>
 
         <span class="c1"># 调小的是实验预算；日常使用可以省略 context_tokens。</span>
         <span class="n">settings</span><span class="o">.</span><span class="n">context_tokens</span> <span class="o">=</span> <span class="mi">4096</span>
@@ -210,8 +218,8 @@
 </pre></div>
 </div>
 <p>以下是一次示意执行记录；当前实现显示 <code>deterministic-v7</code>，计数也可能变化：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>压缩前本地估算: 9449
-压缩后本地估算: 2617 / 3584
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>压缩前本地估算: 13325
+压缩后本地估算: 3067 / 3584
 移除旧消息: 1
 调用和结果仍然成组: 2
 策略版本: deterministic-v7
@@ -219,7 +227,7 @@
 </div>
 <p>每次生成的调用 ID、证据标识不同，工具描述和依赖版本也可能变化，
 token 数会略有变化；重要的是断言一直成立。
-第一次读完日志时，正文没有被固定工具上限提前切掉；第二次预算变小后，
+第一次读完日志时，模型看到的是带行号的完整正文，没有被固定工具上限提前切掉；第二次预算变小后，
 旧的普通消息被移除，日志留下有界摘录与归档引用，调用和结果仍是一组。</p>
 <p>命令输出还受 <code>run_shell</code> 的 4 MiB 捕获上限和 8192 字符预览上限约束；超过捕获上限的内容不会靠归档恢复。上下文预算裁剪是另一层：它针对已捕获的请求内容重新计数和收缩，不等于扩大命令捕获能力。</p>
 <p><code>report.removed_messages</code> 统计移除的消息/协议项数量，不是“删除了多少事实”。

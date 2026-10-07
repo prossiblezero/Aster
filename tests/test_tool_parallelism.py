@@ -86,7 +86,7 @@ async def test_read_batch_really_overlaps_with_a_bound_and_ordered_state(tmp_pat
     monkeypatch.setattr(runtime.workspace, "read", read)
     await runtime.turn()
     assert maximum == 2 and completed == [1, 0, 3, 2]
-    assert [row["content"] for row in results(runtime)] == [f"value {i}" for i in range(4)]
+    assert [row["content"] for row in results(runtime)] == [f"1: value {i}" for i in range(4)]
     assert [x[:2] for x in lifecycle] == (
         [("before", f"c{i}") for i in range(4)] + [("after", f"c{i}") for i in range(4)]
     )
@@ -266,7 +266,7 @@ async def test_external_edit_invalidates_parallel_read_evidence(tmp_path, monkey
     (tmp_path / "0.txt").write_text("changed externally\n")
     release.set()
     await task
-    assert results(runtime)[0]["content"] == "value 0"
+    assert results(runtime)[0]["content"] == "1: value 0"
     assert "0.txt" not in runtime.state.read_evidence
     assert "0.txt" not in runtime.state.working_memory
     outcome = await runtime.step(
@@ -299,7 +299,7 @@ async def test_preflight_hook_cannot_turn_an_authorized_read_into_a_write(tmp_pa
 
     runtime = runtime_for(tmp_path, reads(2), hooks=Hooks([Mutate()]))
     await runtime.turn()
-    assert [row["content"] for row in results(runtime)] == ["value 0", "value 1"]
+    assert [row["content"] for row in results(runtime)] == ["1: value 0", "1: value 1"]
     assert not (tmp_path / "must-not-exist.txt").exists()
 
 

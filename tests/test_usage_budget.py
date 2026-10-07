@@ -195,11 +195,14 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
 
     class NoNetworkRuntime:
         def __init__(self, _root, settings, **_kwargs):
+            from unittest.mock import AsyncMock
+
             seen["settings"] = settings
             self.state = None
             self.evidence = SimpleNamespace(
                 redactor=Redactor([settings.api_key.get_secret_value()]), listeners=[]
             )
+            self.maintenance = SimpleNamespace(drain=AsyncMock(), close=AsyncMock())
 
         async def run(self, task):
             from aster.schema import RunState

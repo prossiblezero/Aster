@@ -36,11 +36,13 @@ Linux 沙箱采用 Landlock、seccomp 和过滤后的临时工作区副本。当
 | 上下文 | 对实际协议请求及工具 schema 估算预算；完整调用组裁剪；过大必需输入明确拒绝 | `test_context_provider.py` 与上下文压力数据；本地估计与远端 usage 分开，未实现上下文策略自进化 |
 | 运行治理 | 有进展不误停、有界恢复、Hooks、完成契约、验证失效、一次性收尾 | `test_runtime_repairs.py`、`test_review_regressions.py`；Hook 被调用与任务受益分开测试 |
 | 恢复与审计 | 保存文本基线、文件指纹、调用组、恢复次数、状态和验证结果；恢复时检查漂移 | 修改/新增/恢复与漂移场景；不恢复操作系统进程，不从旧哈希伪造文本基线 |
-| 记忆 | 会话工作记忆；带源文件证据的持久摘录；反馈排序、过期/反复失败停用、快照回滚 | `test_memory_evolution.py`、来源洗白回归及双条件机制评测；确定性反馈场景不当作真实模型的因果归因 |
+| 记忆 | 默认启用持久记忆、演化与自动整理；带真实来源和适用范围的摘录、事实、方法；任务后有界自动提炼、并行生成/边界提交、来源与版本冲突检查、真实回执、按实际应用反馈及快照回滚 | `test_memory_maintenance.py`、`test_memory_knowledge.py`、`test_memory_feedback_contract.py`、`test_memory_evolution.py` 及来源洗白回归；[前期知识对照](../evaluations/memory-knowledge-20261005/REPORT.md)、[自动学习十题](../evaluations/memory-sleep-20261005/REPORT.md)与机制检查分别报告，不将来源认证或测试反馈视为语义正确性和因果证明 |
 | 交互与 Worker | TUI/CLI 真正等待批准和答案；后台取消；Worker 消息下一轮交付、并发回收、权限继承 | 无显示窗口的 Textual 交互测试；子任务共享工作区且写入范围受限，无递归子树；保留工作记忆，不写共享持久记忆 |
 | RL 环境接口 | 独立临时 episode、统一动作执行、步骤/轮数限制、终态保护、宿主独立奖励验证器 | `test_rl_contract.py`、Runtime 与终态竞态回归；没有验证器就没有成功奖励，终态前等待 Worker 清理 |
 | 评测 | 数据与执行器分离；独立验证、参考行为检查、固定真实模型名单、模块对照与失败归档 | 见 `datasets/`、主任务/机制/鲁棒性专项执行器和 [评测说明](benchmark.md)；参考动作通过不等于真实模型通过 |
 | 学习材料 | 从数据契约到完整运行，再进入评测、可靠性、记忆与环境接口的分阶段导读 | [学习入口](learning/README.md) 的命令与当前代码对应；后训练章节在训练实现后再写 |
+
+2026-10-07 的[降耗改造](cost-optimization-20261007.md)增加随 `run_tests` 提交的临时 Python 测试，保留原有沙箱和正式验证要求；父任务预算收尾保留工具定义，由执行入口阻止新动作；后台用输入指纹和记忆内容版本跳过已处理的相同材料。默认自动学习继续开启，没有新增配置或运行依赖。机制检查见 `test_inline_verification.py`、`test_memory_maintenance.py` 与原有上下文、Worker 回归。
 
 ## 验证命令
 
@@ -58,7 +60,7 @@ python scripts/benchmark_mechanisms.py --output artifacts/local-mechanisms
 
 ## 保留的轻量边界
 
-- Context 使用固定预算和裁剪规则；Memory Dream 使用可解释的确定性维护，不增加语义裁判或额外模型服务。
+- Context 使用固定预算和裁剪规则；规则 Dream 保留确定性停用，异步整理沿用当前模型且不自动重试。后台调用计入预算，父任务临近调用或 token 上限时转入最终交付；检查未满足则保留部分完成状态。不增加语义裁判或额外模型服务。
 - 文本 diff 与内容哈希各司其职；多文件回写经过完整检查后逐文件替换，不宣称事务级原子提交。
 - Worker 共享工作区和宿主 Hooks，权限只能收窄；有状态插件按 `run_id` 区分不同运行。
 - `AsterEnv` 只负责环境和奖励接口；调用者负责训练/评测分离与可信验证器隔离。现有评测任务不直接进入训练集。

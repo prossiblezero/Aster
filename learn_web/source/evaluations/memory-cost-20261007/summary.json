@@ -1,0 +1,694 @@
+{
+  "baseline": {
+    "tasks": 10,
+    "episodes": 24,
+    "cost_components": {
+      "foreground": {
+        "attempts": 164,
+        "known": 163,
+        "input": 1466707,
+        "cached": 928256,
+        "uncached": 538451,
+        "output": 34512,
+        "with_cache": 134,
+        "unknown": 1,
+        "cache_share": 0.632884413860437
+      },
+      "maintenance": {
+        "attempts": 24,
+        "known": 23,
+        "input": 123730,
+        "cached": 46080,
+        "uncached": 77650,
+        "output": 4179,
+        "with_cache": 10,
+        "unknown": 1,
+        "cache_share": 0.37242382607290064
+      },
+      "all": {
+        "attempts": 188,
+        "known": 186,
+        "input": 1590437,
+        "cached": 974336,
+        "uncached": 616101,
+        "output": 38691,
+        "with_cache": 144,
+        "unknown": 2,
+        "cache_share": 0.6126215625013754
+      }
+    },
+    "pending_maintenance_at_end": 1,
+    "unchanged_evidence_skips": 0,
+    "inline_test_calls": 0,
+    "all_tool_calls": 226,
+    "failed_tool_calls": 16,
+    "maintenance_calls": 24,
+    "maintenance_tokens_reported": 127909,
+    "maintenance_usage_missing": 1,
+    "maintenance_committed_operations": 16,
+    "maintenance_store_replace_receipts": 16,
+    "maintenance_store_replace_confirmed": 16,
+    "learning_maintenance_tokens": 76259,
+    "learning_saved_tasks": 10,
+    "learning_sources_saved_by_end": 10,
+    "foreground_seconds": 1164.798,
+    "total_episode_seconds": 1326.522,
+    "temporary_label_memories": 0,
+    "delivered_finals": 10,
+    "task_success": 9,
+    "pipeline_success": 9,
+    "learning_completed": 14,
+    "learning_episodes": 14,
+    "functional_success": 10,
+    "constraint_passed": 30,
+    "constraint_total": 30,
+    "learning_tokens_reported": 354888,
+    "reuse_tokens_reported": 1274240,
+    "total_tokens_reported": 1629128,
+    "usage_complete": false,
+    "requests_with_total_usage": 186,
+    "model_requests": 187,
+    "provider_attempts": 188,
+    "provider_attempts_with_total": 186,
+    "provider_usage_complete": false,
+    "reuse_tool_calls": 190,
+    "reuse_document_reads": 5,
+    "reuse_failed_tests": 0,
+    "tasks_recalling_learning": 9,
+    "successful_tasks_recalling_learning": 8,
+    "user_convention_success": 4,
+    "user_convention_functional_success": 4,
+    "user_convention_tasks": 4,
+    "unrelated_memory_feedback": 0,
+    "details": [
+      {
+        "id": "01_timezone",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "timezone": {
+              "passed": true
+            },
+            "day_boundary": {
+              "passed": true
+            },
+            "explicit_offset": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 161159,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "05bd34d5a0c28f09"
+        ]
+      },
+      {
+        "id": "02_money",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "truncate": {
+              "passed": true
+            },
+            "negative": {
+              "passed": true
+            },
+            "decimal_precision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 161915,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "dc04251964f894c9"
+        ]
+      },
+      {
+        "id": "03_csv",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "encoding": {
+              "passed": true
+            },
+            "columns": {
+              "passed": true
+            },
+            "escaping": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 154499,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "158f07e2cd9ee29b"
+        ]
+      },
+      {
+        "id": "04_correction",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_rule": {
+              "passed": true
+            },
+            "old_rule_removed": {
+              "passed": true
+            },
+            "unchanged_and_other": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 143377,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "69604579518d354a"
+        ]
+      },
+      {
+        "id": "05_document_synthesis",
+        "passed": false,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "combined_convention": {
+              "passed": true
+            },
+            "preserve_other_chars": {
+              "passed": true
+            },
+            "invalid_revision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 156702,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "6fcfced3a038f229"
+        ]
+      },
+      {
+        "id": "06_stale_source",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_timeout": {
+              "passed": true
+            },
+            "new_retry_count": {
+              "passed": true
+            },
+            "schema": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 133789,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": []
+      },
+      {
+        "id": "07_repair_transfer",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "legacy_precedence": {
+              "passed": true
+            },
+            "decimal_rounding": {
+              "passed": true
+            },
+            "empty_input": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 67229,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "a5664e2e595f7eeb"
+        ]
+      },
+      {
+        "id": "08_test_recipe",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "normalization": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 85961,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "75e57969d9536ee4"
+        ]
+      },
+      {
+        "id": "09_scope",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "analytics_scope": {
+              "passed": true
+            },
+            "api_scope": {
+              "passed": true
+            },
+            "unknown_scope": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 155945,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "0c73d711d4c6963f"
+        ]
+      },
+      {
+        "id": "10_feedback_isolation",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "collapse_spaces": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 53664,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "567d2dc5bed33392"
+        ]
+      }
+    ]
+  },
+  "cost": {
+    "tasks": 10,
+    "episodes": 24,
+    "cost_components": {
+      "foreground": {
+        "attempts": 108,
+        "known": 106,
+        "input": 876505,
+        "cached": 509440,
+        "uncached": 367065,
+        "output": 21560,
+        "with_cache": 77,
+        "unknown": 2,
+        "cache_share": 0.5812174488451293
+      },
+      "maintenance": {
+        "attempts": 16,
+        "known": 15,
+        "input": 77879,
+        "cached": 55296,
+        "uncached": 22583,
+        "output": 2769,
+        "with_cache": 12,
+        "unknown": 1,
+        "cache_share": 0.7100245252250286
+      },
+      "all": {
+        "attempts": 124,
+        "known": 121,
+        "input": 954384,
+        "cached": 564736,
+        "uncached": 389648,
+        "output": 24329,
+        "with_cache": 89,
+        "unknown": 3,
+        "cache_share": 0.5917282770876293
+      }
+    },
+    "pending_maintenance_at_end": 0,
+    "unchanged_evidence_skips": 2,
+    "inline_test_calls": 12,
+    "all_tool_calls": 146,
+    "failed_tool_calls": 9,
+    "maintenance_calls": 16,
+    "maintenance_tokens_reported": 80648,
+    "maintenance_usage_missing": 1,
+    "maintenance_committed_operations": 12,
+    "maintenance_store_replace_receipts": 12,
+    "maintenance_store_replace_confirmed": 12,
+    "learning_maintenance_tokens": 57943,
+    "learning_saved_tasks": 9,
+    "learning_sources_saved_by_end": 10,
+    "foreground_seconds": 941.578,
+    "total_episode_seconds": 1038.979,
+    "temporary_label_memories": 0,
+    "delivered_finals": 10,
+    "task_success": 9,
+    "pipeline_success": 9,
+    "learning_completed": 14,
+    "learning_episodes": 14,
+    "functional_success": 9,
+    "constraint_passed": 27,
+    "constraint_total": 30,
+    "learning_tokens_reported": 289276,
+    "reuse_tokens_reported": 689437,
+    "total_tokens_reported": 978713,
+    "usage_complete": false,
+    "requests_with_total_usage": 121,
+    "model_requests": 122,
+    "provider_attempts": 124,
+    "provider_attempts_with_total": 121,
+    "provider_usage_complete": false,
+    "reuse_tool_calls": 120,
+    "reuse_document_reads": 5,
+    "reuse_failed_tests": 0,
+    "tasks_recalling_learning": 9,
+    "successful_tasks_recalling_learning": 8,
+    "user_convention_success": 4,
+    "user_convention_functional_success": 4,
+    "user_convention_tasks": 4,
+    "unrelated_memory_feedback": 0,
+    "details": [
+      {
+        "id": "01_timezone",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "timezone": {
+              "passed": true
+            },
+            "day_boundary": {
+              "passed": true
+            },
+            "explicit_offset": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 64533,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "90992826d38faf62"
+        ]
+      },
+      {
+        "id": "02_money",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "truncate": {
+              "passed": true
+            },
+            "negative": {
+              "passed": true
+            },
+            "decimal_precision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 105080,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "1f63a30591871c85"
+        ]
+      },
+      {
+        "id": "03_csv",
+        "passed": false,
+        "grade": {
+          "passed": false,
+          "checks": {
+            "encoding": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "columns": {
+              "passed": false,
+              "error": "AssertionError: "
+            },
+            "escaping": {
+              "passed": false,
+              "error": "AssertionError: "
+            }
+          }
+        },
+        "reuse_tokens": 65578,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "17cbf21b6959408f"
+        ]
+      },
+      {
+        "id": "04_correction",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_rule": {
+              "passed": true
+            },
+            "old_rule_removed": {
+              "passed": true
+            },
+            "unchanged_and_other": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 46799,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "ec5126408ff801ec"
+        ]
+      },
+      {
+        "id": "05_document_synthesis",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "combined_convention": {
+              "passed": true
+            },
+            "preserve_other_chars": {
+              "passed": true
+            },
+            "invalid_revision": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 102810,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "b04e110656f5fcb0"
+        ]
+      },
+      {
+        "id": "06_stale_source",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "new_timeout": {
+              "passed": true
+            },
+            "new_retry_count": {
+              "passed": true
+            },
+            "schema": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 54722,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": []
+      },
+      {
+        "id": "07_repair_transfer",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "legacy_precedence": {
+              "passed": true
+            },
+            "decimal_rounding": {
+              "passed": true
+            },
+            "empty_input": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 90225,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "3919f37171447939"
+        ]
+      },
+      {
+        "id": "08_test_recipe",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "normalization": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 52299,
+        "learned_memories": 0,
+        "learning_source_recalled_ids": [
+          "399798e76e43af48"
+        ]
+      },
+      {
+        "id": "09_scope",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "analytics_scope": {
+              "passed": true
+            },
+            "api_scope": {
+              "passed": true
+            },
+            "unknown_scope": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 53403,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "ff773a896ce2c72e"
+        ]
+      },
+      {
+        "id": "10_feedback_isolation",
+        "passed": true,
+        "grade": {
+          "passed": true,
+          "checks": {
+            "collapse_spaces": {
+              "passed": true
+            },
+            "all_whitespace": {
+              "passed": true
+            },
+            "empty": {
+              "passed": true
+            }
+          }
+        },
+        "reuse_tokens": 53988,
+        "learned_memories": 1,
+        "learning_source_recalled_ids": [
+          "df7e1509eec888df"
+        ]
+      }
+    ]
+  },
+  "price_sensitivity_not_actual_bill": [
+    {
+      "cache_weight": 0.1,
+      "output_weight": 1,
+      "baseline": 752225.6,
+      "cost": 470450.6,
+      "change_percent": -37.46
+    },
+    {
+      "cache_weight": 0.1,
+      "output_weight": 4,
+      "baseline": 868298.6,
+      "cost": 543437.6,
+      "change_percent": -37.41
+    },
+    {
+      "cache_weight": 0.1,
+      "output_weight": 8,
+      "baseline": 1023062.6,
+      "cost": 640753.6,
+      "change_percent": -37.37
+    },
+    {
+      "cache_weight": 0.25,
+      "output_weight": 1,
+      "baseline": 898376.0,
+      "cost": 555161.0,
+      "change_percent": -38.2
+    },
+    {
+      "cache_weight": 0.25,
+      "output_weight": 4,
+      "baseline": 1014449.0,
+      "cost": 628148.0,
+      "change_percent": -38.08
+    },
+    {
+      "cache_weight": 0.25,
+      "output_weight": 8,
+      "baseline": 1169213.0,
+      "cost": 725464.0,
+      "change_percent": -37.95
+    },
+    {
+      "cache_weight": 1,
+      "output_weight": 1,
+      "baseline": 1629128,
+      "cost": 978713,
+      "change_percent": -39.92
+    },
+    {
+      "cache_weight": 1,
+      "output_weight": 4,
+      "baseline": 1745201,
+      "cost": 1051700,
+      "change_percent": -39.74
+    },
+    {
+      "cache_weight": 1,
+      "output_weight": 8,
+      "baseline": 1899965,
+      "cost": 1149016,
+      "change_percent": -39.52
+    }
+  ]
+}
