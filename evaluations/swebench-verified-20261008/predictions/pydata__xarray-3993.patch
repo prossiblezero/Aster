@@ -1,0 +1,59 @@
+diff --git a/doc/whats-new.rst b/doc/whats-new.rst
+index 488d8ba..3b34036 100644
+--- a/doc/whats-new.rst
++++ b/doc/whats-new.rst
+@@ -22,6 +22,7 @@ v0.17.0 (unreleased)
+ 
+ Breaking changes
+ ~~~~~~~~~~~~~~~~
++- :py:meth:`DataArray.integrate` now uses the ``coord`` keyword instead of ``dim``.
+ - xarray no longer supports python 3.6
+ 
+   The minimum versions of some other dependencies were changed:
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 2fef3ed..510e6d4 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -3481,17 +3481,17 @@ class DataArray(AbstractArray, DataWithCoords):
+         return self._from_temp_dataset(ds)
+ 
+     def integrate(
+-        self, dim: Union[Hashable, Sequence[Hashable]], datetime_unit: str = None
++        self, coord: Union[Hashable, Sequence[Hashable]], datetime_unit: str = None
+     ) -> "DataArray":
+         """ integrate the array with the trapezoidal rule.
+ 
+         .. note::
+-            This feature is limited to simple cartesian geometry, i.e. dim
++            This feature is limited to simple cartesian geometry, i.e. coord
+             must be one dimensional.
+ 
+         Parameters
+         ----------
+-        dim : hashable, or sequence of hashable
++        coord : hashable, or sequence of hashable
+             Coordinate(s) used for the integration.
+         datetime_unit : {"Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns", \
+                          "ps", "fs", "as"}, optional
+@@ -3528,7 +3528,7 @@ class DataArray(AbstractArray, DataWithCoords):
+         array([5.4, 6.6, 7.8])
+         Dimensions without coordinates: y
+         """
+-        ds = self._to_temp_dataset().integrate(dim, datetime_unit)
++        ds = self._to_temp_dataset().integrate(coord, datetime_unit)
+         return self._from_temp_dataset(ds)
+ 
+     def unify_chunks(self) -> "DataArray":
+diff --git a/xarray/tests/test_dataset.py b/xarray/tests/test_dataset.py
+index fed9098..cd1d456 100644
+--- a/xarray/tests/test_dataset.py
++++ b/xarray/tests/test_dataset.py
+@@ -6573,6 +6573,8 @@ def test_integrate(dask):
+ 
+     # along x
+     actual = da.integrate("x")
++    actual_with_coord_keyword = da.integrate(coord="x")
++    assert_equal(actual, actual_with_coord_keyword)
+     # coordinate that contains x should be dropped.
+     expected_x = xr.DataArray(
+         np.trapz(da.compute(), da["x"], axis=0),

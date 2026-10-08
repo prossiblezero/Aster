@@ -1,0 +1,61 @@
+diff --git a/tests/test_ext_autodoc_autodata.py b/tests/test_ext_autodoc_autodata.py
+index d01e45f..c5c7bb4 100644
+--- a/tests/test_ext_autodoc_autodata.py
++++ b/tests/test_ext_autodoc_autodata.py
+@@ -101,6 +101,39 @@ def test_autodata_GenericAlias(app):
+         ]
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_autodata_nextline_generic_alias(app):
++    actual = do_autodoc(app, 'module', 'target.nextline_alias',
++                        {'members': None, 'undoc-members': None})
++    assert list(actual) == [
++        '',
++        '.. py:module:: target.nextline_alias',
++        '',
++        '',
++        '.. py:data:: ScaffoldOpts',
++        '   :module: target.nextline_alias',
++        '',
++        '   Dictionary options.',
++        '',
++        '   alias of :class:`~typing.Dict`\\ [:class:`str`, :class:`typing.Any`]',
++        '',
++        '.. py:data:: FileContents',
++        '   :module: target.nextline_alias',
++        '',
++        '   File contents.',
++        '',
++        '   alias of :class:`~typing.Union`\\ [:class:`str`, `None`]',
++        '',
++        '.. py:data:: FileOp',
++        '   :module: target.nextline_alias',
++        '',
++        '   File operation.',
++        '',
++        '   alias of :class:`~typing.Callable`',
++        '',
++    ]
++
++
+ @pytest.mark.sphinx('html', testroot='ext-autodoc')
+ def test_autodata_NewType(app):
+     actual = do_autodoc(app, 'data', 'target.typevar.T6')
+diff --git a/tests/roots/test-ext-autodoc/target/nextline_alias.py b/tests/roots/test-ext-autodoc/target/nextline_alias.py
+new file mode 100644
+index 0000000..9c699b6
+--- /dev/null
++++ b/tests/roots/test-ext-autodoc/target/nextline_alias.py
+@@ -0,0 +1,11 @@
++from pathlib import Path
++from typing import Any, Callable, Dict, Union
++
++ScaffoldOpts = Dict[str, Any]
++"""Dictionary options."""
++
++FileContents = Union[str, None]
++"""File contents."""
++
++FileOp = Callable[[Path, FileContents, ScaffoldOpts], Union[Path, None]]
++"""File operation."""

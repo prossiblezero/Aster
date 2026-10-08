@@ -1,0 +1,34 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index 620f32f..265b4e9 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -365,7 +365,9 @@ class DataVariables(Mapping[Any, "DataArray"]):
+         )
+ 
+     def __len__(self) -> int:
+-        return len(self._dataset._variables) - len(self._dataset._coord_names)
++        return sum(
++            key not in self._dataset._coord_names for key in self._dataset._variables
++        )
+ 
+     def __contains__(self, key: Hashable) -> bool:
+         return key in self._dataset._variables and key not in self._dataset._coord_names
+diff --git a/xarray/tests/test_dataset.py b/xarray/tests/test_dataset.py
+index fc2806c..1e72c81 100644
+--- a/xarray/tests/test_dataset.py
++++ b/xarray/tests/test_dataset.py
+@@ -951,6 +951,14 @@ class TestDataset:
+             "bar": np.dtype("float64"),
+         }
+ 
++        ds = xr.Dataset(
++            coords={"a": ("x", [1, 2, 3]), "b": ("x", ["a", "b", "c"])}
++        )
++        ds = ds.set_index(z=["a", "b"]).reset_index("z", drop=True)
++        assert len(ds.data_vars) == 0
++        assert list(ds.data_vars) == []
++        assert repr(ds.data_vars) == "Data variables:" + "\n    *empty*"
++
+     def test_equals_and_identical(self) -> None:
+         data = create_test_data(seed=42)
+         assert data.equals(data)

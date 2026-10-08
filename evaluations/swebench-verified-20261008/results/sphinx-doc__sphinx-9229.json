@@ -1,0 +1,98 @@
+{
+  "instance_id": "sphinx-doc__sphinx-9229",
+  "difficulty": "medium",
+  "repo": "sphinx-doc/sphinx",
+  "phase": "stopped",
+  "stop_reason": "team_token_limit",
+  "error": null,
+  "final": "**Incomplete**\n\nFindings:\n\n- `ModuleAnalyzer` correctly extracts all three adjacent string-literal docstrings into `attr_docs`.\n- Generic alias content is added by `GenericAliasMixin.update_content()` in [`sphinx/ext/autodoc/__init__.py`](sphinx/ext/autodoc/__init__.py:1789).\n- Existing tests cover `#:` attribute comments but not next-line string-literal documentation.\n- The issue could not be reproduced in the configured environment, which runs Sphinx 4.1.0 on Python 3.9 rather than the reported Sphinx 3.1.2/Python 3.6 environment.\n\nChanges made:\n\n- Added a reproducer fixture at [`tests/roots/test-ext-autodoc/target/nextline_alias.py`](tests/roots/test-ext-autodoc/target/nextline_alias.py).\n- Added a regression test at [`tests/test_ext_autodoc_autodata.py`](tests/test_ext_autodoc_autodata.py).\n\nVerification:\n\n```text\nPYTHONPATH=. python -m pytest tests/test_ext_autodoc_autodata.py::test_autodata_nextline_generic_alias -q\n```\n\nThe test failed because the expected output was ordered by source order, while autodoc emits module members alphabetically. No production implementation change was completed, and the added test currently needs correction before it can serve as a valid regression test.\n\n任务未全部完成：预算不足，以上仅为已完成的工作与检查。",
+  "foreground_seconds": 285.365,
+  "seconds": 300.669,
+  "usage": {
+    "usage_requests": 26,
+    "input_tokens": 904090,
+    "input_tokens_requests": 26,
+    "output_tokens": 5104,
+    "output_tokens_requests": 26,
+    "cache_read_input_tokens": 276480,
+    "cache_read_input_tokens_requests": 26,
+    "reasoning_tokens": 2149,
+    "reasoning_tokens_requests": 26,
+    "total_tokens": 909194,
+    "total_tokens_requests": 26
+  },
+  "memory_usage": {
+    "calls": 1,
+    "unknown_usage": 1
+  },
+  "team_usage": {
+    "model_calls": 27,
+    "tool_calls": 46,
+    "charged_tokens": 913846,
+    "estimated_requests": 1
+  },
+  "model_turns": 26,
+  "provider_attempts": 27,
+  "attempts_with_total_usage": 26,
+  "tool_calls": 46,
+  "source_unchanged": true,
+  "patch_sha256": "3c0d985c451ca247d69d584e8edfce1e47376b137295b3c27aa471c83189c069",
+  "grade": {
+    "status": "failed",
+    "passed": false,
+    "exit_code": 1,
+    "timed_out": false,
+    "fail_to_pass": {
+      "tests/test_ext_autodoc_autoclass.py::test_class_alias_having_doccomment": "FAILED"
+    },
+    "pass_to_pass": {
+      "tests/test_ext_autodoc_autoclass.py::test_classes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_instance_variable": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_inherited_instance_variable": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_uninitialized_attributes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_undocumented_uninitialized_attributes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_decorators": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_properties": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_slots_attribute": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_show_inheritance_for_subclass_of_generic_type": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_class": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_init": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_both": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_alias": "PASSED"
+    },
+    "required_count": 14,
+    "observed_count": 14,
+    "missing_tests": [],
+    "test_statuses": {
+      "tests/test_ext_autodoc_autoclass.py::test_classes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_instance_variable": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_inherited_instance_variable": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_uninitialized_attributes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_undocumented_uninitialized_attributes": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_decorators": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_properties": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_slots_attribute": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_show_inheritance_for_subclass_of_generic_type": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_class": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_init": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_doc_from_both": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_alias": "PASSED",
+      "tests/test_ext_autodoc_autoclass.py::test_class_alias_having_doccomment": "FAILED"
+    },
+    "non_scoring_failures": {},
+    "discarded_test_changes": [
+      "tests/roots/test-ext-autodoc/target/nextline_alias.py",
+      "tests/test_ext_autodoc_autodata.py"
+    ],
+    "test_integrity_policy": "restore_public_tests_and_runners_v2",
+    "test_command": "python -X dev -m pytest -rA -v tests/roots/test-ext-autodoc/target/classes.py tests/test_ext_autodoc_autoclass.py",
+    "python": "/home/dzh/Aster/artifacts/private/swebench-verified-20261008/environment/bin/python",
+    "network": "off",
+    "network_note": "Network blocked",
+    "sandbox": "Landlock+seccomp",
+    "environment_kind": "native_equivalent_original_tests",
+    "mode": "original_f2p_p2p_native_equivalent"
+  },
+  "grading_seconds": 1.563,
+  "resolved": false
+}

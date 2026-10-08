@@ -1,0 +1,98 @@
+{
+  "instance_id": "sympy__sympy-13031",
+  "difficulty": "simple",
+  "repo": "sympy/sympy",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "error": null,
+  "final": "Implemented the matrix stacking fix for sparse matrices.\n\nChanges:\n- Updated `SparseMatrix.row_join` and `SparseMatrix.col_join` to preserve zero-dimensional shapes when stacking null matrices.\n- Added regression coverage for sparse `hstack` and `vstack` behavior in `sympy/matrices/tests/test_sparse.py`.\n\nVerified:\n- Dense and sparse cases now return `(0, 6)` for horizontal stacking and `(6, 0)` for vertical stacking.\n- `sympy/matrices/tests/test_sparse.py`: 11 tests passed.\n- The combined matrix test run reached all relevant stacking tests successfully; unrelated legacy tests (`test_refine`, `test_simplify`, and `test_jordan_form`) fail due to an existing assumptions recursion/runtime incompatibility.",
+  "foreground_seconds": 549.725,
+  "seconds": 553.364,
+  "usage": {
+    "usage_requests": 19,
+    "input_tokens": 475619,
+    "input_tokens_requests": 19,
+    "output_tokens": 5496,
+    "output_tokens_requests": 19,
+    "cache_read_input_tokens": 210944,
+    "cache_read_input_tokens_requests": 19,
+    "reasoning_tokens": 2386,
+    "reasoning_tokens_requests": 19,
+    "total_tokens": 481115,
+    "total_tokens_requests": 19
+  },
+  "memory_usage": {
+    "calls": 1,
+    "usage_requests": 1,
+    "input_tokens": 7908,
+    "input_tokens_requests": 1,
+    "output_tokens": 126,
+    "output_tokens_requests": 1,
+    "cache_read_input_tokens": 0,
+    "cache_read_input_tokens_requests": 1,
+    "reasoning_tokens": 107,
+    "reasoning_tokens_requests": 1,
+    "total_tokens": 8034,
+    "total_tokens_requests": 1
+  },
+  "team_usage": {
+    "model_calls": 19,
+    "tool_calls": 49,
+    "charged_tokens": 481115
+  },
+  "model_turns": 18,
+  "provider_attempts": 19,
+  "attempts_with_total_usage": 19,
+  "tool_calls": 49,
+  "source_unchanged": true,
+  "patch_sha256": "9e1e75b61f2f7de2972ddb3f3b6709b201bdfe439c6e1acd13c4e1f2442db686",
+  "grade": {
+    "status": "passed",
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false,
+    "fail_to_pass": {
+      "test_sparse_matrix": "PASSED"
+    },
+    "pass_to_pass": {
+      "test_transpose": "PASSED",
+      "test_trace": "PASSED",
+      "test_CL_RL": "PASSED",
+      "test_add": "PASSED",
+      "test_errors": "PASSED",
+      "test_len": "PASSED",
+      "test_sparse_zeros_sparse_eye": "PASSED",
+      "test_copyin": "PASSED",
+      "test_sparse_solve": "PASSED"
+    },
+    "required_count": 10,
+    "observed_count": 10,
+    "missing_tests": [],
+    "test_statuses": {
+      "test_sparse_matrix": "PASSED",
+      "test_transpose": "PASSED",
+      "test_trace": "PASSED",
+      "test_CL_RL": "PASSED",
+      "test_add": "PASSED",
+      "test_errors": "PASSED",
+      "test_len": "PASSED",
+      "test_sparse_zeros_sparse_eye": "PASSED",
+      "test_copyin": "PASSED",
+      "test_sparse_solve": "PASSED"
+    },
+    "non_scoring_failures": {},
+    "discarded_test_changes": [
+      "sympy/matrices/tests/test_sparse.py"
+    ],
+    "test_integrity_policy": "restore_public_tests_and_runners_v2",
+    "test_command": "PYTHONWARNINGS='ignore::UserWarning,ignore::SyntaxWarning' python bin/test -C --verbose sympy/matrices/tests/test_sparse.py",
+    "python": "/home/dzh/Aster/artifacts/private/swebench-verified-20261008/environment/bin/python",
+    "network": "off",
+    "network_note": "Network blocked",
+    "sandbox": "Landlock+seccomp",
+    "environment_kind": "native_equivalent_original_tests",
+    "mode": "original_f2p_p2p_native_equivalent"
+  },
+  "grading_seconds": 1.795,
+  "resolved": true
+}

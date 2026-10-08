@@ -1,0 +1,27 @@
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index b562f47..f40f594 100644
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -40,7 +40,8 @@ class _MockObject:
+         return super().__new__(cls)
+ 
+     def __init__(self, *args: Any, **kwargs: Any) -> None:
+-        self.__qualname__ = ''
++        # Keep the generated attribute name for references to mocked objects.
++        self.__qualname__ = self.__class__.__name__
+ 
+     def __len__(self) -> int:
+         return 0
+diff --git a/tests/test_ext_autodoc_automodule.py b/tests/test_ext_autodoc_automodule.py
+index 59296a9..a046b4c 100644
+--- a/tests/test_ext_autodoc_automodule.py
++++ b/tests/test_ext_autodoc_automodule.py
+@@ -128,6 +128,7 @@ def test_automodule_special_members(app):
+ def test_subclass_of_mocked_object(app):
+     sys.modules.pop('target', None)  # unload target module to clear the module cache
+ 
+-    options = {'members': None}
++    options = {'members': None, 'show-inheritance': None}
+     actual = do_autodoc(app, 'module', 'target.need_mocks', options)
+     assert '.. py:class:: Inherited(*args: Any, **kwargs: Any)' in actual
++    assert '   Bases: :py:class:`missing_module.Class`' in actual

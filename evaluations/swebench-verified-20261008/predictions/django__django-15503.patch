@@ -1,0 +1,47 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..c412176 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -193,11 +193,15 @@ class HasKeyLookup(PostgresOperatorLookup):
+                 *_, rhs_key_transforms = key.preprocess_lhs(compiler, connection)
+             else:
+                 rhs_key_transforms = [key]
++            # The final key in a has_key lookup is always an object key,
++            # even when it is numeric. Keep preceding transforms' numeric
++            # components as array indexes.
+             rhs_params.append(
+-                "%s%s"
++                "%s%s%s"
+                 % (
+                     lhs_json_path,
+-                    compile_json_path(rhs_key_transforms, include_root=False),
++                    compile_json_path(rhs_key_transforms[:-1], include_root=False),
++                    ".%s" % json.dumps(str(rhs_key_transforms[-1])),
+                 )
+             )
+         # Add condition for each key.
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..bf82ca8 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -518,6 +518,20 @@ class TestQuerying(TestCase):
+             [self.objs[4]],
+         )
+ 
++    def test_has_key_numeric_key(self):
++        obj = NullableJSONModel.objects.create(value={"1111": "bar", "2222": "baz"})
++        tests = [
++            ("value__has_key", "1111"),
++            ("value__has_keys", ["1111", "2222"]),
++            ("value__has_any_keys", ["1111", "3333"]),
++        ]
++        for lookup, value in tests:
++            with self.subTest(lookup=lookup):
++                self.assertSequenceEqual(
++                    NullableJSONModel.objects.filter(**{lookup: value}),
++                    [obj],
++                )
++
+     def test_has_key_deep(self):
+         tests = [
+             (Q(value__baz__has_key="a"), self.objs[7]),
