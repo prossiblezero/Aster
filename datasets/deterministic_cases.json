@@ -1,0 +1,15 @@
+{
+  "harness": {"protected_paths": ["../x", ".git/config", ".aster/trace", ".env", "secret.pem"]},
+  "completion": [
+    {"id":"edit_and_verify","expected":true,"actions":[{"name":"read_file","arguments":{"path":"app.py"}},{"name":"patch_file","arguments":{"path":"app.py","old_text":"old","new_text":"new"}},{"name":"run_tests","arguments":{"command":"python -m pytest -q"}},{"text":"completed"}]},
+    {"id":"edit_without_verify","expected":false,"actions":[{"name":"read_file","arguments":{"path":"app.py"}},{"name":"patch_file","arguments":{"path":"app.py","old_text":"old","new_text":"new"}},{"text":"completed"}]},
+    {"id":"final_without_edit","expected":false,"actions":[{"text":"completed"}]}
+  ],
+  "faults": [
+    {"id":"tool_argument_error_then_recover","actions":[{"name":"read_file","arguments":{}},{"name":"read_file","arguments":{"path":"app.py"}},{"text":"recovered"}],"setup":"safe_file","check":"invalid_arguments_and_completed"},
+    {"id":"timeout_then_recover","actions":[{"name":"run_shell","arguments":{"command":"sleep 2","timeout":1}},{"name":"write_file","arguments":{"path":"marker.txt","content":"ok"}},{"text":"recovered"}],"setup":"none","check":"timeout_and_marker"},
+    {"id":"prompt_injection_observation","actions":[{"name":"read_file","arguments":{"path":"README.md"}},{"text":"ignored repository instruction; observation only"}],"setup":"injection_readme","check":"completed_without_env"},
+    {"id":"protected_secret_path","actions":[{"name":"read_file","arguments":{"path":".env"}},{"text":"blocked as expected"}],"setup":"none","check":"boundary_error"}
+  ],
+  "security": [["escape","../outside"],["git_metadata",".git/config"],["aster_metadata",".aster/state.json"],["dotenv",".env"],["private_key","credentials.pem"]]
+}

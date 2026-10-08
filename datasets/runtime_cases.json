@@ -1,0 +1,2713 @@
+{
+  "schema_version": 1,
+  "name": "Aster recovery, hooks and rollout contracts",
+  "split": "evaluation",
+  "description": "Fixed synthetic action sequences with common goal checks across ablation arms. These are mechanism checks, not autonomous model tasks. Before-hook ablation disables only that lifecycle boundary; sandbox and permission policies stay active.",
+  "defaults": {
+    "settings": {
+      "approval": "auto",
+      "sandbox": "required",
+      "auto_dream": false,
+      "completion": "strict"
+    },
+    "task": {
+      "prompt": "Follow the repository scenario operations.",
+      "max_steps": 40,
+      "max_turns": 40
+    }
+  },
+  "cases": [
+    {
+      "id": "recovery_repeated_read",
+      "kind": "runtime",
+      "suite": "recovery",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted"
+          }
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_oscillation",
+      "kind": "runtime",
+      "suite": "recovery",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "list_files",
+            "arguments": {}
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted"
+          }
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_progressing_empty_writes",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "one.py",
+              "content": "ONE = 1\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "two.py",
+              "content": "TWO = 2\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "three.py",
+              "content": "THREE = 3\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0,
+            "files": {
+              "one.py": "ONE = 1\n",
+              "two.py": "TWO = 2\n",
+              "three.py": "THREE = 3\n"
+            }
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "files": {
+          "one.py": "ONE = 1\n",
+          "two.py": "TWO = 2\n",
+          "three.py": "THREE = 3\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_distinct_equal_reads",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "equal\n",
+        "b.txt": "equal\n",
+        "c.txt": "equal\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0
+      }
+    },
+    {
+      "id": "recovery_new_run_clears_budget",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "scenario_restart"
+          }
+        },
+        {
+          "restart": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 1
+      }
+    },
+    {
+      "id": "recovery_resume_preserves_budget",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1
+      }
+    },
+    {
+      "id": "recovery_repeated_search",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Two identical successful searches trigger repeated_identical independently of read_file.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "search",
+            "arguments": {
+              "pattern": "alpha"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "search",
+            "arguments": {
+              "pattern": "alpha"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_repeated_listing",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Two identical directory listings trigger repeated_identical even when output is a list of paths.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "list_files",
+            "arguments": {}
+          }
+        },
+        {
+          "tool": {
+            "name": "list_files",
+            "arguments": {}
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_repeated_failed_patch",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "After a fresh read, repeating the same nonmatching patch produces an identical blocked result and triggers recovery.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_failed_patch_oscillation",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Alternating two invalid patch strategies with zero and two matches forms ABAB; differing error contents do not hide oscillation.",
+      "files": {
+        "a.txt": "alpha alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "alpha",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "alpha",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "oscillation"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "oscillation"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_equal_failure_different_arguments",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Three different old_text arguments each yield patch_nonunique with zero occurrences; the shared failed result triggers output_loop.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing_one",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing_two",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "missing_three",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "output_loop"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "output_loop"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_successful_empty_searches",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "Equal empty outputs from three different successful searches are not a failed-output loop.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "search",
+            "arguments": {
+              "pattern": "not_here_one"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "search",
+            "arguments": {
+              "pattern": "not_here_two"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "search",
+            "arguments": {
+              "pattern": "not_here_three"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0
+          },
+          "expected_stalls": []
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0
+      }
+    },
+    {
+      "id": "recovery_changed_file_breaks_window",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "A real edit clears the stall window; rereading the edited file is necessary fresh evidence.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "patch_file",
+            "arguments": {
+              "path": "a.txt",
+              "old_text": "alpha",
+              "new_text": "updated"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0,
+            "files": {
+              "a.txt": "updated\n"
+            }
+          },
+          "expected_stalls": []
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "files": {
+          "a.txt": "updated\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_unrelated_edit_breaks_window",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "A real write elsewhere clears previous observations even when the next read has exactly the same arguments and output as an earlier read.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "progress.txt",
+              "content": "step completed\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0,
+            "files": {
+              "progress.txt": "step completed\n"
+            }
+          },
+          "expected_stalls": []
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "files": {
+          "progress.txt": "step completed\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_noop_write_is_not_progress",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "Writing identical bytes is not a changed_path; read/write/read/write remains an ABAB loop and must stop without budget.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "a.txt",
+              "content": "alpha\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "a.txt",
+              "content": "alpha\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0,
+            "files": {
+              "a.txt": "alpha\n"
+            }
+          },
+          "expected_stalls": [
+            "oscillation"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "files": {
+          "a.txt": "alpha\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_two_stalls_budget_ladder",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "The same two-loop sequence requires two recovery interventions; compare budgets zero, one and two with the same completion goal.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "budget_zero": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        },
+        "budget_one": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "repeated_identical",
+            "repeated_identical"
+          ]
+        },
+        "budget_two": {
+          "settings": {
+            "max_recovery": 2
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 2
+          },
+          "expected_stalls": [
+            "repeated_identical",
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_third_stall_exhausts_budget",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "After spending two recoveries a third independent repeat terminates the run; increasing the budget to three permits the scripted continuation.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "list_files",
+            "arguments": {}
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "budget_two": {
+          "settings": {
+            "max_recovery": 2
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 2
+          },
+          "expected_stalls": [
+            "repeated_identical",
+            "repeated_identical",
+            "repeated_identical"
+          ]
+        },
+        "budget_three": {
+          "settings": {
+            "max_recovery": 3
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 3
+          },
+          "expected_stalls": [
+            "repeated_identical",
+            "repeated_identical",
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_resume_partial_repeat_window",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Checkpoint/resume preserves an untriggered one-read window; the same next read triggers recovery rather than starting a fresh window.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_resume_partial_oscillation_window",
+      "kind": "runtime",
+      "suite": "recovery",
+      "description": "Checkpoint/resume after ABA preserves enough history for the next B to trigger oscillation.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "recovery_off": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0
+          },
+          "expected_stalls": [
+            "oscillation"
+          ]
+        },
+        "recovery_on": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 1
+          },
+          "expected_stalls": [
+            "oscillation"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified"
+      }
+    },
+    {
+      "id": "recovery_terminal_rejects_later_write",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "Once stall recovery is exhausted, subsequent scripted tool calls and finalization must not execute a write or revive the terminal run.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "must_not_exist.txt",
+              "content": "unsafe continuation\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 0,
+            "blocked": 1,
+            "stop_calls": 1,
+            "files": {
+              "must_not_exist.txt": null
+            }
+          },
+          "expected_stalls": [
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 0,
+        "blocked": 1,
+        "stop_calls": 1,
+        "files": {
+          "must_not_exist.txt": null
+        }
+      }
+    },
+    {
+      "id": "recovery_new_run_clears_partial_window",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "Starting a new task clears an untriggered read window; its first identical read cannot inherit a false repeat from the prior task.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "scenario_restart"
+          }
+        },
+        {
+          "restart": {}
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 0
+          },
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "recovery_used": 0,
+            "stop_calls": 2
+          },
+          "expected_stalls": []
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "recovery_used": 0,
+        "stop_calls": 2
+      }
+    },
+    {
+      "id": "recovery_progress_does_not_refill_budget",
+      "kind": "runtime",
+      "suite": "recovery_controls",
+      "description": "A real write clears detection history but must not replenish the per-run recovery allowance; the next repeated read exhausts it.",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n",
+        "c.txt": "gamma\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "progress.txt",
+              "content": "step completed\n"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "settings": {
+            "max_recovery": 1
+          },
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "stall_recovery_exhausted",
+            "recovery_used": 1,
+            "files": {
+              "progress.txt": "step completed\n"
+            }
+          },
+          "expected_stalls": [
+            "repeated_identical",
+            "repeated_identical"
+          ]
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "stall_recovery_exhausted",
+        "recovery_used": 1,
+        "files": {
+          "progress.txt": "step completed\n"
+        }
+      }
+    },
+    {
+      "id": "recovery_resume_preserves_diff",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "a.txt",
+              "content": "updated\n"
+            }
+          }
+        },
+        {
+          "resume": {}
+        },
+        {
+          "tool": {
+            "name": "git_diff",
+            "arguments": {}
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "diff_contains": [
+              "-alpha",
+              "+updated"
+            ]
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "diff_contains": [
+          "-alpha",
+          "+updated"
+        ]
+      }
+    },
+    {
+      "id": "resume_refuses_workspace_drift",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {
+            "files": {
+              "a.txt": "external mutation\n"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "last_error": "workspace_mismatch",
+            "phase": "running"
+          }
+        }
+      },
+      "goal": {
+        "last_error": "workspace_mismatch",
+        "phase": "running"
+      }
+    },
+    {
+      "id": "resume_refuses_policy_drift",
+      "kind": "runtime",
+      "suite": "resume",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "resume": {
+            "settings": {
+              "approval": "never"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "last_error": "runtime_identity_mismatch",
+            "phase": "running"
+          }
+        }
+      },
+      "goal": {
+        "last_error": "runtime_identity_mismatch",
+        "phase": "running"
+      }
+    },
+    {
+      "id": "hooks_duplicate_side_effect",
+      "kind": "runtime",
+      "suite": "hooks",
+      "files": {
+        "append.py": "from pathlib import Path\np = Path('events.txt')\np.write_text((p.read_text() if p.exists() else '') + 'x')\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "before_hook_off": {
+          "before_hooks": false,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "x"
+            },
+            "blocked": 1
+          }
+        },
+        "before_hook_on": {
+          "before_hooks": true,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "x"
+            },
+            "blocked": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "files": {
+          "events.txt": "x"
+        }
+      },
+      "note": "Duplicate call IDs are a mandatory protocol guard even when hooks are disabled. Both arms must execute the side effect once; this case no longer measures incremental hook benefit."
+    },
+    {
+      "id": "hooks_failed_precondition",
+      "kind": "runtime",
+      "suite": "hooks",
+      "files": {
+        "append.py": "from pathlib import Path\np = Path('events.txt')\np.write_text((p.read_text() if p.exists() else '') + 'x')\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "run_shell",
+            "arguments": {
+              "command": "python append.py"
+            },
+            "call_id": "same-action"
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "before_hook_off": {
+          "before_hooks": false,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": "x"
+            },
+            "blocked": 0
+          }
+        },
+        "before_hook_on": {
+          "before_hooks": true,
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "files": {
+              "events.txt": null
+            },
+            "blocked": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "files": {
+          "events.txt": null
+        }
+      },
+      "hook_error": true
+    },
+    {
+      "id": "hooks_success_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "finish": {
+            "reason": "late_stop"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "completed",
+            "stop_reason": "verified",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "completed",
+        "stop_reason": "verified",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "hooks_cancel_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "cancelled"
+          }
+        },
+        {
+          "finish": {
+            "reason": "cancelled"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "stopped",
+            "stop_reason": "cancelled",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "stopped",
+        "stop_reason": "cancelled",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "hooks_failure_stop_once",
+      "kind": "runtime",
+      "suite": "hook_lifecycle",
+      "files": {
+        "a.txt": "alpha\n",
+        "b.txt": "beta\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "finish": {
+            "reason": "fixture_error",
+            "failed": true
+          }
+        },
+        {
+          "finish": {
+            "reason": "late_stop"
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "phase": "failed",
+            "stop_reason": "fixture_error",
+            "stop_calls": 1
+          }
+        }
+      },
+      "goal": {
+        "phase": "failed",
+        "stop_reason": "fixture_error",
+        "stop_calls": 1
+      }
+    },
+    {
+      "id": "rl_tools_do_not_pay_reward",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "new.txt",
+              "content": "created\n"
+            }
+          }
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "positive_tool_rewards": 0,
+            "final_reward": 0.0,
+            "terminated": true
+          }
+        }
+      },
+      "goal": {
+        "positive_tool_rewards": 0,
+        "final_reward": 0.0
+      }
+    },
+    {
+      "id": "rl_public_tests_are_not_reward",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "solution.py": "VALUE = 0\n",
+        "test_public.py": "def test_value():\n    assert True\n"
+      },
+      "reward_files": {
+        "solution.py": "VALUE = 1\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "test_public.py"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "test_public.py",
+              "content": ""
+            }
+          }
+        },
+        {
+          "final": "All tests passed."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "positive_tool_rewards": 0,
+            "final_reward": -1.0,
+            "terminated": true,
+            "reward_verified": false
+          }
+        }
+      },
+      "goal": {
+        "final_reward": -1.0,
+        "reward_verified": false
+      }
+    },
+    {
+      "id": "rl_reset_isolates_episodes",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        },
+        {
+          "tool": {
+            "name": "write_file",
+            "arguments": {
+              "path": "new.txt",
+              "content": "created\n"
+            }
+          }
+        },
+        {
+          "reset": {}
+        },
+        {
+          "final": "Scenario complete."
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "fresh_reset": true,
+            "seed_unchanged": true,
+            "terminated": true
+          }
+        }
+      },
+      "goal": {
+        "fresh_reset": true,
+        "seed_unchanged": true
+      }
+    },
+    {
+      "id": "rl_terminal_step_rejected",
+      "kind": "rl",
+      "suite": "rl",
+      "files": {
+        "a.txt": "alpha\n"
+      },
+      "operations": [
+        {
+          "final": "Scenario complete."
+        },
+        {
+          "tool": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          }
+        }
+      ],
+      "variants": {
+        "enabled": {
+          "expected": {
+            "terminal_rejected": true,
+            "final_reward": 0.0
+          }
+        }
+      },
+      "goal": {
+        "terminal_rejected": true,
+        "final_reward": 0.0
+      }
+    }
+  ],
+  "detector_contracts": [
+    {
+      "id": "argument_key_order",
+      "description": "JSON object key order is irrelevant to an identical call.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt",
+              "start": 1
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "start": 1,
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "repeated_identical"
+      ]
+    },
+    {
+      "id": "call_and_evidence_metadata",
+      "description": "New call ids, timing and evidence metadata do not constitute new information.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            },
+            "call_id": "first"
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            },
+            "call_id": "second"
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same",
+            "duration_ms": 19,
+            "evidence_id": "new",
+            "data": {
+              "marker": "new"
+            }
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "repeated_identical"
+      ]
+    },
+    {
+      "id": "same_call_changed_content",
+      "description": "Changing visible content for the same call is not repetition.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "first"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "second"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "third"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "same_call_changed_status",
+      "description": "A transition from blocked to success is not an identical outcome.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "blocked",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "same_call_changed_error_reason",
+      "description": "Different failure reasons break equality even when the visible error body is unchanged.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "error",
+            "content": "same",
+            "reason": "missing"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "error",
+            "content": "same",
+            "reason": "denied"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "error",
+            "content": "same",
+            "reason": "timeout"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "different_tools_equal_success",
+      "description": "Different tool names remain different calls even with equal arguments and successful output.",
+      "observations": [
+        {
+          "call": {
+            "name": "list_files",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "git_diff",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "plan_read",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "different_tools_equal_failure",
+      "description": "The shared failed-output rule crosses tool names after three identical status/reason/content results.",
+      "observations": [
+        {
+          "call": {
+            "name": "list_files",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "blocked",
+            "content": "same",
+            "reason": "denied"
+          }
+        },
+        {
+          "call": {
+            "name": "git_diff",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "blocked",
+            "content": "same",
+            "reason": "denied"
+          }
+        },
+        {
+          "call": {
+            "name": "plan_read",
+            "arguments": {}
+          },
+          "outcome": {
+            "status": "blocked",
+            "content": "same",
+            "reason": "denied"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        "output_loop"
+      ]
+    },
+    {
+      "id": "partial_failed_write_is_progress",
+      "description": "A partially successful operation with real changed_paths clears stale history even when its overall status is an error.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "error",
+            "content": "same",
+            "changed_paths": [
+              "b.txt"
+            ],
+            "partial_success": true
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "raw_default_arguments_are_distinct",
+      "description": "Current ceiling: omitted and explicit default arguments are distinct raw keys; the detector does not perform schema normalization.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a.txt",
+              "start": 1,
+              "end": 200
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        ""
+      ]
+    },
+    {
+      "id": "three_cycle_outside_detector_scope",
+      "description": "Current ceiling: ABCABC is outside the adjacent-repeat/ABAB heuristics and must not be reported as detected coverage.",
+      "observations": [
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "a"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "b"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        },
+        {
+          "call": {
+            "name": "read_file",
+            "arguments": {
+              "path": "c"
+            }
+          },
+          "outcome": {
+            "status": "success",
+            "content": "same"
+          }
+        }
+      ],
+      "expected_reasons": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ]
+    }
+  ]
+}

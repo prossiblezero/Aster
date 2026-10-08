@@ -1,0 +1,1 @@
+load_settings(raw) returns {"timeout_ms": integer}. New timeout_ms wins over legacy timeout_seconds; otherwise convert timeout_seconds to milliseconds, with a default of 2 seconds. client.request_timeout(raw) must return seconds by dividing the normalized setting exactly once. Preserve sub-second precision.

@@ -1,0 +1,20 @@
+{
+  "context": {"history_sizes": [600,1200,2400,4800], "memory_sizes": [0,600,1200]},
+  "memory_retrieval": {"cases": [
+    ["deploy_color", "deploy key color", "deploy key is red"],
+    ["api_path", "internal api path", "api base path is /v1/internal"],
+    ["step_budget", "default step budget", "default step budget is 6"],
+    ["timeout", "process timeout ceiling", "timeout ceiling is 120 seconds"],
+    ["health_route", "health endpoint route", "health endpoint is /healthz"],
+    ["cache_ttl", "cache ttl", "cache ttl is 60 seconds"],
+    ["db_port", "database port", "database port is 5432"],
+    ["log_level", "production log level", "production log level is warning"],
+    ["retry_limit", "retry limit", "retry limit is 3"],
+    ["worker_scope", "worker write scope", "worker write scope is src"],
+    ["image_format", "image format", "image format is webp"],
+    ["release_branch", "release branch", "release branch is main"]
+  ], "distractors_per_case": 5},
+  "recovery": {"resume_cases": 10},
+  "completion": {"cases": ["final_without_edit", "edit_without_verification", "edit_verify_final"]},
+  "hooks": {"ablation": ["hooks_off", "hooks_on", "broken_plugin"]}
+}

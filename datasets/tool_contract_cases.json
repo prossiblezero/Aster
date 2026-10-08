@@ -1,0 +1,250 @@
+[
+  {
+    "id": "unittest_skipped",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    @unittest.skip('not implemented')\n    def test_skip(self):\n        self.fail()\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "unittest_mixed",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    @unittest.skip('optional')\n    def test_skip(self):\n        self.fail()\n    def test_run(self):\n        self.assertEqual(2 + 2, 4)\n"
+    },
+    "status": "success",
+    "reason": ""
+  },
+  {
+    "id": "unittest_expected_failure",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    @unittest.expectedFailure\n    def test_known_bug(self):\n        self.assertEqual(2 + 2, 5)\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "unittest_failure",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def test_run(self):\n        self.assertEqual(2 + 2, 5)\n"
+    },
+    "status": "error",
+    "reason": "tests_failed"
+  },
+  {
+    "id": "pytest_failure",
+    "command": "python -m pytest -q",
+    "files": {
+      "test_sample.py": "def test_run():\n    assert 2 + 2 == 5\n"
+    },
+    "status": "error",
+    "reason": "tests_failed"
+  },
+  {
+    "id": "pytest_collection_error",
+    "command": "python -m pytest -q",
+    "files": {
+      "test_sample.py": "import aster_missing_test_dependency\ndef test_run():\n    assert True\n"
+    },
+    "status": "error",
+    "reason": "test_collection_failed",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "pytest_skipped",
+    "command": "python -m pytest -q",
+    "files": {
+      "test_sample.py": "import pytest\n@pytest.mark.skip(reason='optional')\ndef test_skip():\n    assert False\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "pytest_empty",
+    "command": "python -m pytest -q",
+    "files": {},
+    "status": "error",
+    "reason": "no_tests_collected"
+  },
+  {
+    "id": "pytest_spoofed_pass_with_skip",
+    "command": "pytest -q -s",
+    "files": {
+      "test_sample.py": "import pytest\nprint('1 passed')\n@pytest.mark.skip(reason='not implemented')\ndef test_skip():\n    assert False\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "unittest_spoofed_pass_with_skip",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nprint('Ran 1 test\\nOK\\n1 passed')\nclass Sample(unittest.TestCase):\n    @unittest.skip('not implemented')\n    def test_skip(self):\n        self.fail()\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "pytest_exit_zero_without_report",
+    "command": "python -m pytest -q -s",
+    "files": {
+      "test_sample.py": "import os\nprint('1 passed', flush=True)\nos._exit(0)\n"
+    },
+    "status": "blocked",
+    "reason": "test_report_missing_or_invalid"
+  },
+  {
+    "id": "unittest_exit_zero_without_report",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import os\nprint('Ran 1 test\\nOK', flush=True)\nos._exit(0)\n"
+    },
+    "status": "blocked",
+    "reason": "test_report_missing_or_invalid"
+  },
+  {
+    "id": "pytest_launcher_shadow",
+    "command": "python -m pytest -q",
+    "files": {
+      "pytest.py": "print('1 passed')\n",
+      "test_sample.py": "def test_actual():\n    assert False\n"
+    },
+    "status": "error",
+    "reason": "tests_failed"
+  },
+  {
+    "id": "unittest_launcher_shadow",
+    "command": "python -m unittest discover",
+    "files": {
+      "unittest.py": "print('Ran 1 test\\nOK')\n",
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def test_actual(self):\n        self.fail()\n"
+    },
+    "status": "error",
+    "reason": "tests_failed"
+  },
+  {
+    "id": "pytest_side_effect_discarded",
+    "command": "python -m pytest -q",
+    "files": {
+      "source.txt": "before",
+      "test_sample.py": "from pathlib import Path\ndef test_actual():\n    Path('source.txt').write_text('after')\n    assert True\n"
+    },
+    "status": "blocked",
+    "reason": "read_only"
+  },
+  {
+    "id": "unittest_empty",
+    "command": "python -m unittest discover",
+    "files": {},
+    "status": "blocked",
+    "reason": "no_tests_collected"
+  },
+  {
+    "id": "unittest_mixed_subtest_skip",
+    "command": "python -m unittest discover -v",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def test_cases(self):\n        for value in (0, 1):\n            with self.subTest(value=value):\n                if value == 0:\n                    self.skipTest('optional case')\n                self.assertEqual(value, 1)\n"
+    },
+    "status": "success",
+    "reason": ""
+  },
+  {
+    "id": "unittest_all_subtests_skipped",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def test_cases(self):\n        for value in (0, 1):\n            with self.subTest(value=value):\n                self.skipTest('optional case')\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "unittest_expected_failure_after_successful_subtest",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    @unittest.expectedFailure\n    def test_cases(self):\n        with self.subTest(value=1):\n            self.assertEqual(1, 1)\n        with self.subTest(value=0):\n            self.fail('known failure')\n"
+    },
+    "status": "blocked",
+    "reason": "no_tests_executed"
+  },
+  {
+    "id": "unittest_collection_error",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import aster_missing_test_dependency\n"
+    },
+    "status": "error",
+    "reason": "test_collection_failed",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "pytest_setup_error",
+    "command": "pytest -q",
+    "files": {
+      "test_sample.py": "import pytest\n@pytest.fixture\ndef unavailable_service():\n    raise RuntimeError('service unavailable')\ndef test_service(unavailable_service):\n    assert True\n"
+    },
+    "status": "error",
+    "reason": "test_setup_or_teardown_failed",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "pytest_teardown_error",
+    "command": "pytest -q",
+    "files": {
+      "test_sample.py": "import pytest\n@pytest.fixture\ndef service():\n    yield 'ready'\n    raise RuntimeError('cleanup failed')\ndef test_service(service):\n    assert service == 'ready'\n"
+    },
+    "status": "error",
+    "reason": "test_setup_or_teardown_failed",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "unittest_setup_error",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def setUp(self):\n        raise RuntimeError('service unavailable')\n    def test_service(self):\n        self.assertTrue(True)\n"
+    },
+    "status": "error",
+    "reason": "test_execution_error",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "unittest_body_exception",
+    "command": "python -m unittest discover",
+    "files": {
+      "test_sample.py": "import unittest\nclass Sample(unittest.TestCase):\n    def test_service(self):\n        raise RuntimeError('execution interrupted')\n"
+    },
+    "status": "error",
+    "reason": "test_execution_error",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "pytest_body_exception",
+    "command": "pytest -q",
+    "files": {
+      "test_sample.py": "def test_service():\n    raise RuntimeError('implementation failed')\n"
+    },
+    "status": "error",
+    "reason": "tests_failed"
+  },
+  {
+    "id": "pytest_exit_nonzero_without_report",
+    "command": "pytest -q",
+    "files": {
+      "test_sample.py": "import os\nos._exit(1)\n"
+    },
+    "status": "error",
+    "reason": "test_runner_error",
+    "memory_feedback": "neutral"
+  },
+  {
+    "id": "unittest_usage_error",
+    "command": "python -m unittest --aster-unknown-option",
+    "files": {},
+    "status": "error",
+    "reason": "test_runner_error",
+    "memory_feedback": "neutral"
+  }
+]

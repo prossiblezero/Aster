@@ -1,0 +1,1 @@
+settings.disabled_names(raw) parses raw["disabled_jobs"] as comma-separated names: strip whitespace, casefold, discard blanks, return a set. scheduler.plan_jobs(names, raw) filters those names case-insensitively while preserving the order and original spelling of the remaining names. Missing configuration disables nothing.

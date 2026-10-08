@@ -1,0 +1,302 @@
+{
+  "django-investigate": [
+    {
+      "id": "d1",
+      "code": "d=ds.MultiValueDict({'k':[1,2]}); d.update({'k':3}); d.update(ds.MultiValueDict({'k':[4,5]})); result=[d['k'],d.getlist('k')]",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.update"
+    },
+    {
+      "id": "d2",
+      "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(2); b=d.setlistdefault('k',[9]); b.append(3); result=d.getlist('k')",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict._getlist"
+    },
+    {
+      "id": "d3",
+      "code": "d=ds.CaseInsensitiveMapping([('Ab',1),('aB',2)]); result=[list(d),d['AB'],d=={'ab':2},d.copy() is d]",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "CaseInsensitiveMapping.__init__"
+    },
+    {
+      "id": "d4",
+      "code": "d=ds.MultiValueDict({'empty':[]}); result=[d['empty'],d.get('empty','fallback'),d.getlist('missing',[7]),list(d.items())]",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.get"
+    },
+    {
+      "id": "r1",
+      "code": "result=rx.normalize(r'^api/(?P<id>\\d+)/(?:page/(?P<page>\\d+)/)?$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "normalize"
+    },
+    {
+      "id": "r2",
+      "code": "result=rx.normalize(r'^a{2,4}b?\\d+$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "get_quantifier"
+    },
+    {
+      "id": "r3",
+      "code": "result=rx.normalize(r'^(?P<x>\\w+)/(?P=x)/$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "flatten_result"
+    },
+    {
+      "id": "r4",
+      "code": "result=[rx.normalize(r'^a|b$'),rx.normalize(r'^x(?=y)z$')]",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "normalize"
+    }
+  ],
+  "django-review": [
+    {
+      "id": "d1",
+      "code": "d=ds.MultiValueDict({'k':[1,2]}); result=d['k']",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.__getitem__"
+    },
+    {
+      "id": "d2",
+      "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(9); result=d.getlist('k')",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.getlist"
+    },
+    {
+      "id": "d3",
+      "code": "d=ds.MultiValueDict(); result=d.get('absent','fallback')",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.get"
+    },
+    {
+      "id": "d4",
+      "code": "d=ds.MultiValueDict(); result=[d.setdefault('k',4),d.getlist('k')]",
+      "evidence_path": "django/utils/datastructures.py",
+      "evidence_symbol": "MultiValueDict.setdefault"
+    },
+    {
+      "id": "r1",
+      "code": "result=rx.normalize(r'^item/\\d/$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "next_char"
+    },
+    {
+      "id": "r2",
+      "code": "result=rx.normalize(r'^a{2}b$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "normalize"
+    },
+    {
+      "id": "r3",
+      "code": "result=rx.normalize(r'^(?P<name>\\w+)/$')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "normalize"
+    },
+    {
+      "id": "r4",
+      "code": "result=rx.normalize('')",
+      "evidence_path": "django/utils/regex_helper.py",
+      "evidence_symbol": "normalize"
+    }
+  ],
+  "openlibrary-investigate": [
+    {
+      "id": "e1",
+      "code": "result=engine.get_seeds({'key':'/works/W','authors':[{'author':{'key':'/authors/A'}},{}],'editions':[{'key':'/books/B'}],'subjects':['Science Fiction','science_fiction',12],'subject_places':['New, York']})",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "get_seeds"
+    },
+    {
+      "id": "e2",
+      "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A B','a_b','A B'],'people':['A B']}); result=s.top_subjects()",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "SubjectProcessor.top_subjects"
+    },
+    {
+      "id": "e3",
+      "code": "result=engine.reduce_seeds([(1,2,1,'2020',{'subjects':['X']}),(2,5,0,'2023',{'subjects':['X','Y']})])",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "reduce_seeds"
+    },
+    {
+      "id": "e4",
+      "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['B','A','B','C','A']}); result=s.top_subjects(2)",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "SubjectProcessor._most_used"
+    },
+    {
+      "id": "c1",
+      "code": "c=compress.Compressor('book catalog '); a=c.compress('book one'); b=c.compress('book two'); result=[c.decompress(b),c.decompress(a),c.decompress(a)]",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.decompress"
+    },
+    {
+      "id": "c2",
+      "code": "c=compress.Compressor('书籍'); result=c.decompress(c.compress('你好'.encode('utf-8')))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.compress"
+    },
+    {
+      "id": "c3",
+      "code": "c=compress.Compressor('seed'); result=[c.decompress(c.compress('')),c.compress('same')==c.compress('same')]",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.compress"
+    },
+    {
+      "id": "c4",
+      "code": "a=compress.Compressor('same seed'); b=compress.Compressor('same seed'); result=b.decompress(a.compress('independent record'))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.__init__"
+    }
+  ],
+  "openlibrary-review": [
+    {
+      "id": "e1",
+      "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A','A','B']}); result=s.top_subjects(1)",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "SubjectProcessor.top_subjects"
+    },
+    {
+      "id": "e2",
+      "code": "result=engine.get_seeds({'key':'/works/W','subjects':['Space Science']})",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "get_seeds"
+    },
+    {
+      "id": "e3",
+      "code": "result=engine.get_seeds({'key':'/works/W','subjects':['space science']})",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "get_seeds"
+    },
+    {
+      "id": "e4",
+      "code": "result=engine.reduce_seeds([])",
+      "evidence_path": "openlibrary/core/lists/engine.py",
+      "evidence_symbol": "reduce_seeds"
+    },
+    {
+      "id": "c1",
+      "code": "c=compress.Compressor('seed'); a=c.compress('first'); result=c.decompress(c.compress('second'))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.compress"
+    },
+    {
+      "id": "c2",
+      "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('你好'))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.decompress"
+    },
+    {
+      "id": "c3",
+      "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('ascii'))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.compress"
+    },
+    {
+      "id": "c4",
+      "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress(''))",
+      "evidence_path": "openlibrary/utils/compress.py",
+      "evidence_symbol": "Compressor.decompress"
+    }
+  ],
+  "session-investigate": [
+    {
+      "id": "v1",
+      "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource._recompute_watermark"
+    },
+    {
+      "id": "v2",
+      "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.register_source('b'); before=s.watermark; s.advance_time(1); result=[before,s.watermark]",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource.register_source"
+    },
+    {
+      "id": "s1",
+      "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); s.process_event(types.Event(b'k',0,1)); s.process_event(types.Event(b'k',10,2)); x=s.process_event(types.Event(b'k',5,3)); result=[len(s.all_sessions()),x.start,x.end,x.aggregate.result()]",
+      "evidence_path": "app/sessions.py",
+      "evidence_symbol": "SessionManager._bridge"
+    },
+    {
+      "id": "s2",
+      "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); x=s.process_event(types.Event(b'k',10,1)); s.process_event(types.Event(b'k',6,2)); result=[x.start,x.end,x.created_at,x.aggregate.result()]",
+      "evidence_path": "app/sessions.py",
+      "evidence_symbol": "SessionManager._extend"
+    },
+    {
+      "id": "f1",
+      "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); result=[e.evaluate(x,15) is None,e.evaluate(x,16).value]",
+      "evidence_path": "app/emitter.py",
+      "evidence_symbol": "Emitter.evaluate"
+    },
+    {
+      "id": "f2",
+      "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); e.evaluate(x,16); x.aggregate.add(2); y=e.evaluate(x,17); result=[y.is_retraction,y.retracted_value,y.value,x.fire_count]",
+      "evidence_path": "app/emitter.py",
+      "evidence_symbol": "Emitter.evaluate"
+    },
+    {
+      "id": "g1",
+      "code": "x=types.Session(b'k',0,10,1); g=gc.GarbageCollector(7,100,5); result=[g.is_reclaimable(x,22),g.is_reclaimable(x,23)]",
+      "evidence_path": "app/gc.py",
+      "evidence_symbol": "GarbageCollector.is_reclaimable"
+    },
+    {
+      "id": "g2",
+      "code": "x=types.Session(b'k',0,100,1); g=gc.GarbageCollector(7,20,5); result=[g.force_gc_eligible(x,21),g.force_gc_eligible(x,22)]",
+      "evidence_path": "app/gc.py",
+      "evidence_symbol": "GarbageCollector.force_gc_eligible"
+    }
+  ],
+  "session-review": [
+    {
+      "id": "v1",
+      "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource._recompute_watermark"
+    },
+    {
+      "id": "v2",
+      "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',2,1,'a')); result=s.watermark",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource.ingest"
+    },
+    {
+      "id": "v3",
+      "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); result=s.watermark",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource.ingest"
+    },
+    {
+      "id": "v4",
+      "code": "s=events.EventSource(types.Clock()); s.advance_time(3); result=s.watermark",
+      "evidence_path": "app/events.py",
+      "evidence_symbol": "EventSource._recompute_watermark"
+    },
+    {
+      "id": "f1",
+      "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,15) is None",
+      "evidence_path": "app/emitter.py",
+      "evidence_symbol": "Emitter.evaluate"
+    },
+    {
+      "id": "g1",
+      "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,22)",
+      "evidence_path": "app/gc.py",
+      "evidence_symbol": "GarbageCollector.is_reclaimable"
+    },
+    {
+      "id": "f2",
+      "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,16).value",
+      "evidence_path": "app/emitter.py",
+      "evidence_symbol": "Emitter.evaluate"
+    },
+    {
+      "id": "g2",
+      "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,23)",
+      "evidence_path": "app/gc.py",
+      "evidence_symbol": "GarbageCollector.is_reclaimable"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "created_at": "2026-09-27",
+  "files": {
+    "instances": "instances.jsonl",
+    "readme": "README.md",
+    "selection_review": "selection-review.md",
+    "sources": "SOURCES.md"
+  },
+  "name": "Aster Worker Code Benchmark v1",
+  "purpose": "Evaluate whether bounded Worker investigation improves repository issue repair on real coding tasks.",
+  "runtime_contract": {
+    "arms": [
+      "solo",
+      "capability_worker"
+    ],
+    "model_does_not_get": [
+      "gold_patch",
+      "test_patch",
+      "eval_script",
+      "FAIL_TO_PASS/PASS_TO_PASS names",
+      "grader hashes and file lists"
+    ],
+    "model_gets": [
+      "id",
+      "prompt",
+      "source.repo",
+      "source.base_commit",
+      "source.version",
+      "harness",
+      "decomposition goals only when explicitly assigned by runner"
+    ],
+    "primary_metrics": [
+      "task_pass_at_1",
+      "whole_tree_tokens_and_wall_time",
+      "independent_unit_evidence_coverage",
+      "parent_read_overlap",
+      "handoff_completeness"
+    ],
+    "success": "hidden FAIL_TO_PASS and PASS_TO_PASS checks pass in an isolated grading workspace."
+  },
+  "selection": {
+    "counts": {
+      "hard": 4,
+      "medium": 10,
+      "simple": 6
+    },
+    "difficulty_policy": {
+      "hard": "three or more coupled units, algorithmic/schema/grammar boundary, or source difficulty >4 hours; coordination is expected to require parent integration.",
+      "medium": "two or more inspectable module/API units and an integration boundary; source difficulty generally 15 min–1 hour or 1–4 hours.",
+      "simple": "localized issue with one implementation component; delegation is a negative control."
+    },
+    "principles": [
+      "Keep simple controls so automatic delegation overhead is measurable.",
+      "Do not classify by patch size alone.",
+      "Decomposition is runner metadata and is never appended to the model prompt.",
+      "Do not report this subset as an official SWE-bench score."
+    ],
+    "ratio": "6/20 simple, 10/20 medium, 4/20 hard",
+    "selection_sha256": "f932a93bb480f29ed81dbd7a4d32970c3ede7cb83cd9fccf9aaf41be144e4c1f",
+    "total": 20
+  },
+  "source": {
+    "benchmark": "SWE-bench Verified",
+    "benchmark_revision": "02e7a74ffd0b707aab73d203fe87bdc7c76afc8e",
+    "dataset": "SWE-bench/SWE-bench_Verified",
+    "harness_license": "MIT",
+    "rows": 500,
+    "source_url": "https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified",
+    "split": "test",
+    "upstream_code_license": "per repository; see each instance license fields"
+  },
+  "version": "1.0.0"
+}

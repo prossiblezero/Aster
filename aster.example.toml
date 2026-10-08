@@ -1,0 +1,21 @@
+# Copy to aster.toml. Replace the model IDs and budgets with your provider's limits.
+# Credentials stay in process environment variables or the selected --env-file.
+[profiles.remote]
+provider = "remote"
+protocol = "responses"
+base_url = "https://api.openai.com/v1"
+model = "your-model-id"
+api_key_env = "ASTER_API_KEY"
+context_tokens = 32768
+output_tokens = 4096
+stream = true
+
+[profiles.local]
+provider = "local"
+protocol = "chat"
+base_url = "http://127.0.0.1:8000/v1"
+model = "your-local-model-id"
+auth = "none"
+context_tokens = 24000
+output_tokens = 2048
+stream = false

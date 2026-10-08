@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "split": "evaluation",
+  "description": "Twelve injected stall scenarios across five existing repository tasks. Prefix actions create the same observed failure state; every subsequent action comes from the evaluated model. The primary comparison is recovery feedback versus silent continuation with equal recovery and action budgets.",
+  "cases": [
+    {
+      "id": "repeat_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "category": "repeated_read",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "error.txt"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "error.txt"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "repeat_multi-file-refactor",
+      "base_task": "multi-file-refactor",
+      "category": "repeated_read",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/profile.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/profile.py"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "repeat_add-endpoint-with-test",
+      "base_task": "add-endpoint-with-test",
+      "category": "repeated_read",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "app.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "app.py"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "oscillate_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "category": "oscillation",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "error.txt"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/handler.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "error.txt"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/handler.py"
+          }
+        }
+      ],
+      "expected_trigger": "oscillation"
+    },
+    {
+      "id": "oscillate_config-migration",
+      "base_task": "config-migration",
+      "category": "oscillation",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "services/auth/config.yaml"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "services/api/config.yaml"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "services/auth/config.yaml"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "services/api/config.yaml"
+          }
+        }
+      ],
+      "expected_trigger": "oscillation"
+    },
+    {
+      "id": "oscillate_dependency-upgrade",
+      "base_task": "dependency-upgrade",
+      "category": "oscillation",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "requirements.txt"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/client.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "requirements.txt"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "src/client.py"
+          }
+        }
+      ],
+      "expected_trigger": "oscillation"
+    },
+    {
+      "id": "missing_multi-file-refactor",
+      "base_task": "multi-file-refactor",
+      "category": "repeated_error",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "missing_add-endpoint-with-test",
+      "base_task": "add-endpoint-with-test",
+      "category": "repeated_error",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "missing_dependency-upgrade",
+      "base_task": "dependency-upgrade",
+      "category": "repeated_error",
+      "seed_actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "obsolete_entrypoint.py"
+          }
+        }
+      ],
+      "expected_trigger": "repeated_identical"
+    },
+    {
+      "id": "output_debug-and-fix",
+      "base_task": "debug-and-fix",
+      "category": "output_loop",
+      "seed_actions": [
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"raise SystemExit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"import sys; sys.exit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"exit(7)\""
+          }
+        }
+      ],
+      "expected_trigger": "output_loop"
+    },
+    {
+      "id": "output_config-migration",
+      "base_task": "config-migration",
+      "category": "output_loop",
+      "seed_actions": [
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"raise SystemExit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"import sys; sys.exit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"exit(7)\""
+          }
+        }
+      ],
+      "expected_trigger": "output_loop"
+    },
+    {
+      "id": "output_add-endpoint-with-test",
+      "base_task": "add-endpoint-with-test",
+      "category": "output_loop",
+      "seed_actions": [
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"raise SystemExit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"import sys; sys.exit(7)\""
+          }
+        },
+        {
+          "name": "run_shell",
+          "arguments": {
+            "command": "python -c \"exit(7)\""
+          }
+        }
+      ],
+      "expected_trigger": "output_loop"
+    }
+  ]
+}

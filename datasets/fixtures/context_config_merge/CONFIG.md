@@ -1,0 +1,1 @@
+merge_config(base, override): recursively merge dictionaries; an override value of None deletes that key, including inside a newly added dictionary. Lists and other values replace rather than concatenate. Return independent data without mutating either input.

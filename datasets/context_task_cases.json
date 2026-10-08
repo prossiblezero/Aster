@@ -1,0 +1,791 @@
+{
+  "schema_version": 1,
+  "split": "evaluation",
+  "description": "Twelve distinct repository tasks plus one explicitly separate information-loss control for paired full/tight context evaluation. History-only user constraints have no fixture copy. The loss control has an unrecoverable tool observation and no working-memory copy. Reference actions establish solvability only.",
+  "cases": [
+    {
+      "id": "context_retry_delay",
+      "suite": "repository",
+      "category": "file_evidence",
+      "prompt": "Finish retry_delay in solution.py using the repository specification reviewed earlier. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_retry_delay",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_retry_delay.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read SPEC.md:\nretry_delay(headers): read Retry-After as numeric seconds; clamp valid finite values to [0, 30]. Missing, invalid, NaN or infinite values use 2.0 seconds. Do not change headers."
+        }
+      ],
+      "history_evidence": [
+        "retry_delay(headers): read Retry-After as numeric seconds; clamp valid finite values to [0, 30]. Missing, invalid, NaN or infinite values use 2.0 seconds. Do not change headers."
+      ],
+      "evidence_paths": [
+        "SPEC.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "SPEC.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def retry_delay(headers):\n    return 2.0\n",
+            "new_text": "import math\n\n\ndef retry_delay(headers):\n    try:\n        delay = float(headers.get(\"Retry-After\", \"\"))\n    except (TypeError, ValueError):\n        return 2.0\n    return min(30.0, max(0.0, delay)) if math.isfinite(delay) else 2.0\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_nested_redaction",
+      "suite": "repository",
+      "category": "file_evidence",
+      "prompt": "Complete redact in solution.py according to the repository policy reviewed earlier. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_nested_redaction",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_nested_redaction.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read POLICY.md:\nredact(value): recursively copy dictionaries and lists. Replace values of keys token, password and api_key (case-insensitive exact matches) with \"[redacted]\". Preserve other keys and scalar values. Never mutate the input."
+        }
+      ],
+      "history_evidence": [
+        "redact(value): recursively copy dictionaries and lists. Replace values of keys token, password and api_key (case-insensitive exact matches) with \"[redacted]\". Preserve other keys and scalar values. Never mutate the input."
+      ],
+      "evidence_paths": [
+        "POLICY.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "POLICY.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def redact(value):\n    return value\n",
+            "new_text": "def redact(value):\n    if isinstance(value, dict):\n        return {\n            key: \"[redacted]\" if key.casefold() in {\"token\", \"password\", \"api_key\"} else redact(item)\n            for key, item in value.items()\n        }\n    if isinstance(value, list):\n        return [redact(item) for item in value]\n    return value\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_config_merge",
+      "suite": "repository",
+      "category": "file_evidence",
+      "prompt": "Repair merge_config in solution.py to follow the previously reviewed repository contract. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_config_merge",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_config_merge.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read CONFIG.md:\nmerge_config(base, override): recursively merge dictionaries; an override value of None deletes that key, including inside a newly added dictionary. Lists and other values replace rather than concatenate. Return independent data without mutating either input."
+        }
+      ],
+      "history_evidence": [
+        "merge_config(base, override): recursively merge dictionaries; an override value of None deletes that key, including inside a newly added dictionary. Lists and other values replace rather than concatenate. Return independent data without mutating either input."
+      ],
+      "evidence_paths": [
+        "CONFIG.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "CONFIG.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "from copy import deepcopy\n\n\ndef merge_config(base, override):\n    result = deepcopy(base)\n    result.update(deepcopy(override))\n    return result\n",
+            "new_text": "from copy import deepcopy\n\n\ndef merge_config(base, override):\n    result = deepcopy(base)\n    for key, value in override.items():\n        if value is None:\n            result.pop(key, None)\n        elif isinstance(value, dict):\n            previous = result.get(key)\n            result[key] = merge_config(previous if isinstance(previous, dict) else {}, value)\n        else:\n            result[key] = deepcopy(value)\n    return result\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_name_deduplication",
+      "suite": "repository",
+      "category": "history_only",
+      "prompt": "Finish unique_names in solution.py using the decisions from our earlier conversation. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_name_deduplication",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_name_deduplication.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "For unique_names: identify duplicates by strip().casefold(), skip blank names, and return the first ORIGINAL spelling including its surrounding spaces, in encounter order. Do not mutate the input."
+        },
+        {
+          "role": "assistant",
+          "content": "Understood. I will apply those agreed identity and output rules."
+        }
+      ],
+      "history_evidence": [
+        "For unique_names: identify duplicates by strip().casefold(), skip blank names, and return the first ORIGINAL spelling including its surrounding spaces, in encounter order. Do not mutate the input."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def unique_names(names):\n    return list(dict.fromkeys(names))\n",
+            "new_text": "def unique_names(names):\n    seen, result = set(), []\n    for name in names:\n        key = name.strip().casefold()\n        if key and key not in seen:\n            seen.add(key)\n            result.append(name)\n    return result\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_decimal_rounding",
+      "suite": "repository",
+      "category": "history_only",
+      "prompt": "Implement the agreed format_amount behavior in solution.py. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_decimal_rounding",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_decimal_rounding.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "format_amount receives decimal strings. Return a string with exactly two fractional digits, using decimal ROUND_HALF_UP (ties away from zero), never binary float rounding. Normalize any rounded negative zero to \"0.00\"."
+        },
+        {
+          "role": "assistant",
+          "content": "I have recorded the rounding convention for the implementation."
+        }
+      ],
+      "history_evidence": [
+        "format_amount receives decimal strings. Return a string with exactly two fractional digits, using decimal ROUND_HALF_UP (ties away from zero), never binary float rounding. Normalize any rounded negative zero to \"0.00\"."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def format_amount(value):\n    return f\"{float(value):.2f}\"\n",
+            "new_text": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef format_amount(value):\n    rounded = Decimal(value).quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n    return \"0.00\" if rounded == 0 else format(rounded, \".2f\")\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_cursor_pagination",
+      "suite": "repository",
+      "category": "history_only",
+      "prompt": "Finish slice_after in solution.py according to our earlier pagination agreement. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_cursor_pagination",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_cursor_pagination.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "slice_after(items, after=None, limit=2) returns at most limit items strictly after the FIRST item whose id equals after. None means start; a missing cursor means an empty page. Negative limits raise ValueError; zero returns []. Keep order and do not mutate items."
+        },
+        {
+          "role": "assistant",
+          "content": "Understood; I will implement the discussed cursor behavior."
+        }
+      ],
+      "history_evidence": [
+        "slice_after(items, after=None, limit=2) returns at most limit items strictly after the FIRST item whose id equals after. None means start; a missing cursor means an empty page. Negative limits raise ValueError; zero returns []. Keep order and do not mutate items."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def slice_after(items, after=None, limit=2):\n    return items[:limit]\n",
+            "new_text": "def slice_after(items, after=None, limit=2):\n    if limit < 0:\n        raise ValueError(\"limit must be non-negative\")\n    start = 0\n    if after is not None:\n        start = next((index + 1 for index, item in enumerate(items) if item[\"id\"] == after), len(items))\n    return items[start:start + limit]\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_timeout_migration",
+      "suite": "repository",
+      "category": "multi_file",
+      "prompt": "Complete the timeout configuration migration across settings.py and client.py using the contract we inspected. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_timeout_migration",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_timeout_migration.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read MIGRATION.md and inspected settings.py/client.py:\nload_settings(raw) returns {\"timeout_ms\": integer}. New timeout_ms wins over legacy timeout_seconds; otherwise convert timeout_seconds to milliseconds, with a default of 2 seconds. client.request_timeout(raw) must return seconds by dividing the normalized setting exactly once. Preserve sub-second precision."
+        }
+      ],
+      "history_evidence": [
+        "load_settings(raw) returns {\"timeout_ms\": integer}. New timeout_ms wins over legacy timeout_seconds; otherwise convert timeout_seconds to milliseconds, with a default of 2 seconds. client.request_timeout(raw) must return seconds by dividing the normalized setting exactly once. Preserve sub-second precision."
+      ],
+      "evidence_paths": [
+        "MIGRATION.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "MIGRATION.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "settings.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "settings.py",
+            "old_text": "def load_settings(raw):\n    return {\"timeout_seconds\": raw.get(\"timeout_seconds\", 2)}\n",
+            "new_text": "def load_settings(raw):\n    return {\"timeout_ms\": int(raw[\"timeout_ms\"]) if \"timeout_ms\" in raw else int(raw.get(\"timeout_seconds\", 2) * 1000)}\n"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "client.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "client.py",
+            "old_text": "from settings import load_settings\n\n\ndef request_timeout(raw):\n    return load_settings(raw)[\"timeout_seconds\"]\n",
+            "new_text": "from settings import load_settings\n\n\ndef request_timeout(raw):\n    return load_settings(raw)[\"timeout_ms\"] / 1000\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_disabled_jobs",
+      "suite": "repository",
+      "category": "multi_file",
+      "prompt": "Finish disabled-job support in settings.py and scheduler.py according to the reviewed repository contract. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_disabled_jobs",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_disabled_jobs.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read JOBS.md; both settings and scheduling need implementation:\nsettings.disabled_names(raw) parses raw[\"disabled_jobs\"] as comma-separated names: strip whitespace, casefold, discard blanks, return a set. scheduler.plan_jobs(names, raw) filters those names case-insensitively while preserving the order and original spelling of the remaining names. Missing configuration disables nothing."
+        }
+      ],
+      "history_evidence": [
+        "settings.disabled_names(raw) parses raw[\"disabled_jobs\"] as comma-separated names: strip whitespace, casefold, discard blanks, return a set. scheduler.plan_jobs(names, raw) filters those names case-insensitively while preserving the order and original spelling of the remaining names. Missing configuration disables nothing."
+      ],
+      "evidence_paths": [
+        "JOBS.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "JOBS.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "settings.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "settings.py",
+            "old_text": "def disabled_names(raw):\n    return set()\n",
+            "new_text": "def disabled_names(raw):\n    return {name.strip().casefold() for name in raw.get(\"disabled_jobs\", \"\").split(\",\") if name.strip()}\n"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "scheduler.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "scheduler.py",
+            "old_text": "from settings import disabled_names\n\n\ndef plan_jobs(names, raw):\n    disabled_names(raw)\n    return list(names)\n",
+            "new_text": "from settings import disabled_names\n\n\ndef plan_jobs(names, raw):\n    disabled = disabled_names(raw)\n    return [name for name in names if name.casefold() not in disabled]\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_shared_encoding",
+      "suite": "repository",
+      "category": "multi_file",
+      "prompt": "Unify payload encoding across codec.py, transport.py and cache.py using the reviewed contract. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_shared_encoding",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_shared_encoding.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "Read WIRE.md and identified the codec/transport/cache paths:\ncodec.encode(payload) returns UTF-8 bytes for JSON with sorted keys, no optional whitespace, and literal Unicode (ensure_ascii=False). Both transport.request_body and cache.cache_value must return exactly that same representation for the payload. Keep their public function signatures."
+        }
+      ],
+      "history_evidence": [
+        "codec.encode(payload) returns UTF-8 bytes for JSON with sorted keys, no optional whitespace, and literal Unicode (ensure_ascii=False). Both transport.request_body and cache.cache_value must return exactly that same representation for the payload. Keep their public function signatures."
+      ],
+      "evidence_paths": [
+        "WIRE.md"
+      ],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "WIRE.md"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "codec.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "codec.py",
+            "old_text": "import json\n\n\ndef encode(payload):\n    return json.dumps(payload).encode(\"utf-8\")\n",
+            "new_text": "import json\n\n\ndef encode(payload):\n    return json.dumps(payload, sort_keys=True, separators=(\",\", \":\"), ensure_ascii=False).encode(\"utf-8\")\n"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "transport.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "transport.py",
+            "old_text": "import json\n\n\ndef request_body(payload):\n    return json.dumps(payload).encode(\"utf-8\")\n",
+            "new_text": "from codec import encode\n\n\ndef request_body(payload):\n    return encode(payload)\n"
+          }
+        },
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "cache.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "cache.py",
+            "old_text": "import json\n\n\ndef cache_value(payload):\n    return json.dumps(payload).encode(\"utf-8\")\n",
+            "new_text": "from codec import encode\n\n\ndef cache_value(payload):\n    return encode(payload)\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_retry_correction",
+      "suite": "repository",
+      "category": "corrected_history",
+      "prompt": "Implement run_with_retry in solution.py according to our final decision in the conversation. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_retry_correction",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_retry_correction.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "Initial proposal: run_with_retry should use at most three calls and retry any OSError."
+        },
+        {
+          "role": "assistant",
+          "content": "I noted the initial three-call/OSError proposal."
+        },
+        {
+          "role": "user",
+          "content": "Correction, superseding that proposal: run_with_retry(action) makes at most FOUR total calls, retries only TimeoutError, returns the first successful result, and re-raises the final TimeoutError unchanged when all four calls fail. Other exceptions propagate on their first call. Do not sleep."
+        }
+      ],
+      "history_evidence": [
+        "Correction, superseding that proposal: run_with_retry(action) makes at most FOUR total calls, retries only TimeoutError, returns the first successful result, and re-raises the final TimeoutError unchanged when all four calls fail. Other exceptions propagate on their first call. Do not sleep."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def run_with_retry(action):\n    return action()\n",
+            "new_text": "def run_with_retry(action):\n    for attempt in range(4):\n        try:\n            return action()\n        except TimeoutError:\n            if attempt == 3:\n                raise\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_unicode_correction",
+      "suite": "repository",
+      "category": "corrected_history",
+      "prompt": "Finish make_key in solution.py following the final identifier decision from our conversation. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_unicode_correction",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_unicode_correction.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "Initial proposal for make_key: lowercase ASCII only, drop non-ASCII characters, and join words with hyphens."
+        },
+        {
+          "role": "assistant",
+          "content": "The initial draft will use ASCII and hyphens."
+        },
+        {
+          "role": "user",
+          "content": "Revised decision for make_key(value): keep Unicode letters and digits, apply casefold rather than lower, replace each consecutive run of other characters by ONE underscore, and trim boundary underscores. Empty or punctuation-only input becomes an empty string. This replaces the earlier ASCII/hyphen proposal."
+        }
+      ],
+      "history_evidence": [
+        "Revised decision for make_key(value): keep Unicode letters and digits, apply casefold rather than lower, replace each consecutive run of other characters by ONE underscore, and trim boundary underscores. Empty or punctuation-only input becomes an empty string. This replaces the earlier ASCII/hyphen proposal."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def make_key(value):\n    return value.lower().replace(\" \", \"-\")\n",
+            "new_text": "def make_key(value):\n    parts = \"\".join(char if char.isalnum() else \" \" for char in value.casefold()).split()\n    return \"_\".join(parts)\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_ordering_correction",
+      "suite": "repository",
+      "category": "corrected_history",
+      "prompt": "Implement order_jobs in solution.py using our final queue-ordering decision. Read the implementation before editing, add focused tests, and run python -m pytest -q.",
+      "fixture": "fixtures/context_ordering_correction",
+      "max_steps": 24,
+      "max_turns": 16,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_ordering_correction.py"
+      },
+      "history": [
+        {
+          "role": "user",
+          "content": "Initial queue ordering: low priority numbers first; break ties alphabetically by name."
+        },
+        {
+          "role": "assistant",
+          "content": "The initial ascending order with a name tiebreaker is noted."
+        },
+        {
+          "role": "user",
+          "content": "Final queue decision: order_jobs(jobs) returns HIGHER numeric priority first; missing priority is 0; preserve original input order for equal priority without comparing names. Do not mutate the list or records. This supersedes the earlier ascending/alphabetical order."
+        }
+      ],
+      "history_evidence": [
+        "Final queue decision: order_jobs(jobs) returns HIGHER numeric priority first; missing priority is 0; preserve original input order for equal priority without comparing names. Do not mutate the list or records. This supersedes the earlier ascending/alphabetical order."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def order_jobs(jobs):\n    return list(jobs)\n",
+            "new_text": "def order_jobs(jobs):\n    return sorted(jobs, key=lambda job: job.get(\"priority\", 0), reverse=True)\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented the requested behavior and verified the public tests."
+        }
+      ]
+    },
+    {
+      "id": "context_ephemeral_route",
+      "suite": "repository",
+      "category": "loss_control",
+      "prompt": "Complete route_for in solution.py using the earlier one-time negotiation result. Preserve None for unknown operations. Read before editing and run python -m pytest -q.",
+      "fixture": "fixtures/context_ephemeral_route",
+      "max_steps": 16,
+      "max_turns": 12,
+      "require_edit": true,
+      "require_verification": true,
+      "checks": {
+        "verifier": "checks/context_ephemeral_route.py"
+      },
+      "history": [
+        {
+          "role": "tool",
+          "native": false,
+          "content": "One-time negotiation result: read routes to queue-amber-47; write routes to queue-violet-83. Other operations have no route. The negotiation service is now offline; this observation has no file copy."
+        }
+      ],
+      "history_evidence": [
+        "One-time negotiation result: read routes to queue-amber-47; write routes to queue-violet-83. Other operations have no route. The negotiation service is now offline; this observation has no file copy."
+      ],
+      "evidence_paths": [],
+      "actions": [
+        {
+          "name": "read_file",
+          "arguments": {
+            "path": "solution.py"
+          }
+        },
+        {
+          "name": "patch_file",
+          "arguments": {
+            "path": "solution.py",
+            "old_text": "def route_for(operation):\n    return None\n",
+            "new_text": "def route_for(operation):\n    return {\"read\": \"queue-amber-47\", \"write\": \"queue-violet-83\"}.get(operation)\n"
+          }
+        },
+        {
+          "name": "run_tests",
+          "arguments": {
+            "command": "python -m pytest -q"
+          }
+        },
+        {
+          "final": "Implemented negotiated routes."
+        }
+      ]
+    }
+  ]
+}

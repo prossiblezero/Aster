@@ -1,0 +1,1238 @@
+[
+  {
+    "id": "django-investigate",
+    "project": "django",
+    "kind": "investigate",
+    "source_task": "swe-verified-django__django-16256",
+    "benchmark": "swebench-verified",
+    "files": [
+      {
+        "path": "django/utils/datastructures.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/datastructures.py",
+        "sha256": "b9df2a9905e9a3505fbf91b8157f09446a8f6f580b8a7258b96beb03581d2611",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/regex_helper.py",
+        "sha256": "82fd187e4a1f722088e22a6dbffe86130c8bc95660d7f1c568d4709f70ee1f87",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/functional.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/functional.py",
+        "sha256": "c74ab461890a2d7de638a78633d5551991790c29432b997d2131203627cf610e",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/__init__.py",
+        "sha256": "f796c7d5f5ec1bea4a141a16d1c66525acb70f1a6c608776b88b362df3010733",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/version.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/version.py",
+        "sha256": "5777dfdd20bd154a2766bf27a2f6113e72a8f1c74cf4275f06a3deca65cd3212",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      }
+    ],
+    "aliases": {
+      "ds": "django/utils/datastructures.py",
+      "rx": "django/utils/regex_helper.py"
+    },
+    "groups": [
+      {
+        "name": "multi-value containers",
+        "questions": [
+          {
+            "id": "d1",
+            "code": "d=ds.MultiValueDict({'k':[1,2]}); d.update({'k':3}); d.update(ds.MultiValueDict({'k':[4,5]})); result=[d['k'],d.getlist('k')]"
+          },
+          {
+            "id": "d2",
+            "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(2); b=d.setlistdefault('k',[9]); b.append(3); result=d.getlist('k')"
+          },
+          {
+            "id": "d3",
+            "code": "d=ds.CaseInsensitiveMapping([('Ab',1),('aB',2)]); result=[list(d),d['AB'],d=={'ab':2},d.copy() is d]"
+          },
+          {
+            "id": "d4",
+            "code": "d=ds.MultiValueDict({'empty':[]}); result=[d['empty'],d.get('empty','fallback'),d.getlist('missing',[7]),list(d.items())]"
+          }
+        ]
+      },
+      {
+        "name": "URL pattern normalization",
+        "questions": [
+          {
+            "id": "r1",
+            "code": "result=rx.normalize(r'^api/(?P<id>\\d+)/(?:page/(?P<page>\\d+)/)?$')"
+          },
+          {
+            "id": "r2",
+            "code": "result=rx.normalize(r'^a{2,4}b?\\d+$')"
+          },
+          {
+            "id": "r3",
+            "code": "result=rx.normalize(r'^(?P<x>\\w+)/(?P=x)/$')"
+          },
+          {
+            "id": "r4",
+            "code": "result=[rx.normalize(r'^a|b$'),rx.normalize(r'^x(?=y)z$')]"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "solo",
+        "serial",
+        "parallel"
+      ],
+      [
+        "serial",
+        "parallel",
+        "solo"
+      ]
+    ],
+    "benchmark_revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+    "source_revision": "76e37513e22f4d9a01c7f15eee36fe44388e6670"
+  },
+  {
+    "id": "django-review",
+    "project": "django",
+    "kind": "review",
+    "source_task": "swe-verified-django__django-16256",
+    "benchmark": "swebench-verified",
+    "files": [
+      {
+        "path": "django/utils/datastructures.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/datastructures.py",
+        "sha256": "b9df2a9905e9a3505fbf91b8157f09446a8f6f580b8a7258b96beb03581d2611",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/regex_helper.py",
+        "sha256": "82fd187e4a1f722088e22a6dbffe86130c8bc95660d7f1c568d4709f70ee1f87",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/functional.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/functional.py",
+        "sha256": "c74ab461890a2d7de638a78633d5551991790c29432b997d2131203627cf610e",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/__init__.py",
+        "sha256": "f796c7d5f5ec1bea4a141a16d1c66525acb70f1a6c608776b88b362df3010733",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/__init__.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      },
+      {
+        "path": "django/utils/version.py",
+        "archive": "c019c9ac702a846c9338f7206dd4ef85d82f0fa19bfa0b912ef947346b151408",
+        "member": "django-76e37513e22f4d9a01c7f15eee36fe44388e6670/django/utils/version.py",
+        "sha256": "5777dfdd20bd154a2766bf27a2f6113e72a8f1c74cf4275f06a3deca65cd3212",
+        "source_url": "https://codeload.github.com/django/django/tar.gz/76e37513e22f4d9a01c7f15eee36fe44388e6670"
+      }
+    ],
+    "aliases": {
+      "ds": "django/utils/datastructures.py",
+      "rx": "django/utils/regex_helper.py"
+    },
+    "groups": [
+      {
+        "name": "container compatibility",
+        "questions": [
+          {
+            "id": "d1",
+            "code": "d=ds.MultiValueDict({'k':[1,2]}); result=d['k']"
+          },
+          {
+            "id": "d2",
+            "code": "d=ds.MultiValueDict({'k':[1]}); a=d.getlist('k'); a.append(9); result=d.getlist('k')"
+          },
+          {
+            "id": "d3",
+            "code": "d=ds.MultiValueDict(); result=d.get('absent','fallback')"
+          },
+          {
+            "id": "d4",
+            "code": "d=ds.MultiValueDict(); result=[d.setdefault('k',4),d.getlist('k')]"
+          }
+        ]
+      },
+      {
+        "name": "regex compatibility",
+        "questions": [
+          {
+            "id": "r1",
+            "code": "result=rx.normalize(r'^item/\\d/$')"
+          },
+          {
+            "id": "r2",
+            "code": "result=rx.normalize(r'^a{2}b$')"
+          },
+          {
+            "id": "r3",
+            "code": "result=rx.normalize(r'^(?P<name>\\w+)/$')"
+          },
+          {
+            "id": "r4",
+            "code": "result=rx.normalize('')"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "django/utils/datastructures.py",
+        "old": "return list_[-1]",
+        "new": "return list_[0]"
+      },
+      {
+        "path": "django/utils/datastructures.py",
+        "old": "return self._getlist(key, default, force_list=True)",
+        "new": "return self._getlist(key, default, force_list=False)"
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "old": "\"d\": \"0\",",
+        "new": "\"d\": \"9\","
+      },
+      {
+        "path": "django/utils/regex_helper.py",
+        "old": "result.extend([result[-1]] * (count - 1))",
+        "new": "result.extend([result[-1]] * count)"
+      }
+    ],
+    "arm_orders": [
+      [
+        "solo",
+        "parallel",
+        "serial"
+      ],
+      [
+        "parallel",
+        "solo",
+        "serial"
+      ]
+    ],
+    "benchmark_revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+    "source_revision": "76e37513e22f4d9a01c7f15eee36fe44388e6670"
+  },
+  {
+    "id": "openlibrary-investigate",
+    "project": "openlibrary",
+    "kind": "investigate",
+    "source_task": "swe-pro-openlibrary-authors",
+    "benchmark": "swebench-pro",
+    "files": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/core/lists/engine.py",
+        "sha256": "b2bab0f44d2e3cc79fa549c9e1b2e5b3a8537adb1c159a45dde3a0dff7a075b8",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/utils/compress.py",
+        "sha256": "24cd4435ca8c8faba97058c8865cd4be7786236f2ede871b5a5710ea42cfb5de",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      }
+    ],
+    "aliases": {
+      "engine": "openlibrary/core/lists/engine.py",
+      "compress": "openlibrary/utils/compress.py"
+    },
+    "groups": [
+      {
+        "name": "list seed aggregation",
+        "questions": [
+          {
+            "id": "e1",
+            "code": "result=engine.get_seeds({'key':'/works/W','authors':[{'author':{'key':'/authors/A'}},{}],'editions':[{'key':'/books/B'}],'subjects':['Science Fiction','science_fiction',12],'subject_places':['New, York']})"
+          },
+          {
+            "id": "e2",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A B','a_b','A B'],'people':['A B']}); result=s.top_subjects()"
+          },
+          {
+            "id": "e3",
+            "code": "result=engine.reduce_seeds([(1,2,1,'2020',{'subjects':['X']}),(2,5,0,'2023',{'subjects':['X','Y']})])"
+          },
+          {
+            "id": "e4",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['B','A','B','C','A']}); result=s.top_subjects(2)"
+          }
+        ]
+      },
+      {
+        "name": "independent compression contexts",
+        "questions": [
+          {
+            "id": "c1",
+            "code": "c=compress.Compressor('book catalog '); a=c.compress('book one'); b=c.compress('book two'); result=[c.decompress(b),c.decompress(a),c.decompress(a)]"
+          },
+          {
+            "id": "c2",
+            "code": "c=compress.Compressor('书籍'); result=c.decompress(c.compress('你好'.encode('utf-8')))"
+          },
+          {
+            "id": "c3",
+            "code": "c=compress.Compressor('seed'); result=[c.decompress(c.compress('')),c.compress('same')==c.compress('same')]"
+          },
+          {
+            "id": "c4",
+            "code": "a=compress.Compressor('same seed'); b=compress.Compressor('same seed'); result=b.decompress(a.compress('independent record'))"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "serial",
+        "solo",
+        "parallel"
+      ],
+      [
+        "parallel",
+        "serial",
+        "solo"
+      ]
+    ],
+    "benchmark_revision": "2d52cb3df914a3fcf80c7f66738b3a88ae37fc50",
+    "source_revision": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+  },
+  {
+    "id": "openlibrary-review",
+    "project": "openlibrary",
+    "kind": "review",
+    "source_task": "swe-pro-openlibrary-authors",
+    "benchmark": "swebench-pro",
+    "files": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/core/lists/engine.py",
+        "sha256": "b2bab0f44d2e3cc79fa549c9e1b2e5b3a8537adb1c159a45dde3a0dff7a075b8",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "archive": "00212a51f587e1e8b66fd669a82ca6e691a3eade2154888e02124ac75155df43",
+        "member": "openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce/openlibrary/utils/compress.py",
+        "sha256": "24cd4435ca8c8faba97058c8865cd4be7786236f2ede871b5a5710ea42cfb5de",
+        "source_url": "https://codeload.github.com/internetarchive/openlibrary/tar.gz/0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+      }
+    ],
+    "aliases": {
+      "engine": "openlibrary/core/lists/engine.py",
+      "compress": "openlibrary/utils/compress.py"
+    },
+    "groups": [
+      {
+        "name": "ranking and normalization compatibility",
+        "questions": [
+          {
+            "id": "e1",
+            "code": "s=engine.SubjectProcessor(); s.add_subjects({'subjects':['A','A','B']}); result=s.top_subjects(1)"
+          },
+          {
+            "id": "e2",
+            "code": "result=engine.get_seeds({'key':'/works/W','subjects':['Space Science']})"
+          },
+          {
+            "id": "e3",
+            "code": "result=engine.get_seeds({'key':'/works/W','subjects':['space science']})"
+          },
+          {
+            "id": "e4",
+            "code": "result=engine.reduce_seeds([])"
+          }
+        ]
+      },
+      {
+        "name": "compression compatibility",
+        "questions": [
+          {
+            "id": "c1",
+            "code": "c=compress.Compressor('seed'); a=c.compress('first'); result=c.decompress(c.compress('second'))"
+          },
+          {
+            "id": "c2",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('你好'))"
+          },
+          {
+            "id": "c3",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress('ascii'))"
+          },
+          {
+            "id": "c4",
+            "code": "c=compress.Compressor('seed'); result=c.decompress(c.compress(''))"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "old": "subjects.sort(key=lambda s: s['count'], reverse=True)",
+        "new": "subjects.sort(key=lambda s: s['count'])"
+      },
+      {
+        "path": "openlibrary/core/lists/engine.py",
+        "old": "RE_SUBJECT.sub(\"_\", subject.lower())",
+        "new": "RE_SUBJECT.sub(\"_\", subject)"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "old": "c = self.c_context.copy()",
+        "new": "c = self.c_context"
+      },
+      {
+        "path": "openlibrary/utils/compress.py",
+        "old": "return t.decode()",
+        "new": "return t.decode(\"ascii\")"
+      }
+    ],
+    "arm_orders": [
+      [
+        "serial",
+        "parallel",
+        "solo"
+      ],
+      [
+        "solo",
+        "serial",
+        "parallel"
+      ]
+    ],
+    "benchmark_revision": "2d52cb3df914a3fcf80c7f66738b3a88ae37fc50",
+    "source_revision": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce"
+  },
+  {
+    "id": "session-investigate",
+    "project": "session",
+    "kind": "investigate",
+    "source_task": "terminal-session-window-debug",
+    "benchmark": "terminal-bench",
+    "files": [
+      {
+        "path": "app/types.py",
+        "asset": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "sha256": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/types.py"
+      },
+      {
+        "path": "app/events.py",
+        "asset": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "sha256": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/events.py"
+      },
+      {
+        "path": "app/sessions.py",
+        "asset": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "sha256": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/sessions.py"
+      },
+      {
+        "path": "app/merger.py",
+        "asset": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "sha256": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/merger.py"
+      },
+      {
+        "path": "app/emitter.py",
+        "asset": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "sha256": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/emitter.py"
+      },
+      {
+        "path": "app/gc.py",
+        "asset": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "sha256": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/gc.py"
+      },
+      {
+        "path": "app/__init__.py",
+        "asset": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "sha256": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/__init__.py"
+      }
+    ],
+    "aliases": {
+      "types": "app/types.py",
+      "events": "app/events.py",
+      "sessions": "app/sessions.py",
+      "merger": "app/merger.py",
+      "emitter": "app/emitter.py",
+      "gc": "app/gc.py"
+    },
+    "groups": [
+      {
+        "name": "watermarks and session assignment",
+        "questions": [
+          {
+            "id": "v1",
+            "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark"
+          },
+          {
+            "id": "v2",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.register_source('b'); before=s.watermark; s.advance_time(1); result=[before,s.watermark]"
+          },
+          {
+            "id": "s1",
+            "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); s.process_event(types.Event(b'k',0,1)); s.process_event(types.Event(b'k',10,2)); x=s.process_event(types.Event(b'k',5,3)); result=[len(s.all_sessions()),x.start,x.end,x.aggregate.result()]"
+          },
+          {
+            "id": "s2",
+            "code": "s=sessions.SessionManager(types.Clock(),5,merger.Merger()); x=s.process_event(types.Event(b'k',10,1)); s.process_event(types.Event(b'k',6,2)); result=[x.start,x.end,x.created_at,x.aggregate.result()]"
+          }
+        ]
+      },
+      {
+        "name": "emission and retention boundaries",
+        "questions": [
+          {
+            "id": "f1",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); result=[e.evaluate(x,15) is None,e.evaluate(x,16).value]"
+          },
+          {
+            "id": "f2",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); e=emitter.Emitter(5); e.evaluate(x,16); x.aggregate.add(2); y=e.evaluate(x,17); result=[y.is_retraction,y.retracted_value,y.value,x.fire_count]"
+          },
+          {
+            "id": "g1",
+            "code": "x=types.Session(b'k',0,10,1); g=gc.GarbageCollector(7,100,5); result=[g.is_reclaimable(x,22),g.is_reclaimable(x,23)]"
+          },
+          {
+            "id": "g2",
+            "code": "x=types.Session(b'k',0,100,1); g=gc.GarbageCollector(7,20,5); result=[g.force_gc_eligible(x,21),g.force_gc_eligible(x,22)]"
+          }
+        ]
+      }
+    ],
+    "changes": [],
+    "arm_orders": [
+      [
+        "parallel",
+        "solo",
+        "serial"
+      ],
+      [
+        "solo",
+        "parallel",
+        "serial"
+      ]
+    ],
+    "benchmark_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037",
+    "source_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037"
+  },
+  {
+    "id": "session-review",
+    "project": "session",
+    "kind": "review",
+    "source_task": "terminal-session-window-debug",
+    "benchmark": "terminal-bench",
+    "files": [
+      {
+        "path": "app/types.py",
+        "asset": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "sha256": "650194a651a37c4be79a544b7ecd79b7b319109e2f17b8dc375eb38252542392",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/types.py"
+      },
+      {
+        "path": "app/events.py",
+        "asset": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "sha256": "0615e207bc9793fbdf4205a371aba1fc90148ea6e086b14bd10df2382aea868d",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/events.py"
+      },
+      {
+        "path": "app/sessions.py",
+        "asset": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "sha256": "731e769ad72fc142877bf28c48f1f500f50d465db3266991474668b76592259b",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/sessions.py"
+      },
+      {
+        "path": "app/merger.py",
+        "asset": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "sha256": "d70fd199d30979e0b5e0a7bd70af8dfda0a7393b800dffcf6e28d1675fa30756",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/merger.py"
+      },
+      {
+        "path": "app/emitter.py",
+        "asset": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "sha256": "d47c4b1220de623dd1df798e9a4a47c498096ea45a795f08a5e8d8ac94dcc644",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/emitter.py"
+      },
+      {
+        "path": "app/gc.py",
+        "asset": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "sha256": "90500dac814cb3a1f19683a1fe395692944858eb3661d66984cf937b64d595ab",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/gc.py"
+      },
+      {
+        "path": "app/__init__.py",
+        "asset": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "sha256": "63b800abbf1b909111eb7bd75d9c117c981a068f28156699752ad5f896521e0f",
+        "source_url": "https://raw.githubusercontent.com/harbor-framework/terminal-bench/4def1f367467b34b18e0dbdc086400ba71c3e037/tasks/session-window-debug/environment/app/__init__.py"
+      }
+    ],
+    "aliases": {
+      "types": "app/types.py",
+      "events": "app/events.py",
+      "sessions": "app/sessions.py",
+      "merger": "app/merger.py",
+      "emitter": "app/emitter.py",
+      "gc": "app/gc.py"
+    },
+    "groups": [
+      {
+        "name": "watermark compatibility",
+        "questions": [
+          {
+            "id": "v1",
+            "code": "s=events.EventSource(types.Clock()); s.register_source('a'); s.register_source('b'); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',4,1,'b')); result=s.watermark"
+          },
+          {
+            "id": "v2",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); s.ingest(types.Event(b'k',2,1,'a')); result=s.watermark"
+          },
+          {
+            "id": "v3",
+            "code": "s=events.EventSource(types.Clock()); s.ingest(types.Event(b'k',9,1,'a')); result=s.watermark"
+          },
+          {
+            "id": "v4",
+            "code": "s=events.EventSource(types.Clock()); s.advance_time(3); result=s.watermark"
+          }
+        ]
+      },
+      {
+        "name": "emission and collection compatibility",
+        "questions": [
+          {
+            "id": "f1",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,15) is None"
+          },
+          {
+            "id": "g1",
+            "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,22)"
+          },
+          {
+            "id": "f2",
+            "code": "x=types.Session(b'k',0,10,1); x.aggregate.add(4); result=emitter.Emitter(5).evaluate(x,16).value"
+          },
+          {
+            "id": "g2",
+            "code": "x=types.Session(b'k',0,10,1); result=gc.GarbageCollector(7,100,5).is_reclaimable(x,23)"
+          }
+        ]
+      }
+    ],
+    "changes": [
+      {
+        "path": "app/events.py",
+        "old": "min(self._source_watermarks.values())",
+        "new": "max(self._source_watermarks.values())"
+      },
+      {
+        "path": "app/events.py",
+        "old": "if event.time > current:",
+        "new": "if event.time >= 0:"
+      },
+      {
+        "path": "app/emitter.py",
+        "old": "if watermark <= session.end + self._gap:",
+        "new": "if watermark < session.end + self._gap:"
+      },
+      {
+        "path": "app/gc.py",
+        "old": "return watermark > session.end + self._gap + self._retention",
+        "new": "return watermark >= session.end + self._gap + self._retention"
+      }
+    ],
+    "arm_orders": [
+      [
+        "parallel",
+        "serial",
+        "solo"
+      ],
+      [
+        "serial",
+        "solo",
+        "parallel"
+      ]
+    ],
+    "benchmark_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037",
+    "source_revision": "4def1f367467b34b18e0dbdc086400ba71c3e037"
+  },
+  {
+    "id": "boltons-investigate",
+    "kind": "investigate",
+    "project": "boltons",
+    "aliases": {
+      "d": "boltons/dictutils.py",
+      "i": "boltons/iterutils.py"
+    },
+    "upstream": {
+      "repository": "mahmoud/boltons",
+      "commit": "4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d",
+      "files": [
+        {
+          "path": "boltons/dictutils.py",
+          "sha256": "6319c07cb68f18c2bfc01aa4393d0423463cf5d6357f229173d2d1e485e7b656",
+          "url": "https://raw.githubusercontent.com/mahmoud/boltons/4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d/boltons/dictutils.py"
+        },
+        {
+          "path": "boltons/iterutils.py",
+          "sha256": "7fb67f49dc1d895051549b523c2e21161e3c1f4e21590fa7fd09039386d08510",
+          "url": "https://raw.githubusercontent.com/mahmoud/boltons/4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d/boltons/iterutils.py"
+        },
+        {
+          "path": "boltons/__init__.py",
+          "sha256": "ba0f4ee941c9a000b66251d4a39263a8ed009c2a3e0b77b8665c8aeff7ebe730",
+          "url": "https://raw.githubusercontent.com/mahmoud/boltons/4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d/boltons/__init__.py"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "c301912653a8d8c99eab6212aa3aea8d164ea249d8ad53c941e0558a0a5ac1e3",
+          "url": "https://raw.githubusercontent.com/mahmoud/boltons/4e5faa3d7e4008d89e0d8bf1ea87b6d9a061a16d/LICENSE"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "name": "ordered multimaps",
+        "questions": [
+          {
+            "id": "d1",
+            "code": "x=d.OrderedMultiDict([('a',1),('b',2),('a',3)]); result=[list(x.items()),list(x.items(multi=True)),x.getlist('a')]"
+          },
+          {
+            "id": "d2",
+            "code": "x=d.OrderedMultiDict([('a',1),('a',2),('b',3)]); x.update({'a':9}); result=[x.getlist('a'),list(x.items(multi=True))]"
+          },
+          {
+            "id": "d3",
+            "code": "x=d.OrderedMultiDict([('a',1),('b',2),('a',3)]); result=[x.poplast('a'),list(x.items(multi=True)),x.popall('a'),list(x.items(multi=True))]"
+          },
+          {
+            "id": "d4",
+            "code": "x=d.OneToOne({'a':1,'b':2}); x['c']=1; result=[dict(x),dict(x.inv)]"
+          }
+        ]
+      },
+      {
+        "name": "iteration boundaries",
+        "questions": [
+          {
+            "id": "i1",
+            "code": "result=[i.chunked(range(5),2),i.chunked(range(5),2,fill=None)]"
+          },
+          {
+            "id": "i2",
+            "code": "result=[i.split([None,1,None,None,2,None]),i.split([None,1,None,None,2,None],sep=[None])]"
+          },
+          {
+            "id": "i3",
+            "code": "result=[i.windowed([1,2],3),i.windowed([1,2],3,fillvalue=0)]"
+          },
+          {
+            "id": "i4",
+            "code": "result=i.unique(['A','b','a','B','c'],key=str.lower)"
+          }
+        ]
+      }
+    ],
+    "oracle": [
+      {
+        "id": "d1",
+        "code": "x=d.OrderedMultiDict([('a',1),('b',2),('a',3)]); result=[list(x.items()),list(x.items(multi=True)),x.getlist('a')]",
+        "evidence_path": "boltons/dictutils.py",
+        "evidence_symbol": "OrderedMultiDict.iteritems"
+      },
+      {
+        "id": "d2",
+        "code": "x=d.OrderedMultiDict([('a',1),('a',2),('b',3)]); x.update({'a':9}); result=[x.getlist('a'),list(x.items(multi=True))]",
+        "evidence_path": "boltons/dictutils.py",
+        "evidence_symbol": "OrderedMultiDict.update"
+      },
+      {
+        "id": "d3",
+        "code": "x=d.OrderedMultiDict([('a',1),('b',2),('a',3)]); result=[x.poplast('a'),list(x.items(multi=True)),x.popall('a'),list(x.items(multi=True))]",
+        "evidence_path": "boltons/dictutils.py",
+        "evidence_symbol": "OrderedMultiDict.poplast"
+      },
+      {
+        "id": "d4",
+        "code": "x=d.OneToOne({'a':1,'b':2}); x['c']=1; result=[dict(x),dict(x.inv)]",
+        "evidence_path": "boltons/dictutils.py",
+        "evidence_symbol": "OneToOne.__setitem__"
+      },
+      {
+        "id": "i1",
+        "code": "result=[i.chunked(range(5),2),i.chunked(range(5),2,fill=None)]",
+        "evidence_path": "boltons/iterutils.py",
+        "evidence_symbol": "chunked_iter"
+      },
+      {
+        "id": "i2",
+        "code": "result=[i.split([None,1,None,None,2,None]),i.split([None,1,None,None,2,None],sep=[None])]",
+        "evidence_path": "boltons/iterutils.py",
+        "evidence_symbol": "split_iter"
+      },
+      {
+        "id": "i3",
+        "code": "result=[i.windowed([1,2],3),i.windowed([1,2],3,fillvalue=0)]",
+        "evidence_path": "boltons/iterutils.py",
+        "evidence_symbol": "windowed_iter"
+      },
+      {
+        "id": "i4",
+        "code": "result=i.unique(['A','b','a','B','c'],key=str.lower)",
+        "evidence_path": "boltons/iterutils.py",
+        "evidence_symbol": "unique_iter"
+      }
+    ]
+  },
+  {
+    "id": "more-itertools-investigate",
+    "kind": "investigate",
+    "project": "more-itertools",
+    "aliases": {
+      "m": "more_itertools/more.py",
+      "r": "more_itertools/recipes.py"
+    },
+    "upstream": {
+      "repository": "more-itertools/more-itertools",
+      "commit": "1ea82a711c69f590054987b5cb194157f8ce8ac4",
+      "files": [
+        {
+          "path": "more_itertools/more.py",
+          "sha256": "bc51d6f1c05613084fb566a8310771ab946864f0bb4815d26d4c6bb8d44bf9ff",
+          "url": "https://raw.githubusercontent.com/more-itertools/more-itertools/1ea82a711c69f590054987b5cb194157f8ce8ac4/more_itertools/more.py"
+        },
+        {
+          "path": "more_itertools/recipes.py",
+          "sha256": "ea9ac19767d3949d72bd0fc24f51aff33f24a693201b5d8e595a0d58ef8f4b1c",
+          "url": "https://raw.githubusercontent.com/more-itertools/more-itertools/1ea82a711c69f590054987b5cb194157f8ce8ac4/more_itertools/recipes.py"
+        },
+        {
+          "path": "more_itertools/__init__.py",
+          "sha256": "19cb2d318e8d45eb7d56136a55f1452c9469d21597571c31d752aa8232a2c07b",
+          "url": "https://raw.githubusercontent.com/more-itertools/more-itertools/1ea82a711c69f590054987b5cb194157f8ce8ac4/more_itertools/__init__.py"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+          "url": "https://raw.githubusercontent.com/more-itertools/more-itertools/1ea82a711c69f590054987b5cb194157f8ce8ac4/LICENSE"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "name": "buffering and boundaries",
+        "questions": [
+          {
+            "id": "m1",
+            "code": "it=iter(range(5)); chunks=m.chunked(it,2,strict=True); first=next(chunks); second=next(chunks); result=[first,second,next(chunks)]"
+          },
+          {
+            "id": "m2",
+            "code": "result=[list(m.windowed([1,2],3,fillvalue=0)),list(m.windowed(range(5),3,step=3,fillvalue=-1))]"
+          },
+          {
+            "id": "m3",
+            "code": "head,tail=m.spy(iter([1,2,3]),2); result=[head,list(tail)]"
+          },
+          {
+            "id": "m4",
+            "code": "result=[list(m.split_at([0,1,0,0,2,0],lambda x:x==0)),list(m.split_at([0,1,0,0,2,0],lambda x:x==0,maxsplit=2,keep_separator=True))]"
+          }
+        ]
+      },
+      {
+        "name": "iterator recipes",
+        "questions": [
+          {
+            "id": "r1",
+            "code": "false,true=r.partition(lambda x:x%2,[0,1,2,3,4]); result=[list(true),list(false)]"
+          },
+          {
+            "id": "r2",
+            "code": "result=list(r.unique_everseen([[1],[2],[1],[3],[2]]))"
+          },
+          {
+            "id": "r3",
+            "code": "result=list(r.grouper('ABCDEFG',3,incomplete='ignore'))"
+          },
+          {
+            "id": "r4",
+            "code": "result=[list(r.roundrobin('AB','C','DEF')),list(r.powerset([1,1]))]"
+          }
+        ]
+      }
+    ],
+    "oracle": [
+      {
+        "id": "m1",
+        "code": "it=iter(range(5)); chunks=m.chunked(it,2,strict=True); first=next(chunks); second=next(chunks); result=[first,second,next(chunks)]",
+        "evidence_path": "more_itertools/more.py",
+        "evidence_symbol": "chunked"
+      },
+      {
+        "id": "m2",
+        "code": "result=[list(m.windowed([1,2],3,fillvalue=0)),list(m.windowed(range(5),3,step=3,fillvalue=-1))]",
+        "evidence_path": "more_itertools/more.py",
+        "evidence_symbol": "windowed"
+      },
+      {
+        "id": "m3",
+        "code": "head,tail=m.spy(iter([1,2,3]),2); result=[head,list(tail)]",
+        "evidence_path": "more_itertools/more.py",
+        "evidence_symbol": "spy"
+      },
+      {
+        "id": "m4",
+        "code": "result=[list(m.split_at([0,1,0,0,2,0],lambda x:x==0)),list(m.split_at([0,1,0,0,2,0],lambda x:x==0,maxsplit=2,keep_separator=True))]",
+        "evidence_path": "more_itertools/more.py",
+        "evidence_symbol": "split_at"
+      },
+      {
+        "id": "r1",
+        "code": "false,true=r.partition(lambda x:x%2,[0,1,2,3,4]); result=[list(true),list(false)]",
+        "evidence_path": "more_itertools/recipes.py",
+        "evidence_symbol": "partition"
+      },
+      {
+        "id": "r2",
+        "code": "result=list(r.unique_everseen([[1],[2],[1],[3],[2]]))",
+        "evidence_path": "more_itertools/recipes.py",
+        "evidence_symbol": "unique_everseen"
+      },
+      {
+        "id": "r3",
+        "code": "result=list(r.grouper('ABCDEFG',3,incomplete='ignore'))",
+        "evidence_path": "more_itertools/recipes.py",
+        "evidence_symbol": "grouper"
+      },
+      {
+        "id": "r4",
+        "code": "result=[list(r.roundrobin('AB','C','DEF')),list(r.powerset([1,1]))]",
+        "evidence_path": "more_itertools/recipes.py",
+        "evidence_symbol": "roundrobin"
+      }
+    ]
+  },
+  {
+    "id": "cachetools-investigate",
+    "kind": "investigate",
+    "project": "cachetools",
+    "aliases": {
+      "c": "cachetools/__init__.py",
+      "k": "cachetools/keys.py"
+    },
+    "upstream": {
+      "repository": "tkem/cachetools",
+      "commit": "3c082c654c2804b9354e4b62dbd2994f1aac464d",
+      "files": [
+        {
+          "path": "src/cachetools/__init__.py",
+          "sha256": "525ba807fed4af10744f068b5f9b81710903b6f73ee897469d3bf615847e2bd0",
+          "url": "https://raw.githubusercontent.com/tkem/cachetools/3c082c654c2804b9354e4b62dbd2994f1aac464d/src/cachetools/__init__.py"
+        },
+        {
+          "path": "src/cachetools/keys.py",
+          "sha256": "9550bd6914744c2fc6fd211dfb83cdae2d6206b1a1bfcf052d017cb23b39b49e",
+          "url": "https://raw.githubusercontent.com/tkem/cachetools/3c082c654c2804b9354e4b62dbd2994f1aac464d/src/cachetools/keys.py"
+        },
+        {
+          "path": "LICENSE",
+          "sha256": "28c000b52b0ee27138a68ef778227e4057046e86b65f62f1cacb99b0cc49e0d2",
+          "url": "https://raw.githubusercontent.com/tkem/cachetools/3c082c654c2804b9354e4b62dbd2994f1aac464d/LICENSE"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "name": "eviction and accounting",
+        "questions": [
+          {
+            "id": "c1",
+            "code": "x=c.LRUCache(2); x['a']=1; x['b']=2; ignored=x['a']; x['c']=3; result=[sorted(x),x.currsize]"
+          },
+          {
+            "id": "c2",
+            "code": "x=c.FIFOCache(2); x['a']=1; x['b']=2; x['a']=9; x['c']=3; result=[sorted(x.items()),x.currsize]"
+          },
+          {
+            "id": "c3",
+            "code": "x=c.Cache(5,getsizeof=len); x['a']=[1,2]; x['a'].append(3); x['b']=[4,5,6]; result=[sorted(x.items()),x.currsize]"
+          },
+          {
+            "id": "c4",
+            "code": "now=[0]; x=c.TTLCache(2,5,timer=lambda:now[0]); x['a']=1; now[0]=5; result=['a' in x,list(x.expire()),len(x)]"
+          }
+        ]
+      },
+      {
+        "name": "cache key equivalence",
+        "questions": [
+          {
+            "id": "k1",
+            "code": "result=[k.hashkey(1)==k.hashkey(1.0),k.typedkey(1)==k.typedkey(1.0)]"
+          },
+          {
+            "id": "k2",
+            "code": "result=[k.hashkey(a=1,b=2)==k.hashkey(b=2,a=1),k.hashkey(1)==k.hashkey(a=1)]"
+          },
+          {
+            "id": "k3",
+            "code": "result=[k.methodkey(object(),1,x=2)==k.methodkey(object(),1,x=2),k.typedmethodkey(object(),1)==k.typedmethodkey(object(),1.0)]"
+          },
+          {
+            "id": "k4",
+            "code": "x=k.hashkey([1]); result=hash(x)"
+          }
+        ]
+      }
+    ],
+    "oracle": [
+      {
+        "id": "c1",
+        "code": "x=c.LRUCache(2); x['a']=1; x['b']=2; ignored=x['a']; x['c']=3; result=[sorted(x),x.currsize]",
+        "evidence_path": "cachetools/__init__.py",
+        "evidence_symbol": "LRUCache.__getitem__"
+      },
+      {
+        "id": "c2",
+        "code": "x=c.FIFOCache(2); x['a']=1; x['b']=2; x['a']=9; x['c']=3; result=[sorted(x.items()),x.currsize]",
+        "evidence_path": "cachetools/__init__.py",
+        "evidence_symbol": "FIFOCache.__setitem__"
+      },
+      {
+        "id": "c3",
+        "code": "x=c.Cache(5,getsizeof=len); x['a']=[1,2]; x['a'].append(3); x['b']=[4,5,6]; result=[sorted(x.items()),x.currsize]",
+        "evidence_path": "cachetools/__init__.py",
+        "evidence_symbol": "Cache.__setitem__"
+      },
+      {
+        "id": "c4",
+        "code": "now=[0]; x=c.TTLCache(2,5,timer=lambda:now[0]); x['a']=1; now[0]=5; result=['a' in x,list(x.expire()),len(x)]",
+        "evidence_path": "cachetools/__init__.py",
+        "evidence_symbol": "TTLCache.expire"
+      },
+      {
+        "id": "k1",
+        "code": "result=[k.hashkey(1)==k.hashkey(1.0),k.typedkey(1)==k.typedkey(1.0)]",
+        "evidence_path": "cachetools/keys.py",
+        "evidence_symbol": "typedkey"
+      },
+      {
+        "id": "k2",
+        "code": "result=[k.hashkey(a=1,b=2)==k.hashkey(b=2,a=1),k.hashkey(1)==k.hashkey(a=1)]",
+        "evidence_path": "cachetools/keys.py",
+        "evidence_symbol": "hashkey"
+      },
+      {
+        "id": "k3",
+        "code": "result=[k.methodkey(object(),1,x=2)==k.methodkey(object(),1,x=2),k.typedmethodkey(object(),1)==k.typedmethodkey(object(),1.0)]",
+        "evidence_path": "cachetools/keys.py",
+        "evidence_symbol": "typedmethodkey"
+      },
+      {
+        "id": "k4",
+        "code": "x=k.hashkey([1]); result=hash(x)",
+        "evidence_path": "cachetools/keys.py",
+        "evidence_symbol": "_HashedTuple.__hash__"
+      }
+    ]
+  },
+  {
+    "id": "itsdangerous-investigate",
+    "kind": "investigate",
+    "project": "itsdangerous",
+    "aliases": {
+      "s": "itsdangerous/signer.py",
+      "j": "itsdangerous/serializer.py",
+      "u": "itsdangerous/url_safe.py"
+    },
+    "upstream": {
+      "repository": "pallets/itsdangerous",
+      "commit": "672971d66a2ef9f85151e53283113f33d642dabd",
+      "files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "63af09891b6be8ad1a4252ed43af0f4efba7fc948e228367bed7f3c5ae0b09d7",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/LICENSE.txt"
+        },
+        {
+          "path": "src/itsdangerous/__init__.py",
+          "sha256": "cd4e17bf6c055e1d4e6fb30c5d51406365ccb0d5e2bb0f65b446a9208996a9a0",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/__init__.py"
+        },
+        {
+          "path": "src/itsdangerous/_json.py",
+          "sha256": "c0f4069a07b6c99f77dbc107285ea069d19ec866022502b1b54fa22ca13a5270",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/_json.py"
+        },
+        {
+          "path": "src/itsdangerous/encoding.py",
+          "sha256": "c304f3e6aff7ccb71a01dba793afef4a84adc06a9859edf4ed997f53ceda4453",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/encoding.py"
+        },
+        {
+          "path": "src/itsdangerous/exc.py",
+          "sha256": "46bddec68d0c44511c3d996dc1e7322b5e955756c4d8af7f175f9dfa58dc527e",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/exc.py"
+        },
+        {
+          "path": "src/itsdangerous/serializer.py",
+          "sha256": "6d6f1687897c7e3ac6eeff5bfd6794df90e299feedcc6aae3faa0e53ffe925e8",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/serializer.py"
+        },
+        {
+          "path": "src/itsdangerous/signer.py",
+          "sha256": "60ed0257b341bc703a8f9e3d4441c91548d4a23c36a47ab0714a509d4ef23584",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/signer.py"
+        },
+        {
+          "path": "src/itsdangerous/timed.py",
+          "sha256": "3afbf6050e8b73605931d1e516f374835456979e4319c098bfe5f284f120c6c5",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/timed.py"
+        },
+        {
+          "path": "src/itsdangerous/url_safe.py",
+          "sha256": "6b3e1ee5f5e2fefb3e61b5a3f186709f8c2254a7de0fef8610a453e547aee0fe",
+          "url": "https://raw.githubusercontent.com/pallets/itsdangerous/672971d66a2ef9f85151e53283113f33d642dabd/src/itsdangerous/url_safe.py"
+        }
+      ]
+    },
+    "groups": [
+      {
+        "name": "signing and key rotation",
+        "questions": [
+          {
+            "id": "s1",
+            "code": "old=s.Signer('old'); rotating=s.Signer(['old','new']); token=old.sign('payload'); result=[rotating.unsign(token).decode(),old.validate(rotating.sign('payload')),rotating.secret_key.decode()]"
+          },
+          {
+            "id": "s2",
+            "code": "x=s.Signer('secret',sep='-'); result=x.sign('x').decode()"
+          },
+          {
+            "id": "s3",
+            "code": "a=s.Signer('secret',salt='a'); b=s.Signer('secret',salt='b'); result=[a.validate(a.sign('x.y')),b.validate(a.sign('x.y')),a.unsign(a.sign('x.y')).decode()]"
+          },
+          {
+            "id": "s4",
+            "code": "x=s.Signer('secret',algorithm=s.NoneAlgorithm()); token=x.sign('payload'); result=[token.decode(),x.validate(token),x.validate(b'changed.')]"
+          }
+        ]
+      },
+      {
+        "name": "serialization and untrusted payloads",
+        "questions": [
+          {
+            "id": "j1",
+            "code": "a=j.Serializer('a'); b=j.Serializer('b'); token=a.dumps({'x':[1,2]}); result=[a.loads_unsafe(token),b.loads_unsafe(token)]"
+          },
+          {
+            "id": "j2",
+            "code": "x=j.Serializer('secret',salt='default'); token=x.dumps([1,2],salt='special'); result=x.loads(token)"
+          },
+          {
+            "id": "u1",
+            "code": "x=u.URLSafeSerializer('secret'); token=x.dumps('a'*1000); result=[token.startswith('.'),x.loads(token)==('a'*1000),isinstance(token,str)]"
+          },
+          {
+            "id": "u2",
+            "code": "x=u.URLSafeSerializer('secret'); result=x.loads_unsafe('not-signed')"
+          }
+        ]
+      }
+    ],
+    "oracle": [
+      {
+        "id": "s1",
+        "code": "old=s.Signer('old'); rotating=s.Signer(['old','new']); token=old.sign('payload'); result=[rotating.unsign(token).decode(),old.validate(rotating.sign('payload')),rotating.secret_key.decode()]",
+        "evidence_path": "itsdangerous/signer.py",
+        "evidence_symbol": "Signer.verify_signature"
+      },
+      {
+        "id": "s2",
+        "code": "x=s.Signer('secret',sep='-'); result=x.sign('x').decode()",
+        "evidence_path": "itsdangerous/signer.py",
+        "evidence_symbol": "Signer.__init__"
+      },
+      {
+        "id": "s3",
+        "code": "a=s.Signer('secret',salt='a'); b=s.Signer('secret',salt='b'); result=[a.validate(a.sign('x.y')),b.validate(a.sign('x.y')),a.unsign(a.sign('x.y')).decode()]",
+        "evidence_path": "itsdangerous/signer.py",
+        "evidence_symbol": "Signer.unsign"
+      },
+      {
+        "id": "s4",
+        "code": "x=s.Signer('secret',algorithm=s.NoneAlgorithm()); token=x.sign('payload'); result=[token.decode(),x.validate(token),x.validate(b'changed.')]",
+        "evidence_path": "itsdangerous/signer.py",
+        "evidence_symbol": "NoneAlgorithm.get_signature"
+      },
+      {
+        "id": "j1",
+        "code": "a=j.Serializer('a'); b=j.Serializer('b'); token=a.dumps({'x':[1,2]}); result=[a.loads_unsafe(token),b.loads_unsafe(token)]",
+        "evidence_path": "itsdangerous/serializer.py",
+        "evidence_symbol": "Serializer._loads_unsafe_impl"
+      },
+      {
+        "id": "j2",
+        "code": "x=j.Serializer('secret',salt='default'); token=x.dumps([1,2],salt='special'); result=x.loads(token)",
+        "evidence_path": "itsdangerous/serializer.py",
+        "evidence_symbol": "Serializer.loads"
+      },
+      {
+        "id": "u1",
+        "code": "x=u.URLSafeSerializer('secret'); token=x.dumps('a'*1000); result=[token.startswith('.'),x.loads(token)==('a'*1000),isinstance(token,str)]",
+        "evidence_path": "itsdangerous/url_safe.py",
+        "evidence_symbol": "URLSafeSerializerMixin.dump_payload"
+      },
+      {
+        "id": "u2",
+        "code": "x=u.URLSafeSerializer('secret'); result=x.loads_unsafe('not-signed')",
+        "evidence_path": "itsdangerous/serializer.py",
+        "evidence_symbol": "Serializer._loads_unsafe_impl"
+      }
+    ]
+  }
+]

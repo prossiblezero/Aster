@@ -1,0 +1,208 @@
+{
+  "name": "Worker focused development replication",
+  "created_at": "2026-09-29",
+  "status": "development_tasks_previously_seen_not_holdout",
+  "repeats": 3,
+  "arms": [
+    "solo",
+    "worker"
+  ],
+  "selection_rule": "Fixed structural selection: two medium and two hard multi-part repository tasks. Selection follows prior outcomes and is explicitly development reuse; no unseen-generalization claim. No replacement or best-run selection.",
+  "tasks": [
+    {
+      "id": "swe-verified-django__django-16256",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "24d1c341cce0744d6699809c29f28d5cbd2cda3e22b41086f97836d958becd81",
+      "prompt_sha256": "8573a7026e50e932c44f36aeeb9c57c6fd28231d65e43fb98b39afa563d4f01c",
+      "difficulty": "medium",
+      "source": "swebench-verified",
+      "selection_reason": "The same async related-manager API spans ordinary/reverse managers and generic relations; partial fixes can omit a manager family.",
+      "previously_evaluated": true,
+      "omission_categories": [
+        {
+          "id": "ordinary_related_managers",
+          "requirement": "Async create/get_or_create/update_or_create on ordinary and reverse related managers",
+          "required_test_regex": "async.test_async_related_managers"
+        },
+        {
+          "id": "generic_related_managers",
+          "requirement": "Async create/get_or_create/update_or_create on generic related managers",
+          "required_test_regex": "test_generic_async_"
+        }
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-verified-django__django-16256/preflight.json",
+        "sha256": "dcdcacbc0d9fdcf44399644667f410e40bff1fa821e5839bb408bd15fce07cbc",
+        "required_tests": 62
+      }
+    },
+    {
+      "id": "swe-verified-sympy__sympy-14248",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "16a66a21a77d0da6f870fa08b02375035cbefb9e09be54013d98a9b5f0f4e053",
+      "prompt_sha256": "056549bbb76a727325fc85b052ecb5d1c9ba9d70d702cf011b407e3877e5c383",
+      "difficulty": "medium",
+      "source": "swebench-verified",
+      "selection_reason": "The original issue names str, pretty and LaTeX output for MatrixSymbol subtraction; consistent behavior spans printer implementations.",
+      "previously_evaluated": true,
+      "omission_categories": [
+        {
+          "id": "str_printer",
+          "requirement": "String rendering represents MatrixSymbol subtraction correctly",
+          "required_test_regex": "^test_MatMul_MatAdd$",
+          "coverage_note": "P2P string regression; not an independent full requirement oracle."
+        },
+        {
+          "id": "pretty_printer",
+          "requirement": "Pretty rendering represents MatrixSymbol subtraction correctly",
+          "required_test_regex": "^test_MatrixExpressions$",
+          "coverage_note": "P2P pretty regression only; the historical parser collapses same-named MatrixElement tests across printers, so those F2P names cannot be attributed to a printer. Manual/output diagnostic evidence is required for requirement coverage."
+        },
+        {
+          "id": "latex_printer",
+          "requirement": "LaTeX rendering represents MatrixSymbol subtraction correctly",
+          "required_test_regex": "^test_mat(Add|Mul)$",
+          "coverage_note": "P2P LaTeX regression; not an independent full requirement oracle."
+        }
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-verified-sympy__sympy-14248/preflight.json",
+        "sha256": "8e23c7a09162e18aa3499cd72eed7327f83365c1b51894c0434cb2c5c31fc058",
+        "required_tests": 435
+      }
+    },
+    {
+      "id": "swe-pro-openlibrary-authors",
+      "dataset": "datasets/worker-code-v2/instances.jsonl",
+      "dataset_sha256": "264b7f287904c46c94894f1f06ff5be58a398b7c8d8d4f450ed5e3a767f43bea",
+      "task_sha256": "d246e657d94fca999793858f00c53185d2ea67e7ed98d7cbc5ed358d791d97b3",
+      "prompt_sha256": "b1bac0666c501fe2cf9f17d5ce7de54b7a1d76fb8642d901599cbd24acedbd5a",
+      "difficulty": "hard",
+      "source": "swebench-pro",
+      "selection_reason": "Author resolution priority and query-backend ILIKE behavior are separable concerns with a shared integration contract.",
+      "previously_evaluated": true,
+      "omission_categories": [
+        {
+          "id": "resolution_priority_dates",
+          "requirement": "Name, alternate-name and surname priority with birth/death-year disambiguation",
+          "required_test_regex": "(match_priority|last_match|non_matching_birth_death)"
+        },
+        {
+          "id": "query_case_wildcard",
+          "requirement": "Case-insensitive matching, wildcard query semantics and unmatched candidate preservation",
+          "required_test_regex": "(case_insensitive|wildcard)"
+        }
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/swe-pro-openlibrary-authors/preflight.json",
+        "sha256": "8c4f24a85e5c7da392e6f4f98b51ba94a52960cd0decd36631f6eed3975b881b",
+        "required_tests": 8
+      }
+    },
+    {
+      "id": "holdout-sympy__sympy-13878",
+      "dataset": "datasets/worker-code-v3-holdout/instances.jsonl",
+      "dataset_sha256": "114c34db313668edd18197a1fc3771a0ad5d28329ca579b91a9398dbebf79ed2",
+      "task_sha256": "66846ada32c0a2cb831e2be965a3bcf4073d33922042fd9097da872742d08ecf",
+      "prompt_sha256": "5ed83f5e24361e5ca95f9c3dfcff3ba9ce9775f1fd9a2a10ac3a4511370b6d75",
+      "difficulty": "hard",
+      "source": "swebench-verified",
+      "selection_reason": "The original issue names twelve distributions with analytic CDF requirements; coverage can be omitted across independent distribution implementations.",
+      "previously_evaluated": true,
+      "omission_categories": [
+        {
+          "id": "arcsin",
+          "requirement": "Arcsin analytic CDF from the original problem statement",
+          "required_test_regex": "^test_arcsin$",
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "dagum",
+          "requirement": "Dagum analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "erlang",
+          "requirement": "Erlang analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "frechet",
+          "requirement": "Frechet analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "gamma",
+          "requirement": "Gamma analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "gammainverse",
+          "requirement": "GammaInverse analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "kumaraswamy",
+          "requirement": "Kumaraswamy analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "laplace",
+          "requirement": "Laplace analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "logistic",
+          "requirement": "Logistic analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "nakagami",
+          "requirement": "Nakagami analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "studentt",
+          "requirement": "StudentT analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        },
+        {
+          "id": "uniformsum",
+          "requirement": "UniformSum analytic CDF from the original problem statement",
+          "required_test_regex": null,
+          "coverage_note": "Original grader scores Arcsin and unrelated P2P regression only; other requested distributions require manual or supplementary diagnostic evidence and are unknown without it."
+        }
+      ],
+      "preflight": {
+        "path": "artifacts/private/worker-redesign-20260928/preflight/holdout-sympy__sympy-13878/preflight.json",
+        "sha256": "f6ffd7b14ce7221fc1401e6111845ee10b53db026169118540ec5f60395780de",
+        "required_tests": 20
+      }
+    }
+  ],
+  "unchanged_grader_files": {
+    "evaluations/worker-code-20260928/repository_adapter.py": "aad91de8350953e9782b9639c3f7124bd1637f72ea88a05e71369d8f5d169c4c",
+    "evaluations/worker-code-20260928/execution_environment.py": "af64b99912a0269c2cd66a01d0d18c2e1d9fc72e4f206956d0018993ac9db9dd",
+    "src/aster/safety/linux.py": "37b00b5a9787dbbb038a8d68c74132414065abe75596d4a2c58be0ed9c7acf49"
+  },
+  "excluded_categories": [
+    "simple overhead controls",
+    "coupled single-unit controls",
+    "terminal adaptations",
+    "Go and other non-Python tasks",
+    "unselected repository issues"
+  ],
+  "model_input_policy": "Only original prompt plus unchanged neutral legacy COMMON and public environment guidance; selection reasons and omission categories never enter prompts."
+}
