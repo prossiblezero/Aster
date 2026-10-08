@@ -2,6 +2,14 @@
 
 日期：2026-09-18。授权 DNS 和 Node 内置测试运行器先独立交付；随后增加默认关闭的受控依赖复用。两阶段的检查分别记录。
 
+## 工具链安装位置
+
+命令使用独立环境，PATH 固定为 `<当前 Python 环境>/bin:/usr/bin:/bin`。Landlock 允许读取系统运行库与当前 Python 环境，但不自动放开登录 Shell PATH 中的用户目录、nvm 或 CI 工具缓存。把不可访问的工具链做成符号链接也不会获得额外权限。
+
+Ubuntu 24.04 可用 `sudo apt-get install -y nodejs npm golang-go` 安装可选的 JavaScript/Go 工具链；只运行 Python 项目时不需要它们。Node 正式测试依赖内置 JUnit reporter，已验证 Node 18.19.1；Go 测试通过 `go test` 生成结构化证据。缓存和临时文件仍写入本次执行根，源码发布边界不变。
+
+CI 显式安装系统 Node/Go，并先用 Aster 的实际命令环境检查两者可执行，再运行全部回归。测试按同一 PATH 判断可用性；本地未安装时会显示跳过，不能据此声称相应语言已经验证。
+
 ## 授权联网的系统读取
 
 `network` 默认仍为 `false`。显式开启后，Landlock 只增加 `/etc/resolv.conf`、`/etc/hosts`、`/etc/nsswitch.conf`、`/etc/gai.conf` 四个已有文件的只读权限。符号链接先解析到真实文件，因此本机 `/etc/resolv.conf` 指向的 `/run/systemd/resolve/stub-resolv.conf` 可读；没有放开 `/etc`、`/run` 整个目录，也没有系统写权限。现有证书路径继续使用原有只读授权。

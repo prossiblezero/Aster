@@ -1,7 +1,6 @@
 """Node's built-in test runner participates in formal, version-bound verification."""
 
 import shutil
-import sys
 from pathlib import Path
 
 import pytest
@@ -11,7 +10,10 @@ from aster.core.runtime import Runtime
 from aster.safety.runner import SandboxRunner
 from aster.schema import TaskSpec, ToolCall
 
-node_available = pytest.mark.skipif(shutil.which("node") is None, reason="Node is unavailable")
+node_available = pytest.mark.skipif(
+    shutil.which("node", path=SandboxRunner.environment(Path("."))["PATH"]) is None,
+    reason="Node is unavailable on the sandbox PATH",
+)
 
 
 @node_available
@@ -82,20 +84,9 @@ async def test_node_cannot_override_the_trusted_report_destination(tmp_path):
     ("Skipped", "blocked", "no_tests_executed"),
     ("Missing", "blocked", "no_tests_collected"),
 ])
-async def test_go_formal_results_require_executed_tests(tmp_path, monkeypatch, selection, status, reason):
-    go = Path(shutil.which("go") or Path(sys.prefix) / "go/bin/go")
-    if not go.is_file():
-        pytest.skip("Go is unavailable")
-    environment = SandboxRunner.environment
-
-    def go_environment(root, *, reuse=False):
-        env = environment(root, reuse=reuse)
-        env.update(PATH=f"{go.parent}:{env['PATH']}", GOROOT=str(go.resolve().parent.parent),
-                   GOPROXY="off", GOSUMDB="off", CGO_ENABLED="0",
-                   GOCACHE=str(root / ".tmp" / "go-build"))
-        return env
-
-    monkeypatch.setattr(SandboxRunner, "environment", staticmethod(go_environment))
+async def test_go_formal_results_require_executed_tests(tmp_path, selection, status, reason):
+    if shutil.which("go", path=SandboxRunner.environment(tmp_path)["PATH"]) is None:
+        pytest.skip("Go is unavailable on the sandbox PATH")
     (tmp_path / "go.mod").write_text("module example.com/check\n\ngo 1.20\n")
     (tmp_path / "check_test.go").write_text(
         'package check\nimport "testing"\n'

@@ -2,6 +2,8 @@
 
 从干净 clone 创建 Python 3.12+ 虚拟环境，安装 `python -m pip install -e '.[dev,docs]'`。Ubuntu/Debian 需要 `python3-venv` 和 `libseccomp2`，内核需支持 Landlock。首次 tokenizer 使用可能下载词表。
 
+完整回归还需要 `sudo apt-get install -y nodejs golang-go`。Node/Go 必须在 [Aster 的命令环境](execution-environment.md#工具链安装位置)中可用；CI 显式检查这两项，本地缺少时对应测试会跳过。
+
 ```bash
 python -m ruff check src tests scripts evaluations learn_web/build.py learn_web/tests
 python -m pytest -q

@@ -332,8 +332,10 @@ async def test_cancelling_a_live_sandbox_process_removes_its_execution_root(tmp_
 
 @pytest.mark.parametrize("framework", ["pytest", "unittest", "node"])
 async def test_formal_tests_borrow_same_dependencies_without_mutating_them(tmp_path, framework):
-    if framework == "node" and shutil.which("node") is None:
-        pytest.skip("Node is unavailable")
+    if framework == "node" and shutil.which(
+        "node", path=SandboxRunner.environment(tmp_path)["PATH"]
+    ) is None:
+        pytest.skip("Node is unavailable on the sandbox PATH")
     runtime = Runtime(
         tmp_path, Settings(reuse_environment=True, approval="auto", memory_enabled=False)
     )

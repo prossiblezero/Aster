@@ -44,6 +44,8 @@ python -m pip install -e '.[dev,docs]'
 
 只使用 Agent 时可安装 `python -m pip install -e .`；`dev` 提供测试与检查工具，`docs` 提供教程网站构建依赖。也可用 [environment.yml](environment.yml) 创建 Conda 环境。
 
+处理 JavaScript 或 Go 项目时，另行安装对应工具链，例如 Ubuntu 上的 `sudo apt-get install -y nodejs npm golang-go`。Aster 的命令 PATH 为当前 Python 环境的 `bin`、`/usr/bin` 和 `/bin`，不继承登录 Shell 的 PATH；nvm、用户目录或 CI 缓存中的工具链不会自动进入沙箱。完整回归需要 Node 和 Go，详见[执行环境](docs/execution-environment.md#工具链安装位置)。
+
 先做一次**不调用模型 API**的检查：
 
 ```bash
