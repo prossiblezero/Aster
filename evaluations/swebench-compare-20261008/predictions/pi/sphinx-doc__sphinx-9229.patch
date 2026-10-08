@@ -1,0 +1,110 @@
+diff --git a/sphinx/pycode/parser.py b/sphinx/pycode/parser.py
+index a00b481..63b9d5f 100644
+--- a/sphinx/pycode/parser.py
++++ b/sphinx/pycode/parser.py
+@@ -400,16 +400,23 @@ class VariableCommentPicker(ast.NodeVisitor):
+ 
+     def visit_Expr(self, node: ast.Expr) -> None:
+         """Handles Expr node and pick up a comment if string."""
+-        if (isinstance(self.previous, (ast.Assign, ast.AnnAssign)) and
+-                isinstance(node.value, ast.Str)):
++        is_string = isinstance(node.value, ast.Str)
++        if hasattr(ast, 'Constant'):
++            is_string = is_string or (isinstance(node.value, ast.Constant) and  # type: ignore
++                                       isinstance(node.value.value, (str, bytes)))
++        if (isinstance(self.previous, (ast.Assign, ast.AnnAssign)) and is_string):
+             try:
+                 targets = get_assign_targets(self.previous)
+                 varnames = get_lvar_names(targets[0], self.get_self())
+                 for varname in varnames:
+-                    if isinstance(node.value.s, str):
+-                        docstring = node.value.s
++                    if hasattr(node.value, 's'):
++                        value = node.value.s
+                     else:
+-                        docstring = node.value.s.decode(self.encoding or 'utf-8')
++                        value = node.value.value
++                    if isinstance(value, str):
++                        docstring = value
++                    else:
++                        docstring = value.decode(self.encoding or 'utf-8')
+ 
+                     self.add_variable_comment(varname, dedent_docstring(docstring))
+                     self.add_entry(varname)
+diff --git a/tests/roots/test-ext-autodoc/target/type_aliases.py b/tests/roots/test-ext-autodoc/target/type_aliases.py
+new file mode 100644
+index 0000000..cd2563b
+--- /dev/null
++++ b/tests/roots/test-ext-autodoc/target/type_aliases.py
+@@ -0,0 +1,18 @@
++from pathlib import Path
++from typing import Any, Callable, Dict, Union
++
++ScaffoldOpts = Dict[str, Any]
++"""Dictionary with the project's options.
++
++This documentation spans multiple lines.
++"""
++
++FileContents = Union[str, None]
++"""The file content, or ``None`` when it should not be written.
++"""
++
++FileOp = Callable[[Path, FileContents, ScaffoldOpts], Union[Path, None]]
++"""Signature of a function that performs a file operation.
++
++The operation returns the path when a file was changed.
++"""
+diff --git a/tests/test_ext_autodoc_autodata.py b/tests/test_ext_autodoc_autodata.py
+index d01e45f..cfb2761 100644
+--- a/tests/test_ext_autodoc_autodata.py
++++ b/tests/test_ext_autodoc_autodata.py
+@@ -131,6 +131,48 @@ def test_autodata_TypeVar(app):
+     ]
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_autodata_type_alias_docstrings(app):
++    options = {'members': None}
++    actual = do_autodoc(app, 'module', 'target.type_aliases', options)
++    assert list(actual) == [
++        '',
++        '.. py:module:: target.type_aliases',
++        '',
++        '',
++        '.. py:data:: FileContents',
++        '   :module: target.type_aliases',
++        '',
++        '   The file content, or ``None`` when it should not be written.',
++        '',
++        '   alias of :obj:`~typing.Optional`\\ [:class:`str`]',
++        '',
++        '',
++        '.. py:data:: FileOp',
++        '   :module: target.type_aliases',
++        '',
++        '   Signature of a function that performs a file operation.',
++        '',
++        '   The operation returns the path when a file was changed.',
++        '',
++        '   alias of :class:`~typing.Callable`\\ [[:class:`pathlib.Path`, '
++        ':class:`~typing.Optional`\\ [:class:`str`], '
++        ':class:`~typing.Dict`\\ [:class:`str`, Any]], '
++        ':class:`~typing.Optional`\\ [:class:`pathlib.Path`]]',
++        '',
++        '',
++        '.. py:data:: ScaffoldOpts',
++        '   :module: target.type_aliases',
++        '',
++        "   Dictionary with the project's options.",
++        '',
++        '   This documentation spans multiple lines.',
++        '',
++        '   alias of :class:`~typing.Dict`\\ [:class:`str`, Any]',
++        '',
++    ]
++
++
+ @pytest.mark.skipif(sys.version_info < (3, 6), reason='python 3.6+ is required.')
+ @pytest.mark.sphinx('html', testroot='ext-autodoc')
+ def test_autodata_hide_value(app):

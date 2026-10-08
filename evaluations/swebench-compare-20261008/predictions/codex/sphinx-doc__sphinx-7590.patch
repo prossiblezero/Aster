@@ -1,0 +1,127 @@
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d88..472cfe1 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -45,6 +45,8 @@ from sphinx.util.nodes import make_refnode
+ logger = logging.getLogger(__name__)
+ T = TypeVar('T')
+ 
++user_defined_suffix_re = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
++
+ """
+     Important note on ids
+     ----------------------------------------------------------------------------
+@@ -823,14 +825,15 @@ class ASTBooleanLiteral(ASTLiteral):
+ 
+ 
+ class ASTNumberLiteral(ASTLiteral):
+-    def __init__(self, data: str) -> None:
++    def __init__(self, data: str, suffix: str = None) -> None:
+         self.data = data
++        self.suffix = suffix
+ 
+     def _stringify(self, transform: StringifyTransform) -> str:
+-        return self.data
++        return self.data + (self.suffix or '')
+ 
+     def get_id(self, version: int) -> str:
+-        return "L%sE" % self.data
++        return "L%sE" % (self.data + (self.suffix or ''))
+ 
+     def describe_signature(self, signode: TextElement, mode: str,
+                            env: "BuildEnvironment", symbol: "Symbol") -> None:
+@@ -839,11 +842,12 @@ class ASTNumberLiteral(ASTLiteral):
+ 
+ 
+ class ASTStringLiteral(ASTLiteral):
+-    def __init__(self, data: str) -> None:
++    def __init__(self, data: str, suffix: str = None) -> None:
+         self.data = data
++        self.suffix = suffix
+ 
+     def _stringify(self, transform: StringifyTransform) -> str:
+-        return self.data
++        return self.data + (self.suffix or '')
+ 
+     def get_id(self, version: int) -> str:
+         # note: the length is not really correct with escaping
+@@ -856,9 +860,10 @@ class ASTStringLiteral(ASTLiteral):
+ 
+ 
+ class ASTCharLiteral(ASTLiteral):
+-    def __init__(self, prefix: str, data: str) -> None:
++    def __init__(self, prefix: str, data: str, suffix: str = None) -> None:
+         self.prefix = prefix  # may be None when no prefix
+         self.data = data
++        self.suffix = suffix
+         assert prefix in _id_char_from_prefix
+         self.type = _id_char_from_prefix[prefix]
+         decoded = data.encode().decode('unicode-escape')
+@@ -869,9 +874,9 @@ class ASTCharLiteral(ASTLiteral):
+ 
+     def _stringify(self, transform: StringifyTransform) -> str:
+         if self.prefix is None:
+-            return "'" + self.data + "'"
++            return "'" + self.data + "'" + (self.suffix or '')
+         else:
+-            return self.prefix + "'" + self.data + "'"
++            return self.prefix + "'" + self.data + "'" + (self.suffix or '')
+ 
+     def get_id(self, version: int) -> str:
+         return self.type + str(self.value)
+@@ -4664,25 +4669,33 @@ class DefinitionParser(BaseParser):
+             if self.match(regex):
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
+-                return ASTNumberLiteral(self.definition[pos:self.pos])
++                number_end = self.pos
++                suffix = self._parse_user_defined_suffix()
++                return ASTNumberLiteral(self.definition[pos:number_end], suffix)
+ 
+         string = self._parse_string()
+         if string is not None:
+-            return ASTStringLiteral(string)
++            return ASTStringLiteral(string, self._parse_user_defined_suffix())
+ 
+         # character-literal
+         if self.match(char_literal_re):
+             prefix = self.last_match.group(1)  # may be None when no prefix
+             data = self.last_match.group(2)
++            suffix = self._parse_user_defined_suffix()
+             try:
+-                return ASTCharLiteral(prefix, data)
++                return ASTCharLiteral(prefix, data, suffix)
+             except UnicodeDecodeError as e:
+                 self.fail("Can not handle character literal. Internal error was: %s" % e)
+             except UnsupportedMultiCharacterCharLiteral:
+                 self.fail("Can not handle character literal"
+                           " resulting in multiple decoded characters.")
+ 
+-        # TODO: user-defined lit
++        return None
++
++    def _parse_user_defined_suffix(self) -> str:
++        pos = self.pos
++        if self.match(user_defined_suffix_re):
++            return self.definition[pos:self.pos]
+         return None
+ 
+     def _parse_fold_or_paren_expression(self) -> ASTExpression:
+diff --git a/tests/test_domain_cpp.py b/tests/test_domain_cpp.py
+index 9db741a..7b212bb 100644
+--- a/tests/test_domain_cpp.py
++++ b/tests/test_domain_cpp.py
+@@ -176,7 +176,12 @@ def test_expressions():
+         exprCheck(p + "'\\U0001f34c'", t + "127820")
+         exprCheck(p + "'\\U0001F34C'", t + "127820")
+ 
+-    # TODO: user-defined lit
++    for suffix in ['q_J', '_m']:
++        exprCheck('1' + suffix, 'L1' + suffix + 'E')
++        exprCheck('1.0' + suffix, 'L1.0' + suffix + 'E')
++    exprCheck('6.62607015e-34q_J', 'L6.62607015e-34q_JE')
++    exprCheck('"abc"_s', 'LA3_KcE')  # string user-defined literal
++    exprCheck("'a'_c", 'c97')  # character user-defined literal
+     exprCheck('(... + Ns)', '(... + Ns)', id4='flpl2Ns')
+     exprCheck('(Ns + ...)', '(Ns + ...)', id4='frpl2Ns')
+     exprCheck('(Ns + ... + 0)', '(Ns + ... + 0)', id4='fLpl2NsL0E')

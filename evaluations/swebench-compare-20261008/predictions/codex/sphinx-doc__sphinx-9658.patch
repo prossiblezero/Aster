@@ -1,0 +1,47 @@
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 87707d4..0cb9cac 100644
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -106,6 +106,7 @@ def is_system_TypeVar(typ: Any) -> bool:
+ 
+ def restify(cls: Optional[Type]) -> str:
+     """Convert python class to a reST reference."""
++    from sphinx.ext.autodoc.mock import ismock
+     from sphinx.util import inspect  # lazy loading
+ 
+     try:
+@@ -115,6 +116,8 @@ def restify(cls: Optional[Type]) -> str:
+             return '...'
+         elif isinstance(cls, str):
+             return cls
++        elif ismock(cls):
++            return ':py:class:`%s`' % cls.__display_name__
+         elif cls in INVALID_BUILTIN_CLASSES:
+             return ':py:class:`%s`' % INVALID_BUILTIN_CLASSES[cls]
+         elif inspect.isNewType(cls):
+diff --git a/tests/test_util_typing.py b/tests/test_util_typing.py
+index d493a00..706684f 100644
+--- a/tests/test_util_typing.py
++++ b/tests/test_util_typing.py
+@@ -17,6 +17,7 @@ from typing import (Any, Callable, Dict, Generator, List, NewType, Optional, Tup
+ 
+ import pytest
+ 
++from sphinx.ext.autodoc.mock import mock
+ from sphinx.util.typing import restify, stringify
+ 
+ 
+@@ -51,6 +52,13 @@ def test_restify():
+     assert restify('str') == "str"
+ 
+ 
++def test_restify_mocked_class():
++    with mock(['mocked_module']):
++        import mocked_module
++
++        assert restify(mocked_module.SomeClass) == ":py:class:`mocked_module.SomeClass`"
++
++
+ def test_restify_type_hints_containers():
+     assert restify(List) == ":py:class:`~typing.List`"
+     assert restify(Dict) == ":py:class:`~typing.Dict`"

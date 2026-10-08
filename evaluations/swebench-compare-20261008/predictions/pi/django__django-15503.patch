@@ -1,0 +1,71 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..f694e1d 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -126,16 +126,19 @@ class JSONField(CheckFieldDefaultMixin, Field):
+         )
+ 
+ 
+-def compile_json_path(key_transforms, include_root=True):
++def compile_json_path(key_transforms, include_root=True, numeric_indices=True):
+     path = ["$"] if include_root else []
+     for key_transform in key_transforms:
+-        try:
+-            num = int(key_transform)
+-        except ValueError:  # non-integer
+-            path.append(".")
+-            path.append(json.dumps(key_transform))
+-        else:
+-            path.append("[%s]" % num)
++        if numeric_indices:
++            try:
++                num = int(key_transform)
++            except ValueError:  # non-integer
++                pass
++            else:
++                path.append("[%s]" % num)
++                continue
++        path.append(".")
++        path.append(json.dumps(key_transform))
+     return "".join(path)
+ 
+ 
+@@ -197,7 +200,12 @@ class HasKeyLookup(PostgresOperatorLookup):
+                 "%s%s"
+                 % (
+                     lhs_json_path,
+-                    compile_json_path(rhs_key_transforms, include_root=False),
++                    compile_json_path(rhs_key_transforms[:-1], include_root=False)
++                    + compile_json_path(
++                        rhs_key_transforms[-1:],
++                        include_root=False,
++                        numeric_indices=False,
++                    ),
+                 )
+             )
+         # Add condition for each key.
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..df85986 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -564,6 +564,20 @@ class TestQuerying(TestCase):
+                     [obj],
+                 )
+ 
++    def test_has_key_numeric(self):
++        obj = NullableJSONModel.objects.create(value={"1111": "bar", "foo": "baz"})
++        tests = [
++            ("value__has_key", "1111"),
++            ("value__has_keys", ["1111", "foo"]),
++            ("value__has_any_keys", ["missing", "1111"]),
++        ]
++        for lookup, value in tests:
++            with self.subTest(lookup=lookup):
++                self.assertSequenceEqual(
++                    NullableJSONModel.objects.filter(**{lookup: value}),
++                    [obj],
++                )
++
+     def test_has_keys(self):
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_keys=["a", "c", "h"]),

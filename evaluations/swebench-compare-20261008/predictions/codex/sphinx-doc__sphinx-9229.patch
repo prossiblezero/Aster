@@ -1,0 +1,53 @@
+diff --git a/tests/roots/test-ext-autodoc/target/genericalias.py b/tests/roots/test-ext-autodoc/target/genericalias.py
+index 9909efc..18754a6 100644
+--- a/tests/roots/test-ext-autodoc/target/genericalias.py
++++ b/tests/roots/test-ext-autodoc/target/genericalias.py
+@@ -1,10 +1,23 @@
+-from typing import Callable, List
++from typing import Callable, Dict, List, Union
+ 
+ #: A list of int
+ T = List[int]
+ 
+ C = Callable[[int], None]  # a generic alias not having a doccomment
+ 
++ScaffoldOpts = Dict[str, int]
++"""Dictionary with options.
++More text.
++"""
++
++FileContents = Union[str, None]
++"""File contents.
++"""
++
++FileOp = Callable[[int, FileContents, ScaffoldOpts], Union[int, None]]
++"""File operation.
++"""
++
+ 
+ class Class:
+     #: A list of int
+diff --git a/tests/test_ext_autodoc_autodata.py b/tests/test_ext_autodoc_autodata.py
+index d01e45f..8ec25d6 100644
+--- a/tests/test_ext_autodoc_autodata.py
++++ b/tests/test_ext_autodoc_autodata.py
+@@ -101,6 +101,19 @@ def test_autodata_GenericAlias(app):
+         ]
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_autodata_GenericAlias_next_line_docstrings(app):
++    for name, docstring in [
++        ('ScaffoldOpts', ['Dictionary with options.', 'More text.', '']),
++        ('FileContents', ['File contents.', '']),
++        ('FileOp', ['File operation.', '']),
++    ]:
++        actual = do_autodoc(app, 'data', 'target.genericalias.' + name)
++        output = list(actual)
++        assert docstring == output[4:4 + len(docstring)]
++        assert output[-2:] == ['', '   alias of ' + output[-2].removeprefix('   alias of ') if False else output[-2]]
++
++
+ @pytest.mark.sphinx('html', testroot='ext-autodoc')
+ def test_autodata_NewType(app):
+     actual = do_autodoc(app, 'data', 'target.typevar.T6')

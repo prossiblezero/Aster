@@ -1,0 +1,55 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..bd34313 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -139,6 +139,10 @@ def compile_json_path(key_transforms, include_root=True):
+     return "".join(path)
+ 
+ 
++def compile_json_path_final_key(key_transform):
++    return ".%s" % json.dumps(key_transform)
++
++
+ class DataContains(PostgresOperatorLookup):
+     lookup_name = "contains"
+     postgres_operator = "@>"
+@@ -194,10 +198,11 @@ class HasKeyLookup(PostgresOperatorLookup):
+             else:
+                 rhs_key_transforms = [key]
+             rhs_params.append(
+-                "%s%s"
++                "%s%s%s"
+                 % (
+                     lhs_json_path,
+-                    compile_json_path(rhs_key_transforms, include_root=False),
++                    compile_json_path(rhs_key_transforms[:-1], include_root=False),
++                    compile_json_path_final_key(rhs_key_transforms[-1]),
+                 )
+             )
+         # Add condition for each key.
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..3cb937a 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -512,6 +512,21 @@ class TestQuerying(TestCase):
+             [self.objs[3], self.objs[4]],
+         )
+ 
++    def test_has_key_numeric(self):
++        obj = NullableJSONModel.objects.create(value={"123": "a", "456": "b"})
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_key="123"),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_keys=["123", "456"]),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_any_keys=["123", "missing"]),
++            [obj],
++        )
++
+     def test_has_key_null_value(self):
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_key="j"),

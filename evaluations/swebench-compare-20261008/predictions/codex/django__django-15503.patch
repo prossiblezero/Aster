@@ -1,0 +1,80 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..e6f0e5b 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -126,9 +126,13 @@ class JSONField(CheckFieldDefaultMixin, Field):
+         )
+ 
+ 
+-def compile_json_path(key_transforms, include_root=True):
++def compile_json_path(key_transforms, include_root=True, key_is_string=False):
+     path = ["$"] if include_root else []
+-    for key_transform in key_transforms:
++    for index, key_transform in enumerate(key_transforms):
++        if key_is_string and index == len(key_transforms) - 1:
++            path.append(".")
++            path.append(json.dumps(str(key_transform)))
++            continue
+         try:
+             num = int(key_transform)
+         except ValueError:  # non-integer
+@@ -197,7 +201,11 @@ class HasKeyLookup(PostgresOperatorLookup):
+                 "%s%s"
+                 % (
+                     lhs_json_path,
+-                    compile_json_path(rhs_key_transforms, include_root=False),
++                    compile_json_path(
++                        rhs_key_transforms,
++                        include_root=False,
++                        key_is_string=True,
++                    ),
+                 )
+             )
+         # Add condition for each key.
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..979fafa 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -512,6 +512,13 @@ class TestQuerying(TestCase):
+             [self.objs[3], self.objs[4]],
+         )
+ 
++    def test_has_key_numeric(self):
++        obj = NullableJSONModel.objects.create(value={"1111": "value"})
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_key="1111"),
++            [obj],
++        )
++
+     def test_has_key_null_value(self):
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_key="j"),
+@@ -565,16 +572,28 @@ class TestQuerying(TestCase):
+                 )
+ 
+     def test_has_keys(self):
++        obj = NullableJSONModel.objects.create(
++            value={"1111": "value", "2222": "value"}
++        )
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_keys=["a", "c", "h"]),
+             [self.objs[4]],
+         )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_keys=["1111", "2222"]),
++            [obj],
++        )
+ 
+     def test_has_any_keys(self):
++        obj = NullableJSONModel.objects.create(value={"1111": "value"})
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_any_keys=["c", "l"]),
+             [self.objs[3], self.objs[4], self.objs[6]],
+         )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_any_keys=["1111", "2222"]),
++            [obj],
++        )
+ 
+     @skipUnlessDBFeature("supports_json_field_contains")
+     def test_contains(self):

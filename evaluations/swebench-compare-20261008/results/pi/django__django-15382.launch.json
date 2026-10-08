@@ -1,0 +1,17 @@
+{
+  "job": "pi-django__django-15382",
+  "agent": "pi",
+  "instance_id": "django__django-15382",
+  "smoke": false,
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "seconds_limit": 900,
+  "context_tokens": 64000,
+  "output_tokens": 8192,
+  "image_id": "sha256:b5dde6a96a4040e43e85485e01ec34e0db155adab642ca318f8ef04be1e00459",
+  "image_digests": [
+    "swebench/sweb.eval.x86_64.django_1776_django-15382@sha256:b5dde6a96a4040e43e85485e01ec34e0db155adab642ca318f8ef04be1e00459"
+  ],
+  "prompt": "filter on exists-subquery with empty queryset removes whole WHERE block\nDescription\n\t \n\t\t(last modified by Tobias Bengfort)\n\t \n>>> qs = MyModel.objects.filter(~models.Exists(MyModel.objects.none()), name='test')\n>>> qs\n<QuerySet []>\n>>> print(qs.query)\nEmptyResultSet\nWith django-debug-toolbar I can still see the query, but there WHERE block is missing completely.\nThis seems to be very similar to #33018.\n\n\nThe repository is /testbed at the issue's base revision. Project dependencies are preinstalled; python on PATH is the project's interpreter. Internet access is unavailable. Inspect the public tests to choose relevant checks. Test command format: python tests/runtests.py --settings=test_sqlite --parallel 1 <public test label>. Implement the issue, verify your changes, and summarize the result.",
+  "runner_sha256": "8269fd2ff53eb6bbf8af8c7c19097f80f03c1ee4611425fd9d40606120151bec"
+}

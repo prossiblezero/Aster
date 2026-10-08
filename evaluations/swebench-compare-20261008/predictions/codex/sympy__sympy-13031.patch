@@ -1,0 +1,50 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 7ef51bc..7fbaa3a 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -378,6 +378,8 @@ def hstack(cls, *args):
+             return cls._new()
+ 
+         kls = type(args[0])
++        if all(a.rows == 0 for a in args):
++            return kls._new(0, sum(a.cols for a in args), [])
+         return reduce(kls.row_join, args)
+ 
+     def reshape(self, rows, cols):
+@@ -601,6 +603,8 @@ def vstack(cls, *args):
+             return cls._new()
+ 
+         kls = type(args[0])
++        if all(a.cols == 0 for a in args):
++            return kls._new(sum(a.rows for a in args), 0, [])
+         return reduce(kls.col_join, args)
+ 
+ 
+diff --git a/sympy/matrices/tests/test_commonmatrix.py b/sympy/matrices/tests/test_commonmatrix.py
+index 3e27ecc..b997651 100644
+--- a/sympy/matrices/tests/test_commonmatrix.py
++++ b/sympy/matrices/tests/test_commonmatrix.py
+@@ -228,6 +228,7 @@ def test_hstack():
+     M4 = Matrix.zeros(0, 3)
+     m = ShapingOnlyMatrix.hstack(M1, M2, M3, M4)
+     assert m.rows == 0 and m.cols == 6
++    assert Matrix.hstack(M1, M2, M3, M4).shape == (0, 6)
+ 
+ def test_vstack():
+     m = ShapingOnlyMatrix(4, 3, lambda i, j: i*3 + j)
+@@ -249,6 +250,15 @@ def test_vstack():
+     raises(ShapeError, lambda: m.vstack(m, m2))
+     assert Matrix.vstack() == Matrix()
+ 
++    # Keep the dimensions of empty matrices when stacking vertically.
++    M1 = Matrix.zeros(0, 0)
++    M2 = Matrix.zeros(1, 0)
++    M3 = Matrix.zeros(2, 0)
++    M4 = Matrix.zeros(3, 0)
++    m = ShapingOnlyMatrix.vstack(M1, M2, M3, M4)
++    assert m.rows == 6 and m.cols == 0
++    assert Matrix.vstack(M1, M2, M3, M4).shape == (6, 0)
++
+ 
+ # PropertiesOnlyMatrix tests
+ def test_atoms():

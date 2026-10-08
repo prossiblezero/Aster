@@ -1,0 +1,47 @@
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cd..561b790 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -985,7 +985,9 @@ def col_join(self, other):
+         >>> C == A.row_insert(A.rows, Matrix(B))
+         True
+         """
+-        if not self:
++        if self.rows == 0:
++            if other.rows == 0:
++                return self._new(0, self.cols + other.cols, [])
+             return type(self)(other)
+         A, B = self, other
+         if not A.cols == B.cols:
+@@ -1191,7 +1193,9 @@ def row_join(self, other):
+         >>> C == A.col_insert(A.cols, B)
+         True
+         """
+-        if not self:
++        if self.cols == 0:
++            if other.cols == 0:
++                return self._new(self.rows + other.rows, 0, [])
+             return type(self)(other)
+         A, B = self, other
+         if not A.rows == B.rows:
+diff --git a/sympy/matrices/tests/test_sparse.py b/sympy/matrices/tests/test_sparse.py
+index acea940..e2fa205 100644
+--- a/sympy/matrices/tests/test_sparse.py
++++ b/sympy/matrices/tests/test_sparse.py
+@@ -587,3 +587,16 @@ def test_hermitian():
+     assert a.is_hermitian is None
+     a[0, 1] = a[1, 0]*I
+     assert a.is_hermitian is False
++
++
++def test_sparse_stack_preserves_null_dimensions():
++    matrices = [SparseMatrix.zeros(0, n) for n in range(4)]
++    assert SparseMatrix.hstack(*matrices).shape == (0, 6)
++
++    matrices = [SparseMatrix.zeros(n, 0) for n in range(4)]
++    assert SparseMatrix.vstack(*matrices).shape == (6, 0)
++
++    assert SparseMatrix.zeros(1, 1).row_join(
++        SparseMatrix.zeros(1, 1)).shape == (1, 2)
++    assert SparseMatrix.zeros(1, 1).col_join(
++        SparseMatrix.zeros(1, 1)).shape == (2, 1)

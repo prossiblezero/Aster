@@ -1,0 +1,63 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 81f8f79..6d6c386 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1211,13 +1211,16 @@ class Exists(Subquery):
+ 
+     def as_sql(self, compiler, connection, template=None, **extra_context):
+         query = self.query.exists(using=connection.alias)
+-        sql, params = super().as_sql(
+-            compiler,
+-            connection,
+-            template=template,
+-            query=query,
+-            **extra_context,
+-        )
++        try:
++            sql, params = super().as_sql(
++                compiler,
++                connection,
++                template=template,
++                query=query,
++                **extra_context,
++            )
++        except EmptyResultSet:
++            return '1=1' if self.negated else '1=0', []
+         if self.negated:
+             sql = 'NOT {}'.format(sql)
+         return sql, params
+diff --git a/tests/expressions/tests.py b/tests/expressions/tests.py
+index 5cf9dd1..0a979bc 100644
+--- a/tests/expressions/tests.py
++++ b/tests/expressions/tests.py
+@@ -1905,6 +1905,30 @@ class ExistsTests(TestCase):
+         )
+         self.assertNotIn('ORDER BY', captured_sql)
+ 
++    def test_filter_negated_empty_exists(self):
++        matching_experiment = Experiment.objects.create(
++            name='test',
++            assigned=datetime.date(2020, 1, 1),
++            completed=datetime.date(2020, 1, 2),
++            estimated_time=datetime.timedelta(days=1),
++            start=datetime.datetime(2020, 1, 1),
++            end=datetime.datetime(2020, 1, 2),
++        )
++        Experiment.objects.create(
++            name='other',
++            assigned=datetime.date(2020, 1, 1),
++            completed=datetime.date(2020, 1, 2),
++            estimated_time=datetime.timedelta(days=1),
++            start=datetime.datetime(2020, 1, 1),
++            end=datetime.datetime(2020, 1, 2),
++        )
++        qs = Experiment.objects.filter(
++            ~Exists(Experiment.objects.none()),
++            name='test',
++        )
++        self.assertIn('WHERE', str(qs.query))
++        self.assertSequenceEqual(qs, [matching_experiment])
++
+ 
+ class FieldTransformTests(TestCase):
+ 

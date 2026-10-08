@@ -1,0 +1,49 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 81f8f79..6cb3402 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1211,13 +1211,18 @@ class Exists(Subquery):
+ 
+     def as_sql(self, compiler, connection, template=None, **extra_context):
+         query = self.query.exists(using=connection.alias)
+-        sql, params = super().as_sql(
+-            compiler,
+-            connection,
+-            template=template,
+-            query=query,
+-            **extra_context,
+-        )
++        try:
++            sql, params = super().as_sql(
++                compiler,
++                connection,
++                template=template,
++                query=query,
++                **extra_context,
++            )
++        except EmptyResultSet:
++            if self.negated:
++                return '', []
++            raise
+         if self.negated:
+             sql = 'NOT {}'.format(sql)
+         return sql, params
+diff --git a/tests/expressions/tests.py b/tests/expressions/tests.py
+index 5cf9dd1..fe3437a 100644
+--- a/tests/expressions/tests.py
++++ b/tests/expressions/tests.py
+@@ -775,6 +775,14 @@ class BasicExpressionsTests(TestCase):
+         self.assertFalse(Employee.objects.exclude(Exists(inner)).exists())
+         self.assertCountEqual(qs2, Employee.objects.exclude(~Exists(inner)))
+ 
++    def test_exists_in_filter_with_empty_queryset(self):
++        qs = Employee.objects.filter(
++            ~Exists(Company.objects.none()),
++            firstname='Max',
++        )
++        self.assertSequenceEqual(qs, [self.max])
++        self.assertIn('WHERE', str(qs.query))
++
+     def test_subquery_in_filter(self):
+         inner = Company.objects.filter(ceo=OuterRef('pk')).values('based_in_eu')
+         self.assertSequenceEqual(

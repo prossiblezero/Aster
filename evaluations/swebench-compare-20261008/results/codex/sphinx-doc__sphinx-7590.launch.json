@@ -1,0 +1,17 @@
+{
+  "job": "codex-sphinx-doc__sphinx-7590",
+  "agent": "codex",
+  "instance_id": "sphinx-doc__sphinx-7590",
+  "smoke": false,
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "seconds_limit": 900,
+  "context_tokens": 64000,
+  "output_tokens": 8192,
+  "image_id": "sha256:5c86dab7120b83b3bdb4af86743a3910da328029ed92183477fe9865ea76cb2f",
+  "image_digests": [
+    "swebench/sweb.eval.x86_64.sphinx-doc_1776_sphinx-7590@sha256:5c86dab7120b83b3bdb4af86743a3910da328029ed92183477fe9865ea76cb2f"
+  ],
+  "prompt": "C++ User Defined Literals not supported\nThe code as below\r\n\r\n```cpp\r\nnamespace units::si {\r\n\r\ninline constexpr auto planck_constant = 6.62607015e-34q_J * 1q_s;\r\n\r\n}\r\n```\r\n\r\ncauses the following error:\r\n\r\n```\r\nWARNING: Invalid definition: Expected end of definition. [error at 58]\r\n[build]   constexpr auto units::si::planck_constant = 6.62607015e-34q_J * 1q_s\r\n[build]   ----------------------------------------------------------^\r\n```\r\n\r\nAccording to <https://github.com/sphinx-doc/sphinx/blob/3.x/sphinx/domains/cpp.py#L4770> Sphinx seems to not have features for UDLs. Could you please add those?\n\n\nThe repository is /testbed at the issue's base revision. Project dependencies are preinstalled; python on PATH is the project's interpreter. Internet access is unavailable. Inspect the public tests to choose relevant checks. Test command format: python -m pytest <public test path>. Implement the issue, verify your changes, and summarize the result.",
+  "runner_sha256": "8269fd2ff53eb6bbf8af8c7c19097f80f03c1ee4611425fd9d40606120151bec"
+}

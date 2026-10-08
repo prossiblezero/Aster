@@ -1,0 +1,41 @@
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index b562f47..834c4ac 100644
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -40,7 +40,7 @@ class _MockObject:
+         return super().__new__(cls)
+ 
+     def __init__(self, *args: Any, **kwargs: Any) -> None:
+-        self.__qualname__ = ''
++        self.__qualname__ = self.__display_name__.rsplit('.', 1)[-1]
+ 
+     def __len__(self) -> int:
+         return 0
+diff --git a/tests/test_ext_autodoc_mock.py b/tests/test_ext_autodoc_mock.py
+index 497bd8a..1b30f7c 100644
+--- a/tests/test_ext_autodoc_mock.py
++++ b/tests/test_ext_autodoc_mock.py
+@@ -16,6 +16,7 @@ from typing import TypeVar
+ import pytest
+ 
+ from sphinx.ext.autodoc.mock import _MockModule, _MockObject, ismock, mock, undecorate
++from sphinx.util.typing import restify
+ 
+ 
+ def test_MockModule():
+@@ -47,6 +48,15 @@ def test_MockObject():
+         def method(self):
+             return "string"
+ 
++    assert restify(SubClass.__orig_bases__[0]) == ':py:class:`_MockObject.SomeClass`'
++
++    module = _MockModule('torch.nn')
++
++    class TorchSubclass(module.Module):
++        pass
++
++    assert restify(TorchSubclass.__orig_bases__[0]) == ':py:class:`torch.nn.Module`'
++
+     obj = SubClass()
+     assert SubClass.__doc__ == "docstring of SubClass"
+     assert isinstance(obj, SubClass)
