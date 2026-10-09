@@ -1,0 +1,46 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 81f8f79..9fe9761 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1211,13 +1211,17 @@ class Exists(Subquery):
+ 
+     def as_sql(self, compiler, connection, template=None, **extra_context):
+         query = self.query.exists(using=connection.alias)
+-        sql, params = super().as_sql(
+-            compiler,
+-            connection,
+-            template=template,
+-            query=query,
+-            **extra_context,
+-        )
++        try:
++            sql, params = super().as_sql(
++                compiler,
++                connection,
++                template=template,
++                query=query,
++                **extra_context,
++            )
++        except EmptyResultSet:
++            # An empty subquery makes EXISTS false, and NOT EXISTS true.
++            return ('1', ()) if self.negated else ('0', ())
+         if self.negated:
+             sql = 'NOT {}'.format(sql)
+         return sql, params
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index f146bc8..0d48eed 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -2139,6 +2139,12 @@ class QuerySetBitwiseOperationTests(TestCase):
+         nested_combined = School.objects.filter(pk__in=combined.values('pk'))
+         self.assertSequenceEqual(nested_combined, [self.school])
+ 
++    def test_negated_exists_with_empty_queryset(self):
++        qs = School.objects.filter(~Exists(Classroom.objects.none()), pk=self.school.pk)
++        self.assertSequenceEqual(qs, [self.school])
++        self.assertIn('WHERE', str(qs.query))
++        self.assertFalse(School.objects.filter(Exists(Classroom.objects.none())).exists())
++
+     def test_conflicting_aliases_during_combine(self):
+         qs1 = self.annotation_1.baseuser_set.all()
+         qs2 = BaseUser.objects.filter(

@@ -149,6 +149,7 @@ Runtime 执行 calls，保存 raw，追加工具结果
 <p>预期：Responses 与 Chat 都是 4 个消息条目、3 个完整组；Anthropic 把 system 放到顶层，因而是 3 个条目、2 个组。最后打印 <code>orphan_tool_output</code>。条目数不同，但调用 <code>read-1</code> 与结果的关系没有变化。</p>
 <h2 id="出错时怎样处理">出错时怎样处理</h2>
 <p><code>ModelClient._post()</code> 最多尝试 3 次请求；空响应最多触发其中一次额外尝试。Responses streaming 也遵守同一逻辑请求上限。网络超时、部分暂时性 HTTP 错误，以及 HTTP 200 内明确报告的服务过载或限流，会短暂退避后重试。HTTP 成功并不代表生成成功：例如 SSE 的 <code>response.failed</code> 携带 <code>error.code=server_error</code>，应归为 <code>transient_provider</code>，不能当作普通截断直接停止。共享规则只识别 <code>server_error</code>、<code>overloaded_error</code>、<code>rate_limit_exceeded</code>、<code>rate_limit_error</code>，不靠错误消息中的关键词猜测。认证错误、拒答、取消和输出截断仍不会因此重试。</p>
+<p>SSE 在收到终止事件前结束，归为传输中断（<code>transport / sse_missing_terminal</code>），按同一上限重新请求。重试保持本次请求内容，已成功执行的工具不会重放，半截调用不会执行；没有收到 usage 就记录为未知。模型明确返回 <code>response.incomplete</code>、例如耗尽输出长度，则仍是不可重试的生成截断。调用方缩小 <code>ModelClient.max_attempts</code> 时，流式与非流式路径都遵守该上限。恢复后保留已写文件的回归场景见 <a href="../source/tests/test_streaming.py.html">test_streaming.py</a>。</p>
 <p>最终错误用 <code>ProviderError</code> 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏；失败尝试已报告的 usage 会累加，缺失用量仍记为未知。诊断中的“尝试过”不等于成功，unknown usage 不按 0 计，也不认证服务端内部模型身份。有限退避参考了 <a href="https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/agent-session.ts#L3699">pi 的自动重试</a>，Aster 保持自身最多三次请求的边界。</p>
 <table>
 <thead>

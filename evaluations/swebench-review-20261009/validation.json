@@ -1,0 +1,69 @@
+{
+  "evaluated_source_commit": "7238d218c73741698f0ae7701b656214955993c7",
+  "new_task_attempts": 10,
+  "preflight_requests": 1,
+  "official_nonempty_patches_graded": 10,
+  "empty_patches": 0,
+  "resolved": 2,
+  "difficulty_counts": {
+    "simple": 3,
+    "medium": 5,
+    "hard": 2
+  },
+  "historical_evaluations_unchanged": true,
+  "candidate_git_and_frozen_source_hashes_verified": true,
+  "dataset_runner_and_runtime_assets_verified": true,
+  "launch_conditions_match_original": true,
+  "prediction_and_graded_patch_hashes_match": true,
+  "official_test_logs_match": true,
+  "official_grading_infra_failures": 0,
+  "official_grading_errors": 0,
+  "credential_and_provider_url_scan_passed": true,
+  "public_files_scanned": 106,
+  "decompressed_logs_scanned": 40,
+  "final_source_differs_from_evaluated_candidate": true,
+  "post_evaluation_changes": [
+    "Removed the additional automatic patch review",
+    "Retry SSE EOF without a terminal event",
+    "Respect the existing max_attempts cap for streaming"
+  ],
+  "post_evaluation_model_benchmark_attempts": 0,
+  "local_validation": [
+    {
+      "command": "python -m pytest -q tests/test_streaming.py tests/test_inline_verification.py tests/test_provider_events.py tests/test_protocol_pairing.py",
+      "passed": 175
+    },
+    {
+      "command": "python -m pytest -q -m core",
+      "passed": 435,
+      "deselected": 797
+    },
+    {
+      "command": "python -m ruff check src tests scripts learn_web/scripts learn_web/tests",
+      "passed": true
+    },
+    {
+      "command": "python learn_web/build.py",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m pytest -q learn_web/tests/test_site.py",
+      "passed": 6
+    }
+  ],
+  "note": "Local test selections overlap. The ten-task score belongs only to the frozen candidate, not the final product source.",
+  "post_evaluation_source_hashes": {
+    "src/aster/core/runtime.py": "68a6a7b4dc02d6611a321078d496adef51dd6b4163e3d72a5c2c6d3da026e42e",
+    "src/aster/providers/client.py": "2b632b0d7b7aaa4ef7f2eb53bf773f8ad98147b05d3f1fe1ce3c6faf5400be14",
+    "src/aster/providers/streaming.py": "30b774cdef613d4068c458d479ca33397c8d328d5c1222db1955701a5baa68cd",
+    "src/aster/schema.py": "4f4278f325eb8fc8da7532087e3a9d705af73afe49f9134e75dac1cced9514e9",
+    "src/aster/sessions/lifecycle.py": "666267acf39a167e5ee83343598f3350c12f5d37735e1fe1a639c4eab76f5ae3",
+    "src/aster/sessions/navigation.py": "252166ab8566ea64ae013ee2390f10b308721479f060b67f26f0da961c928972"
+  },
+  "specialist_followup": {
+    "architecture": "no remaining findings",
+    "assumptions_and_reporting": "no remaining findings",
+    "security": "no remaining findings"
+  },
+  "benchmark_gateway_relay_and_network_removed": true
+}

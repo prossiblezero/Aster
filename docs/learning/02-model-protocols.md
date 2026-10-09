@@ -127,6 +127,8 @@ else:
 
 `ModelClient._post()` 最多尝试 3 次请求；空响应最多触发其中一次额外尝试。Responses streaming 也遵守同一逻辑请求上限。网络超时、部分暂时性 HTTP 错误，以及 HTTP 200 内明确报告的服务过载或限流，会短暂退避后重试。HTTP 成功并不代表生成成功：例如 SSE 的 `response.failed` 携带 `error.code=server_error`，应归为 `transient_provider`，不能当作普通截断直接停止。共享规则只识别 `server_error`、`overloaded_error`、`rate_limit_exceeded`、`rate_limit_error`，不靠错误消息中的关键词猜测。认证错误、拒答、取消和输出截断仍不会因此重试。
 
+SSE 在收到终止事件前结束，归为传输中断（`transport / sse_missing_terminal`），按同一上限重新请求。重试保持本次请求内容，已成功执行的工具不会重放，半截调用不会执行；没有收到 usage 就记录为未知。模型明确返回 `response.incomplete`、例如耗尽输出长度，则仍是不可重试的生成截断。调用方缩小 `ModelClient.max_attempts` 时，流式与非流式路径都遵守该上限。恢复后保留已写文件的回归场景见 [test_streaming.py](../../tests/test_streaming.py)。
+
 最终错误用 `ProviderError` 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏；失败尝试已报告的 usage 会累加，缺失用量仍记为未知。诊断中的“尝试过”不等于成功，unknown usage 不按 0 计，也不认证服务端内部模型身份。有限退避参考了 [pi 的自动重试](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/agent-session.ts#L3699)，Aster 保持自身最多三次请求的边界。
 
 | 层次 | 例子 | 当前行为 |

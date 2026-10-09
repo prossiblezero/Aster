@@ -155,7 +155,9 @@ class _Progress:
         }
 
 
-async def complete_responses(settings, payload, extra, on_event, *, parse_reply, accounting):
+async def complete_responses(
+    settings, payload, extra, on_event, *, parse_reply, accounting, max_attempts
+):
     secret = settings.api_key.get_secret_value()
     if not secret and settings.auth != "none":
         raise ProviderError("ASTER_API_KEY is empty", category="configuration")
@@ -168,7 +170,7 @@ async def complete_responses(settings, payload, extra, on_event, *, parse_reply,
     diagnosed = False
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout) as client:
-            for attempt in range(1, 4):
+            for attempt in range(1, max_attempts + 1):
                 progress = _Progress(on_event, [*accounting.redaction_secrets, secret], attempt)
                 progress.emit("begin")
                 retry_after = 0
@@ -302,7 +304,8 @@ async def complete_responses(settings, payload, extra, on_event, *, parse_reply,
                                 return reply
                             raise ProviderError(
                                 "SSE ended without a terminal response",
-                                category="incomplete_response",
+                                category="transport",
+                                code="sse_missing_terminal",
                             )
                 except (
                     TimeoutError,
@@ -349,6 +352,7 @@ async def complete_responses(settings, payload, extra, on_event, *, parse_reply,
                 )
                 category = error.details["category"]
                 retry, empty_retries = retry_request(category, attempt, empty_retries)
+                retry = retry and attempt < max_attempts
                 progress.emit("error", **error.details, retrying=retry, **progress.timing())
                 if not retry:
                     raise error

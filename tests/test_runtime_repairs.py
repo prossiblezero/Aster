@@ -52,64 +52,6 @@ async def test_diff_resume_and_workflow_routes(tmp_path):
     assert resumed.state.todos[0]["status"] == "done"
 
 
-@pytest.mark.core
-@pytest.mark.parametrize("interrupted", [False, True])
-async def test_patch_review_contains_actual_diff_and_survives_resume(tmp_path, interrupted):
-    (tmp_path / "app.py").write_text("value = 1\n")
-    settings = Settings(approval="auto", memory_enabled=False)
-    runtime = Runtime(tmp_path, settings)
-    runtime.start(TaskSpec(prompt="Fix app.py and test the value", max_turns=20))
-    await runtime.step(ToolCall(name="read_file", arguments={"path": "app.py"}))
-    await runtime.step(ToolCall(name="patch_file", arguments={
-        "path": "app.py", "old_text": "value = 1", "new_text": "value = 2",
-    }))
-    if interrupted:
-        runtime.finish("provider_error")
-        runtime.continue_task("Continue with the remaining work")
-    await runtime.step(ToolCall(name="run_tests", arguments={
-        "command": "pytest -q", "code": "from app import value\ndef test_value(): assert value == 2\n",
-    }))
-    state = runtime.finalize("Done")
-    assert not state.terminal
-    assert "-value = 1\n+value = 2" in state.feedback
-    assert "Fix app.py and test the value" in state.feedback
-    assert state.verification.evidence_id in state.feedback
-    assert state.patch_review_requested and state.final_revisions == 1
-    restored = Runtime(tmp_path, settings)
-    restored.resume(state.run_id)
-    assert restored.state.patch_review_requested
-    assert restored.finalize("Reviewed callers and the reproduction; done").phase == "completed"
-    resumed = restored.continue_task()
-    assert resumed.patch_review_requested  # More budget for the same task is not a new review.
-    restored.finalize("Done")
-    completed_reference = restored.session_tree.cursor
-    fresh = restored.continue_task("Update app.py again and test it")
-    assert not fresh.patch_review_requested
-    restored.checkout(completed_reference)
-    assert not restored.state.patch_review_requested
-    assert restored.workspace.diff(restored._initial_text, restored._initial_modes) == ""
-    assert not restored.continue_task("Update app.py and test again").patch_review_requested
-    runtime.sandbox.close()
-    restored.sandbox.close()
-
-
-def test_optional_patch_review_cannot_exhaust_a_valid_context(tmp_path):
-    from aster.schema import Verification
-
-    runtime = Runtime(tmp_path, Settings(memory_enabled=False, output_tokens=256))
-    state = runtime.start(TaskSpec(prompt="Fix and test app.py", require_observation=False))
-    (tmp_path / "app.py").write_text("value = 1\n" + "# opaque12345678901234567890\n" * 800)
-    state.changed_paths = ["app.py"]
-    state.verification = Verification(state="passed", workspace_hash=runtime.workspace.fingerprint())
-    before = runtime._preview_context(state.model_copy(deep=True), [], runtime.settings, {})
-    runtime.settings = runtime.settings.model_copy(update={
-        "context_tokens": before.estimated_tokens + 256 + 200,
-    })
-    assert runtime.finalize("Done").phase == "completed"
-    assert not state.patch_review_requested and not runtime._structured_history
-    assert any(e["event"] == "patch_review_skipped" for e in runtime.evidence.events(state.run_id))
-
-
 @pytest.mark.asyncio
 async def test_stall_progress_and_recovery_persistence(tmp_path):
     runtime = Runtime(tmp_path, Settings(approval="auto"))

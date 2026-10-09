@@ -28,9 +28,7 @@ flowchart TD
     I --> J[纠偏反馈或停止]
     K[模型提交最终回答] --> L[完成条件与 Verifier]
     L -->|缺少必要动作且尚有机会| M[反馈后继续运行]
-    L -->|满足条件且需首次补丁复核| O[原始需求 + 实际差异 + 测试证据]
-    O --> M
-    L -->|满足条件且无需再复核| N[完成 + stop Hook]
+    L -->|满足条件| N[完成 + stop Hook]
 ```
 
 ## Hooks 是四个可选方法
@@ -107,14 +105,11 @@ pytest、unittest 和基于它们的原生入口保留用例身份，允许只�
 
 这项设计参考了两种不同层面的实现：[pi 的 bash 工具](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/tools/bash.ts)保留命令退出状态与完整输出位置；[SWE-bench 的评分器](https://github.com/SWE-bench/SWE-bench/blob/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/swebench/harness/grading.py)分别核对目标修复与已有行为。Aster 使用自身测试过程发现的失败维护完成条件，不读取 benchmark 的隐藏验收清单。回归用例见 [test_harness.py](../../tests/test_harness.py) 和 [test_inline_verification.py](../../tests/test_inline_verification.py)。
 
-对于要求修改和验证、已有实际补丁且完成条件满足的任务，主 Agent 交付前自动获得一次补丁复核提示。提示包含原始需求、当前差异和最近的测试证据，要求检查问题复现、旧接口兼容和相关调用路径；发现具体遗漏才继续检查或修复。它沿用当前 Agent 和工具，不新增模型角色或服务，也不把“已要求复核”当作独立验收通过。
-
-`patch_review_requested` 随 checkpoint 保存；恢复或为同一任务补充预算不会反复触发，完成后开始新任务才重置。普通问答、只读/规划模式、Worker、预算耗尽及 `completion=off` 不触发。原始需求最多附带 6,000 字符、差异最多 16,000 字符，截断会明确提示通过已有工具继续读取；内容追加在对话尾部，固定提示前缀不变。这个机制借鉴 [mini-SWE-agent 的复现与边界检查流程](https://github.com/SWE-agent/mini-swe-agent/blob/04d809ceab9df28f9adaed044884180159172930/src/minisweagent/config/default.yaml)，不读取 benchmark 隐藏测试。
-
-`max_final_revisions` 控制缺少条件的补做与补丁复核合计最多退回多少次。默认是 2 次；复核最多占其中一次，不额外放宽任务预算。
-复核提示先经过现有上下文预算检查，空间不足时跳过并记录原因，避免额外检查挤掉已经可以交付的结果。未完成任务收到“继续”的反馈时保留原始差异基线，避免只补跑测试就丢失先前补丁。
+`max_final_revisions` 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
 `completion="strict"` 在最终检查不通过时停止；`warn` 和 `soft` 当前走相同的宽松分支，重试后可带警告结束。
 `off` 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。
+
+曾试验在完成条件满足后自动追加一次补丁复核。在[十题 SWE-bench 子集](../../evaluations/swebench-review-20261009/REPORT.md)中，通过数仍为 2/10；六次复核后记录到 931,400 个已报告 token，只有一次改动了实现，该题仍未通过官方测试。因此最终版本删除了自动追加复核，保留失败记录与已有完成条件；本地测试通过也不能证明隐藏测试一定通过。
 
 `run_shell` 成功只表示这条命令返回成功，不会更新正式验证证据；需要通过 `run_tests` 生成结构化、绑定当前工作区的正式检查。正式检查通过也不等于教程语义已经正确，更不等于隐藏测试或外部产品验收通过。运行完成检查也不等同于隐藏测试：它只证明当前任务的运行要求。
 

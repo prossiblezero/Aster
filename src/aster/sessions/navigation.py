@@ -48,9 +48,6 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
         saved = load_checkpoint(runtime.evidence, runtime.workspace, selected, data["state"]["run_id"],
                                 allow_model_change=False, adopt_workspace=adopt_workspace, data=data)
         state, history = saved.state, deepcopy(saved.history)
-        completed_task = state.phase == "completed"
-        if completed_task:
-            state.patch_review_requested = False
         # Fresh execution identity prevents future observations from the old run leaking.
         old_run = state.run_id
         state.run_id = uuid4().hex
@@ -97,8 +94,7 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
     runtime.state, runtime._structured_history = state, history
     runtime._archive_sources, runtime._history_origins = sources, saved.origins
     runtime._snapshot_sources = None
-    runtime._initial_text = runtime.workspace.text_snapshot() if completed_task else data["initial_text"]
-    runtime._initial_modes = runtime.workspace.mode_snapshot() if completed_task else data["initial_modes"]
+    runtime._initial_text, runtime._initial_modes = data["initial_text"], data["initial_modes"]
     runtime._continued_from = old_run
     runtime._pending_messages = []
     runtime._recovery_used = data.get("recovery_used", 0)

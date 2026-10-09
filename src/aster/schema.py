@@ -94,7 +94,6 @@ class RunState(Record):
     final: str = ""
     feedback: str = ""
     final_revisions: int = 0
-    patch_review_requested: bool = False
     mode: Literal["work", "plan"] = "work"
     plan: str = ""
     todos: list[dict[str, str]] = Field(default_factory=list)

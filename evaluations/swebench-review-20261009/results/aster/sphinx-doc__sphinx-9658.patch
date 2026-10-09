@@ -1,0 +1,46 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index a255c06..134b5ce 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1655,6 +1655,12 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+                 # A subclass of generic types
+                 # refs: PEP-560 <https://www.python.org/dev/peps/pep-0560/>
+                 bases = list(self.object.__orig_bases__)
++                if hasattr(self.object, '__bases__'):
++                    # ``__orig_bases__`` contains the original mock object when
++                    # a class inherits from a mocked class.  Use the actual base
++                    # class so its name can be rendered correctly.
++                    bases = [actual if ismock(base) else base
++                             for base, actual in zip(bases, self.object.__bases__)]
+             elif hasattr(self.object, '__bases__') and len(self.object.__bases__):
+                 # A normal class
+                 bases = list(self.object.__bases__)
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index b562f47..958c1db 100644
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -167,8 +167,7 @@ def ismock(subject: Any) -> bool:
+ 
+     try:
+         # check the object is mocked object
+-        __mro__ = safe_getattr(type(subject), '__mro__', [])
+-        if len(__mro__) > 2 and __mro__[1] is _MockObject:
++        if isinstance(subject, _MockObject):
+             return True
+     except AttributeError:
+         pass
+diff --git a/tests/roots/test-pycode-egg/conf.py b/tests/roots/test-pycode-egg/conf.py
+index af0c14e..a0394ac 100644
+--- a/tests/roots/test-pycode-egg/conf.py
++++ b/tests/roots/test-pycode-egg/conf.py
+@@ -1,5 +1,9 @@
+ import os
+ import sys
+ 
+-sys.path.insert(0, os.path.abspath('sample-0.0.0-py3.7.egg'))
++egg = os.path.abspath('sample-0.0.0-py3.7.egg')
++if os.path.exists(egg):
++    sys.path.insert(0, egg)
++else:
++    sys.path.insert(0, os.path.abspath('src'))
+ extensions = ['sphinx.ext.autodoc']

@@ -1,0 +1,98 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 2fef3ed..7451a71 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -60,6 +60,7 @@ from .utils import (
+     HybridMappingProxy,
+     ReprObject,
+     _default,
++    alias_warning,
+     either_dict_or_kwargs,
+ )
+ from .variable import (
+@@ -3481,17 +3482,20 @@ class DataArray(AbstractArray, DataWithCoords):
+         return self._from_temp_dataset(ds)
+ 
+     def integrate(
+-        self, dim: Union[Hashable, Sequence[Hashable]], datetime_unit: str = None
++        self,
++        coord: Union[Hashable, Sequence[Hashable]] = None,
++        datetime_unit: str = None,
++        **kwargs,
+     ) -> "DataArray":
+-        """ integrate the array with the trapezoidal rule.
++        """Integrate the array with the trapezoidal rule.
+ 
+         .. note::
+-            This feature is limited to simple cartesian geometry, i.e. dim
++            This feature is limited to simple cartesian geometry, i.e. coord
+             must be one dimensional.
+ 
+         Parameters
+         ----------
+-        dim : hashable, or sequence of hashable
++        coord : hashable, or sequence of hashable
+             Coordinate(s) used for the integration.
+         datetime_unit : {"Y", "M", "W", "D", "h", "m", "s", "ms", "us", "ns", \
+                          "ps", "fs", "as"}, optional
+@@ -3528,7 +3532,22 @@ class DataArray(AbstractArray, DataWithCoords):
+         array([5.4, 6.6, 7.8])
+         Dimensions without coordinates: y
+         """
+-        ds = self._to_temp_dataset().integrate(dim, datetime_unit)
++        if "dim" in kwargs:
++            if coord is not None:
++                raise TypeError("integrate() got multiple values for argument 'coord'")
++            alias_warning("dim", "coord")
++            coord = kwargs.pop("dim")
++        if kwargs:
++            unexpected = next(iter(kwargs))
++            raise TypeError(
++                "integrate() got an unexpected keyword argument {!r}".format(unexpected)
++            )
++        if coord is None:
++            raise TypeError(
++                "integrate() missing 1 required positional argument: 'coord'"
++            )
++
++        ds = self._to_temp_dataset().integrate(coord, datetime_unit)
+         return self._from_temp_dataset(ds)
+ 
+     def unify_chunks(self) -> "DataArray":
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index a73e299..045db47 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -4,7 +4,6 @@ import functools
+ import sys
+ import warnings
+ from collections import defaultdict
+-from distutils.version import LooseVersion
+ from html import escape
+ from numbers import Number
+ from operator import methodcaller
+@@ -3861,7 +3860,7 @@ class Dataset(Mapping, ImplementsDatasetReduce, DataWithCoords):
+                 )
+                 or sparse
+                 # numpy full_like only added `shape` in 1.17
+-                or LooseVersion(np.__version__) < LooseVersion("1.17")
++                or np.lib.NumpyVersion(np.__version__) < np.lib.NumpyVersion("1.17.0")
+                 # Until https://github.com/pydata/xarray/pull/4751 is resolved,
+                 # we check explicitly whether it's a numpy array. Once that is
+                 # resolved, explicitly exclude pint arrays.
+diff --git a/xarray/tests/test_dataset.py b/xarray/tests/test_dataset.py
+index fed9098..c0d1144 100644
+--- a/xarray/tests/test_dataset.py
++++ b/xarray/tests/test_dataset.py
+@@ -6573,6 +6573,11 @@ def test_integrate(dask):
+ 
+     # along x
+     actual = da.integrate("x")
++    assert_allclose(actual, da.integrate(coord="x"))
++    with pytest.warns(
++        FutureWarning, match="dim has been deprecated. Use coord instead"
++    ):
++        assert_allclose(actual, da.integrate(dim="x"))
+     # coordinate that contains x should be dropped.
+     expected_x = xr.DataArray(
+         np.trapz(da.compute(), da["x"], axis=0),

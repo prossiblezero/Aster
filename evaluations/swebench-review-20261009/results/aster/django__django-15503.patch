@@ -1,0 +1,54 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..fa1e17d 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -139,6 +139,13 @@ def compile_json_path(key_transforms, include_root=True):
+     return "".join(path)
+ 
+ 
++def compile_json_path_final_key(key_transform):
++    """Compile the final key without interpreting it as an array index."""
++    return compile_json_path([key_transform], include_root=False).replace(
++        "[%s]" % key_transform, ".%s" % key_transform
++    )
++
++
+ class DataContains(PostgresOperatorLookup):
+     lookup_name = "contains"
+     postgres_operator = "@>"
+@@ -197,7 +204,8 @@ class HasKeyLookup(PostgresOperatorLookup):
+                 "%s%s"
+                 % (
+                     lhs_json_path,
+-                    compile_json_path(rhs_key_transforms, include_root=False),
++                    compile_json_path(rhs_key_transforms[:-1], include_root=False)
++                    + compile_json_path_final_key(rhs_key_transforms[-1]),
+                 )
+             )
+         # Add condition for each key.
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..8e5949e 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -518,6 +518,21 @@ class TestQuerying(TestCase):
+             [self.objs[4]],
+         )
+ 
++    def test_has_key_numeric(self):
++        obj = NullableJSONModel.objects.create(value={"1": "a", "2": "b"})
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_key="1"),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_keys=["1", "2"]),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_any_keys=["1", "3"]),
++            [obj],
++        )
++
+     def test_has_key_deep(self):
+         tests = [
+             (Q(value__baz__has_key="a"), self.objs[7]),

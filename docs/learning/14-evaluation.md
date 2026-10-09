@@ -222,6 +222,16 @@ assert pass_at_k(rows, 3) == 1
 
 可下载[运行前协议](../../evaluations/memory-cost-20261007/PROTOCOL.md)、[任务与断言](../../evaluations/memory-cost-20261007/cases.py)、[汇总数据](../../evaluations/memory-cost-20261007/summary.json)、[请求检查](../../evaluations/memory-cost-20261007/cache-audit.json)和[单题补查](../../evaluations/memory-cost-20261007/scope-followup/summary.json)。正式新版完整请求副本在临时目录消失后未保留，报告明确列出证据缺口；质量、用量 trace 和记忆快照仍可复算。基线与最终单题补查的完整工作区归档仍在。
 
+## SWE-bench 子集：官方评分与 Agent 完成状态
+
+2026-10-09 的[十题重测](../../evaluations/swebench-review-20261009/REPORT.md)使用 SWE-bench Verified 固定子集，按标注工作量划分为简单 3 题、中等 5 题、困难 2 题。每题一个新容器、一次新尝试，统一模型与预算，由 SWE-bench 5.0.2 官方 Docker 评分器检查目标修复和原有行为。Agent 看不到金标补丁与隐藏验收测试；十题都导出了非空补丁并完成评分。
+
+包含自动补丁复核的候选 `7238d21` 得分 **2/10**，与上一版持平。五题被 Agent 标记为完成，其中四题没有通过官方评分；另一题虽运行超时，已生成的补丁却通过了官方测试。完成条件只能检查已经观察到的测试证据，不能保证修复覆盖了问题的所有路径。
+
+六次额外复核之后记录了 931,400 个已报告 token，只有一次修改了实现，仍未修好该题；最终删除自动追加复核，保留过载重试和受阻失败记录。另有两题因 SSE 缺少终止事件退出，评测后补齐了断流重试并通过本地回归，没有再跑十题。被测候选与最终交付代码的差异在报告中单列，不能将候选成绩直接归给未测版本。
+
+这些题已经用于调试，是开发子集，不能据此声称完整榜单成绩或稳定排名。pi、Codex 各 3/10 来自历史尝试，本轮未重跑。全部失败、超时、已报告用量及未知用量都保留，单轮结果不能用于归因某一项机制。
+
 ## 当前报告从哪里读
 
 任务分类和数量以 [datasets/README.md](../../datasets/README.md) 为入口，方法总览见 [评测说明](../benchmark.md)，当前上下文结论见 [上下文结果](../context-results.md)。工程验收与实验边界以 [evaluations/v0.2-release 报告](../../evaluations/v0.2-release/REPORT.md) 和 [lab follow-up 报告](../../evaluations/lab-followup-20260919/REPORT.md) 为准。报告保留首次失败、人工反馈、返修和未知 usage；教程不把返修结果改写为首次自主成功。

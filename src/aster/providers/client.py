@@ -56,6 +56,7 @@ class ModelClient:
                     self.settings, payload, headers, on_event,
                     parse_reply=lambda data, usage: parse_reply(data, usage, protocol),
                     accounting=accounting,
+                    max_attempts=self.max_attempts,
                 )
             data = await self._post(suffix, payload, headers, accounting, on_event=on_event)
             reply = parse_reply(data, accounting.usage, protocol)

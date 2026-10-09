@@ -133,14 +133,14 @@ async def test_tool_deltas_wait_for_complete_response_and_duplicate_terminal_cou
 @pytest.mark.parametrize(
     "tail,category",
     [
-        (b"", "incomplete_response"),
-        (b"data: [DONE]\n\n", "incomplete_response"),
+        (b"", "transport"),
+        (b"data: [DONE]\n\n", "transport"),
         (event("error", message="test-stream-secret"), "provider_error"),
         (
             event("response.completed", response={"status": "in_progress", "output": []}),
             "invalid_response",
         ),
-        (event("response.completed", response=completed())[:-1], "incomplete_response"),
+        (event("response.completed", response=completed())[:-1], "transport"),
         (b'data: {"type":[]}\n\n', "invalid_response"),
     ],
 )
@@ -164,10 +164,15 @@ async def test_partial_tool_never_executes_and_errors_are_safe(
     runtime = Runtime(tmp_path, Settings(approval="auto", auto_dream=False), model=client())
     state = await runtime.run(TaskSpec(prompt="Write bad"))
     assert state.stop_reason == "provider_error" and state.step == 0
-    assert not (tmp_path / "bad").exists() and len(requests) == 1
+    attempts = 3 if category == "transport" else 1
+    assert not (tmp_path / "bad").exists() and len(requests) == attempts
     with pytest.raises(ProviderError) as caught:
         await client().complete([], [], on_event=events.append)
     assert caught.value.details["category"] == category
+    assert caught.value.details["attempts"] == attempts
+    assert len(requests) == attempts * 2 and events[-1]["retrying"] is False
+    if category == "transport":
+        assert caught.value.details["code"] == "sse_missing_terminal"
     assert events[-1]["type"] == "error"
     assert "test-stream-secret" not in str(caught.value) + json.dumps(events)
 
@@ -228,6 +233,33 @@ async def test_http_200_overload_retries_without_publishing_failed_tools(monkeyp
     assert "test-stream-secret" not in json.dumps(events)
 
 
+@pytest.mark.core
+async def test_stream_eof_retry_keeps_committed_edit_and_discards_partial_calls(tmp_path, monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        call = {"type": "function_call", "name": "write_file", "call_id": "committed",
+                "arguments": '{"path":"kept.txt","content":"once"}'}
+        if len(requests) == 1:
+            chunks = [event("response.completed", response=completed(output=[call]))]
+        elif len(requests) == 2:
+            call.update(call_id="discarded", arguments='{"path":"lost.txt","content":"partial"}')
+            chunks = [event("response.output_item.done", item=call)]
+        else:
+            chunks = [event("response.completed", response=completed())]
+        return httpx.Response(200, stream=Chunks(chunks))
+
+    install(monkeypatch, handler)
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False), model=client())
+    state = await runtime.run(TaskSpec(prompt="Create kept.txt", require_observation=False))
+    assert state.phase == "completed" and state.step == 1
+    assert (tmp_path / "kept.txt").read_text() == "once" and not (tmp_path / "lost.txt").exists()
+    assert len(requests) == 3 and requests[1].content == requests[2].content
+    assert state.usage["total_tokens"] == 24
+    runtime.sandbox.close()
+
+
 async def test_malformed_final_arguments_reject_whole_batch(tmp_path, monkeypatch):
     calls = [
         {
@@ -270,7 +302,8 @@ async def test_terminal_requires_complete_tool_arguments(monkeypatch, arguments,
     assert not any(value["type"] == "completed" for value in events)
 
 
-async def test_retry_attempts_reset_progress_and_remain_bounded(monkeypatch):
+@pytest.mark.parametrize("max_attempts", [1, 2, 3])
+async def test_retry_attempts_reset_progress_and_remain_bounded(monkeypatch, max_attempts):
     requests, events = [], []
 
     def handler(request):
@@ -284,10 +317,18 @@ async def test_retry_attempts_reset_progress_and_remain_bounded(monkeypatch):
         return httpx.Response(200, stream=Chunks(chunks))
 
     install(monkeypatch, handler)
-    reply = await client().complete([], [], on_event=events.append)
-    assert reply.text == "done" and reply.usage["usage_requests"] == 1
-    assert [e["attempt"] for e in events if e["type"] == "begin"] == [1, 2, 3]
-    assert [e["attempt"] for e in events if e["type"] == "error"] == [1, 2]
+    model = ModelClient(client().settings, max_attempts=max_attempts)
+    if max_attempts == 3:
+        reply = await model.complete([], [], on_event=events.append)
+        assert reply.text == "done" and reply.usage["usage_requests"] == 1
+    else:
+        with pytest.raises(ProviderError) as caught:
+            await model.complete([], [], on_event=events.append)
+        assert caught.value.details["attempts"] == max_attempts
+        assert events[-1]["retrying"] is False
+    assert len(requests) == max_attempts
+    assert [e["attempt"] for e in events if e["type"] == "begin"] == list(range(1, max_attempts + 1))
+    assert [e["attempt"] for e in events if e["type"] == "error"] == list(range(1, min(max_attempts, 2) + 1))
 
 
 @pytest.mark.parametrize("status,attempts", [(524, 3), (401, 1)])

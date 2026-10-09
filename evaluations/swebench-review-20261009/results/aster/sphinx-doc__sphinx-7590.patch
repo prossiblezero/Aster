@@ -1,0 +1,97 @@
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d88..b773b64 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -882,6 +882,23 @@ class ASTCharLiteral(ASTLiteral):
+         signode.append(nodes.Text(txt, txt))
+ 
+ 
++class ASTUserDefinedLiteral(ASTLiteral):
++    def __init__(self, literal: ASTLiteral, suffix: str) -> None:
++        self.literal = literal
++        self.suffix = suffix
++
++    def _stringify(self, transform: StringifyTransform) -> str:
++        return transform(self.literal) + self.suffix
++
++    def get_id(self, version: int) -> str:
++        return self.literal.get_id(version) + self.suffix
++
++    def describe_signature(self, signode: TextElement, mode: str,
++                           env: "BuildEnvironment", symbol: "Symbol") -> None:
++        txt = str(self)
++        signode.append(nodes.Text(txt, txt))
++
++
+ class ASTThisLiteral(ASTExpression):
+     def _stringify(self, transform: StringifyTransform) -> str:
+         return "this"
+@@ -4664,26 +4681,29 @@ class DefinitionParser(BaseParser):
+             if self.match(regex):
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
+-                return ASTNumberLiteral(self.definition[pos:self.pos])
+-
+-        string = self._parse_string()
+-        if string is not None:
+-            return ASTStringLiteral(string)
+-
+-        # character-literal
+-        if self.match(char_literal_re):
+-            prefix = self.last_match.group(1)  # may be None when no prefix
+-            data = self.last_match.group(2)
+-            try:
+-                return ASTCharLiteral(prefix, data)
+-            except UnicodeDecodeError as e:
+-                self.fail("Can not handle character literal. Internal error was: %s" % e)
+-            except UnsupportedMultiCharacterCharLiteral:
+-                self.fail("Can not handle character literal"
+-                          " resulting in multiple decoded characters.")
+-
+-        # TODO: user-defined lit
+-        return None
++                literal = ASTNumberLiteral(self.definition[pos:self.pos])
++                break
++        else:
++            string = self._parse_string()
++            if string is not None:
++                literal = ASTStringLiteral(string)
++            else:
++                # character-literal
++                if not self.match(char_literal_re):
++                    return None
++                prefix = self.last_match.group(1)  # may be None when no prefix
++                data = self.last_match.group(2)
++                try:
++                    literal = ASTCharLiteral(prefix, data)
++                except UnicodeDecodeError as e:
++                    self.fail("Can not handle character literal. Internal error was: %s" % e)
++                except UnsupportedMultiCharacterCharLiteral:
++                    self.fail("Can not handle character literal"
++                              " resulting in multiple decoded characters.")
++
++        if self.match(identifier_re):
++            return ASTUserDefinedLiteral(literal, self.matched_text)
++        return literal
+ 
+     def _parse_fold_or_paren_expression(self) -> ASTExpression:
+         # "(" expression ")"
+diff --git a/tests/test_domain_cpp.py b/tests/test_domain_cpp.py
+index 9db741a..724dac1 100644
+--- a/tests/test_domain_cpp.py
++++ b/tests/test_domain_cpp.py
+@@ -175,8 +175,13 @@ def test_expressions():
+         exprCheck(p + "'\\u0A42'", t + "2626")
+         exprCheck(p + "'\\U0001f34c'", t + "127820")
+         exprCheck(p + "'\\U0001F34C'", t + "127820")
++    for literal, literal_id in [
++            ('1q_J', 'L1Eq_J'),
++            ('6.62607015e-34q_J', 'L6.62607015e-34q_JE'),
++            ('"abc"_foo', 'LA3_KcE_foo'),
++            ("'a'_foo", 'c97_foo')]:
++        exprCheck(literal, literal_id)
+ 
+-    # TODO: user-defined lit
+     exprCheck('(... + Ns)', '(... + Ns)', id4='flpl2Ns')
+     exprCheck('(Ns + ...)', '(Ns + ...)', id4='frpl2Ns')
+     exprCheck('(Ns + ... + 0)', '(Ns + ... + 0)', id4='fLpl2NsL0E')

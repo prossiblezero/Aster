@@ -1,0 +1,46 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 1f4c982..9a0b64f 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1723,14 +1723,14 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+ 
+     def add_content(self, more_content: Optional[StringList], no_docstring: bool = False
+                     ) -> None:
++        super().add_content(more_content)
++
+         if self.doc_as_attr:
+             try:
+-                more_content = StringList([_('alias of %s') % restify(self.object)], source='')
++                self.add_line(_('alias of %s') % restify(self.object), self.get_sourcename())
+             except AttributeError:
+                 pass  # Invalid class object is passed.
+ 
+-        super().add_content(more_content)
+-
+     def document_members(self, all_members: bool = False) -> None:
+         if self.doc_as_attr:
+             return
+diff --git a/tests/roots/test-ext-autodoc/target/genericalias.py b/tests/roots/test-ext-autodoc/target/genericalias.py
+index 9909efc..a8729ef 100644
+--- a/tests/roots/test-ext-autodoc/target/genericalias.py
++++ b/tests/roots/test-ext-autodoc/target/genericalias.py
+@@ -7,5 +7,5 @@ C = Callable[[int], None]  # a generic alias not having a doccomment
+ 
+ 
+ class Class:
+-    #: A list of int
+     T = List[int]
++    """A list of int"""
+diff --git a/tests/test_ext_autodoc.py b/tests/test_ext_autodoc.py
+index 4c16886..1c65951 100644
+--- a/tests/test_ext_autodoc.py
++++ b/tests/test_ext_autodoc.py
+@@ -1921,6 +1921,8 @@ def test_autodoc_GenericAlias(app):
+             '   .. py:attribute:: Class.T',
+             '      :module: target.genericalias',
+             '',
++            '      A list of int',
++            '',
+             '      alias of :class:`~typing.List`\\ [:class:`int`]',
+             '',
+             '.. py:attribute:: T',
