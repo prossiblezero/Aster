@@ -117,6 +117,7 @@ def prepare_continuation(
         )
         if not unfinished:
             state.observed, state.changed_paths = False, []
+            state.patch_review_requested = False
         history.append({"role": "user", "content": feedback})
         state.messages.append({"role": "user", "content": feedback, "important": True})
     limits = {

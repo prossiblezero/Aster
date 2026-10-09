@@ -12,7 +12,7 @@ from ..config import Settings
 from ..safety.redaction import Redactor
 from ..schema import ModelReply
 from .codec import parse_reply, request_payload
-from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request
+from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request, transient_error_code
 from .streaming import complete_responses
 from .usage import RequestAccounting
 
@@ -94,7 +94,10 @@ class ModelClient:
                         response.is_success
                         and isinstance(data, dict)
                         and data
-                        and not data.get("error")
+                        and (not data.get("error") or (
+                            self.settings.protocol == "responses"
+                            and data.get("status") in ("failed", "incomplete", "cancelled")
+                        ))
                     ):
                         parse_reply(data, usage, self.settings.protocol)  # Validate the entire batch before publication.
                         accounting.diagnose(
@@ -115,10 +118,15 @@ class ModelClient:
                     code = redactor.text(str(raw.get("code", raw.get("type", ""))))[:120]
                     code = code if re.fullmatch(r"[a-zA-Z0-9_.:-]*", code) else ""
                     retryable = response.status_code in RETRYABLE_HTTP
+                    transient = (
+                        response.is_success and data.get("status") in (None, "")
+                        and transient_error_code(raw)
+                    ) if isinstance(data, dict) else False
                     raise ProviderError(
                         detail[:800],
                         category="transient_http"
                         if retryable
+                        else "transient_provider" if transient
                         else ("invalid_response" if response.is_success else "request_rejected"),
                         status=response.status_code,
                         code=code,

@@ -28,7 +28,9 @@ flowchart TD
     I --> J[纠偏反馈或停止]
     K[模型提交最终回答] --> L[完成条件与 Verifier]
     L -->|缺少必要动作且尚有机会| M[反馈后继续运行]
-    L -->|满足条件| N[完成 + stop Hook]
+    L -->|满足条件且需首次补丁复核| O[原始需求 + 实际差异 + 测试证据]
+    O --> M
+    L -->|满足条件且无需再复核| N[完成 + stop Hook]
 ```
 
 ## Hooks 是四个可选方法
@@ -97,13 +99,20 @@ Recovery required (repeated_identical). Change approach and use fresh evidence.
 
 正式验证还要保留已经发现的失败。例如先跑整个模块，发现 `test_old_api` 失败，再只跑新加的 `test_new_api` 并通过，不能据此宣布任务完成。`RunState.verification_failures` 记录失败用例及当时的命令；后续无关测试通过、编辑文件、重建依赖环境、继续任务或恢复 checkpoint，都不会清除这些记录。具名用例需要实际重跑并通过；删除或跳过用例也不算修好。只有已执行测试的证据参与这个判断，不靠模型解释“这是原有问题”来放行。
 
+测试执行受阻时也不能丢掉已观察到的失败。`run_tests` 在沙箱副本销毁前读取结构化报告；即使测试写入了不允许发布的文件，返回 `blocked/read_only`，报告中的失败仍进入待解决列表。受阻、超时或取消的执行不会贡献通过证据，也不能用其中的通过用例清除旧失败；测试产生的文件仍不发布到用户仓库。
+
 pytest、unittest 和基于它们的原生入口保留用例身份，允许只补跑此前失败的用例。临时 `run_tests.code` 的随机文件名会归一化，避免每次调用被当成新测试。当前 SymPy 原生报告只有计数，Node 报告的名称缺少可靠的跨文件身份，这两类先按原命令追踪失败，需要原命令成功后清除；它们没有具名用例的逐项覆盖保证。测试命令写错、安装或收集失败仍会使本次验证失败，但不会作为已确认的断言失败永久挂在待解决列表中。
 
 待解决列表放在请求末尾的工作状态中，最多展示八项并给出总数；完整记录保存在运行状态和 trace。固定系统提示只补充通用修复要求：复现问题、检查相关实现与旧接口兼容，声称失败原本存在时应核对修改前的代码。这些要求帮助选择检查范围，不能自动证明修复语义或隐藏测试正确。
 
 这项设计参考了两种不同层面的实现：[pi 的 bash 工具](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/tools/bash.ts)保留命令退出状态与完整输出位置；[SWE-bench 的评分器](https://github.com/SWE-bench/SWE-bench/blob/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/swebench/harness/grading.py)分别核对目标修复与已有行为。Aster 使用自身测试过程发现的失败维护完成条件，不读取 benchmark 的隐藏验收清单。回归用例见 [test_harness.py](../../tests/test_harness.py) 和 [test_inline_verification.py](../../tests/test_inline_verification.py)。
 
-`max_final_revisions` 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
+对于要求修改和验证、已有实际补丁且完成条件满足的任务，主 Agent 交付前自动获得一次补丁复核提示。提示包含原始需求、当前差异和最近的测试证据，要求检查问题复现、旧接口兼容和相关调用路径；发现具体遗漏才继续检查或修复。它沿用当前 Agent 和工具，不新增模型角色或服务，也不把“已要求复核”当作独立验收通过。
+
+`patch_review_requested` 随 checkpoint 保存；恢复或为同一任务补充预算不会反复触发，完成后开始新任务才重置。普通问答、只读/规划模式、Worker、预算耗尽及 `completion=off` 不触发。原始需求最多附带 6,000 字符、差异最多 16,000 字符，截断会明确提示通过已有工具继续读取；内容追加在对话尾部，固定提示前缀不变。这个机制借鉴 [mini-SWE-agent 的复现与边界检查流程](https://github.com/SWE-agent/mini-swe-agent/blob/04d809ceab9df28f9adaed044884180159172930/src/minisweagent/config/default.yaml)，不读取 benchmark 隐藏测试。
+
+`max_final_revisions` 控制缺少条件的补做与补丁复核合计最多退回多少次。默认是 2 次；复核最多占其中一次，不额外放宽任务预算。
+复核提示先经过现有上下文预算检查，空间不足时跳过并记录原因，避免额外检查挤掉已经可以交付的结果。未完成任务收到“继续”的反馈时保留原始差异基线，避免只补跑测试就丢失先前补丁。
 `completion="strict"` 在最终检查不通过时停止；`warn` 和 `soft` 当前走相同的宽松分支，重试后可带警告结束。
 `off` 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。
 

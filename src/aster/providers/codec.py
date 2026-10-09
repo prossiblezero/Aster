@@ -5,7 +5,7 @@ import json
 
 from ..messages import ContextHistoryError, history_groups
 from ..schema import ModelReply, ToolCall
-from .errors import ProviderError
+from .errors import ProviderError, transient_error_code
 
 
 def _validated_reply(text, calls, raw, data, usage, *, opaque=False):
@@ -226,6 +226,11 @@ def check_completion(data, protocol, usage):
         }:
             raise ValueError("unknown response status")
         incomplete = reason in {"incomplete", "failed", "cancelled", "queued", "in_progress"}
+        if reason == "failed" and (code := transient_error_code(data.get("error"))):
+            raise ProviderError(
+                "Provider reported a temporary service failure",
+                category="transient_provider", code=f"responses:{code}", usage=usage,
+            )
         if reason == "incomplete":
             details = data.get("incomplete_details") or {}
             cause = details.get("reason") if isinstance(details, dict) else None

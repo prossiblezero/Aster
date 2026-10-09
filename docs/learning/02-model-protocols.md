@@ -125,12 +125,15 @@ else:
 
 ## 出错时怎样处理
 
-`ModelClient._post()` 最多尝试 3 次请求；空响应最多触发其中一次额外尝试。Responses streaming 也遵守同一逻辑请求上限。网络超时及部分暂时性 HTTP 错误会短暂退避后重试；例如认证被拒绝不会靠反复发送相同请求解决。最终错误用 `ProviderError` 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏；诊断还会区分空响应、失败尝试和未知 usage。诊断中的“尝试过”不等于成功，unknown usage 不按 0 计，也不认证服务端内部模型身份。
+`ModelClient._post()` 最多尝试 3 次请求；空响应最多触发其中一次额外尝试。Responses streaming 也遵守同一逻辑请求上限。网络超时、部分暂时性 HTTP 错误，以及 HTTP 200 内明确报告的服务过载或限流，会短暂退避后重试。HTTP 成功并不代表生成成功：例如 SSE 的 `response.failed` 携带 `error.code=server_error`，应归为 `transient_provider`，不能当作普通截断直接停止。共享规则只识别 `server_error`、`overloaded_error`、`rate_limit_exceeded`、`rate_limit_error`，不靠错误消息中的关键词猜测。认证错误、拒答、取消和输出截断仍不会因此重试。
+
+最终错误用 `ProviderError` 记录类别、HTTP 状态、错误代码、尝试次数，输出经过脱敏；失败尝试已报告的 usage 会累加，缺失用量仍记为未知。诊断中的“尝试过”不等于成功，unknown usage 不按 0 计，也不认证服务端内部模型身份。有限退避参考了 [pi 的自动重试](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/agent-session.ts#L3699)，Aster 保持自身最多三次请求的边界。
 
 | 层次 | 例子 | 当前行为 |
 |---|---|---|
 | 传输 | 网络连接中断 | 有限重试，耗尽后停止本次运行 |
 | HTTP | 429 限流、503 服务不可用 | 有限退避重试 |
+| 响应内容 | HTTP 200 内的已知过载、限流错误码 | 与传输重试共用三次上限，失败响应中的工具不执行 |
 | 协议回复 | 参数不是有效 JSON | `invalid_response` |
 | 生成未完成 | 输出上限截断工具参数 | `incomplete_response`，不执行半截调用 |
 | 工具执行 | 文件不存在 | 返回工具结果，由循环决定后续 |

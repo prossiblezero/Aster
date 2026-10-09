@@ -15,7 +15,7 @@ import time
 import httpx
 
 from ..safety.redaction import Redactor
-from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request
+from .errors import RETRYABLE_HTTP, ProviderError, retry_delay, retry_request, transient_error_code
 
 MAX_EVENT_BYTES = 16 * 1024 * 1024
 MAX_STREAM_BYTES = 64 * 1024 * 1024
@@ -222,9 +222,14 @@ async def complete_responses(settings, payload, extra, on_event, *, parse_reply,
                                     progress.first_event = time.monotonic() - progress.started
                                 kind = item.get("type", event)
                                 if kind == "error":
+                                    terminal = item
+                                    if "usage" in item:
+                                        usage = accounting.record(item)
+                                    code = transient_error_code(item.get("error", item))
                                     raise ProviderError(
                                         "Provider reported a streaming error",
-                                        category="provider_error",
+                                        category="transient_provider" if code else "provider_error",
+                                        code=code,
                                     )
                                 if kind in {
                                     "response.output_text.delta",

@@ -328,9 +328,21 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             )
             command[3] = program
         settings = sandbox.settings.model_copy(update={"read_only": False, "write_scope": [report]})
+        report_text = None
+
+        class ReportRunner(runner):
+            def _publish(self, workspace, staged, before, after, result):
+                nonlocal report_text
+                try:
+                    report_text = Workspace(staged).read(report)
+                except (OSError, ValueError, UnicodeError):
+                    pass
+                return super()._publish(workspace, staged, before, after, result)
+
         # Only a report may leave the execution copy, into this disposable copy.
         # Tests cannot publish any change to the actual repository, including in plan mode.
-        result = await runner(settings, environment=sandbox).run(
+        # Capture it before publication can reject an unrelated test-created file.
+        result = await ReportRunner(settings, environment=sandbox).run(
             Workspace(target), shlex.join(command), timeout
         )
         cases = None
@@ -343,7 +355,7 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                     "its extra hash-randomization subprocess is disabled.]\n" + result.content
                 )
         try:
-            cases = parse_junit(Workspace(target).read(report))
+            cases = parse_junit(report_text if report_text is not None else Workspace(target).read(report))
             if node:
                 # Node treats an empty test file itself as a passing case. Require
                 # declared node:test cases; a file's failed startup remains a failure.
@@ -368,7 +380,6 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.reason = "read_only"
         if not result.reason:
             result.reason = f"test_{result.status}"
-        return result
     passed = sum(case["status"] == "passed" for case in cases or [])
     failures = any(case["status"] in {"failed", "error"} for case in cases or [])
     errors = [case for case in cases or [] if case["status"] == "error"]
@@ -421,10 +432,12 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         scope = argv[1] if native else "go" if go else "unittest" if unittest else "pytest"
         for case in cases or []:
             status = case["status"]
-            if status == "error" and result.reason == "test_execution_error":
+            if status == "error" and unittest and case["classname"] != "unittest.loader._FailedTest":
                 status = "failed"
             if status not in {"passed", "failed"}:
                 continue
+            if status == "passed" and result.status not in {"success", "error"}:
+                continue  # An interrupted or blocked run cannot clear a known failure.
             classname, name = case["classname"], case["name"]
             if code:
                 # Each inline execution has a fresh filename, but the same test identity.

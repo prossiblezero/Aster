@@ -189,6 +189,45 @@ async def test_unsuccessful_terminal_preserves_usage_without_retry(monkeypatch, 
     assert len(requests) == 1 and events[-1]["type"] == "error"
 
 
+@pytest.mark.parametrize("wire", ["json", "failed", "error"])
+@pytest.mark.parametrize("recover", [True, False])
+async def test_http_200_overload_retries_without_publishing_failed_tools(monkeypatch, wire, recover):
+    requests, events = [], []
+    failed = completed(status="failed", output=[{
+        "type": "function_call", "name": "write_file", "call_id": "discard",
+        "arguments": '{"path":"bad","content":"bad"}',
+    }])
+    failed["error"] = {"code": "server_error", "message": "test-stream-secret overloaded"}
+
+    def handler(request):
+        requests.append(request)
+        success = recover and len(requests) == 2
+        data = completed() if success else failed
+        if wire == "json":
+            return httpx.Response(200, json=data)
+        chunk = event("response.completed" if success else "response.failed", response=data)
+        if wire == "error" and not success:
+            chunk = event("error", **failed["error"], usage=failed["usage"])
+        return httpx.Response(200, stream=Chunks([chunk]))
+
+    install(monkeypatch, handler)
+    model = ModelClient(Settings(api_key="test-stream-secret", stream=wire != "json"))
+    if recover:
+        reply = await model.complete([], [], on_event=events.append)
+        assert reply.text == "done" and not reply.calls
+    else:
+        with pytest.raises(ProviderError) as caught:
+            await model.complete([], [], on_event=events.append)
+        assert caught.value.details["category"] == "transient_provider"
+        assert caught.value.details["attempts"] == 3
+        assert "test-stream-secret" not in str(caught.value)
+    attempts = 2 if recover else 3
+    assert len(requests) == attempts
+    assert model.last_usage["total_tokens"] == 12 * attempts
+    assert all(request.content == requests[0].content for request in requests)
+    assert "test-stream-secret" not in json.dumps(events)
+
+
 async def test_malformed_final_arguments_reject_whole_batch(tmp_path, monkeypatch):
     calls = [
         {

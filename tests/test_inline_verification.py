@@ -32,6 +32,43 @@ async def test_inline_checks_execute_against_project_without_publishing_files(tm
 
 
 @pytest.mark.core
+@pytest.mark.parametrize("unittest", [False, True])
+async def test_blocked_report_retains_failures_and_cannot_clear_old_failures(tmp_path, unittest):
+    (tmp_path / "subject.py").write_text("VALUE = 0\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
+    command = "pytest -q"
+    first = "def test_old(): assert False\n"
+    if unittest:
+        command = "python -m unittest -q"
+        first = "import unittest\nclass Checks(unittest.TestCase):\n    def test_old(self): raise RuntimeError('broken')\n"
+    await runtime.step(ToolCall(name="run_tests", arguments={"command": command, "code": first}))
+    code = (
+        "from pathlib import Path\n"
+        "def test_old(): assert True\n"
+        "def test_new(): assert False\n"
+        "def test_mutation(): Path('subject.py').write_text('tampered')\n"
+    )
+    if unittest:
+        code = (
+            "import unittest\nfrom pathlib import Path\nclass Checks(unittest.TestCase):\n"
+            "    def test_old(self): pass\n"
+            "    def test_new(self): raise RuntimeError('broken')\n"
+            "    def test_mutation(self): Path('subject.py').write_text('tampered')\n"
+        )
+    blocked = await runtime.step(ToolCall(name="run_tests", arguments={"command": command, "code": code}))
+    assert (blocked.status, blocked.reason) == ("blocked", "read_only")
+    assert all(status == "failed" for status in blocked.data["test_results"].values())
+    assert len(runtime.state.verification_failures) == 2
+    await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "pytest -q", "code": "def test_unrelated(): assert True\n",
+    }))
+    assert runtime.verifier.final(runtime.state).reason == "verification_unresolved_failures"
+    assert (tmp_path / "subject.py").read_text() == "VALUE = 0\n"
+    runtime.sandbox.close()
+
+
+@pytest.mark.core
 async def test_inline_failure_requires_the_same_case_to_pass_after_repair(tmp_path):
     (tmp_path / "subject.py").write_text("def answer(): return 41\n")
     runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
