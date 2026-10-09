@@ -1,0 +1,39 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fdca700..c080876 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -139,6 +139,8 @@ def compile_json_path(key_transforms, include_root=True):
+     return "".join(path)
+ 
+ 
++
++
+ class DataContains(PostgresOperatorLookup):
+     lookup_name = "contains"
+     postgres_operator = "@>"
+diff --git a/tests/model_fields/test_jsonfield.py b/tests/model_fields/test_jsonfield.py
+index dfd00f4..3b9ce07 100644
+--- a/tests/model_fields/test_jsonfield.py
++++ b/tests/model_fields/test_jsonfield.py
+@@ -512,6 +512,21 @@ class TestQuerying(TestCase):
+             [self.objs[3], self.objs[4]],
+         )
+ 
++    def test_has_key_numeric(self):
++        obj = NullableJSONModel.objects.create(value={"1": "value"})
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_key="1"),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_keys=["1"]),
++            [obj],
++        )
++        self.assertSequenceEqual(
++            NullableJSONModel.objects.filter(value__has_any_keys=["1"]),
++            [obj],
++        )
++
+     def test_has_key_null_value(self):
+         self.assertSequenceEqual(
+             NullableJSONModel.objects.filter(value__has_key="j"),

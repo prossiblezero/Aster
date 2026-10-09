@@ -1,0 +1,62 @@
+{
+  "job": "aster-django__django-15503",
+  "agent": "aster",
+  "instance_id": "django__django-15503",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 790.704,
+  "timed_out": false,
+  "patch_sha256": "e9dd2a52cdb3b80251ab39325e1664d9ae5a0ff85ca54ec2612b2f8d9d62ea07",
+  "patch_bytes": 1374,
+  "difficulty": "medium",
+  "requests": 16,
+  "requests_with_usage": 14,
+  "requests_without_usage": 2,
+  "failed_requests": 2,
+  "known_tokens": 421952,
+  "known_input_tokens": 417388,
+  "known_output_tokens": 4564,
+  "known_cached_tokens": 288768,
+  "graded": true,
+  "resolved": false,
+  "grading_status": "reported",
+  "runtime": {
+    "phase": "failed",
+    "stop_reason": "provider_error",
+    "turn": 15,
+    "step": 35,
+    "final_revisions": 0,
+    "final": "",
+    "verification": {
+      "state": "failed",
+      "workspace_hash": "5160bb0b1b4eab8dc7d2f18caa07d7253a0d7cb598bb9aaddb30af4b3025beff",
+      "evidence_id": "27ccbfa3ea57a674f32eaaf5a4661152c937e63ba91845b3d561df3dd5933014",
+      "command": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield.TestQuerying.test_key_transform_expression"
+    },
+    "verification_failures": {
+      "tests/runtests.py: model_fields.test_jsonfield.TestQuerying::model_fields.test_jsonfield.TestQuerying.test_key_transform_annotation_expression": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield",
+      "tests/runtests.py: model_fields.test_jsonfield.TestQuerying::model_fields.test_jsonfield.TestQuerying.test_nested_key_transform_annotation_expression": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield",
+      "tests/runtests.py: model_fields.test_jsonfield.TestQuerying::model_fields.test_jsonfield.TestQuerying.test_nested_key_transform_expression": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield",
+      "tests/runtests.py: model_fields.test_jsonfield.TestQuerying::model_fields.test_jsonfield.TestQuerying.test_nested_key_transform_on_subquery": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield",
+      "tests/runtests.py: model_fields.test_jsonfield.TestQuerying::model_fields.test_jsonfield.TestQuerying.test_ordering_grouping_by_key_transform": "python tests/runtests.py --settings=test_sqlite --parallel 1 model_fields.test_jsonfield"
+    },
+    "feedback": "{\"category\": \"incomplete_response\", \"status\": null, \"code\": \"responses:failed\", \"message\": \"Provider stopped before a complete model response\", \"attempts\": 1, \"usage\": {\"usage_requests\": 1}, \"diagnostics\": {\"requested_model\": \"gpt-5.6-luna\", \"response_model\": \"gpt-5.6-luna\", \"protocol\": \"responses\", \"response_id\": \"resp_053da5382e040778016ac8db412214819bbff64cf8ffdc1227\", \"request_ids\": {}, \"payload_sha256\": \"2f14038ed56ddb6547989dc8807b732876ff0bf685e4118a64e02466cb14e4eb\", \"attempt\": 1, \"elapsed_seconds\": 23.485822, \"classification\": \"incomplete_response\", \"terminal_status\": \"failed\", \"output_count\": 0, \"output_structure\": [], \"output_text_length\": 0, \"raw_usage\": {}, \"usage\": {\"usage_requests\": 1}, \"usage_observed\": false, \"flags\": []}}",
+    "usage": {
+      "usage_requests": 15,
+      "input_tokens": 417388,
+      "input_tokens_requests": 14,
+      "output_tokens": 4564,
+      "output_tokens_requests": 14,
+      "cache_read_input_tokens": 288768,
+      "cache_read_input_tokens_requests": 14,
+      "reasoning_tokens": 2006,
+      "reasoning_tokens_requests": 14,
+      "total_tokens": 421952,
+      "total_tokens_requests": 14
+    },
+    "memory_usage": {
+      "calls": 1,
+      "unknown_usage": 1
+    }
+  }
+}

@@ -1,0 +1,82 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 7ef51bc..2197f76 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -378,6 +378,11 @@ def hstack(cls, *args):
+             return cls._new()
+ 
+         kls = type(args[0])
++        # Keep the column count when all matrices have no rows.  There is
++        # no row data for row_join to infer the shape from in this case.
++        if all(arg.rows == 0 for arg in args):
++            return kls._new(0, sum(arg.cols for arg in args), [])
++
+         return reduce(kls.row_join, args)
+ 
+     def reshape(self, rows, cols):
+@@ -601,6 +606,11 @@ def vstack(cls, *args):
+             return cls._new()
+ 
+         kls = type(args[0])
++        # Keep the row count when all matrices have no columns.  There is
++        # no column data for col_join to infer the shape from in this case.
++        if all(arg.cols == 0 for arg in args):
++            return kls._new(sum(arg.rows for arg in args), 0, [])
++
+         return reduce(kls.col_join, args)
+ 
+ 
+diff --git a/sympy/matrices/tests/test_commonmatrix.py b/sympy/matrices/tests/test_commonmatrix.py
+index 3e27ecc..0d15fc8 100644
+--- a/sympy/matrices/tests/test_commonmatrix.py
++++ b/sympy/matrices/tests/test_commonmatrix.py
+@@ -228,6 +228,7 @@ def test_hstack():
+     M4 = Matrix.zeros(0, 3)
+     m = ShapingOnlyMatrix.hstack(M1, M2, M3, M4)
+     assert m.rows == 0 and m.cols == 6
++    assert Matrix.hstack(M1, M2, M3, M4).shape == (0, 6)
+ 
+ def test_vstack():
+     m = ShapingOnlyMatrix(4, 3, lambda i, j: i*3 + j)
+@@ -249,6 +250,12 @@ def test_vstack():
+     raises(ShapeError, lambda: m.vstack(m, m2))
+     assert Matrix.vstack() == Matrix()
+ 
++    M1 = Matrix.zeros(0, 0)
++    M2 = Matrix.zeros(1, 0)
++    M3 = Matrix.zeros(2, 0)
++    M4 = Matrix.zeros(3, 0)
++    assert Matrix.vstack(M1, M2, M3, M4).shape == (6, 0)
++
+ 
+ # PropertiesOnlyMatrix tests
+ def test_atoms():
+diff --git a/sympy/matrices/tests/test_matrix_stacking_regression.py b/sympy/matrices/tests/test_matrix_stacking_regression.py
+new file mode 100644
+index 0000000..478c087
+--- /dev/null
++++ b/sympy/matrices/tests/test_matrix_stacking_regression.py
+@@ -0,0 +1,23 @@
++import unittest
++
++from sympy import Matrix
++
++
++class MatrixStackingRegressionTest(unittest.TestCase):
++    def test_zero_row_hstack(self):
++        matrices = [Matrix.zeros(0, columns) for columns in range(4)]
++        self.assertEqual(Matrix.hstack(*matrices).shape, (0, 6))
++
++    def test_zero_column_vstack(self):
++        matrices = [Matrix.zeros(rows, 0) for rows in range(4)]
++        self.assertEqual(Matrix.vstack(*matrices).shape, (6, 0))
++
++    def test_regular_joins(self):
++        self.assertEqual(
++            Matrix.hstack(Matrix([[1], [2]]), Matrix([[3], [4]])).tolist(),
++            [[1, 3], [2, 4]],
++        )
++        self.assertEqual(
++            Matrix.vstack(Matrix([[1, 2]]), Matrix([[3, 4]])).tolist(),
++            [[1, 2], [3, 4]],
++        )

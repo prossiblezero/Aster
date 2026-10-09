@@ -1,0 +1,82 @@
+diff --git a/sphinx/domains/cpp.py b/sphinx/domains/cpp.py
+index fe52d88..2e6c68f 100644
+--- a/sphinx/domains/cpp.py
++++ b/sphinx/domains/cpp.py
+@@ -789,6 +789,23 @@ class ASTLiteral(ASTExpression):
+     pass
+ 
+ 
++class ASTUserDefinedLiteral(ASTLiteral):
++    def __init__(self, literal: ASTLiteral, suffix: str) -> None:
++        self.literal = literal
++        self.suffix = suffix
++
++    def _stringify(self, transform: StringifyTransform) -> str:
++        return transform(self.literal) + self.suffix
++
++    def get_id(self, version: int) -> str:
++        return self.literal.get_id(version) + self.suffix
++
++    def describe_signature(self, signode: TextElement, mode: str,
++                           env: "BuildEnvironment", symbol: "Symbol") -> None:
++        self.literal.describe_signature(signode, mode, env, symbol)
++        signode.append(nodes.Text(self.suffix))
++
++
+ class ASTPointerLiteral(ASTLiteral):
+     def _stringify(self, transform: StringifyTransform) -> str:
+         return 'nullptr'
+@@ -4664,25 +4681,49 @@ class DefinitionParser(BaseParser):
+             if self.match(regex):
+                 while self.current_char in 'uUlLfF':
+                     self.pos += 1
+-                return ASTNumberLiteral(self.definition[pos:self.pos])
++                literal = ASTNumberLiteral(self.definition[pos:self.pos])
++                break
++        else:
++            literal = None
++
++        if literal is not None:
++            suffix = self._parse_udl_suffix()
++            if suffix is not None:
++                return ASTUserDefinedLiteral(literal, suffix)
++            return literal
+ 
+         string = self._parse_string()
+         if string is not None:
+-            return ASTStringLiteral(string)
++            literal = ASTStringLiteral(string)
++            suffix = self._parse_udl_suffix()
++            if suffix is not None:
++                return ASTUserDefinedLiteral(literal, suffix)
++            return literal
+ 
+         # character-literal
+         if self.match(char_literal_re):
+             prefix = self.last_match.group(1)  # may be None when no prefix
+             data = self.last_match.group(2)
+             try:
+-                return ASTCharLiteral(prefix, data)
++                literal = ASTCharLiteral(prefix, data)
++                suffix = self._parse_udl_suffix()
++                if suffix is not None:
++                    return ASTUserDefinedLiteral(literal, suffix)
++                return literal
+             except UnicodeDecodeError as e:
+                 self.fail("Can not handle character literal. Internal error was: %s" % e)
+             except UnsupportedMultiCharacterCharLiteral:
+                 self.fail("Can not handle character literal"
+                           " resulting in multiple decoded characters.")
+ 
+-        # TODO: user-defined lit
++        return None
++
++    def _parse_udl_suffix(self) -> str:
++        # A user-defined literal suffix is an identifier with no intervening
++        # whitespace.  match() starts at the current position, so whitespace
++        # is not accepted here.
++        if self.match(re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*\b')):
++            return self.matched_text
+         return None
+ 
+     def _parse_fold_or_paren_expression(self) -> ASTExpression:

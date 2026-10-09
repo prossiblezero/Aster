@@ -1,0 +1,48 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 81f8f79..edc06da 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1211,13 +1211,16 @@ class Exists(Subquery):
+ 
+     def as_sql(self, compiler, connection, template=None, **extra_context):
+         query = self.query.exists(using=connection.alias)
+-        sql, params = super().as_sql(
+-            compiler,
+-            connection,
+-            template=template,
+-            query=query,
+-            **extra_context,
+-        )
++        try:
++            sql, params = super().as_sql(
++                compiler,
++                connection,
++                template=template,
++                query=query,
++                **extra_context,
++            )
++        except EmptyResultSet:
++            return ('1=1' if self.negated else '1=0'), []
+         if self.negated:
+             sql = 'NOT {}'.format(sql)
+         return sql, params
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index f146bc8..a6e828e 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -816,6 +816,15 @@ class Queries1Tests(TestCase):
+         self.assertSequenceEqual(Note.objects.none() & Note.objects.all(), [])
+         self.assertSequenceEqual(Note.objects.all() & Note.objects.none(), [])
+ 
++    def test_negated_exists_empty_queryset(self):
++        qs = Note.objects.filter(~Exists(Note.objects.none()), note='n1')
++        self.assertSequenceEqual(qs, [self.n1])
++        self.assertIn('WHERE', str(qs.query))
++        self.assertSequenceEqual(
++            Note.objects.filter(Exists(Note.objects.none()), note='n1'),
++            [],
++        )
++
+     def test_ticket8439(self):
+         # Complex combinations of conjunctions, disjunctions and nullable
+         # relations.

@@ -1,0 +1,53 @@
+{
+  "job": "aster-sympy__sympy-13031",
+  "agent": "aster",
+  "instance_id": "sympy__sympy-13031",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 340.711,
+  "timed_out": false,
+  "patch_sha256": "790288436ce5d4671e4e3f9e9726e085191ccf1d284532960bb62a4f28186f53",
+  "patch_bytes": 2951,
+  "difficulty": "simple",
+  "requests": 23,
+  "requests_with_usage": 23,
+  "requests_without_usage": 0,
+  "failed_requests": 0,
+  "known_tokens": 581549,
+  "known_input_tokens": 573717,
+  "known_output_tokens": 7832,
+  "known_cached_tokens": 258560,
+  "graded": true,
+  "resolved": true,
+  "grading_status": "reported",
+  "runtime": {
+    "phase": "completed",
+    "stop_reason": "verified",
+    "turn": 23,
+    "step": 45,
+    "final_revisions": 1,
+    "final": "Formal verification is now successful:\n\n```text\npython -m unittest discover -s sympy/matrices/tests \\\n  -p 'test_matrix_stacking_regression.py' -v\n```\n\nResult: all 3 regression tests passed, covering:\n\n- `hstack` of `(0, 0)`, `(0, 1)`, `(0, 2)`, and `(0, 3)` matrices returns `(0, 6)`.\n- Symmetric zero-column `vstack` returns `(6, 0)`.\n- Regular `hstack` and `vstack` behavior remains unchanged.\n\nThe implementation and regression tests are complete.",
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "136b678b21c6721d7e43e0edfe758c66ce216a57cc5e95e58baab19c59f9f9c1",
+      "evidence_id": "ec1e303b5a6a1824552e7afcf823d6b15f630e390b000167c9600238d3812517",
+      "command": "python -m unittest discover -s sympy/matrices/tests -p 'test_matrix_stacking_regression.py' -v"
+    },
+    "verification_failures": {},
+    "feedback": "Completion requirements missing: run a successful verification command via run_tests (run_shell checks do not update formal verification)",
+    "usage": {
+      "usage_requests": 23,
+      "input_tokens": 573717,
+      "input_tokens_requests": 23,
+      "output_tokens": 7832,
+      "output_tokens_requests": 23,
+      "cache_read_input_tokens": 258560,
+      "cache_read_input_tokens_requests": 23,
+      "reasoning_tokens": 2815,
+      "reasoning_tokens_requests": 23,
+      "total_tokens": 581549,
+      "total_tokens_requests": 23
+    },
+    "memory_usage": {}
+  }
+}

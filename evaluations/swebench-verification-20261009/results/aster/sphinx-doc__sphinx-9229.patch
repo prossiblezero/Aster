@@ -1,0 +1,93 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 1f4c982..f7b614f 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1797,7 +1797,7 @@ class GenericAliasMixin(DataDocumenterMixinBase):
+                 super().should_suppress_directive_header())
+ 
+     def update_content(self, more_content: StringList) -> None:
+-        if inspect.isgenericalias(self.object):
++        if inspect.isgenericalias(self.object) and not self.get_doc():
+             more_content.append(_('alias of %s') % restify(self.object), '')
+             more_content.append('', '')
+ 
+@@ -1815,7 +1815,7 @@ class NewTypeMixin(DataDocumenterMixinBase):
+                 super().should_suppress_directive_header())
+ 
+     def update_content(self, more_content: StringList) -> None:
+-        if inspect.isNewType(self.object):
++        if inspect.isNewType(self.object) and not self.get_doc():
+             supertype = restify(self.object.__supertype__)
+             more_content.append(_('alias of %s') % supertype, '')
+             more_content.append('', '')
+@@ -1848,7 +1848,7 @@ class TypeVarMixin(DataDocumenterMixinBase):
+             return super().get_doc()  # type: ignore
+ 
+     def update_content(self, more_content: StringList) -> None:
+-        if isinstance(self.object, TypeVar):
++        if isinstance(self.object, TypeVar) and not self.get_doc():
+             attrs = [repr(self.object.__name__)]
+             for constraint in self.object.__constraints__:
+                 attrs.append(stringify_typehint(constraint))
+diff --git a/tests/test_ext_autodoc_autoattribute.py b/tests/test_ext_autodoc_autoattribute.py
+index 5e72202..659f722 100644
+--- a/tests/test_ext_autodoc_autoattribute.py
++++ b/tests/test_ext_autodoc_autoattribute.py
+@@ -156,8 +156,6 @@ def test_autoattribute_GenericAlias(app):
+             '',
+             '   A list of int',
+             '',
+-            '   alias of :class:`~typing.List`\\ [:class:`int`]',
+-            '',
+         ]
+ 
+ 
+@@ -171,8 +169,6 @@ def test_autoattribute_NewType(app):
+         '',
+         '   T6',
+         '',
+-        '   alias of :class:`int`',
+-        '',
+     ]
+ 
+ 
+@@ -186,8 +182,6 @@ def test_autoattribute_TypeVar(app):
+         '',
+         '   T1',
+         '',
+-        "   alias of TypeVar('T1')",
+-        '',
+     ]
+ 
+ 
+diff --git a/tests/test_ext_autodoc_autodata.py b/tests/test_ext_autodoc_autodata.py
+index d01e45f..8be9947 100644
+--- a/tests/test_ext_autodoc_autodata.py
++++ b/tests/test_ext_autodoc_autodata.py
+@@ -96,8 +96,6 @@ def test_autodata_GenericAlias(app):
+             '',
+             '   A list of int',
+             '',
+-            '   alias of :class:`~typing.List`\\ [:class:`int`]',
+-            '',
+         ]
+ 
+ 
+@@ -111,8 +109,6 @@ def test_autodata_NewType(app):
+         '',
+         '   T6',
+         '',
+-        '   alias of :class:`int`',
+-        '',
+     ]
+ 
+ 
+@@ -126,8 +122,6 @@ def test_autodata_TypeVar(app):
+         '',
+         '   T1',
+         '',
+-        "   alias of TypeVar('T1')",
+-        '',
+     ]
+ 
+ 

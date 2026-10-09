@@ -1,0 +1,44 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index a255c06..8c26bd3 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -1654,7 +1654,8 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:
+             if hasattr(self.object, '__orig_bases__') and len(self.object.__orig_bases__):
+                 # A subclass of generic types
+                 # refs: PEP-560 <https://www.python.org/dev/peps/pep-0560/>
+-                bases = list(self.object.__orig_bases__)
++                bases = [base.__class__ if ismock(base) else base
++                         for base in self.object.__orig_bases__]
+             elif hasattr(self.object, '__bases__') and len(self.object.__bases__):
+                 # A normal class
+                 bases = list(self.object.__bases__)
+diff --git a/tests/roots/test-ext-autodoc/target/mocked_inheritance.py b/tests/roots/test-ext-autodoc/target/mocked_inheritance.py
+new file mode 100644
+index 0000000..3cf680a
+--- /dev/null
++++ b/tests/roots/test-ext-autodoc/target/mocked_inheritance.py
+@@ -0,0 +1,6 @@
++import dummy
++
++
++class Inherited(dummy.Class):
++    """docstring"""
++    pass
+diff --git a/tests/test_ext_autodoc_autoclass.py b/tests/test_ext_autodoc_autoclass.py
+index 402a1b0..ed7dd15 100644
+--- a/tests/test_ext_autodoc_autoclass.py
++++ b/tests/test_ext_autodoc_autoclass.py
+@@ -17,6 +17,13 @@ import pytest
+ from .test_ext_autodoc import do_autodoc
+ 
+ 
++@pytest.mark.sphinx('html', testroot='ext-autodoc')
++def test_mocked_base_is_documented_with_name(app):
++    actual = do_autodoc(app, 'class', 'target.mocked_inheritance.Inherited',
++                        {'show-inheritance': None})
++    assert '   Bases: :py:class:`dummy.Class`' in actual
++
++
+ @pytest.mark.sphinx('html', testroot='ext-autodoc')
+ def test_classes(app):
+     actual = do_autodoc(app, 'function', 'target.classes.Foo')
