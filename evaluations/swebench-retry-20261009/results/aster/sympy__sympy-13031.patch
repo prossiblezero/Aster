@@ -1,0 +1,22 @@
+diff --git a/sympy/matrices/tests/test_commonmatrix.py b/sympy/matrices/tests/test_commonmatrix.py
+index 3e27ecc..7817505 100644
+--- a/sympy/matrices/tests/test_commonmatrix.py
++++ b/sympy/matrices/tests/test_commonmatrix.py
+@@ -228,8 +228,17 @@ def test_hstack():
+     M4 = Matrix.zeros(0, 3)
+     m = ShapingOnlyMatrix.hstack(M1, M2, M3, M4)
+     assert m.rows == 0 and m.cols == 6
++    assert Matrix.hstack(M1, M2, M3, M4).shape == (0, 6)
++
+ 
+ def test_vstack():
++    # A sequence of null matrices must retain the sum of their row counts.
++    M1 = Matrix.zeros(0, 0)
++    M2 = Matrix.zeros(1, 0)
++    M3 = Matrix.zeros(2, 0)
++    M4 = Matrix.zeros(3, 0)
++    assert Matrix.vstack(M1, M2, M3, M4).shape == (6, 0)
++
+     m = ShapingOnlyMatrix(4, 3, lambda i, j: i*3 + j)
+     m2 = ShapingOnlyMatrix(3, 4, lambda i, j: i*3 + j)
+     assert m == m.vstack(m)

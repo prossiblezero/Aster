@@ -1,0 +1,41 @@
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 87707d4..6c3e8bf 100644
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -191,11 +191,16 @@ def _restify_py37(cls: Optional[Type]) -> str:
+         return text
+     elif isinstance(cls, typing._SpecialForm):
+         return ':py:obj:`~%s.%s`' % (cls.__module__, cls._name)
+-    elif hasattr(cls, '__qualname__'):
++    elif getattr(cls, '__qualname__', None):
+         if cls.__module__ == 'typing':
+             return ':py:class:`~%s.%s`' % (cls.__module__, cls.__qualname__)
+         else:
+             return ':py:class:`%s.%s`' % (cls.__module__, cls.__qualname__)
++    elif isinstance(cls, type) and hasattr(cls, '__name__'):
++        if cls.__module__ == 'typing':
++            return ':py:class:`~%s.%s`' % (cls.__module__, cls.__name__)
++        else:
++            return ':py:class:`%s.%s`' % (cls.__module__, cls.__name__)
+     elif isinstance(cls, ForwardRef):
+         return ':py:class:`%s`' % cls.__forward_arg__
+     else:
+diff --git a/tests/test_util_typing.py b/tests/test_util_typing.py
+index d493a00..cb86bc7 100644
+--- a/tests/test_util_typing.py
++++ b/tests/test_util_typing.py
+@@ -51,6 +51,14 @@ def test_restify():
+     assert restify('str') == "str"
+ 
+ 
++def test_restify_class_with_empty_qualname():
++    class MockedClass:
++        __module__ = 'mocked_module'
++        __qualname__ = ''
++
++    assert restify(MockedClass) == ":py:class:`mocked_module.MockedClass`"
++
++
+ def test_restify_type_hints_containers():
+     assert restify(List) == ":py:class:`~typing.List`"
+     assert restify(Dict) == ":py:class:`~typing.Dict`"

@@ -1,0 +1,17 @@
+{
+  "job": "pi-sympy__sympy-18199",
+  "agent": "pi",
+  "instance_id": "sympy__sympy-18199",
+  "smoke": false,
+  "model": "gpt-5.6-luna",
+  "reasoning_effort": "medium",
+  "seconds_limit": 900,
+  "context_tokens": 64000,
+  "output_tokens": 8192,
+  "image_id": "sha256:3fbc4ff81609eecb1f26540433cbc24b8f6e5454472545e19180137e51883e3e",
+  "image_digests": [
+    "swebench/sweb.eval.x86_64.sympy_1776_sympy-18199@sha256:3fbc4ff81609eecb1f26540433cbc24b8f6e5454472545e19180137e51883e3e"
+  ],
+  "prompt": "nthroot_mod function misses one root of x = 0 mod p.\nWhen in the equation x**n = a mod p , when a % p == 0. Then x = 0 mod p is also a root of this equation. But right now `nthroot_mod` does not check for this condition. `nthroot_mod(17*17, 5 , 17)` has a root `0 mod 17`. But it does not return it.\n\n\nThe repository is /testbed at the issue's base revision. Project dependencies are preinstalled; python on PATH is the project's interpreter. Internet access is unavailable. Inspect the public tests to choose relevant checks. Test command format: python bin/test -C --verbose <public test path>. Implement the issue, verify your changes, and summarize the result.",
+  "runner_sha256": "8269fd2ff53eb6bbf8af8c7c19097f80f03c1ee4611425fd9d40606120151bec"
+}
