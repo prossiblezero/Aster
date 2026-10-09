@@ -52,7 +52,15 @@ def completion_feedback(state: RunState) -> str:
         missing.append("inspect the workspace")
     if task.require_edit and not state.changed_paths:
         missing.append("make the requested edit")
-    if task.require_verification and state.verification.state != "passed":
+    if task.require_verification and state.verification_failures:
+        pending = list(state.verification_failures.items())[:3]
+        missing.append(
+            "resolve previously failing tests: "
+            + "; ".join(f"{test} (from {command})" for test, command in pending)
+            + ". Rerun those cases after fixing them; passing a different selection does not "
+            "resolve them. Report remaining failures honestly"
+        )
+    elif task.require_verification and state.verification.state != "passed":
         missing.append(
             "run a successful verification command via run_tests "
             "(run_shell checks do not update formal verification)"

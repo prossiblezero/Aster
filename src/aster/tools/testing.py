@@ -61,6 +61,7 @@ async def run_tests(
 ) -> Outcome:
     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
     argv = shlex.split(command)
+    verification_command = shlex.join(argv)
     python_paths = []
     if len(argv) > 1 and argv[1] == "python" and (paths := local_python_paths(argv[0])):
         python_paths, argv = paths, argv[1:]
@@ -172,14 +173,14 @@ suite = ET.Element('testsuite')
 observed = False
 class StructuredResult(unittest.TextTestResult):
     def startTestRun(self):
-        self.successes = set()
+        self.successes = {}
     def addSuccess(self, test):
         super().addSuccess(test)
-        self.successes.add(test.id())
+        self.successes[test.id()] = f'{type(test).__module__}.{type(test).__qualname__}'
     def addSubTest(self, test, subtest, err):
         super().addSubTest(test, subtest, err)
         if err is None:
-            self.successes.add(test.id())
+            self.successes[subtest.id()] = f'{type(subtest).__module__}.{type(subtest).__qualname__}'
 class Runner(unittest.TextTestRunner):
     resultclass = StructuredResult
 def record_unittest(result):
@@ -193,12 +194,17 @@ def record_unittest(result):
                 ('failure', [(test, 'unexpected success') for test in result.unexpectedSuccesses])]
     for status, entries in outcomes:
         for test, detail in entries:
-            result.successes.discard(test.id())
+            result.successes.pop(test.id(), None)
+            if status == 'skipped':
+                # An expected failure cannot leave earlier subtests counted as success.
+                for name in list(result.successes):
+                    if name.startswith(test.id() + ' ('):
+                        result.successes.pop(name)
             case = ET.SubElement(suite, 'testcase', name=test.id(),
                                  classname=f'{type(test).__module__}.{type(test).__qualname__}')
             ET.SubElement(case, status).text = detail
-    for name in sorted(result.successes):
-        ET.SubElement(suite, 'testcase', name=name, classname='unittest')
+    for name, classname in sorted(result.successes.items()):
+        ET.SubElement(suite, 'testcase', name=name, classname=classname)
 """
             if native:
                 program = program.replace(
@@ -401,4 +407,31 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         else:
             result.reason = failure_reason
     result.data["passed_tests"] = passed if result.status == "success" else 0
+    # Preserve case identities for the verifier; these stay out of model tool output.
+    test_results = {}
+    if node or result.data.get("native_sympy_subprocess") is False:
+        # ponytail: anonymous reports use the same command as their scope;
+        # support narrower reruns when these reporters expose stable case identities.
+        key = "command: " + verification_command
+        if any(case["status"] == "failed" for case in cases or []):
+            test_results[key] = "failed"
+        elif result.status == "success":
+            test_results[key] = "passed"
+    else:
+        scope = argv[1] if native else "go" if go else "unittest" if unittest else "pytest"
+        for case in cases or []:
+            status = case["status"]
+            if status == "error" and result.reason == "test_execution_error":
+                status = "failed"
+            if status not in {"passed", "failed"}:
+                continue
+            classname, name = case["classname"], case["name"]
+            if code:
+                # Each inline execution has a fresh filename, but the same test identity.
+                classname = classname.replace(Path(inline_name).stem, "__aster_inline__")
+                name = name.replace(Path(inline_name).stem, "__aster_inline__")
+            key = f"{scope}: {classname}::{name}"
+            if test_results.get(key) != "failed":
+                test_results[key] = status
+    result.data["test_results"] = test_results
     return result

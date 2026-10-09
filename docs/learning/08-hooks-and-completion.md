@@ -95,6 +95,14 @@ Recovery required (repeated_identical). Change approach and use fresh evidence.
 `completion_feedback()` 检查这些必要条件；`Runtime.finalize()` 负责反馈、次数限制和最终决策。
 正式 `Verifier` 还会检查任务要求的产物等细节，参见 [verifier.py](../../src/aster/core/verifier.py)。
 
+正式验证还要保留已经发现的失败。例如先跑整个模块，发现 `test_old_api` 失败，再只跑新加的 `test_new_api` 并通过，不能据此宣布任务完成。`RunState.verification_failures` 记录失败用例及当时的命令；后续无关测试通过、编辑文件、重建依赖环境、继续任务或恢复 checkpoint，都不会清除这些记录。具名用例需要实际重跑并通过；删除或跳过用例也不算修好。只有已执行测试的证据参与这个判断，不靠模型解释“这是原有问题”来放行。
+
+pytest、unittest 和基于它们的原生入口保留用例身份，允许只补跑此前失败的用例。临时 `run_tests.code` 的随机文件名会归一化，避免每次调用被当成新测试。当前 SymPy 原生报告只有计数，Node 报告的名称缺少可靠的跨文件身份，这两类先按原命令追踪失败，需要原命令成功后清除；它们没有具名用例的逐项覆盖保证。测试命令写错、安装或收集失败仍会使本次验证失败，但不会作为已确认的断言失败永久挂在待解决列表中。
+
+待解决列表放在请求末尾的工作状态中，最多展示八项并给出总数；完整记录保存在运行状态和 trace。固定系统提示只补充通用修复要求：复现问题、检查相关实现与旧接口兼容，声称失败原本存在时应核对修改前的代码。这些要求帮助选择检查范围，不能自动证明修复语义或隐藏测试正确。
+
+这项设计参考了两种不同层面的实现：[pi 的 bash 工具](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/tools/bash.ts)保留命令退出状态与完整输出位置；[SWE-bench 的评分器](https://github.com/SWE-bench/SWE-bench/blob/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/swebench/harness/grading.py)分别核对目标修复与已有行为。Aster 使用自身测试过程发现的失败维护完成条件，不读取 benchmark 的隐藏验收清单。回归用例见 [test_harness.py](../../tests/test_harness.py) 和 [test_inline_verification.py](../../tests/test_inline_verification.py)。
+
 `max_final_revisions` 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
 `completion="strict"` 在最终检查不通过时停止；`warn` 和 `soft` 当前走相同的宽松分支，重试后可带警告结束。
 `off` 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。

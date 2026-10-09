@@ -29,3 +29,27 @@ async def test_inline_checks_execute_against_project_without_publishing_files(tm
         assert outcome.data["passed_tests"] == 1
         assert outcome.data["tested_workspace_hash"] == runtime.workspace.fingerprint()
     runtime.sandbox.close()
+
+
+@pytest.mark.core
+async def test_inline_failure_requires_the_same_case_to_pass_after_repair(tmp_path):
+    (tmp_path / "subject.py").write_text("def answer(): return 41\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
+    code = "from subject import answer\ndef test_answer(): assert answer() == 42\n"
+    failed = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "pytest -q", "code": code,
+    }))
+    assert failed.reason == "tests_failed"
+    unrelated = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "pytest -q", "code": "def test_other(): assert True\n",
+    }))
+    assert unrelated.status == "success"
+    assert not runtime.verifier.final(runtime.state).passed
+    (tmp_path / "subject.py").write_text("def answer(): return 42\n")
+    repaired = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "pytest -q", "code": code,
+    }))
+    assert repaired.status == "success"
+    assert runtime.verifier.final(runtime.state).passed
+    runtime.sandbox.close()

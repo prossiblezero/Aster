@@ -18,13 +18,19 @@ class Verifier:
             state.verification = Verification(
                 state="missing", workspace_hash=self.workspace.fingerprint()
             )
+        if outcome.data.get("is_verification"):
+            for test, status in outcome.data.get("test_results", {}).items():
+                if status == "failed":
+                    state.verification_failures[test] = outcome.data.get("command", "")
+                elif status == "passed":
+                    state.verification_failures.pop(test, None)
         if (
             outcome.data.get("is_verification")
             and outcome.status == "success"
             and outcome.reason != "no_tests_collected"
         ):
             state.verification = Verification(
-                state="passed",
+                state="failed" if state.verification_failures else "passed",
                 workspace_hash=self.workspace.fingerprint(),
                 evidence_id=outcome.evidence_id,
                 command=outcome.data.get("command", ""),
@@ -47,6 +53,9 @@ class Verifier:
             return VerifierResult(passed=False, reason="observation_missing")
         if task.require_edit and not state.changed_paths:
             return VerifierResult(passed=False, reason="edit_missing")
+        if task.require_verification and state.verification_failures:
+            return VerifierResult(passed=False, reason="verification_unresolved_failures",
+                                  details={"failures": state.verification_failures})
         if task.require_verification and state.verification.state != "passed":
             return VerifierResult(passed=False, reason=f"verification_{state.verification.state}")
         if state.pending_requirements:

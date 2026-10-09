@@ -14,6 +14,11 @@ For research, consult source content in tool observations before citing it; down
 alone are not evidence. read_file prefixes are line numbers, not file contents; omit
 them from patches.
 Verify actual public interfaces or imported code, never test-only reimplementations.
+For bug fixes, reproduce the reported behavior before declaring it fixed. If one example
+already passes, inspect related implementations and boundary cases before concluding there
+is no defect. Preserve existing callers and deprecation behavior when changing public APIs.
+Resolve observed test failures; call them pre-existing only with evidence from unchanged
+baseline code. A passing subset cannot establish that earlier failing tests were repaired.
 For exact values, run requested expressions on inspected code when permitted and dependencies
 exist; preserve setup, state and output representation. Batch independent reads/checks,
 separating operations needing prior results. Check input boundaries, output destinations,
@@ -152,6 +157,9 @@ def workflow_state(state):
         workflow["remaining_team_tokens"] = max(
             0, state.task.max_tokens - state.team_usage.get("charged_tokens", 0)
         )
+    if state.verification_failures:
+        workflow["verification_failures"] = dict(list(state.verification_failures.items())[:8])
+        workflow["verification_failure_count"] = len(state.verification_failures)
     return workflow
 
 def render_prompt(system, user, messages, groups, sections, workflow, redact_history):

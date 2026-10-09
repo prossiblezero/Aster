@@ -130,6 +130,118 @@ def test_verifier_infer_respects_read_only_language(tmp_path):
     }
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("native,subtests", [(False, False), (True, False), (True, True)],
+                         ids=["pytest", "native-unittest", "unittest-subtests"])
+async def test_partial_test_success_cannot_erase_an_unfixed_regression(tmp_path, native, subtests):
+    (tmp_path / "app.py").write_text("VALUE = 0\n")
+    (tmp_path / "test_app.py").write_text(
+        "from app import VALUE\n"
+        "def test_regression(): assert VALUE == 1\n"
+        "def test_control(): assert True\n"
+    )
+    full = "python -m pytest -q test_app.py"
+    control, regression = full + "::test_control", full + "::test_regression"
+    if native:
+        check = "    def test_regression(self): self.assertEqual(VALUE, 1)\n"
+        if subtests:
+            check = ("    def test_regression(self):\n"
+                     "        with self.subTest(case='value'): self.assertEqual(VALUE, 1)\n")
+        (tmp_path / "test_app.py").write_text(
+            "import unittest\nfrom app import VALUE\n"
+            "class Check(unittest.TestCase):\n"
+            + check +
+            "    def test_control(self): self.assertTrue(True)\n"
+        )
+        (tmp_path / "runtests.py").write_text(
+            "import sys, unittest\n"
+            "suite = unittest.defaultTestLoader.loadTestsFromName(sys.argv[1])\n"
+            "result = unittest.TextTestRunner().run(suite)\n"
+            "raise SystemExit(not result.wasSuccessful())\n"
+        )
+        full = "python runtests.py test_app.Check"
+        control, regression = full + ".test_control", full + ".test_regression"
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Verify the behavior", require_verification=True))
+    failed = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": full,
+    }))
+    assert failed.reason == "tests_failed"
+    passed = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": control,
+    }))
+    assert passed.status == "success"
+    assert not runtime.verifier.final(runtime.state).passed
+    runtime.finalize("The selected test passed; done.")
+    assert runtime.state.phase != "completed"
+    assert "test_regression" in runtime.state.feedback
+
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "app.py"}))
+    await runtime.step(ToolCall(name="patch_file", arguments={
+        "path": "app.py", "old_text": "VALUE = 0", "new_text": "VALUE = 1",
+    }))
+    await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": control,
+    }))
+    assert not runtime.verifier.final(runtime.state).passed
+    repaired = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": regression,
+    }))
+    assert repaired.status == "success"
+    assert runtime.verifier.final(runtime.state).passed
+
+
+@pytest.mark.parametrize("replacement", [
+    "import pytest\n@pytest.mark.skip(reason='omit')\ndef test_regression(): assert False\n",
+    "",
+], ids=["skipped", "deleted"])
+async def test_skipping_or_deleting_a_failed_test_does_not_resolve_it(tmp_path, replacement):
+    control = "def test_control(): assert True\n"
+    path = tmp_path / "test_app.py"
+    path.write_text("def test_regression(): assert False\n" + control)
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
+    def call():
+        return ToolCall(name="run_tests", arguments={"command": "python -m pytest -q"})
+    assert (await runtime.step(call())).reason == "tests_failed"
+    path.write_text(replacement + control)
+    assert (await runtime.step(call())).status == "success"
+    assert not runtime.verifier.final(runtime.state).passed
+
+
+async def test_failed_cases_survive_checkpoint_resume_and_environment_reset(tmp_path):
+    (tmp_path / "test_app.py").write_text(
+        "def test_regression(): assert False\ndef test_control(): assert True\n"
+    )
+    settings = Settings(approval="auto", memory_enabled=False, reuse_environment=True)
+    runtime = Runtime(tmp_path, settings)
+    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
+    await runtime.step(ToolCall(name="run_tests", arguments={"command": "python -m pytest -q"}))
+    runtime.sandbox.close()
+    resumed = Runtime(tmp_path, settings)
+    resumed.resume(runtime.state.run_id)
+    assert (await resumed.step(ToolCall(name="run_tests", arguments={
+        "command": "python -m pytest -q test_app.py::test_control",
+    }))).status == "success"
+    assert not resumed.verifier.final(resumed.state).passed
+    resumed.sandbox.close()
+    runtime.sandbox.close()
+
+
+async def test_test_collection_error_does_not_become_a_permanent_case_failure(tmp_path):
+    (tmp_path / "test_app.py").write_text("def test_control(): assert True\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
+    bad = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "python -m pytest --unknown-option",
+    }))
+    assert bad.status != "success"
+    assert (await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "python -m pytest -q",
+    }))).status == "success"
+    assert runtime.verifier.final(runtime.state).passed
+
+
 def test_provider_reply_keeps_usage_for_cost_metrics():
     reply = responses_reply(
         {"model": "gpt-5.6-luna", "output_text": "ok", "output": []},
