@@ -433,7 +433,20 @@ if App is not None:
                     exit_on_error=False,
                 )
                 return
-            # Local inspection stays available during a request. Other input stays in the composer.
+            if self.busy and not command.startswith("/"):
+                try:
+                    self.runtime.enqueue_user_message(prompt)
+                except (OSError, ValueError) as exc:
+                    self._write(f"消息未发送：{exc}", style="#efb38f")
+                    return
+                event.input.value = ""
+                self._history.append(prompt)
+                self._history = self._history[-200:]
+                self._history_index, self._draft = len(self._history), ""
+                self._write(f"\n› 你\n{prompt}", style="#c0ddc7")
+                self._write("已接收补充消息，将在当前操作结束后处理。")
+                return
+            # Local inspection stays available; state-changing commands wait for idle.
             if self.busy and not allowed_while_busy(command, argument):
                 self._write(
                     "任务仍在运行；输入内容已保留。可用 /cancel 或 Ctrl+C 取消，quit 退出。",
@@ -563,7 +576,7 @@ if App is not None:
             self._started_at, self._activity = time.monotonic(), "准备上下文"
             self._main_query(
                 "#prompt", Input
-            ).placeholder = "任务运行中 · /help 帮助 · /cancel 取消 · quit 退出"
+            ).placeholder = "任务运行中 · 可直接发送补充消息 · /cancel 取消"
             self.task_worker = self.run_worker(
                 self._run_task(prompt, adopt_workspace=adopt_workspace, runtime=self.runtime), exit_on_error=False
             )

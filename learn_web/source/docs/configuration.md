@@ -87,7 +87,7 @@ Shell/测试输出最多采集 4 MiB，正常、失败及超时结束均在脱�
 |---|---|---|
 | `approval` | `ask` | `ask` 需要真实用户批准；没有回调就拒绝。`auto` 允许策略内的常规写入或执行；显式 `ask` 规则仍会询问。`never` 不提供人工批准，拒绝仍需审批的动作 |
 | `sandbox` | `required` | `required` 要求隔离可用；`best_effort` 仅在没有只读/写入范围约束时可记录降级并直接运行；`off` 关闭隔离，也不能执行需要隔离保证的只读或范围约束命令 |
-| `network` | `false` | 隔离子进程是否可以联网；不控制 Harness 自身调用模型 API 的网络 |
+| `network` | `false` | 隔离子进程及 HTTP MCP 是否可以联网；不控制模型 API，也不约束独立的可信 stdio MCP 进程 |
 | `read_only` | `false` | 阻止写工具；Shell 在隔离副本内运行且不能把修改带回工作区 |
 | `write_scope` | `None` | 工作区内允许写入的相对路径前缀。`None` 不额外收窄；`[]` 不允许写任何文件；`["src", "tests"]` 仅允许这两个路径及其后代 |
 | `rules` | `[]` | 命令参数前缀规则；字段解释见下文 |
@@ -125,9 +125,13 @@ Git 工作区通过本机 Git 排除未跟踪且被忽略的文件与目录，�
 
 ## 运行、记忆与完成条件
 
+MCP 使用可选依赖与 `[mcp_servers.NAME]` 配置，支持 stdio 和 Streamable HTTP；GitHub 及自编文件管理器的可运行配置、权限和首版边界见 [MCP 使用说明](mcp.md)。凭证通过环境变量名引用，空配置不加载 SDK。
+
 | 字段 | 默认值 | 含义与边界 |
 |---|---|---|
 | `max_recovery` | `1` | 检测到重复无进展后，最多给多少次改变方案的机会；用尽后停止 |
+| `circuit_failures` | `3` | 连续服务故障达到该次数后熔断；模型请求以内部重试耗尽后的一次调用计数，MCP 按端点操作计数 |
+| `circuit_cooldown` | `30` | 熔断冷却秒数；到期只允许一个探测请求，成功恢复，失败再次冷却 |
 | `max_final_revisions` | `2` | 模型准备结束但尚未满足任务条件时，最多要求它补做多少轮 |
 | `completion` | `strict` | `strict` 不满足完成条件就停止；`warn` 允许带警告完成；`soft` 当前与 `warn` 等价；`off` 不要求补做，但仍输出验证结果 |
 | `memory_enabled` | `true` | 开关跨运行记忆的保存和召回；**不关闭会话内 working memory** |
@@ -152,6 +156,12 @@ Runtime 只对未显式设置的条件做文字推断；显式 `False` 会保留
 同一 Runtime 同时只接受一个运行操作，单个 RL episode 也只允许一个在途 `step`；并发调用明确返回 busy。idle 状态重新 `start` 会以 `superseded` 结束旧任务，`resume` 不会覆盖活动任务。终态自动汇总当前任务 Worker 的修改，旧任务的 Worker ID 不能污染新任务；取消后迟到的审批或模型返回不能继续写文件。
 
 TUI 普通追问延续同一会话，`/new` 开新会话；`/continue` 从中断状态继续。每次续聊分配新的 `run_id` 和有界步数/轮数，保留 `session_id`、原请求、历史和已执行调用 ID。未完成任务的反馈继承旧交付要求，不能用“继续”绕过修改、测试或必需产物。已完成任务的新追问按新反馈推断要求；新反馈会使旧测试及读取证据失效。显式 `Runtime.continue_task(max_steps=..., max_turns=...)` 可设置本次预算。
+
+运行中按 Enter 发送普通消息，会加入当前会话的持久化队列。当前模型请求或已经执行的工具结束后，Runtime 在安全边界交付消息；尚未执行的旧工具返回 `user_message_pending`，模型读取新要求后重新决定。旧最终回答不能越过待处理消息直接结束任务。消息不重置原任务的预算和验收要求，交付时清除旧读取/测试证据；取消或预算耗尽后，未处理消息会留给续聊。队列最多 16 条，每条最多 16,384 字符，不同会话各自保存。Python 调用入口是 `Runtime.enqueue_user_message(text)`。
+
+有副作用的 `write` / `process` 工具可通过 `ToolCall.idempotency_key` 指定稳定操作键，省略时使用 `call_id`。同一工作区、同一会话内，键相同且工具、参数和权限配置相同的调用复用持久化结果；换了调用 ID、恢复会话或选择历史分支也不会再次执行。相同键用于不同参数会返回 `idempotency_conflict`；超时、取消或崩溃留下的未确定操作返回 `idempotency_uncertain`。需要先核对实际效果，再决定是否以新键发起新的操作。复用结果不会生成新修改或新测试通过证据。MCP 写工具会向模型提供 `_aster_idempotency_key` 参数，Aster 提取后不会传给服务器。操作记录在 `.aster/operations`；此机制不提供跨工作区、跨会话或远端数据库的恰好一次事务。
+
+熔断计数仅针对网络、超时和已知的服务暂时不可用错误；参数、鉴权错误及正常返回的工具业务错误不累计故障。模型熔断属于当前 `ModelClient`，MCP 熔断属于当前 Runtime 的各端点；状态在进程内保存，重启会重置。冷却期内快速返回 `circuit_open` / `mcp_circuit_open`，不等待或发送请求；取消不会计为服务故障。模型不会自动换模型，MCP 可按显式的 `fallbacks` 配置切换服务，详见 [MCP 说明](mcp.md)。
 
 CLI `aster --resume RUN_ID [反馈]` 或 TUI `/resume RUN_ID` 恢复后启动上述续聊。默认拒绝模型身份或工作区漂移；明确加 `--allow-model-change` 才转换模型历史，加 `--adopt-workspace` 才接受外部修改并清除旧读取/测试证据。TUI `/continue --adopt-workspace` 同样支持工作区采纳。模型变化不允许安全身份变化。
 

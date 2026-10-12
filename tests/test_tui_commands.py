@@ -59,7 +59,8 @@ async def test_busy_input_help_and_cancel_remain_responsive(tmp_path, action):
         assert "运行中" in log_text(app)
         prompt.value = "下一条任务"
         await pilot.press("enter")
-        assert prompt.value == "下一条任务" and model.requests == 1
+        assert prompt.value == "" and model.requests == 1
+        assert app.runtime.state.user_inbox[0]["content"] == "下一条任务"
         if action in {"quit", "/cancel"}:
             prompt.value = action
             await pilot.press("enter")

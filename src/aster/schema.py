@@ -18,6 +18,20 @@ class ToolCall(Record):
     name: str = Field(min_length=1, max_length=80)
     arguments: dict[str, Any] = Field(default_factory=dict)
     call_id: str = Field(default_factory=lambda: uuid4().hex, min_length=1, max_length=160)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=160)
+
+    @model_validator(mode="before")
+    @classmethod
+    def host_operation_key(cls, values):
+        if isinstance(values, dict) and isinstance(values.get("arguments"), dict):
+            arguments = values["arguments"]
+            if "_aster_idempotency_key" in arguments:
+                arguments = dict(arguments)
+                key = arguments.pop("_aster_idempotency_key")
+                if values.get("idempotency_key") not in (None, key):
+                    raise ValueError("conflicting idempotency keys")
+                values = {**values, "arguments": arguments, "idempotency_key": key}
+        return values
 
 
 class Final(Record):
@@ -112,6 +126,8 @@ class RunState(Record):
     handoff_sources: list[dict[str, Any]] = Field(default_factory=list)
     worker_sessions: dict[str, dict[str, Any]] = Field(default_factory=dict)
     loaded_tools: list[str] = Field(default_factory=list)
+    user_inbox: list[dict[str, str]] = Field(default_factory=list)
+    delivered_user_messages: list[str] = Field(default_factory=list)
 
     @property
     def terminal(self) -> bool:

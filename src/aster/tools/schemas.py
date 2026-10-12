@@ -337,15 +337,16 @@ WORKFLOW_TOOLS = {
 
 
 def definitions(
-    names: list[str] | None = None, *, available: list[str] | None = None
+    names: list[str] | None = None, *, available: list[str] | None = None, schemas=None
 ) -> list[dict]:
-    selected = list(SCHEMAS) if names is None else names
-    unloaded = sorted(set(SCHEMAS if available is None else available) - set(selected))
+    schemas = SCHEMAS if schemas is None else schemas
+    selected = list(schemas) if names is None else names
+    unloaded = sorted(set(schemas if available is None else available) - set(selected))
     result = []
     for name in selected:
         if name == "tool_load" and not unloaded:
             continue
-        model, description, _effect = SCHEMAS[name]
+        model, description, _effect = schemas[name]
         schema = model.model_json_schema()
         if name == "run_tests" and available is not None and "memory_store" not in available:
             schema["properties"].pop("memory_ids")

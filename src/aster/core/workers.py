@@ -127,11 +127,13 @@ class WorkerManager:
         )
 
     def _settings(self, read_only, scope):
-        return Settings.model_validate({
+        settings = Settings.model_validate({
             **self.parent.settings.model_dump(), "read_only": read_only,
             "write_scope": [] if read_only else scope, "max_workers": 0,
             "memory_enabled": False, "memory_evolution": False, "auto_dream": False,
         })
+        settings._mcp_credentials = self.parent.settings._mcp_credentials.copy()
+        return settings
 
     def _runtime(self, settings):
         from .runtime import Runtime

@@ -1,0 +1,22 @@
+# pip install -e '.[mcp]'
+# cp mcp.toml.example mcp.toml
+# Set GITHUB_TOKEN in the launch directory's .env or process environment.
+# aster --config mcp.toml --cwd /path/to/workspace
+network = true
+# Service circuits: consecutive failures and cooldown in seconds.
+circuit_failures = 3
+circuit_cooldown = 30
+
+[mcp_servers.github]
+url = "https://api.githubcopilot.com/mcp/readonly"
+bearer_token_env = "GITHUB_TOKEN"
+# To add your own equivalent GitHub replica, define that server below and set:
+# fallbacks = ["github_backup"]
+enabled_tools = ["search_repositories", "search_code", "get_file_contents", "search_issues", "issue_read", "search_pull_requests", "pull_request_read", "list_commits", "get_commit"]
+read_only_tools = ["search_repositories", "search_code", "get_file_contents", "search_issues", "issue_read", "search_pull_requests", "pull_request_read", "list_commits", "get_commit"]
+
+[mcp_servers.filesystem]
+# "python" uses the interpreter running Aster; relative paths use the workspace.
+command = "python"
+args = ["-I", "-m", "aster.mcp_files", "--root", ".", "--allow-write"]
+read_only_tools = ["list_directory", "read_file"]

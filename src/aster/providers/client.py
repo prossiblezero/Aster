@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from ..config import Settings
+from ..resilience import CircuitBreaker, CircuitOpen
 from ..safety.redaction import Redactor
 from ..schema import ModelReply
 from .codec import parse_reply, request_payload
@@ -24,8 +25,21 @@ class ModelClient:
         self.last_usage: dict[str, int] = {}
         self.last_diagnostics: dict[str, Any] = {}
         self.redaction_secrets = [settings.api_key.get_secret_value()]
+        self.circuit = CircuitBreaker(settings.circuit_failures, settings.circuit_cooldown)
 
     async def complete(
+        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
+    ) -> ModelReply:
+        try:
+            with self.circuit.guard(lambda exc: isinstance(exc, ProviderError) and
+                                    exc.details["category"] in {"transport", "transient_http", "transient_provider"}):
+                return await self._complete(messages, tools, on_event=on_event)
+        except CircuitOpen as exc:
+            self.last_usage, self.last_diagnostics = {}, {"retry_after": exc.retry_after}
+            raise ProviderError(str(exc), category="circuit_open", attempts=0,
+                                diagnostics=self.last_diagnostics) from None
+
+    async def _complete(
         self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
     ) -> ModelReply:
         accounting = RequestAccounting(self.settings, self.redaction_secrets)

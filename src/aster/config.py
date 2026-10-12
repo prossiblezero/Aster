@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from pathlib import Path
 from typing import Annotated, Literal
@@ -35,6 +36,54 @@ class ExecRule(Record):
             if args[: len(self.prefix)] == self.prefix:
                 raise ValueError("rule not_match example matches its prefix")
         return self
+
+
+class MCPServer(Record):
+    """Explicitly trusted server; credentials are environment references only."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+    command: str | None = Field(default=None, min_length=1)
+    args: list[str] = Field(default_factory=list)
+    cwd: str | None = None
+    url: str | None = None
+    env: dict[str, str] = Field(default_factory=dict)
+    headers_env: dict[str, str] = Field(default_factory=dict)
+    bearer_token_env: str | None = None
+    enabled: bool = True
+    enabled_tools: list[str] | None = None
+    read_only_tools: list[str] = Field(default_factory=list)
+    timeout: float = Field(default=30, gt=0, le=300)
+    fallbacks: list[str] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def valid_server(self):
+        if bool(self.command) == bool(self.url):
+            raise ValueError("MCP server needs exactly one of command or url")
+        if self.url:
+            url = urlsplit(self.url)
+            if (url.scheme not in {"https", "http"} or not url.hostname
+                    or url.username is not None or url.password is not None
+                    or url.query or url.fragment):
+                raise ValueError("MCP url must be HTTP(S) without credentials, query or fragment")
+            if url.scheme == "http" and url.hostname not in {"localhost", "127.0.0.1", "::1"}:
+                raise ValueError("remote MCP requires HTTPS; HTTP is only allowed on loopback")
+            if self.args or self.cwd or self.env:
+                raise ValueError("args, cwd and env apply only to stdio MCP servers")
+        elif self.headers_env or self.bearer_token_env:
+            raise ValueError("HTTP credentials require an MCP url")
+        for name in [*self.env, *self.env.values(), *self.headers_env.values(),
+                     *([self.bearer_token_env] if self.bearer_token_env else [])]:
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
+                raise ValueError("MCP credentials must name environment variables")
+        if any(not re.fullmatch(r"[A-Za-z0-9-]+", key) for key in self.headers_env):
+            raise ValueError("invalid MCP header name")
+        if self.bearer_token_env and any(key.lower() == "authorization" for key in self.headers_env):
+            raise ValueError("configure Authorization only once")
+        return self
+
+    def credential_names(self) -> set[str]:
+        return {*self.env.values(), *self.headers_env.values(),
+                *([self.bearer_token_env] if self.bearer_token_env else [])}
 
 
 class ModelProfile(Record):
@@ -100,6 +149,8 @@ class Settings(Record):
         Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")], ModelProfile
     ] = Field(default_factory=dict, exclude=True, repr=False)
     _profile_credentials: dict[str, SecretStr] = PrivateAttr(default_factory=dict)
+    mcp_servers: dict[Annotated[str, Field(pattern=r"^[A-Za-z][A-Za-z0-9_]{0,23}$")], MCPServer] = Field(default_factory=dict)
+    _mcp_credentials: dict[str, SecretStr] = PrivateAttr(default_factory=dict)
     protocol: Literal["responses", "chat", "anthropic"] = "responses"
     model: str = "gpt-5.6-luna"
     base_url: str = "https://api.openai.com/v1"
@@ -107,6 +158,8 @@ class Settings(Record):
     auth: Literal["required", "none"] = "required"
     stream: bool = False
     request_timeout: float = Field(default=90, gt=0, le=300)
+    circuit_failures: int = Field(default=3, ge=1, le=20)
+    circuit_cooldown: float = Field(default=30, gt=0, le=300)
     context_tokens: int | None = Field(
         default=None,
         ge=1024,
@@ -132,6 +185,21 @@ class Settings(Record):
 
     @model_validator(mode="after")
     def valid_budget(self):
+        visited = set()
+
+        def visit(name, path):
+            if name not in self.mcp_servers:
+                raise ValueError(f"unknown MCP fallback server: {name}")
+            if name in path:
+                raise ValueError("MCP fallback cycle")
+            if name in visited:
+                return
+            for backup in self.mcp_servers[name].fallbacks:
+                visit(backup, {*path, name})
+            visited.add(name)
+
+        for name in self.mcp_servers:
+            visit(name, set())
         if self.reuse_environment and self.sandbox != "required":
             raise ValueError("reuse_environment requires sandbox=required")
         if self.stream and self.protocol != "responses":
@@ -163,7 +231,11 @@ class Settings(Record):
             }
         )
         selected._profile_credentials = self._profile_credentials.copy()
+        selected._mcp_credentials = self._mcp_credentials.copy()
         return selected
+
+    def mcp_credential(self, name: str) -> str:
+        return self._mcp_credentials.get(name, SecretStr(os.environ.get(name, ""))).get_secret_value()
 
     @property
     def effective_context_tokens(self) -> int:
@@ -204,6 +276,13 @@ class Settings(Record):
     def identity(self) -> dict:
         """Checkpoints bind to effective boundaries, not credentials."""
         identity = self.model_dump(mode="json", exclude={"api_key", "base_url"})
+        # Keep default identities compatible with checkpoints made before resilience options.
+        for name, default in (("circuit_failures", 3), ("circuit_cooldown", 30)):
+            if identity[name] == default:
+                identity.pop(name)
+        for server in identity["mcp_servers"].values():
+            if not server["fallbacks"]:
+                server.pop("fallbacks")
         identity["context_tokens"] = self.effective_context_tokens
         identity["output_tokens"] = self.effective_output_tokens
         return identity
@@ -265,4 +344,10 @@ def load_settings(
         values.setdefault("stream", values.get("protocol", "responses") == "responses")
     result = Settings.model_validate(values)
     result._profile_credentials = credentials
+    result._mcp_credentials = {
+        name: SecretStr(env[name])
+        for server in result.mcp_servers.values()
+        for name in server.credential_names()
+        if env.get(name)
+    }
     return result

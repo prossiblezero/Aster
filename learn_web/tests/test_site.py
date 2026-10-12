@@ -245,6 +245,7 @@ def test_site_specific_contracts():
     assert source.is_file()
     assert {path.name for path in package.glob("*.py.html")} == {
         "__init__.py.html", "cli.py.html", "config.py.html", "schema.py.html", "messages.py.html",
+        "mcp_files.py.html", "resilience.py.html",
     }
     parsed_source = parse_page(source)
     assert "L1" in parsed_source.ids and any(url == "#L1" for _, url in parsed_source.urls)
