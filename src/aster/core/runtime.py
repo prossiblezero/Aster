@@ -1407,7 +1407,7 @@ class Runtime:
         context = ToolContext(
             self.workspace, self.sandbox, state.run_id, expected_files=expected_files,
             readonly=state.mode == "plan", workflow=None if detached else self._workflow_tools(),
-            mcp=self.mcp,
+            mcp=self.mcp, baseline=self._initial_text, checked_baseline=set(state.baseline_results),
         )
         return call, ToolRegistry(context, validated=(call, arguments))
 

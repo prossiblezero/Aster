@@ -1,7 +1,7 @@
 """Validate direct calls or dispatch the exact arguments already preflighted by Runtime."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
@@ -35,6 +35,8 @@ class ToolContext:
     run_id: str
     expected_files: dict[str, str | None] | None = None
     readonly: bool = False
+    baseline: dict[str, str] | None = None
+    checked_baseline: set[str] = field(default_factory=set)
     workflow: WorkflowTools | None = None
     mcp: MCPTools | None = None
 

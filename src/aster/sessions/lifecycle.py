@@ -127,6 +127,9 @@ def prepare_continuation(
     if limits:
         state.task = TaskSpec.model_validate({**state.task.model_dump(), **limits})
     if feedback is not None or drift:
+        # A new task baseline must not inherit the previous task's waivers.
+        state.verification_failures.update(state.preexisting_failures)
+        state.baseline_results, state.preexisting_failures = {}, {}
         state.verification = Verification()
         state.read_evidence, state.working_memory, state.recalled_ids = {}, {}, []
     if drift:

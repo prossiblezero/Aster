@@ -105,6 +105,8 @@ class RunState(Record):
     changed_paths: list[str] = Field(default_factory=list)
     verification: Verification = Field(default_factory=Verification)
     verification_failures: dict[str, str] = Field(default_factory=dict)
+    baseline_results: dict[str, str] = Field(default_factory=dict)
+    preexisting_failures: dict[str, str] = Field(default_factory=dict)
     final: str = ""
     feedback: str = ""
     final_revisions: int = 0

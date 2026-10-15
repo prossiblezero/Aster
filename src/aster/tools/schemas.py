@@ -78,8 +78,9 @@ class RunShell(Record):
 class RunTests(Record):
     command: str = Field(default="pytest -q", min_length=1)
     timeout: int = Field(default=60, ge=1, le=120)
-    code: str = Field(default="", max_length=65536, description="Temporary pytest functions or unittest.TestCase code (no discover); sandbox only. Omit for existing tests.")
+    code: str = Field(default="", max_length=65536, description="Temporary sandbox pytest/unittest code; no discover.")
     memory_ids: list[str] = Field(default_factory=list, max_length=8, description="Applied and tested memory IDs.")
+    preexisting: list[str] = Field(default_factory=list, max_length=20, description="Failing test ids that the latest baseline check showed also fail on the unmodified task files and that the task does not require to pass.")
 
 
 class TodoAdd(Record):
@@ -244,7 +245,7 @@ SCHEMAS = {
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
+        "Run pytest, python -m pytest/unittest, Python unittest/pytest/SymPy scripts, node --test (node:test), or go test. Reporter flags reserved. PYTHONPATH is workspace-relative; keep .venv for reuse_environment. Other checks: run_shell, unverified.",
         "process",
     ),
     "observation_read": (

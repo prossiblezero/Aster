@@ -29,3 +29,14 @@
 - 回滚：`git revert v11-stage2`；或 `git switch -c rollback/turn-stage2 v11-stage1`。
 - 初版沿用冗长的搜索说明，新增 3 个 4096 上下文测试失败。改为方案指定的精简工具描述，分页语义仍由参数定义和返回字段表达；定向复核已恢复到基线失败集合。记录见 `stage2-before-trim-checks.json`，未修改测试断言或上下文策略。
 - 最终全量：ruff 通过，core 484 passed，noncore 822 passed / 6 个基线失败 / 4 skipped；相对基线新增通过 6 项，新增失败 0。详见 `stage2-checks.json`。
+
+## Stage 3
+
+- `run_tests` 包装现有 `_run_tests`：新失败在同一工具调用内，以相同命令/超时，在临时工作区恢复 `_initial_text` 后复跑。恢复改动/删除文本、移除新文本，其他文件保留；内联检查不复跑，已检查 ID 不重复复跑。
+- 记录 failed / passed / missing。基线执行不可用不写证据；基线摘要被长输出裁剪时，`Verifier.observe` 在预览末尾补回，避免模型看不到操作提示。
+- `RunState` 保存基线结果与显式声明；仅接受有 failed 基线证据的声明。保留工具真实 tests_failed 结果；仅当该次完整测试的失败全部已声明、且没有执行错误或文件/环境漂移时，任务验证可通过。最终 details 和 workflow_state 明示未修复的既有失败。
+- 检查点/恢复沿用现有 RunState 序列化；任务续写或采纳外部修改引起基线更新时，清空旧证据与豁免，并把原豁免失败重新纳入门禁。
+- 系统提示只替换方案指定的一句；`completion_feedback`、最终验收顺序、缓存策略、Worker 和两组保护测试均未改变。
+- 新 schema 一度增加小窗口失败；仅压缩 run_tests 工具与 code 参数中重复的说明，保留执行器约束，不改预算策略或既有断言。最终仅剩原基线失败。
+- 新增 9 项核心测试全部通过；原正式测试路径定向检查 46 passed / 4 skipped（加后续新增竞态测试单独验证）；最终全量 ruff 通过，core 493 passed，noncore 822 passed / 6 个基线失败 / 4 skipped。相对 Stage 0 共新增通过 15 项、新增失败 0。
+- 回滚：`git revert v11-stage3`；或 `git switch -c rollback/turn-stage3 v11-stage2`。

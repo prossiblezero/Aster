@@ -37,8 +37,7 @@ Verify actual public interfaces or imported code, never test-only reimplementati
 For bug fixes, reproduce the reported behavior before declaring it fixed. If one example
 already passes, inspect related implementations and boundary cases before concluding there
 is no defect. Preserve existing callers and deprecation behavior when changing public APIs.
-Resolve observed test failures; call them pre-existing only with evidence from unchanged
-baseline code. A passing subset cannot establish that earlier failing tests were repaired.
+Resolve observed test failures. run_tests automatically checks new failures against the unmodified task files; declare a failure pre-existing only when that baseline check shows it and the task does not require it to pass. A passing subset cannot establish that earlier failing tests were repaired.
 For exact values, run requested expressions on inspected code when permitted and dependencies
 exist; preserve setup, state and output representation. Batch independent reads/checks,
 separating operations needing prior results. Check input boundaries, output destinations,
@@ -191,6 +190,9 @@ def workflow_state(state):
     if state.verification_failures:
         workflow["verification_failures"] = dict(list(state.verification_failures.items())[:8])
         workflow["verification_failure_count"] = len(state.verification_failures)
+    if state.preexisting_failures:
+        workflow["preexisting_failures"] = dict(list(state.preexisting_failures.items())[:8])
+        workflow["preexisting_failure_count"] = len(state.preexisting_failures)
     return workflow
 
 def render_prompt(system, user, messages, groups, notes, redact_history):
