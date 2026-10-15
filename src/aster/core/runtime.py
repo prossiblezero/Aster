@@ -1171,6 +1171,16 @@ class Runtime:
                 state.working_memory.pop(path, None)
             state.working_memory.pop("__search__", None)
             state.working_memory.pop("__run_tests__", None)
+        if (outcome.status == "success" and call.name in {"write_file", "patch_file"}
+                and outcome.data.get("written_sha256")):
+            path = call.arguments["path"]
+            try:
+                # One read binds the raw write receipt and the normalized gate hash.
+                current, fingerprint = read_edit_source(self.workspace.path(path))
+                if fingerprint == outcome.data["written_sha256"]:
+                    state.read_evidence[path] = hashlib.sha256(current.encode()).hexdigest()
+            except (OSError, ValueError, UnicodeError):
+                pass  # External changes never grant new read evidence.
         self._refresh_observations()
         if (call.name == "worker_finish" and outcome.status == "success"
                 and not outcome.data.get("stop_requested")):
@@ -1359,9 +1369,8 @@ class Runtime:
                         status="blocked",
                         reason="fresh_read_required",
                         content=(
-                            f"Call read_file on {path} before retrying. Every successful edit "
-                            "invalidates the previous read, including edits in the same batch. "
-                            "Combine planned changes in one write_file or patch_file when possible."
+                            "The file changed since your last read_file or your own last edit. "
+                            f"Call read_file on {path} before retrying."
                         ),
                     )
             # Raw bytes preserve newline-only edits too; None means create-only.

@@ -228,12 +228,12 @@ SCHEMAS = {
     ),
     "write_file": (
         WriteFile,
-        "Create or replace a workspace file. Before editing an existing file, call read_file. Each successful edit invalidates that read: read_file again before another edit to the same file. Combine multiple changes in one write or patch when possible.",
+        "Create or replace a workspace file. Before editing an existing file, call read_file. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Combine multiple changes in one write or patch when possible.",
         "write",
     ),
     "patch_file": (
         PatchFile,
-        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Call read_file before editing; every successful edit invalidates that read. Preserves BOM and newline style.",
+        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Call read_file before the first edit. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Preserves BOM and newline style.",
         "write",
     ),
     "run_shell": (

@@ -173,6 +173,8 @@ class WorkspaceTools:
             self.context.workspace, command, expected_files=self.context.expected_files
         )
         result.data["path"] = args.path
+        if result.status == "success":
+            result.data["written_sha256"] = digest(args.content.encode())
         return result
 
     async def _patch_file(self, args: PatchFile) -> Outcome:
@@ -241,6 +243,8 @@ class WorkspaceTools:
         result = await self.context.sandbox.run(
             self.context.workspace, command, expected_files=self.context.expected_files
         )
+        if result.status == "success":
+            result.data.update(path=args.path, written_sha256=digest(new_text.encode()))
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:

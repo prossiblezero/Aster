@@ -26,11 +26,12 @@ async def test_batch_matches_original_and_preserves_bom_and_mixed_newlines(tmp_p
     }))
     assert outcome.status == "success", outcome
     assert (tmp_path / "a.txt").read_bytes() == b"\xef\xbb\xbfbeta\r\nsecond\nthird\r\nlast\r\n"
-    assert "a.txt" not in runtime.state.read_evidence
+    assert "a.txt" in runtime.state.read_evidence
     again = await runtime.step(ToolCall(name="patch_file", arguments={
         "path": "a.txt", "edits": [{"old_text": "beta", "new_text": "no"}],
     }))
-    assert again.reason == "fresh_read_required"
+    assert again.status == "success"
+    assert (tmp_path / "a.txt").read_bytes() == b"\xef\xbb\xbfno\r\nsecond\nthird\r\nlast\r\n"
 
 
 @pytest.mark.parametrize("edits,reason", [
