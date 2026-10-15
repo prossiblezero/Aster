@@ -40,3 +40,14 @@
 - 新 schema 一度增加小窗口失败；仅压缩 run_tests 工具与 code 参数中重复的说明，保留执行器约束，不改预算策略或既有断言。最终仅剩原基线失败。
 - 新增 9 项核心测试全部通过；原正式测试路径定向检查 46 passed / 4 skipped（加后续新增竞态测试单独验证）；最终全量 ruff 通过，core 493 passed，noncore 822 passed / 6 个基线失败 / 4 skipped。相对 Stage 0 共新增通过 15 项、新增失败 0。
 - 回滚：`git revert v11-stage3`；或 `git switch -c rollback/turn-stage3 v11-stage2`。
+
+## Stage 4
+
+- 冻结协议 `PROTOCOL.md`、执行器 `evaluate.py`、缓存计量 `metrics.py`、逐轮审计 `audit.py`。CLI 支持 `--round`、`--tasks`、`--attempt`；私有原始目录分轮/尝试隔离并加运行锁，拒绝覆盖未分类的已启动尝试。
+- 第一轮运行时从 `v11-stage2` / `b2b195c` 导出；第二轮从 `v11-stage3` / `8290388` 导出。`manifest-round1.json`、`manifest-round2.json` 保存完整 SHA-256。已验证第一轮没有 Stage 3 字段、源码与标签一致。
+- 离线检查复现 v10 全部轮次与缓存指标，包括 378 次有用量前台请求、加权成本 3.524968；验证 8/18 边界、条件补两次规则、禁止重复任务/覆盖原始数据、声明证据关联。记录 `offline-checks.json`。
+- Docker 可用，20 道题涉及的 18 个镜像全部存在，控制环境包含 SWE-bench；`environment-readiness.json`。未创建评测任务容器、未发起模型请求。
+- 完整前缀、轨迹来源、外部修改门禁等保护范围复核见 `scope-check.json`；AST 核对系统提示只改了授权的那一句。
+- 两轮各 32 次任务尝试，条件补考至多再加 2 次；第二轮必须先通过第一轮且另获确认。只用每轮 attempt 1 的 old20 比成本；声明需要逐条人工核对任务相关性，不由基线失败自动判定豁免合理。
+- 本轮停止于方案指定的付费执行确认点，没有新 benchmark 成绩，也不据局部机制测试宣称 token / 费用已经降低。
+- 回滚评测准备提交：`git revert v11-stage4`；或 `git switch -c rollback/turn-stage4 v11-stage3`。私有冻结快照保留供复现。
