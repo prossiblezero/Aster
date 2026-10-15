@@ -1,0 +1,39 @@
+{
+  "policy": "Discovered during post-run inspection of completed attempts. Retain all 50 tasks and original assertion-based scores; no outcome-based replacement, resampling, or corrected score. These limitations qualify interpretation and future dataset revisions.",
+  "tasks": {
+    "bigcodebench-35": {
+      "issue": "internally_inconsistent_return_contract",
+      "evidence": [
+        "complete_prompt Returns says matplotlib.axes.Axes",
+        "complete_prompt example unpacks df1, ax",
+        "canonical_solution and every test require (DataFrame, Axes)"
+      ],
+      "observed": "All three candidates returned an Axes and all six upstream tests failed at tuple unpacking."
+    },
+    "bigcodebench-602": {
+      "issue": "underspecified_matrix_format",
+      "evidence": [
+        "complete_prompt requests a CSV containing a 2D random-letter matrix but specifies neither 10x10 shape nor tab delimiter",
+        "canonical_solution writes 10x10 with tab separator; tests read tab-separated data and require that shape"
+      ],
+      "observed": "All three candidates failed shape/letter assertions when their comma-delimited output was read with the required hidden tab separator."
+    },
+    "bigcodebench-804": {
+      "issue": "assertions_constrain_undocumented_details",
+      "evidence": [
+        "complete_prompt omits ValueError requirements for invalid input",
+        "test asserts exact open(path, mode) call signature and exact write call count"
+      ],
+      "observed": "All three candidates failed upstream assertions, including the undocumented invalid-input contract and exact call checks."
+    },
+    "bigcodebench-1052": {
+      "issue": "implementation_specific_mock",
+      "evidence": [
+        "complete_prompt requires saving a plot, without requiring pyplot.savefig",
+        "test_save_plot mocks matplotlib.pyplot.savefig and asserts it was called",
+        "preserved Aster tool calls use ax.figure.savefig; pi uses fig.savefig"
+      ],
+      "observed": "Aster and pi pass four of five tests but fail the pyplot-specific mock; this alone does not establish failure to save the plot."
+    }
+  }
+}

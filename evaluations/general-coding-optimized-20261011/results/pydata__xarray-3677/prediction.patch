@@ -1,0 +1,50 @@
+diff --git a/xarray/coding/cftimeindex.py b/xarray/coding/cftimeindex.py
+index 4005d4f..1df30bf 100644
+--- a/xarray/coding/cftimeindex.py
++++ b/xarray/coding/cftimeindex.py
+@@ -252,6 +252,9 @@ class CFTimeIndex(pd.Index):
+         result = object.__new__(cls)
+         result._data = np.array(data, dtype="O")
+         result.name = name
++        # Keep the pandas Index state needed by newer pandas versions.
++        result._cache = {}
++        result._id = object()
+         return result
+ 
+     def _partial_date_slice(self, resolution, parsed):
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804..4058ff3 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -809,6 +809,11 @@ def dataset_merge_method(
+     # method due for backwards compatibility
+     # TODO: consider deprecating it?
+ 
++    from .dataarray import DataArray
++
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
++
+     if isinstance(overwrite_vars, Iterable) and not isinstance(overwrite_vars, str):
+         overwrite_vars = set(overwrite_vars)
+     else:
+diff --git a/xarray/tests/test_merge.py b/xarray/tests/test_merge.py
+index c1e6c7a..e0efa8c 100644
+--- a/xarray/tests/test_merge.py
++++ b/xarray/tests/test_merge.py
+@@ -159,6 +159,15 @@ class TestMergeMethod:
+         with raises_regex(ValueError, "should be coordinates or not"):
+             data.merge(data.reset_coords())
+ 
++    def test_merge_dataarray(self):
++        ds = xr.Dataset({"a": 0})
++        da = xr.DataArray(1, name="b")
++
++        expected = xr.merge([ds, da])
++        actual = ds.merge(da)
++
++        assert expected.identical(actual)
++
+     def test_merge_broadcast_equals(self):
+         ds1 = xr.Dataset({"x": 0})
+         ds2 = xr.Dataset({"x": ("y", [0, 0])})

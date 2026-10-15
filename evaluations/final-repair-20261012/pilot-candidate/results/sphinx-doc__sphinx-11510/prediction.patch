@@ -1,0 +1,83 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..5e9a5d9 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
++import docutils.parsers.rst.directives.misc as misc_directives
+ from docutils import nodes
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+@@ -369,14 +370,26 @@ class Include(BaseInclude, SphinxDirective):
+     """
+ 
+     def run(self) -> list[Node]:
+-        if self.arguments[0].startswith('<') and \
+-           self.arguments[0].endswith('>'):
+-            # docutils "standard" includes, do not do path processing
++        if not (self.arguments[0].startswith('<') and
++                self.arguments[0].endswith('>')):
++            rel_filename, filename = self.env.relfn2path(self.arguments[0])
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++
++        original_read = misc_directives.io.FileInput.read
++        env = self.env
++
++        def read_include(file_input: Any) -> str:
++            content = original_read(file_input)
++            arg = [content]
++            env.events.emit('source-read', env.docname, arg)
++            return arg[0]
++
++        misc_directives.io.FileInput.read = read_include
++        try:
+             return super().run()
+-        rel_filename, filename = self.env.relfn2path(self.arguments[0])
+-        self.arguments[0] = filename
+-        self.env.note_included(filename)
+-        return super().run()
++        finally:
++            misc_directives.io.FileInput.read = original_read
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/tests/test_build_html.py b/tests/test_build_html.py
+index 07f101d..9556ede 100644
+--- a/tests/test_build_html.py
++++ b/tests/test_build_html.py
+@@ -140,6 +140,32 @@ def test_html4_error(make_app, tmp_path):
+         )
+ 
+ 
++def test_source_read_event_for_include(make_app, tmp_path):
++    (tmp_path / 'conf.py').write_text('', encoding='utf-8')
++    (tmp_path / 'index.rst').write_text(
++        'Title\\n=====\\n\\n.. include:: included.rst\\n\\n&REPLACE_ME;\\n',
++        encoding='utf-8',
++    )
++    (tmp_path / 'included.rst').write_text(
++        'Included\\n========\\n\\n&REPLACE_ME;\\n',
++        encoding='utf-8',
++    )
++    app = make_app(buildername='html', srcdir=tmp_path)
++    docnames = []
++
++    def replace(app, docname, source):
++        docnames.append(docname)
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++    app.connect('source-read', replace)
++    app.build()
++
++    assert docnames == ['included', 'index']
++    output = (app.outdir / 'index.html').read_text(encoding='utf-8')
++    assert output.count('REPLACED') == 2
++    assert 'REPLACE_ME' not in output
++
++
+ @pytest.mark.parametrize(("fname", "expect"), flat_dict({
+     'images.html': [
+         (".//img[@src='_images/img.png']", ''),

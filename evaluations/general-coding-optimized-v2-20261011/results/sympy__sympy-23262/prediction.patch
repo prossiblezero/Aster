@@ -1,0 +1,33 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263..159185d 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -961,7 +961,10 @@ def _recursive_to_string(doprint, arg):
+             left, right = "()"
+         else:
+             raise NotImplementedError("unhandled type: %s, %s" % (type(arg), arg))
+-        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + right
++        contents = ', '.join(_recursive_to_string(doprint, e) for e in arg)
++        if isinstance(arg, tuple) and len(arg) == 1:
++            contents += ','
++        return left + contents + right
+     elif isinstance(arg, str):
+         return arg
+     else:
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 023c2fb..3a3ab67 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -360,6 +360,12 @@ def test_vector_simple():
+     raises(TypeError, lambda: f(0))
+ 
+ 
++def test_singleton_tuple():
++    f = lambdify([], (1,))
++    assert 'return (1,)\n' in inspect.getsource(f)
++    assert f() == (1,)
++
++
+ def test_vector_discontinuous():
+     f = lambdify(x, (-1/x, 1/x))
+     raises(ZeroDivisionError, lambda: f(0))

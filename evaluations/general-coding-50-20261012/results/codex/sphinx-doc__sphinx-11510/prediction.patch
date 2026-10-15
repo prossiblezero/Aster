@@ -1,0 +1,109 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..5ab3dfc 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -376,7 +376,37 @@ class Include(BaseInclude, SphinxDirective):
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
+         self.arguments[0] = filename
+         self.env.note_included(filename)
+-        return super().run()
++
++        # ``Include`` reads its input directly through the state machine, so
++        # it does not pass through SphinxStandaloneReader.read_source(),
++        # where the source-read event is normally emitted.  Intercept the
++        # input at that boundary so extensions can process included sources
++        # in the same way as regular source files.
++        insert_input = self.state_machine.insert_input
++
++        def insert_included_input(lines: list[str], source: str) -> None:
++            # BaseInclude appends these parser bookkeeping lines immediately
++            # before inserting the input.  They are not part of the source
++            # delivered to source-read listeners.
++            end_marker = f'.. end of inclusion from "{source}"'
++            if len(lines) >= 2 and lines[-2] == '' and lines[-1] == end_marker:
++                content_lines = lines[:-2]
++                suffix = lines[-2:]
++            else:
++                content_lines = lines
++                suffix = []
++
++            content = '\n'.join(content_lines)
++            arg = [content]
++            docname = self.env.path2doc(source) or self.env.docname
++            self.env.events.emit('source-read', docname, arg)
++            insert_input(arg[0].splitlines() + suffix, source)
++
++        self.state_machine.insert_input = insert_included_input
++        try:
++            return super().run()
++        finally:
++            self.state_machine.insert_input = insert_input
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/tests/roots/test-source-read-include/conf.py b/tests/roots/test-source-read-include/conf.py
+new file mode 100644
+index 0000000..74abd6c
+--- /dev/null
++++ b/tests/roots/test-source-read-include/conf.py
+@@ -0,0 +1,6 @@
++import os
++import sys
++
++sys.path.insert(0, os.path.abspath('.'))
++
++extensions = ['source_read']
+diff --git a/tests/roots/test-source-read-include/index.rst b/tests/roots/test-source-read-include/index.rst
+new file mode 100644
+index 0000000..2bcf27f
+--- /dev/null
++++ b/tests/roots/test-source-read-include/index.rst
+@@ -0,0 +1,7 @@
++This is a test
++==============
++
++.. include:: something-to-include.rst
++
++&REPLACE_ME;
++
+diff --git a/tests/roots/test-source-read-include/something-to-include.rst b/tests/roots/test-source-read-include/something-to-include.rst
+new file mode 100644
+index 0000000..01bdd87
+--- /dev/null
++++ b/tests/roots/test-source-read-include/something-to-include.rst
+@@ -0,0 +1,5 @@
++Testing
++=======
++
++&REPLACE_ME;
++
+diff --git a/tests/roots/test-source-read-include/source_read.py b/tests/roots/test-source-read-include/source_read.py
+new file mode 100644
+index 0000000..7aaada7
+--- /dev/null
++++ b/tests/roots/test-source-read-include/source_read.py
+@@ -0,0 +1,8 @@
++def replace_source(app, docname, source):
++    source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++
++def setup(app):
++    app.connect('source-read', replace_source)
++    return {'parallel_read_safe': True}
++
+diff --git a/tests/test_events.py b/tests/test_events.py
+index d850a91..88b8490 100644
+--- a/tests/test_events.py
++++ b/tests/test_events.py
+@@ -54,3 +54,11 @@ def test_event_pdb():
+     # Allow RuntimeError (pass-through)
+     with pytest.raises(RuntimeError):
+         events.emit('builder-inited', allowed_exceptions=(RuntimeError,))
++
++
++@pytest.mark.sphinx('html', testroot='source-read-include')
++def test_source_read_include(app):
++    app.build()
++    content = (app.outdir / 'index.html').read_text()
++    assert content.count('REPLACED') == 2
++    assert 'REPLACE_ME' not in content

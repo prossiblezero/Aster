@@ -1,0 +1,80 @@
+diff --git a/changelog/99999.bugfix.rst b/changelog/99999.bugfix.rst
+new file mode 100644
+index 0000000..951e66e
+--- /dev/null
++++ b/changelog/99999.bugfix.rst
+@@ -0,0 +1 @@
++Marks declared on multiple base classes are now collected for subclasses using multiple inheritance.
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..ad9c679 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,7 +357,20 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type):
++        # A metaclass may provide custom mark lookup (for example, to merge marks
++        # itself), in which case its descriptor must take precedence.
++        if "pytestmark" in type(obj).__dict__:
++            mark_list = getattr(obj, "pytestmark", [])
++        else:
++            mark_list = []
++            for cls in reversed(obj.__mro__):
++                cls_mark_list = cls.__dict__.get("pytestmark", [])
++                if not isinstance(cls_mark_list, list):
++                    cls_mark_list = [cls_mark_list]
++                mark_list.extend(cls_mark_list)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+@@ -388,7 +401,13 @@ def store_mark(obj, mark: Mark) -> None:
+     assert isinstance(mark, Mark), mark
+     # Always reassign name to avoid updating pytestmark in a reference that
+     # was only borrowed.
+-    obj.pytestmark = [*get_unpacked_marks(obj), mark]
++    if isinstance(obj, type):
++        mark_list = obj.__dict__.get("pytestmark", [])
++        if not isinstance(mark_list, list):
++            mark_list = [mark_list]
++        obj.pytestmark = [*normalize_mark_list(mark_list), mark]
++    else:
++        obj.pytestmark = [*get_unpacked_marks(obj), mark]
+ 
+ 
+ # Typing for builtin pytest marks. This is cheating; it gives builtin marks
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..87c4f4f 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,27 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_baseclasses_merged(self, pytester: Pytester) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.a
++            class BaseA:
++                pass
++
++            @pytest.mark.b
++            class BaseB:
++                pass
++
++            class Test(BaseA, BaseB):
++                def test_method(self):
++                    pass
++        """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_method=("a", "b"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

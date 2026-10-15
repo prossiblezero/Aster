@@ -1,0 +1,53 @@
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8..7fdb51a 100644
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -57,10 +57,16 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(self, header_rows=None):
++        super().__init__(
++            delimiter_pad=None, bookend=False, header_rows=header_rows
++        )
++        # The table has a position line before the header rows and another
++        # position line between the header and data.
++        self.data.start_line = len(self.header.header_rows) + 2
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+-        lines = [lines[1]] + lines + [lines[1]]
++        separator = lines[len(self.header.header_rows)]
++        lines = [separator] + lines + [separator]
+         return lines
+diff --git a/astropy/io/ascii/tests/test_rst.py b/astropy/io/ascii/tests/test_rst.py
+index 84d6fed..4d7fe86 100644
+--- a/astropy/io/ascii/tests/test_rst.py
++++ b/astropy/io/ascii/tests/test_rst.py
+@@ -170,6 +170,24 @@ table = """\
+ dat = ascii.read(table, Reader=ascii.RST)
+ 
+ 
++def test_write_header_rows():
++    """Write and read a SimpleRST table with multiple header rows."""
++    table = """\
++===== ========
++ wave response
++   nm       ct
++===== ========
++350.0      0.7
++950.0      1.2
++===== ========
++"""
++    header_rows = ["name", "unit"]
++    dat = ascii.read(table, format="rst", header_rows=header_rows)
++    out = StringIO()
++    ascii.write(dat, out, format="rst", header_rows=header_rows)
++    assert_equal_splitlines(out.getvalue(), table)
++
++
+ def test_write_normal():
+     """Write a table as a normal SimpleRST Table"""
+     out = StringIO()

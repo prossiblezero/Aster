@@ -1,0 +1,65 @@
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..9ef9630 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,7 +357,15 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type):
++        mark_list = []
++        for base in reversed(obj.__mro__):
++            base_marks = base.__dict__.get("pytestmark", [])
++            if not isinstance(base_marks, list):
++                base_marks = [base_marks]
++            mark_list.extend(base_marks)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+diff --git a/src/_pytest/pytester.py b/src/_pytest/pytester.py
+index a929994..0d7b092 100644
+--- a/src/_pytest/pytester.py
++++ b/src/_pytest/pytester.py
+@@ -1356,8 +1356,9 @@ class Pytester:
+         You probably want to use :py:meth:`run` instead.
+         """
+         env = os.environ.copy()
++        pytest_root = str(Path(__file__).resolve().parent.parent)
+         env["PYTHONPATH"] = os.pathsep.join(
+-            filter(None, [os.getcwd(), env.get("PYTHONPATH", "")])
++            filter(None, [os.getcwd(), env.get("PYTHONPATH", ""), pytest_root])
+         )
+         kw["env"] = env
+ 
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..eb3faa5 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,24 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_inheritance(self, pytester: Pytester) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.a
++            class Base1(object): pass
++
++            @pytest.mark.b
++            class Base2(object): pass
++
++            class Test(Base1, Base2):
++                def test_foo(self): pass
++        """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_foo=("a", "b"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

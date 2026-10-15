@@ -1,0 +1,41 @@
+{
+  "job": "codex-terminal-kv-store-grpc",
+  "agent": "codex",
+  "task": "terminal-kv-store-grpc",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 81.617,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": true,
+  "grade": {
+    "passed": false,
+    "exit_code": 1,
+    "tests": 7,
+    "failures": 3,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 7
+  },
+  "requests": 10,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 141772,
+  "output_tokens": 4995,
+  "cached_tokens": 128512,
+  "total_tokens": 146767,
+  "source": "Terminal-Bench archive",
+  "difficulty": "medium",
+  "final": "Implemented in `/app`:\n\n- `kv-store.proto`\n- `kv_store_pb2.py`\n- `kv_store_pb2_grpc.py`\n- `server.py` using port `5328`\n\nPython syntax checks pass. However, `grpcio==1.73.0` and `grpcio-tools==1.73.0` could not be installed because network access is unavailable and no local packages are cached. Consequently, the server cannot start:\n\n`ModuleNotFoundError: No module named 'grpc'`\n\nThe server is not running.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "qualified",
+    "reason": "Claims source files delivered and syntax checks passed, but explicitly says grpc dependency import failed and the required server is not running.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false
+}

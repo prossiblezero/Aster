@@ -1,0 +1,49 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index ac0a923..6d13159 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -3563,7 +3563,7 @@ class Dataset(Mapping, ImplementsDatasetReduce, DataWithCoords):
+ 
+         Parameters
+         ----------
+-        other : Dataset or castable to Dataset
++        other : Dataset, DataArray, or castable to Dataset
+             Dataset or variables to merge with this dataset.
+         overwrite_vars : Hashable or iterable of Hashable, optional
+             If provided, update variables of these name(s) without checking for
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804..e006909 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -805,6 +805,11 @@ def dataset_merge_method(
+ ) -> _MergeResult:
+     """Guts of the Dataset.merge method.
+     """
++    from .dataarray import DataArray
++
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
++
+     # we are locked into supporting overwrite_vars for the Dataset.merge
+     # method due for backwards compatibility
+     # TODO: consider deprecating it?
+diff --git a/xarray/tests/test_merge.py b/xarray/tests/test_merge.py
+index c1e6c7a..e0efa8c 100644
+--- a/xarray/tests/test_merge.py
++++ b/xarray/tests/test_merge.py
+@@ -159,6 +159,15 @@ class TestMergeMethod:
+         with raises_regex(ValueError, "should be coordinates or not"):
+             data.merge(data.reset_coords())
+ 
++    def test_merge_dataarray(self):
++        ds = xr.Dataset({"a": 0})
++        da = xr.DataArray(1, name="b")
++
++        expected = xr.merge([ds, da])
++        actual = ds.merge(da)
++
++        assert expected.identical(actual)
++
+     def test_merge_broadcast_equals(self):
+         ds1 = xr.Dataset({"x": 0})
+         ds2 = xr.Dataset({"x": ("y", [0, 0])})

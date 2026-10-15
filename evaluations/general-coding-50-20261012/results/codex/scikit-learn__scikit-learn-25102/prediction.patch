@@ -1,0 +1,332 @@
+diff --git a/sklearn/compose/_column_transformer.py b/sklearn/compose/_column_transformer.py
+index 5f76c2c..7c3d71c 100644
+--- a/sklearn/compose/_column_transformer.py
++++ b/sklearn/compose/_column_transformer.py
+@@ -271,7 +271,7 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):
+         except (TypeError, ValueError):
+             self.transformers = value
+ 
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, dtypes=None):
+         """Set the output container when `"transform"` and `"fit_transform"` are called.
+ 
+         Calling `set_output` will set the output of all estimators in `transformers`
+@@ -286,12 +286,15 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        dtypes : {"default", "preserve"}, default=None
++            Whether to preserve input dtypes in pandas output.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+-        super().set_output(transform=transform)
++        super().set_output(transform=transform, dtypes=dtypes)
+         transformers = (
+             trans
+             for _, trans, _ in chain(
+@@ -300,7 +303,7 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):
+             if trans not in {"passthrough", "drop"}
+         )
+         for trans in transformers:
+-            _safe_set_output(trans, transform=transform)
++            _safe_set_output(trans, transform=transform, dtypes=dtypes)
+ 
+         return self
+ 
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 94d9465..3f0b674 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -154,7 +154,7 @@ class Pipeline(_BaseComposition):
+         self.memory = memory
+         self.verbose = verbose
+ 
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, dtypes=None):
+         """Set the output container when `"transform"` and `"fit_transform"` are called.
+ 
+         Calling `set_output` will set the output of all estimators in `steps`.
+@@ -168,13 +168,16 @@ class Pipeline(_BaseComposition):
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        dtypes : {"default", "preserve"}, default=None
++            Whether to preserve input dtypes in pandas output.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+         for _, _, step in self._iter():
+-            _safe_set_output(step, transform=transform)
++            _safe_set_output(step, transform=transform, dtypes=dtypes)
+         return self
+ 
+     def get_params(self, deep=True):
+@@ -1027,7 +1030,7 @@ class FeatureUnion(TransformerMixin, _BaseComposition):
+         self.transformer_weights = transformer_weights
+         self.verbose = verbose
+ 
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, dtypes=None):
+         """Set the output container when `"transform"` and `"fit_transform"` are called.
+ 
+         `set_output` will set the output of all estimators in `transformer_list`.
+@@ -1041,14 +1044,17 @@ class FeatureUnion(TransformerMixin, _BaseComposition):
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        dtypes : {"default", "preserve"}, default=None
++            Whether to preserve input dtypes in pandas output.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+-        super().set_output(transform=transform)
++        super().set_output(transform=transform, dtypes=dtypes)
+         for _, step, _ in self._iter():
+-            _safe_set_output(step, transform=transform)
++            _safe_set_output(step, transform=transform, dtypes=dtypes)
+         return self
+ 
+     @property
+diff --git a/sklearn/preprocessing/_function_transformer.py b/sklearn/preprocessing/_function_transformer.py
+index a4f5448..3a68f86 100644
+--- a/sklearn/preprocessing/_function_transformer.py
++++ b/sklearn/preprocessing/_function_transformer.py
+@@ -316,7 +316,7 @@ class FunctionTransformer(TransformerMixin, BaseEstimator):
+     def _more_tags(self):
+         return {"no_validation": not self.validate, "stateless": True}
+ 
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, dtypes=None):
+         """Set output container.
+ 
+         See :ref:`sphx_glr_auto_examples_miscellaneous_plot_set_output.py`
+@@ -331,13 +331,16 @@ class FunctionTransformer(TransformerMixin, BaseEstimator):
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        dtypes : {"default", "preserve"}, default=None
++            Whether to preserve input dtypes in pandas output.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+         if hasattr(super(), "set_output"):
+-            return super().set_output(transform=transform)
++            return super().set_output(transform=transform, dtypes=dtypes)
+ 
+         if transform == "pandas" and self.feature_names_out is None:
+             warnings.warn(
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c..b0ae218 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,9 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : dict or None, default=None
++        Mapping of column names to dtypes to apply to the output dataframe.
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -57,9 +61,18 @@ def _wrap_in_pandas_container(
+             data_to_wrap.columns = columns
+         if index is not None:
+             data_to_wrap.index = index
++        if dtypes is not None:
++            if not hasattr(dtypes, "keys"):
++                dtypes = dict(zip(data_to_wrap.columns, dtypes))
++            data_to_wrap = data_to_wrap.astype(dtypes)
+         return data_to_wrap
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    dataframe = pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    if dtypes is not None:
++        if not hasattr(dtypes, "keys"):
++            dtypes = dict(zip(dataframe.columns, dtypes))
++        dataframe = dataframe.astype(dtypes)
++    return dataframe
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -81,6 +94,8 @@ def _get_output_config(method, estimator=None):
+ 
+         - "dense": specifies the dense container for `method`. This can be
+           `"default"` or `"pandas"`.
++        - "dtypes": specifies whether to preserve input dtypes. This can be
++          `"default"` or `"preserve"`.
+     """
+     est_sklearn_output_config = getattr(estimator, "_sklearn_output_config", {})
+     if method in est_sklearn_output_config:
+@@ -93,7 +108,13 @@ def _get_output_config(method, estimator=None):
+             f"output config must be 'default' or 'pandas' got {dense_config}"
+         )
+ 
+-    return {"dense": dense_config}
++    dtypes_config = est_sklearn_output_config.get("dtypes", "default")
++    if dtypes_config not in {"default", "preserve"}:
++        raise ValueError(
++            f"dtypes config must be 'default' or 'preserve' got {dtypes_config}"
++        )
++
++    return {"dense": dense_config, "dtypes": dtypes_config}
+ 
+ 
+ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+@@ -127,10 +148,22 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+         return data_to_wrap
+ 
+     # dense_config == "pandas"
++    dtypes = None
++    if output_config["dtypes"] == "preserve":
++        input_dtypes = getattr(original_input, "dtypes", None)
++        if input_dtypes is not None:
++            output_columns = estimator.get_feature_names_out()
++            dtypes = {
++                column: input_dtypes[column]
++                for column in output_columns
++                if column in input_dtypes.index
++            }
++
+     return _wrap_in_pandas_container(
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=dtypes,
+     )
+ 
+ 
+@@ -208,7 +241,7 @@ class _SetOutputMixin:
+             setattr(cls, method, wrapped_method)
+ 
+     @available_if(_auto_wrap_is_configured)
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, dtypes=None):
+         """Set output container.
+ 
+         See :ref:`sphx_glr_auto_examples_miscellaneous_plot_set_output.py`
+@@ -223,22 +256,29 @@ class _SetOutputMixin:
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        dtypes : {"default", "preserve"}, default=None
++            Whether to preserve the dtypes of input columns in pandas output.
++            Only columns with unchanged names are preserved.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+-        if transform is None:
++        if transform is None and dtypes is None:
+             return self
+ 
+         if not hasattr(self, "_sklearn_output_config"):
+             self._sklearn_output_config = {}
+ 
+-        self._sklearn_output_config["transform"] = transform
++        if transform is not None:
++            self._sklearn_output_config["transform"] = transform
++        if dtypes is not None:
++            self._sklearn_output_config["dtypes"] = dtypes
+         return self
+ 
+ 
+-def _safe_set_output(estimator, *, transform=None):
++def _safe_set_output(estimator, *, transform=None, dtypes=None):
+     """Safely call estimator.set_output and error if it not available.
+ 
+     This is used by meta-estimators to set the output for child estimators.
+@@ -254,6 +294,9 @@ def _safe_set_output(estimator, *, transform=None):
+         - `"transform"`
+         - `"fit_transform"`
+ 
++    dtypes : {"default", "preserve"}, default=None
++        Whether to preserve input dtypes in pandas output.
++
+         If `None`, this operation is a no-op.
+ 
+     Returns
+@@ -264,7 +307,7 @@ def _safe_set_output(estimator, *, transform=None):
+     set_output_for_transform = (
+         hasattr(estimator, "transform")
+         or hasattr(estimator, "fit_transform")
+-        and transform is not None
++        and (transform is not None or dtypes is not None)
+     )
+     if not set_output_for_transform:
+         # If estimator can not transform, then `set_output` does not need to be
+@@ -276,4 +319,4 @@ def _safe_set_output(estimator, *, transform=None):
+             f"Unable to configure output for {estimator} because `set_output` "
+             "is not available."
+         )
+-    return estimator.set_output(transform=transform)
++    return estimator.set_output(transform=transform, dtypes=dtypes)
+diff --git a/sklearn/utils/tests/test_set_output.py b/sklearn/utils/tests/test_set_output.py
+index ac73ca0..b2eedc1 100644
+--- a/sklearn/utils/tests/test_set_output.py
++++ b/sklearn/utils/tests/test_set_output.py
+@@ -36,6 +36,18 @@ def test__wrap_in_pandas_container_dense_update_columns_and_index():
+     assert_array_equal(new_df.index, new_index)
+ 
+ 
++def test__wrap_in_pandas_container_preserves_dtypes():
++    """Check that explicitly provided dtypes are applied to the output."""
++    pd = pytest.importorskip("pandas")
++    X = np.asarray([[1, 0], [0, 1]])
++    dtypes = {"a": np.float16, "b": "category"}
++
++    X_wrapped = _wrap_in_pandas_container(X, columns=["a", "b"], dtypes=dtypes)
++
++    assert X_wrapped.dtypes["a"] == np.dtype("float16")
++    assert pd.api.types.is_categorical_dtype(X_wrapped.dtypes["b"])
++
++
+ def test__wrap_in_pandas_container_error_validation():
+     """Check errors in _wrap_in_pandas_container."""
+     X = np.asarray([[1, 0, 3], [0, 0, 1]])
+@@ -135,6 +147,22 @@ def test_set_output_method():
+     assert isinstance(X_trans_pd, pd.DataFrame)
+ 
+ 
++def test_set_output_preserve_dtypes():
++    """Check that pandas output can preserve matching input dtypes."""
++    pd = pytest.importorskip("pandas")
++
++    X = pd.DataFrame(
++        {"X0": [1, 0], "X1": ["x", "y"]},
++        dtype=object,
++    ).astype({"X0": np.float16, "X1": "category"})
++    est = EstimatorWithSetOutput().fit(X)
++    est.set_output(transform="pandas", dtypes="preserve")
++
++    X_trans_pd = est.transform(X)
++
++    assert X_trans_pd.dtypes.to_dict() == X.dtypes.to_dict()
++
++
+ def test_set_output_method_error():
+     """Check transform fails with invalid transform."""
+ 

@@ -1,0 +1,49 @@
+diff --git a/sympy/matrices/expressions/blockmatrix.py b/sympy/matrices/expressions/blockmatrix.py
+index 95302a0..d1a9933 100644
+--- a/sympy/matrices/expressions/blockmatrix.py
++++ b/sympy/matrices/expressions/blockmatrix.py
+@@ -164,7 +164,12 @@ def structurally_equal(self, other):
+     def _blockmul(self, other):
+         if (isinstance(other, BlockMatrix) and
+                 self.colblocksizes == other.rowblocksizes):
+-            return BlockMatrix(self.blocks*other.blocks)
++            blocks = [[MatAdd(*[
++                self.blocks[i, k] * other.blocks[k, j]
++                for k in range(self.blockshape[1])]).doit()
++                for j in range(other.blockshape[1])]
++                for i in range(self.blockshape[0])]
++            return BlockMatrix(blocks)
+ 
+         return self * other
+ 
+diff --git a/sympy/matrices/expressions/tests/test_blockmatrix.py b/sympy/matrices/expressions/tests/test_blockmatrix.py
+index 1e1033a..4d776b2 100644
+--- a/sympy/matrices/expressions/tests/test_blockmatrix.py
++++ b/sympy/matrices/expressions/tests/test_blockmatrix.py
+@@ -2,7 +2,7 @@
+     block_collapse, bc_matmul, bc_block_plus_ident, BlockDiagMatrix,
+     BlockMatrix, bc_dist, bc_matadd, bc_transpose, bc_inverse,
+     blockcut, reblock_2x2, deblock)
+-from sympy.matrices.expressions import (MatrixSymbol, Identity,
++from sympy.matrices.expressions import (MatrixSymbol, Identity, ZeroMatrix,
+         Inverse, trace, Transpose, det)
+ from sympy.matrices import (
+     Matrix, ImmutableMatrix, ImmutableSparseMatrix)
+@@ -27,6 +27,17 @@ def test_bc_matadd():
+     assert bc_matadd(BlockMatrix([[G, H]]) + BlockMatrix([[H, H]])) == \
+             BlockMatrix([[G+H, H+H]])
+ 
++def test_blockmul_zero_blocks():
++    a = MatrixSymbol('a', 2, 2)
++    z = ZeroMatrix(2, 2)
++    b = BlockMatrix([[a, z], [z, z]])
++
++    result = b._blockmul(b)
++    assert all(isinstance(result.blocks[i, j], ZeroMatrix)
++               for i, j in ((0, 1), (1, 0), (1, 1)))
++    assert result._blockmul(b) == BlockMatrix([[a**3, z], [z, z]])
++    assert block_collapse(b*b*b) == BlockMatrix([[a**3, z], [z, z]])
++
+ def test_bc_transpose():
+     assert bc_transpose(Transpose(BlockMatrix([[A, B], [C, D]]))) == \
+             BlockMatrix([[A.T, C.T], [B.T, D.T]])

@@ -1,0 +1,78 @@
+{
+  "job": "pi-pylint-dev__pylint-8898",
+  "agent": "pi",
+  "task": "pylint-dev__pylint-8898",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 335.9,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 3475,
+  "patch_sha256": "ac26271fb586d1ce234c3f1e862f635f839b87733524e27e78d34833f3756b8e",
+  "requests": 14,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 268402,
+  "output_tokens": 5275,
+  "cached_tokens": 232960,
+  "total_tokens": 273677,
+  "final": "Implemented the `regexp_csv` parsing fix.\n\nChanges:\n- Commas inside regex repetition bounds, such as `{1,3}`, are preserved.\n- Commas inside character classes are preserved.\n- Escaped commas (`\\,`) are supported for ambiguous cases.\n- Existing comma-separated regex lists continue to work.\n- Added regression tests for the reported pattern and escaped commas.\n\nVerification:\n- `python -m pytest tests/config/test_config.py tests/test_self.py -q`\n- Result: **156 passed, 1 xfailed**\n- `git diff --check` passed.\n- `black` and `ruff` were unavailable in the environment.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "new30",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/config/test_config.py::test_csv_regex_error"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/config/test_config.py::test_can_read_toml_env_variable",
+          "tests/config/test_config.py::test_unknown_message_id",
+          "tests/config/test_config.py::test_unknown_option_name",
+          "tests/config/test_config.py::test_unknown_short_option_name",
+          "tests/config/test_config.py::test_unknown_confidence",
+          "tests/config/test_config.py::test_empty_confidence",
+          "tests/config/test_config.py::test_unknown_yes_no",
+          "tests/config/test_config.py::test_unknown_py_version",
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo-expected0]",
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo,bar-expected1]",
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo,",
+          "tests/config/test_config.py::test_regex_error",
+          "tests/config/test_config.py::test_short_verbose",
+          "tests/config/test_config.py::test_argument_separator",
+          "tests/config/test_config.py::test_clear_cache_post_run",
+          "tests/config/test_config.py::test_enable_all_disable_all_mutually_exclusive",
+          "tests/config/test_config.py::test_disable_before_enable_all_takes_effect",
+          "tests/config/test_config.py::test_enable_before_disable_all_takes_effect"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "normal_delivery_and_passed": true,
+  "provider_fault_observed": false
+}

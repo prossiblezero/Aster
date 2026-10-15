@@ -1,0 +1,39 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..8bce13c 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -80,8 +80,10 @@ class RequestEncodingMixin(object):
+         if parameters are supplied as a dict.
+         """
+ 
+-        if isinstance(data, (str, bytes)):
++        if isinstance(data, str):
+             return to_native_string(data)
++        elif isinstance(data, bytes):
++            return data
+         elif hasattr(data, 'read'):
+             return data
+         elif hasattr(data, '__iter__'):
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..4cd5b0e 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -1666,6 +1666,18 @@ def test_data_argument_accepts_tuples(list_of_tuples):
+         assert p.body == urlencode(data)
+ 
+ 
++def test_prepare_bytes_data_preserves_payload():
++    payload = u('ööö').encode('utf-8')
++    p = PreparedRequest()
++    p.prepare(
++        method='PUT',
++        url='http://www.example.com',
++        data=payload,
++        hooks=default_hooks()
++    )
++    assert p.body == payload
++
++
+ def assert_copy(p, p_copy):
+     for attr in ('method', 'url', 'headers', '_cookies', 'body', 'hooks'):
+         assert getattr(p, attr) == getattr(p_copy, attr)

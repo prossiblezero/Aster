@@ -1,0 +1,75 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index fe22ff4..30a1ec5 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -8,6 +8,7 @@ This module contains the transport adapters that Requests uses to define
+ and maintain connections.
+ """
+ 
++import errno
+ import os.path
+ import socket
+ 
+@@ -503,7 +504,15 @@ class HTTPAdapter(BaseAdapter):
+         except MaxRetryError as e:
+             if isinstance(e.reason, ConnectTimeoutError):
+                 # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
++                # Some platforms report an unreachable destination as an
++                # immediate NewConnectionError instead of waiting for the
++                # connect timeout. Treat that case as a connect timeout when
++                # the underlying error is ENETUNREACH or EHOSTUNREACH.
++                unreachable = any(
++                    '[Errno %s]' % code in str(e.reason)
++                    for code in (errno.ENETUNREACH, errno.EHOSTUNREACH)
++                )
++                if not isinstance(e.reason, NewConnectionError) or unreachable:
+                     raise ConnectTimeout(e, request=request)
+ 
+             if isinstance(e.reason, ResponseError):
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d..4d96c7c 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -384,6 +384,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+             scheme, auth, host, port, path, query, fragment = parse_url(url)
+         except LocationParseError as e:
+             raise InvalidURL(*e.args)
++        except UnicodeError:
++            raise InvalidURL('URL has an invalid label.')
+ 
+         if not scheme:
+             error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+@@ -403,7 +405,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+                 raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++        elif host.startswith((u'*', u'.')):
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 463e8bf..0e030d0 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -2488,6 +2488,7 @@ class TestPreparingURLs(object):
+             b"http://*",
+             u"http://*.google.com",
+             u"http://*",
++            u"http://.example.com",
+             u"http://☃.net/"
+         )
+     )
+@@ -2496,6 +2497,11 @@ class TestPreparingURLs(object):
+         with pytest.raises(requests.exceptions.InvalidURL):
+             r.prepare()
+ 
++    def test_preparing_url_with_empty_label(self):
++        r = requests.Request('GET', url='http://.example.com')
++        with pytest.raises(requests.exceptions.InvalidURL, match='URL has an invalid label.'):
++            r.prepare()
++
+     @pytest.mark.parametrize(
+         'url, exception',
+         (

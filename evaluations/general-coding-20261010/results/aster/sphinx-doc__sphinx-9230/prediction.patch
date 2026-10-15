@@ -1,0 +1,66 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367e..6f2a817 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -35,6 +35,25 @@ def _is_single_paragraph(node: nodes.field_body) -> bool:
+     return False
+ 
+ 
++def _split_type_and_arg(text: str) -> Tuple[str, str]:
++    """Split a compact typed field into its type and argument name.
++
++    Type expressions can contain whitespace, for example ``dict(str, str)``.
++    Only whitespace outside balanced delimiters separates the type from the
++    argument name.
++    """
++    closing = {'(': ')', '[': ']', '{': '}'}
++    delimiters = []
++    for index, char in enumerate(text):
++        if char in closing:
++            delimiters.append(closing[char])
++        elif delimiters and char == delimiters[-1]:
++            delimiters.pop()
++        elif char.isspace() and not delimiters:
++            return text[:index], text[index:].lstrip()
++    return text, ''
++
++
+ class Field:
+     """A doc field that is never grouped.  It can have an argument or not, the
+     argument can be linked using a specified *rolename*.  Field should be used
+@@ -297,11 +316,8 @@ class DocFieldTransformer:
+ 
+             # also support syntax like ``:param type name:``
+             if typedesc.is_typed:
+-                try:
+-                    argtype, argname = fieldarg.split(None, 1)
+-                except ValueError:
+-                    pass
+-                else:
++                argtype, argname = _split_type_and_arg(fieldarg)
++                if argname:
+                     types.setdefault(typename, {})[argname] = \
+                         [nodes.Text(argtype)]
+                     fieldarg = argname
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 569390c..efa539c 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -984,6 +984,17 @@ def test_info_field_list(app):
+                 **{"py:module": "example", "py:class": "Class"})
+ 
+ 
++def test_info_field_list_with_spaces_in_type(app):
++    text = (".. py:module:: example\n"
++            ".. py:class:: Class\n"
++            "\n"
++            "   :param dict(str, str) opc_meta: (optional)\n")
++    doctree = restructuredtext.parse(app, text)
++
++    field = doctree[3][1][0][0]
++    assert field[1].astext() == "opc_meta (dict(str, str)) -- (optional)"
++
++
+ def test_info_field_list_var(app):
+     text = (".. py:class:: Class\n"
+             "\n"

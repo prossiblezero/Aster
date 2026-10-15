@@ -1,0 +1,66 @@
+diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+index d7605b0..134ec73 100644
+--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+@@ -246,12 +246,18 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+         world_arrays = tuple(map(np.asanyarray, world_arrays))
+         world_arrays_new = []
+         iworld_curr = -1
++        dropped_world_arrays = None
+         for iworld in range(self._wcs.world_n_dim):
+             if iworld in self._world_keep:
+                 iworld_curr += 1
+                 world_arrays_new.append(world_arrays[iworld_curr])
+             else:
+-                world_arrays_new.append(1.)
++                # The world coordinates for sliced pixel dimensions are needed
++                # when the underlying WCS couples world and pixel axes.
++                if dropped_world_arrays is None:
++                    dropped_world_arrays = self._pixel_to_world_values_all(
++                        *([0] * self.pixel_n_dim))
++                world_arrays_new.append(dropped_world_arrays[iworld])
+ 
+         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
+         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))
+diff --git a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+index a354114..c5bab70 100644
+--- a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+@@ -54,6 +54,37 @@ with warnings.catch_warnings():
+ WCS_SPECTRAL_CUBE.pixel_bounds = [(-1, 11), (-2, 18), (5, 15)]
+ 
+ 
++def test_world_to_pixel_with_coupled_sliced_axes():
++    wcs = WCS(header={
++        'WCSAXES': 3,
++        'CRPIX1': 50.5,
++        'CRPIX2': 13.,
++        'CRPIX3': 1.,
++        'PC1_1': 0.,
++        'PC1_2': -1.,
++        'PC1_3': 0.,
++        'PC2_1': 1.,
++        'PC2_2': 0.,
++        'PC2_3': -1.,
++        'CDELT1': 5.,
++        'CDELT2': 5.,
++        'CDELT3': .055,
++        'CUNIT1': 'arcsec',
++        'CUNIT2': 'arcsec',
++        'CUNIT3': 'Angstrom',
++        'CTYPE1': 'HPLN-TAN',
++        'CTYPE2': 'HPLT-TAN',
++        'CTYPE3': 'WAVE',
++        'CRVAL1': 0.,
++        'CRVAL2': 0.,
++        'CRVAL3': 1.05,
++    })
++    sliced = SlicedLowLevelWCS(wcs, 0)
++
++    assert_allclose(sliced.world_to_pixel_values(0., 0.), (49.5, 12.))
++    assert_allclose(sliced.pixel_to_world_values(49.5, 12.), (0., 0.), atol=1e-12)
++
++
+ def test_invalid_slices():
+     with pytest.raises(IndexError):
+         SlicedLowLevelWCS(WCS_SPECTRAL_CUBE, [None, None, [False, False, False]])

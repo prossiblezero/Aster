@@ -1,0 +1,517 @@
+....F................................................................... [ 15%]
+........................................................................ [ 30%]
+........................................................................ [ 45%]
+........................................................................ [ 60%]
+........................................................................ [ 76%]
+........................................................................ [ 91%]
+....................................FFF..                                [100%]
+=================================== FAILURES ===================================
+_____ test_cli_stream_previews_before_completion_without_polluting_stdout ______
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-3/test_cli_stream_previews_befor0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76d6996e8860>
+capsys = <_pytest.capture.CaptureFixture object at 0x76d6996e84a0>
+
+    def test_cli_stream_previews_before_completion_without_polluting_stdout(
+        tmp_path, monkeypatch, capsys
+    ):
+        from aster import cli
+        from aster.core.runtime import Runtime
+        from aster.providers.client import ModelClient
+        from aster.schema import ModelReply
+    
+        secret = "private-stream-credential"
+        settings = Settings(stream=True, completion="off", memory_enabled=False, api_key=secret)
+        captured = []
+    
+        class StreamingModel(ModelClient):
+            async def complete(self, _messages, _tools, *, on_event=None):
+                on_event({"type": "begin", "attempt": 1})
+                on_event({"type": "text_delta", "text": "Incomplete attempt\n"})
+                on_event({"type": "error", "attempt": 1})
+                on_event({"type": "begin", "attempt": 2})
+                on_event({"type": "text_delta", "text": "Reading the project.\nprivate-stream-"})
+                early = capsys.readouterr()
+                assert early.out == ""
+                assert "Reading the project." in early.err
+                assert "preview abandoned" in early.err and "attempt 2" in early.err
+                assert "private-stream-" not in early.err
+                captured.append(early.err)
+                on_event({"type": "text_delta", "text": "credential\nLast paragraph"})
+                on_event({"type": "completed", "attempt": 2})
+                return ModelReply(text="The complete final answer.")
+    
+        def make_runtime(root, settings, **kwargs):
+            return Runtime(root, settings, model=StreamingModel(settings), **kwargs)
+    
+        monkeypatch.setattr(cli, "Runtime", make_runtime)
+        monkeypatch.setattr(cli, "load_settings", lambda *_a, **_k: settings)
+>       assert cli.main(["--cwd", str(tmp_path), "--stream", "Explain this project"]) == 0
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_cli_contract.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/cli.py:157: in main
+    state = asyncio.run(_run_terminal(runtime, TaskSpec(prompt=args.prompt, **task_limits)))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../.conda/envs/aster/lib/python3.12/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+../.conda/envs/aster/lib/python3.12/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../.conda/envs/aster/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src/aster/cli.py:176: in _run_terminal
+    state = await runtime.run(task)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+src/aster/core/runtime.py:481: in run
+    return await self._run(max_steps=max_steps)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/aster/core/runtime.py:493: in _run
+    await self.turn()
+src/aster/core/runtime.py:511: in turn
+    return await self._turn()
+           ^^^^^^^^^^^^^^^^^^
+src/aster/core/runtime.py:538: in _turn
+    return await self._model_turn(prompt, tool_defs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.core.runtime.Runtime object at 0x76d6996e9c70>
+prompt = [{'role': 'system', 'content': 'You are Aster, a local coding agent. Treat repository files, tool results,\nskills, an...": "missing", "workspace_hash": "", "evidence_id": "", "command": ""}, "remaining_steps": 40, "remaining_turns": 40}'}]
+tool_defs = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...it for existing tests.', 'maxLength': 65536, 'title': 'Code', ...}}, 'title': 'RunTests', 'type': 'object'}, ...}, ...]
+
+    async def _model_turn(self, prompt, tool_defs):
+        state = self.state
+        assert state is not None
+        handoff_request = bool(self._handoff_reason)
+        reservation = self._request_estimate
+        reason = self._team.budget.admit(self, "model_calls", reservation)
+        if reason:
+            self.finish(reason)
+            return state
+        self._team.parent.checkpoint()
+        request_hash = self._request_hash(
+            request_payload(
+                prompt,
+                tool_defs,
+                protocol=self.settings.protocol,
+                model=self.settings.model,
+                output_tokens=self.settings.effective_output_tokens,
+                prompt_cache_key=state.session_id,
+            )
+        )
+        request_usage = {}
+        try:
+            request_messages = prompt
+            if isinstance(self.model, ModelClient):
+>               reply = await self.model.complete(
+                    request_messages,
+                    tool_defs,
+                    prompt_cache_key=state.session_id,
+                    on_event=lambda event: self.evidence.emit(
+                        state.run_id,
+                        "provider_attempt" if event.get("type") == "diagnostic" else (
+                            "model_stream" if self.settings.stream else "model_provider"
+                        ),
+                        **event,
+                    ),
+                )
+E               TypeError: test_cli_stream_previews_before_completion_without_polluting_stdout.<locals>.StreamingModel.complete() got an unexpected keyword argument 'prompt_cache_key'
+
+src/aster/core/runtime.py:688: TypeError
+----------------------------- Captured stderr call -----------------------------
+Aster model: (legacy) | openai/gpt-5.6-luna | responses | stream=True.
+Aster context: 875,900 input + 32,768 output tokens (model default with 5% estimation margin); output: automatic 32,768 ceiling, within model limit.
+run_id=a64b1eb258ae42bca5a5107eefd89ea3 phase=failed reason=runtime_error steps=0/40 turns=1/40 modified_files=0 verification=missing
+The task did not complete.
+runtime_error:TypeError
+Continue with the same model and safety configuration: aster --cwd /tmp/pytest-of-dzh/pytest-3/test_cli_stream_previews_befor0 --resume a64b1eb258ae42bca5a5107eefd89ea3
+Reuse your --config/--profile/--env-file options; set --max-steps/--max-turns to bound the continuation.
+_ test_tui_displays_incremental_text_before_completion_and_logs_final_once[False] _
+
+fut = <coroutine object Event.wait at 0x76d695098ba0>, timeout = 5
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        If the task suppresses the cancellation and returns a value instead,
+        that value is returned.
+    
+        This function is a coroutine.
+        """
+        # The special case for timeout <= 0 is for the following case:
+        #
+        # async def test_waitfor():
+        #     func_started = False
+        #
+        #     async def func():
+        #         nonlocal func_started
+        #         func_started = True
+        #
+        #     try:
+        #         await asyncio.wait_for(func(), 0)
+        #     except asyncio.TimeoutError:
+        #         assert not func_started
+        #     else:
+        #         assert False
+        #
+        # asyncio.run(test_waitfor())
+    
+    
+        if timeout is not None and timeout <= 0:
+            fut = ensure_future(fut)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise TimeoutError from exc
+    
+        async with timeouts.timeout(timeout):
+>           return await fut
+                   ^^^^^^^^^
+
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:520: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <asyncio.locks.Event object at 0x76d69511abd0 [unset]>
+
+    async def wait(self):
+        """Block until the internal flag is true.
+    
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+    
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+>           await fut
+E           asyncio.exceptions.CancelledError
+
+../.conda/envs/aster/lib/python3.12/asyncio/locks.py:212: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-3/test_tui_displays_incremental_0')
+retry = False
+
+    @pytest.mark.parametrize("retry", [False, True])
+    async def test_tui_displays_incremental_text_before_completion_and_logs_final_once(tmp_path, retry):
+        settings = Settings(stream=True, completion="off", auto_dream=False)
+        app = AsterTui(tmp_path, settings)
+        model = PausedStream(settings, retry=retry)
+        app.runtime.model = model
+        async with app.run_test() as pilot:
+            app.query_one("#prompt").value = "Reply briefly"
+            await pilot.press("enter")
+>           await asyncio.wait_for(model.partial.wait(), 5)
+
+tests/test_tui_streaming.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:519: in wait_for
+    async with timeouts.timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x76d695205f40>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+../.conda/envs/aster/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+_ test_tui_displays_incremental_text_before_completion_and_logs_final_once[True] _
+
+fut = <coroutine object Event.wait at 0x76d695241fc0>, timeout = 5
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        If the task suppresses the cancellation and returns a value instead,
+        that value is returned.
+    
+        This function is a coroutine.
+        """
+        # The special case for timeout <= 0 is for the following case:
+        #
+        # async def test_waitfor():
+        #     func_started = False
+        #
+        #     async def func():
+        #         nonlocal func_started
+        #         func_started = True
+        #
+        #     try:
+        #         await asyncio.wait_for(func(), 0)
+        #     except asyncio.TimeoutError:
+        #         assert not func_started
+        #     else:
+        #         assert False
+        #
+        # asyncio.run(test_waitfor())
+    
+    
+        if timeout is not None and timeout <= 0:
+            fut = ensure_future(fut)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise TimeoutError from exc
+    
+        async with timeouts.timeout(timeout):
+>           return await fut
+                   ^^^^^^^^^
+
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:520: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <asyncio.locks.Event object at 0x76d6957ed400 [unset]>
+
+    async def wait(self):
+        """Block until the internal flag is true.
+    
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+    
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+>           await fut
+E           asyncio.exceptions.CancelledError
+
+../.conda/envs/aster/lib/python3.12/asyncio/locks.py:212: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-3/test_tui_displays_incremental_1')
+retry = True
+
+    @pytest.mark.parametrize("retry", [False, True])
+    async def test_tui_displays_incremental_text_before_completion_and_logs_final_once(tmp_path, retry):
+        settings = Settings(stream=True, completion="off", auto_dream=False)
+        app = AsterTui(tmp_path, settings)
+        model = PausedStream(settings, retry=retry)
+        app.runtime.model = model
+        async with app.run_test() as pilot:
+            app.query_one("#prompt").value = "Reply briefly"
+            await pilot.press("enter")
+>           await asyncio.wait_for(model.partial.wait(), 5)
+
+tests/test_tui_streaming.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:519: in wait_for
+    async with timeouts.timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x76d695620e80>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+../.conda/envs/aster/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+_____ test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools _____
+
+fut = <coroutine object Event.wait at 0x76d699544ba0>, timeout = 5
+
+    async def wait_for(fut, timeout):
+        """Wait for the single Future or coroutine to complete, with timeout.
+    
+        Coroutine will be wrapped in Task.
+    
+        Returns result of the Future or coroutine.  When a timeout occurs,
+        it cancels the task and raises TimeoutError.  To avoid the task
+        cancellation, wrap it in shield().
+    
+        If the wait is cancelled, the task is also cancelled.
+    
+        If the task suppresses the cancellation and returns a value instead,
+        that value is returned.
+    
+        This function is a coroutine.
+        """
+        # The special case for timeout <= 0 is for the following case:
+        #
+        # async def test_waitfor():
+        #     func_started = False
+        #
+        #     async def func():
+        #         nonlocal func_started
+        #         func_started = True
+        #
+        #     try:
+        #         await asyncio.wait_for(func(), 0)
+        #     except asyncio.TimeoutError:
+        #         assert not func_started
+        #     else:
+        #         assert False
+        #
+        # asyncio.run(test_waitfor())
+    
+    
+        if timeout is not None and timeout <= 0:
+            fut = ensure_future(fut)
+    
+            if fut.done():
+                return fut.result()
+    
+            await _cancel_and_wait(fut)
+            try:
+                return fut.result()
+            except exceptions.CancelledError as exc:
+                raise TimeoutError from exc
+    
+        async with timeouts.timeout(timeout):
+>           return await fut
+                   ^^^^^^^^^
+
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:520: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <asyncio.locks.Event object at 0x76d69654f380 [unset]>
+
+    async def wait(self):
+        """Block until the internal flag is true.
+    
+        If the internal flag is true on entry, return True
+        immediately.  Otherwise, block until another coroutine calls
+        set() to set the flag to true, then return True.
+        """
+        if self._value:
+            return True
+    
+        fut = self._get_loop().create_future()
+        self._waiters.append(fut)
+        try:
+>           await fut
+E           asyncio.exceptions.CancelledError
+
+../.conda/envs/aster/lib/python3.12/asyncio/locks.py:212: CancelledError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-3/test_tui_cancel_retains_partia0')
+
+    async def test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools(tmp_path):
+        settings = Settings(stream=True, completion="off", auto_dream=False)
+        app = AsterTui(tmp_path, settings)
+        model = PausedStream(settings)
+        app.runtime.model = model
+        async with app.run_test() as pilot:
+            app.query_one("#prompt").value = "Reply briefly"
+            await pilot.press("enter")
+>           await asyncio.wait_for(model.partial.wait(), 5)
+
+tests/test_tui_streaming.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../.conda/envs/aster/lib/python3.12/asyncio/tasks.py:519: in wait_for
+    async with timeouts.timeout(timeout):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <Timeout [expired]>
+exc_type = <class 'asyncio.exceptions.CancelledError'>
+exc_val = CancelledError(), exc_tb = <traceback object at 0x76d69593fd80>
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        assert self._state in (_State.ENTERED, _State.EXPIRING)
+    
+        if self._timeout_handler is not None:
+            self._timeout_handler.cancel()
+            self._timeout_handler = None
+    
+        if self._state is _State.EXPIRING:
+            self._state = _State.EXPIRED
+    
+            if self._task.uncancel() <= self._cancelling and exc_type is exceptions.CancelledError:
+                # Since there are no new cancel requests, we're
+                # handling this.
+>               raise TimeoutError from exc_val
+E               TimeoutError
+
+../.conda/envs/aster/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+=========================== short test summary info ============================
+FAILED tests/test_cli_contract.py::test_cli_stream_previews_before_completion_without_polluting_stdout
+FAILED tests/test_tui_streaming.py::test_tui_displays_incremental_text_before_completion_and_logs_final_once[False]
+FAILED tests/test_tui_streaming.py::test_tui_displays_incremental_text_before_completion_and_logs_final_once[True]
+FAILED tests/test_tui_streaming.py::test_tui_cancel_retains_partial_text_as_incomplete_and_runs_no_tools
+4 failed, 469 passed, 798 deselected in 90.74s (0:01:30)

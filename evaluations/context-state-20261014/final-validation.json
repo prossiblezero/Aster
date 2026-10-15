@@ -1,0 +1,42 @@
+[
+  {
+    "label": "ruff",
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "ruff",
+      "check",
+      "src",
+      "tests",
+      "scripts/benchmark_robustness.py"
+    ],
+    "exit_code": 0,
+    "seconds": 0.021106481552124023
+  },
+  {
+    "label": "core",
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "core"
+    ],
+    "exit_code": 0,
+    "seconds": 82.16419315338135
+  },
+  {
+    "label": "noncore",
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "not core"
+    ],
+    "exit_code": 1,
+    "seconds": 84.30991005897522
+  }
+]

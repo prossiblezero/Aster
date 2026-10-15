@@ -1,0 +1,47 @@
+{
+  "job": "aster-terminal-cancel-async-tasks",
+  "agent": "aster",
+  "task": "terminal-cancel-async-tasks",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 74.71,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": true,
+  "grade": {
+    "passed": false,
+    "exit_code": 1,
+    "tests": 6,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 6
+  },
+  "requests": 7,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 60400,
+  "output_tokens": 3155,
+  "cached_tokens": 44032,
+  "total_tokens": 63555,
+  "final": "Implemented [`/app/run.py`](/app/run.py).\n\n`run_tasks` now:\n\n- Limits active jobs to `max_concurrent`.\n- Propagates job failures.\n- Cancels and awaits outstanding jobs when a job fails or the caller is cancelled.\n- Allows running jobs’ async cleanup and `finally` blocks to complete.\n- Raises `ValueError` for `max_concurrent < 1`.\n\nVerification completed:\n\n- Concurrency limit test passed.\n- Failure cleanup test passed.\n- Parent cancellation cleanup test passed.\n- Invalid limit test passed.\n- Public import check passed: `from run import run_tasks`.\n- Custom test suite: `4 passed`.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 7,
+    "step": 8,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "84eeaa9d3bfb33f40cc827cf5ccbbfe6700918eafa7fa9cc20513566b143273f",
+      "evidence_id": "947c0a6bd4546f220c989d8c5a055062e4a2f34614e8bf7d5f48d997f2627392",
+      "command": "pytest -q"
+    },
+    "verification_failures": {}
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

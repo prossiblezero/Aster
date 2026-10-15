@@ -1,0 +1,130 @@
+--- v2/src/aster/safety/linux.py
++++ current/src/aster/safety/linux.py
+@@ -6,11 +6,15 @@
+ 
+ import ctypes
+ import errno
++import json
+ import os
+ import platform
+ import resource
++import shutil
+ import socket
++import subprocess
+ import sys
++import tempfile
+ from pathlib import Path
+ 
+ 
+@@ -167,9 +171,54 @@
+         sec.seccomp_release(ctx)
+ 
+ 
++def mapped_command(root, workspace, network, command, temporary, dependencies):
++    """Mount the filtered copy at the user-visible path before installing restrictions."""
++    if workspace in (sys.prefix, sys.base_prefix):
++        raise RuntimeError("the workspace must not be the Python installation directory")
++    # Keep the trusted launcher outside the tree that the bind mount replaces.
++    launcher = Path(temporary) / "linux.py"
++    shutil.copyfile(__file__, launcher)
++    argv = [
++        "bwrap", "--die-with-parent", "--cap-drop", "ALL", "--ro-bind", "/", "/",
++        "--dev", "/dev", "--bind", root, workspace,
++        "--bind", temporary, temporary, "--chdir", workspace,
++    ]
++    # An Aster interpreter installed inside the project must remain available.
++    for prefix in dict.fromkeys((sys.prefix, sys.base_prefix)):
++        if Path(prefix).is_relative_to(workspace):
++            argv += ["--ro-bind", prefix, prefix]
++    # The parent authors these environment paths, including language-tool caches.
++    env = {
++        key: os.pathsep.join(
++            workspace + part[len(root):]
++            if part == root or part.startswith(root + "/") else part
++            for part in value.split(os.pathsep)
++        )
++        for key, value in os.environ.items()
++    }
++    # bwrap closes this descriptor before launching the command. A command cannot
++    # forge or erase the namespace setup receipt.
++    with tempfile.TemporaryFile(dir=temporary) as ready:
++        result = subprocess.run(
++            [*argv, "--json-status-fd", str(ready.fileno()), "--", sys.executable, "-I",
++             str(launcher), "--mapped", workspace, network, command, temporary, *dependencies],
++            env=env, pass_fds=(ready.fileno(),), check=False,
++        )
++        ready.seek(0)
++        if not any("exit-code" in json.loads(line) for line in ready):
++            raise RuntimeError(
++                "bubblewrap cannot create a workspace mount namespace; "
++                "check user namespaces and AppArmor (docs/execution-environment.md)"
++            )
++    return result.returncode if result.returncode >= 0 else 128 - result.returncode
++
++
+ def main():
+-    root, network, command, temporary, *dependencies = sys.argv[1:]
+     try:
++        if sys.argv[1] != "--mapped":
++            root, network, workspace, command, temporary, *dependencies = sys.argv[1:]
++            sys.exit(mapped_command(root, workspace, network, command, temporary, dependencies))
++        root, network, command, temporary, *dependencies = sys.argv[2:]
+         os.chdir(root)
+         resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
+         resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
+--- v2/src/aster/safety/runner.py
++++ current/src/aster/safety/runner.py
+@@ -41,8 +41,12 @@
+ 
+ 
+ class SandboxRunner:
+-    def __init__(self, settings: Settings, *, environment: SandboxRunner | None = None):
++    def __init__(
++        self, settings: Settings, *, environment: SandboxRunner | None = None,
++        workspace_path: Path | None = None,
++    ):
+         self.settings = settings
++        self._workspace_path = workspace_path
+         self._source = environment
+         self._environment: tempfile.TemporaryDirectory | None = None
+         self._environment_workspace: Path | None = None
+@@ -62,7 +66,7 @@
+                if self.settings.reuse_environment else "Command-installed dependencies are temporary. ")
+             + ("Global /tmp is outside the writable workspace; use .tmp/ or TMPDIR. "
+                if self.settings.sandbox == "required" else "Use .tmp/ or TMPDIR for temporary files. ")
+-            + "Isolated commands use a workspace copy and separate TMPDIR; use relative paths. "
++            + "Isolated commands preserve workspace paths; "
+             + "background servers do not survive tool calls; run servers, checks and cleanup together. "
+             "Verify service behavior and stderr, not just exit 0."
+         )
+@@ -260,6 +264,7 @@
+                     str(launcher),
+                     str(root),
+                     "on" if self.settings.network else "off",
++                    str(self._workspace_path or workspace.root),
+                 ],
+                 [str(path) for path in borrowed.values()],
+             )
+--- v2/src/aster/tools/testing.py
++++ current/src/aster/tools/testing.py
+@@ -86,8 +86,10 @@
+         )
+     if native:
+         try:
+-            if Path(argv[1]).is_absolute() or not workspace.path(argv[1]).is_file():
++            script = workspace.path(argv[1])
++            if not script.is_file():
+                 raise ValueError("test_script_not_in_workspace")
++            argv[1] = str(script.relative_to(workspace.root))
+         except (OSError, ValueError) as exc:
+             return Outcome(status="blocked", reason="test_script_not_in_workspace", content=str(exc))
+     if sandbox.settings.sandbox == "off":
+@@ -342,7 +344,7 @@
+         # Only a report may leave the execution copy, into this disposable copy.
+         # Tests cannot publish any change to the actual repository, including in plan mode.
+         # Capture it before publication can reject an unrelated test-created file.
+-        result = await ReportRunner(settings, environment=sandbox).run(
++        result = await ReportRunner(settings, environment=sandbox, workspace_path=workspace.root).run(
+             Workspace(target), shlex.join(command), timeout
+         )
+         cases = None

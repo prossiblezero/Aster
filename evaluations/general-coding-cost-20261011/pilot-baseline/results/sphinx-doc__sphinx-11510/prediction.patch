@@ -1,0 +1,40 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..b8555a0 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,7 +3,8 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
+-from docutils import nodes
++from docutils import nodes, statemachine
++from docutils.statemachine import StringList
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+ from docutils.parsers.rst.directives.misc import Class
+@@ -376,7 +377,24 @@ class Include(BaseInclude, SphinxDirective):
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
+         self.arguments[0] = filename
+         self.env.note_included(filename)
+-        return super().run()
++
++        insert_input = self.state_machine.insert_input
++
++        def insert_input_with_source_read(input_lines: StringList, source: str) -> None:
++            source_arg = ['\\n'.join(input_lines)]
++            self.env.app.emit('source-read', self.env.docname, source_arg)
++            lines = statemachine.string2lines(
++                source_arg[0],
++                tab_width=self.state.document.settings.tab_width,
++                convert_whitespace=True,
++            )
++            insert_input(StringList(lines, source), source)
++
++        self.state_machine.insert_input = insert_input_with_source_read  # type: ignore[method-assign]
++        try:
++            return super().run()
++        finally:
++            self.state_machine.insert_input = insert_input  # type: ignore[method-assign]
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:

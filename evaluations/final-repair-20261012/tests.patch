@@ -1,0 +1,75 @@
+--- /dev/null
++++ candidate/tests/test_test_execution_feedback.py
+@@ -0,0 +1,72 @@
++"""Formal verification accepts a redundant chdir and exposes actionable report facts."""
++
++import shlex
++
++import pytest
++
++from aster.config import ExecRule, Settings
++from aster.core.runtime import Runtime
++from aster.schema import TaskSpec, ToolCall
++
++pytestmark = pytest.mark.core
++
++
++@pytest.mark.parametrize("prefix", ["absolute", "relative", "option", "outside", "subdir", "compound", "denied"])
++async def test_root_chdir_keeps_native_tests_and_boundaries(tmp_path, prefix):
++    root = tmp_path / "project with spaces"
++    root.mkdir()
++    (root / "tests").mkdir()
++    (root / "tests/runtests.py").write_text(
++        "import unittest\nfrom pathlib import Path\n"
++        "class Check(unittest.TestCase):\n"
++        "    def test_root(self):\n"
++        f"        self.assertEqual(Path.cwd(), Path({str(root)!r}))\n"
++        "unittest.main()\n"
++    )
++    directory = {"relative": ".", "outside": str(tmp_path), "subdir": "tests"}.get(prefix, str(root))
++    command = f"cd {'-- ' if prefix == 'option' else ''}{shlex.quote(directory)} && python tests/runtests.py -q"
++    if prefix == "compound":
++        command += " && touch escaped.txt"
++    settings = Settings(approval="auto", memory_enabled=False)
++    if prefix == "denied":
++        settings.rules = [ExecRule(prefix=["python"], decision="deny", reason="python_denied")]
++    runtime = Runtime(root, settings, approval_callback=lambda call, decision: True)
++    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
++    before = runtime.workspace.snapshot()
++    try:
++        result = await runtime.step(ToolCall(name="run_tests", arguments={"command": command}))
++        if prefix in {"absolute", "relative", "option"}:
++            assert result.status == "success", result.model_dump()
++            assert result.data["passed_tests"] == 1
++            assert runtime.verifier.final(runtime.state).passed
++        else:
++            assert result.status == "blocked", result.model_dump()
++            assert not runtime.verifier.final(runtime.state).passed
++        assert runtime.workspace.snapshot() == before
++    finally:
++        runtime.sandbox.close()
++
++
++async def test_report_exposes_failures_before_clipped_output_without_clearing_them(tmp_path):
++    (tmp_path / "test_project.py").write_text(
++        "import pytest\n"
++        "@pytest.fixture\ndef unavailable(): raise RuntimeError('fixture unavailable')\n"
++        "def test_setup(unavailable): pass\n"
++        "def test_regression():\n    print('x' * 20000)\n    assert 1 == 2, 'real regression'\n"
++        "def test_ok(): pass\n"
++    )
++    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
++    runtime.start(TaskSpec(prompt="Verify", require_verification=True))
++    try:
++        outcome = await runtime.step(ToolCall(name="run_tests", arguments={"command": "pytest -q"}))
++        summary = outcome.content.split("\n\n", 1)[0]
++        assert "1 passed, 1 failed, 1 error, 0 skipped" in summary
++        assert "test_regression" in summary and "real regression" in summary
++        assert "test_setup" in summary and "fixture unavailable" in summary
++        assert "Preview clipped" in outcome.content
++        assert outcome.data["observation"]["characters"] > 20000
++        assert not runtime.verifier.final(runtime.state).passed
++        await runtime.step(ToolCall(name="run_tests", arguments={"command": "pytest -q -k test_ok"}))
++        assert runtime.verifier.final(runtime.state).reason == "verification_unresolved_failures"
++    finally:
++        runtime.sandbox.close()

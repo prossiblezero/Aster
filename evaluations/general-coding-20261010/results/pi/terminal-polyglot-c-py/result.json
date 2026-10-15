@@ -1,0 +1,41 @@
+{
+  "job": "pi-terminal-polyglot-c-py",
+  "agent": "pi",
+  "task": "terminal-polyglot-c-py",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 286.02,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": false,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 1
+  },
+  "requests": 8,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 67389,
+  "output_tokens": 3759,
+  "cached_tokens": 50176,
+  "total_tokens": 71148,
+  "source": "Terminal-Bench archive",
+  "difficulty": "medium",
+  "final": "Implemented [main.py.c](/app/polyglot/main.py.c).\n\nVerified:\n\n- `python3 /app/polyglot/main.py.c 0` → `0`\n- `python3 /app/polyglot/main.py.c 10` → `55`\n- `python3 /app/polyglot/main.py.c 100` → `354224848179261915075`\n- Compiled with `gcc -Wall -Wextra -std=c17`\n- C output matches Python output byte-for-byte for `N=500`\n- Invalid-argument handling exits nonzero in both modes\n\nThe C implementation uses decimal-string arithmetic, so it supports Fibonacci values beyond native integer widths. GCC emits two harmless warnings for the polyglot delimiter lines, but compilation succeeds.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States polyglot implementation delivered and verified in C and Python including large inputs; compiler warnings are disclosed without unresolved requirements.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

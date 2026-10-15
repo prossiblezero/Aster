@@ -1,0 +1,41 @@
+{
+  "job": "pi-terminal-cobol-modernization",
+  "agent": "pi",
+  "task": "terminal-cobol-modernization",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 398.408,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": true,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 3
+  },
+  "requests": 12,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 155360,
+  "output_tokens": 5502,
+  "cached_tokens": 125952,
+  "total_tokens": 160862,
+  "source": "Terminal-Bench archive",
+  "difficulty": "easy",
+  "final": "Implemented `/app/program.py` to match the COBOL program’s behavior:\n\n- Reads `/app/src/INPUT.DAT`\n- Validates buyer, seller, book, and ownership\n- Updates fixed-width account and book records\n- Appends transactions using the same 22-byte layout\n- Preserves raw file formatting and byte contents\n\nVerification completed against compiled GnuCOBOL 3.1.2:\n\n- Invalid repository input: all three `.DAT` files matched byte-for-byte\n- Valid transaction input: all three `.DAT` files matched byte-for-byte\n- `python -m py_compile /app/program.py` passed\n\nThe original input and data files were restored after testing.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States Python port implemented and byte-for-byte output checked against GnuCOBOL for valid/invalid transactions, without unresolved caveats.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

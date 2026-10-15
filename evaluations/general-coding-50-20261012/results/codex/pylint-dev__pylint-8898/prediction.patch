@@ -1,0 +1,50 @@
+diff --git a/pylint/config/argument.py b/pylint/config/argument.py
+index 30a5fd1..1d95252 100644
+--- a/pylint/config/argument.py
++++ b/pylint/config/argument.py
+@@ -10,6 +10,7 @@ An Argument instance represents a pylint option to be handled by an argparse.Arg
+ from __future__ import annotations
+ 
+ import argparse
++import csv
+ import os
+ import pathlib
+ import re
+@@ -114,7 +115,9 @@ def _regex_transformer(value: str) -> Pattern[str]:
+ def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
+     """Transforms a comma separated list of regular expressions."""
+     patterns: list[Pattern[str]] = []
+-    for pattern in _csv_transformer(value):
++    # Use CSV quoting so commas in a regular expression can be kept in one
++    # pattern, for example: "(foo{1,3})".
++    for pattern in next(csv.reader([value], skipinitialspace=True)):
+         patterns.append(_regex_transformer(pattern))
+     return patterns
+ 
+diff --git a/tests/config/test_config.py b/tests/config/test_config.py
+index 83c8b07..4a0aa9f 100644
+--- a/tests/config/test_config.py
++++ b/tests/config/test_config.py
+@@ -147,6 +147,22 @@ def test_csv_regex_error(capsys: CaptureFixture) -> None:
+     )
+ 
+ 
++def test_csv_regex_with_comma() -> None:
++    """Check that commas in quoted regular expressions are preserved."""
++    runner = Run(
++        [
++            str(EMPTY_MODULE),
++            '--bad-names-rgxs="(foo{1,3})",bar.*',
++        ],
++        exit=False,
++    )
++
++    assert [pattern.pattern for pattern in runner.linter.config.bad_names_rgxs] == [
++        "(foo{1,3})",
++        "bar.*",
++    ]
++
++
+ def test_short_verbose(capsys: CaptureFixture) -> None:
+     """Check that we correctly handle the -v flag."""
+     Run([str(EMPTY_MODULE), "-v"], exit=False)

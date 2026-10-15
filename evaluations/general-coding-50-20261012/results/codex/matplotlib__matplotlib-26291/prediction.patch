@@ -1,0 +1,37 @@
+diff --git a/lib/mpl_toolkits/axes_grid1/inset_locator.py b/lib/mpl_toolkits/axes_grid1/inset_locator.py
+index 9d35051..0e614ad 100644
+--- a/lib/mpl_toolkits/axes_grid1/inset_locator.py
++++ b/lib/mpl_toolkits/axes_grid1/inset_locator.py
+@@ -70,6 +70,9 @@ class AnchoredLocatorBase(AnchoredOffsetbox):
+ 
+     def __call__(self, ax, renderer):
+         self.axes = ax
++        self.figure = ax.figure
++        if renderer is None:
++            renderer = ax.figure._get_renderer()
+         bbox = self.get_window_extent(renderer)
+         px, py = self.get_offset(bbox.width, bbox.height, 0, 0, renderer)
+         bbox_canvas = Bbox.from_bounds(px, py, bbox.width, bbox.height)
+diff --git a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+index b615747..4c97789 100644
+--- a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
++++ b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+@@ -1,3 +1,4 @@
++import io
+ from itertools import product
+ import platform
+ 
+@@ -247,6 +248,13 @@ def test_inset_axes_complete():
+                          bbox_transform=ax.transAxes)
+ 
+ 
++def test_inset_axes_tight_bbox():
++    fig, ax = plt.subplots(1, 2, figsize=[5.5, 2.8])
++    inset_axes(ax[0], width=1.3, height=0.9)
++
++    fig.canvas.print_figure(io.BytesIO(), bbox_inches="tight")
++
++
+ @image_comparison(['fill_facecolor.png'], remove_text=True, style='mpl20')
+ def test_fill_facecolor():
+     fig, ax = plt.subplots(1, 5)

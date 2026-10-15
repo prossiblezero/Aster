@@ -1,0 +1,242 @@
+--- baseline/src/aster/context/budget.py
++++ candidate/src/aster/context/budget.py
+@@ -237,6 +237,7 @@
+                     protocol=protocol,
+                     model=model,
+                     output_tokens=output_reserve,
++                    prompt_cache_key=state.run_id,
+                 )
+             )
+ 
+--- baseline/src/aster/core/runtime.py
++++ candidate/src/aster/core/runtime.py
+@@ -367,7 +367,7 @@
+         history_groups(self._structured_history)
+         workspace = self.workspace.snapshot()
+         save_checkpoint(
+-            self.evidence, self.state, workspace_hash=self.workspace.fingerprint(),
++            self.evidence, self.state, workspace_hash=self.workspace.fingerprint(workspace),
+             workspace_snapshot=workspace, runtime_identity=self.settings.identity(),
+             structured_history=self._structured_history, initial_text=self._initial_text,
+             initial_modes=self._initial_modes, recovery_used=self._recovery_used,
+@@ -600,6 +600,7 @@
+             protocol=self.settings.protocol,
+             model=self.settings.model,
+             output_tokens=self.settings.effective_output_tokens,
++            prompt_cache_key=state.run_id,
+         )
+         # Keep the actual model observation apart from the full execution trace.
+         request_hash = self._request_hash(payload)
+@@ -659,6 +660,7 @@
+             protocol=self.settings.protocol,
+             model=self.settings.model,
+             output_tokens=self.settings.effective_output_tokens,
++            prompt_cache_key=state.run_id,
+         )
+         request_hash = self._request_hash(payload)
+         request_usage = {}
+@@ -668,6 +670,7 @@
+                 reply = await self.model.complete(
+                     request_messages,
+                     tool_defs,
++                    prompt_cache_key=state.run_id,
+                     on_event=lambda event: self.evidence.emit(
+                         state.run_id,
+                         "provider_attempt" if event.get("type") == "diagnostic" else (
+--- baseline/src/aster/knowledge/maintenance.py
++++ candidate/src/aster/knowledge/maintenance.py
+@@ -245,11 +245,13 @@
+         memories = [{key: item.get(key) for key in ("id", "text", "kind", "when", "tags")}
+                     for item in existing]
+         messages = [{"role": "system", "content": INSTRUCTION}, {"role": "user", "content": ""}]
++        job_id = uuid4().hex
+         while True:
+             messages[1]["content"] = json.dumps({"evidence": visible, "memories": memories},
+                                                 ensure_ascii=False, separators=(",", ":"))
+             estimate = rt.context.count(request_payload(messages, [tool], protocol=rt.settings.protocol,
+-                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS))
++                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS,
++                                                       prompt_cache_key="memory-" + job_id))
+             if estimate <= min(INPUT_TOKENS, rt.settings.effective_context_tokens - OUTPUT_TOKENS):
+                 break
+             longest = max(visible.values(), key=lambda item: len(item["text"]))
+@@ -261,7 +263,7 @@
+                 memories.pop()
+             else:
+                 return None
+-        return {"id": uuid4().hex,
++        return {"id": job_id,
+                 "pending": pending, "sources": sources, "revision": revision,
+                 "fingerprints": fingerprints,
+                 "memory_ids": [item["id"] for item in memories], "messages": messages,
+@@ -325,7 +327,8 @@
+         usage = {}
+         try:
+             if isinstance(model, ModelClient):
+-                reply = await model.complete(job["messages"], job["tools"], on_event=lambda event:
++                reply = await model.complete(job["messages"], job["tools"],
++                    prompt_cache_key="memory-" + job["id"], on_event=lambda event:
+                     rt.evidence.emit(owner.run_id, "memory_provider", job_id=job["id"], **event))
+             else:
+                 reply = await model.complete(job["messages"], job["tools"])
+--- baseline/src/aster/providers/client.py
++++ candidate/src/aster/providers/client.py
+@@ -26,7 +26,8 @@
+         self.redaction_secrets = [settings.api_key.get_secret_value()]
+ 
+     async def complete(
+-        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
++        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None,
++        prompt_cache_key: str | None = None,
+     ) -> ModelReply:
+         accounting = RequestAccounting(self.settings, self.redaction_secrets)
+         try:
+@@ -39,6 +40,7 @@
+                 protocol=protocol,
+                 model=self.settings.model,
+                 output_tokens=self.settings.effective_output_tokens,
++                prompt_cache_key=prompt_cache_key,
+             )
+             suffix = {"responses": "/responses", "chat": "/chat/completions", "anthropic": "/messages"}[
+                 protocol
+--- baseline/src/aster/providers/codec.py
++++ candidate/src/aster/providers/codec.py
+@@ -143,7 +143,8 @@
+     return "\n\n".join(system), result
+ 
+ 
+-def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
++def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048,
++                    prompt_cache_key=None):
+     """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
+     history_groups(messages)
+     if protocol in {"chat", "anthropic"} and any(
+@@ -190,6 +191,8 @@
+             "max_output_tokens": output_tokens,
+             "store": False,
+         }
++        if prompt_cache_key is not None:
++            payload["prompt_cache_key"] = prompt_cache_key
+     history_groups(payload.get("input", payload.get("messages", [])))
+     return payload
+ 
+--- baseline/src/aster/sessions/checkpoint.py
++++ candidate/src/aster/sessions/checkpoint.py
+@@ -65,7 +65,7 @@
+     """Validate persisted identity, history and archive ownership before runtime mutation."""
+     if data is None:
+         data = json.loads(evidence.path("runs", run_id, "checkpoint.json").read_text())
+-    if data.get("checkpoint_version", 1) not in {1, 2}:
++    if data.get("checkpoint_version", 1) not in {1, 2, 3}:
+         raise ValueError("unsupported_checkpoint_version: use the Aster version that saved this run")
+     assert_settled_tools(evidence, run_id, data)
+     # Opt-in workers share the workspace. Adopting edits cannot erase a child's
+@@ -107,6 +107,8 @@
+     state = RunState.model_validate(data["state"])
+     redact_skill_snapshots(state, evidence.redactor)
+     state.messages = evidence.redactor.value(state.messages, mask_fields=False)
++    if data.get("checkpoint_version") == 3 or "baseline_ref" in data:
++        data = {**data, **evidence.read_diff_baseline(data.get("baseline_ref"))}
+     if not state.terminal and "initial_text" not in data:
+         raise ValueError("legacy_checkpoint_missing_diff_baseline")
+     history_groups(data.get("structured_history", []))
+@@ -157,14 +159,13 @@
+                     structured_history, initial_text, initial_modes, recovery_used, stall_items,
+                     archive_sources, history_origins, continued_from, commit=None):
+     data = {
+-            "checkpoint_version": 2,
++            "checkpoint_version": 3,
+             "state": state.model_dump(mode="json"),
+             "workspace_hash": workspace_hash,
+             "workspace": workspace_snapshot,
+             "runtime_identity": runtime_identity,
+             "structured_history": structured_history,
+-            "initial_text": initial_text,
+-            "initial_modes": initial_modes,
++            "baseline_ref": evidence.save_diff_baseline(state.run_id, initial_text, initial_modes),
+             "recovery_used": recovery_used,
+             "stall_items": list(stall_items),
+             "archive_sources": archive_sources,
+--- baseline/src/aster/sessions/navigation.py
++++ candidate/src/aster/sessions/navigation.py
+@@ -47,6 +47,7 @@
+         runtime.evidence.redactor = redactor
+         saved = load_checkpoint(runtime.evidence, runtime.workspace, selected, data["state"]["run_id"],
+                                 allow_model_change=False, adopt_workspace=adopt_workspace, data=data)
++        data = saved.data
+         state, history = saved.state, deepcopy(saved.history)
+         # Fresh execution identity prevents future observations from the old run leaking.
+         old_run = state.run_id
+--- baseline/src/aster/storage/evidence.py
++++ candidate/src/aster/storage/evidence.py
+@@ -76,6 +76,7 @@
+         self.redactor = redactor
+         self._lock = threading.RLock()
+         self.listeners = []
++        self._baseline_cache = None
+ 
+     def path(self, *parts: str) -> Path:
+         path = self.root.joinpath(*parts)
+@@ -135,6 +136,49 @@
+         ):
+             saved[key] = original[key]
+         return redacted
++
++    def save_diff_baseline(self, run_id, text, modes):
++        """Runtime replaces these immutable mappings only at task/branch boundaries."""
++        secrets = tuple(self.redactor.secrets)
++        cached = self._baseline_cache
++        if (cached is not None and cached[0] == run_id and cached[1] is text
++                and cached[2] is modes and cached[3] == secrets):
++            ref = cached[4]
++            if self.path("runs", run_id, "baselines", ref["sha256"] + ".json").is_file():
++                return dict(ref)
++        baseline = self.redactor.value(
++            {"initial_text": text, "initial_modes": modes}, mask_fields=False
++        )
++        sha256 = digest(json.dumps(baseline, sort_keys=True, ensure_ascii=False))
++        ref = {"run_id": run_id, "sha256": sha256}
++        # Commit the blob before any SQLite snapshot or JSON can reference it.
++        atomic_json(self.path("runs", run_id, "baselines", sha256 + ".json"), baseline)
++        self._baseline_cache = (run_id, text, modes, secrets, ref)
++        return dict(ref)
++
++    def read_diff_baseline(self, ref):
++        if (not isinstance(ref, dict) or set(ref) != {"run_id", "sha256"}
++                or not isinstance(ref["run_id"], str)
++                or not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", ref["run_id"])
++                or not isinstance(ref["sha256"], str)
++                or not re.fullmatch(r"[0-9a-f]{64}", ref["sha256"])):
++            raise ValueError("invalid_diff_baseline_reference")
++        try:
++            baseline = json.loads(self.path(
++                "runs", ref["run_id"], "baselines", ref["sha256"] + ".json"
++            ).read_text())
++        except FileNotFoundError as exc:
++            raise ValueError("missing_diff_baseline: copy the complete .aster/runs directory") from exc
++        if digest(json.dumps(baseline, sort_keys=True, ensure_ascii=False)) != ref["sha256"]:
++            raise ValueError("diff_baseline_integrity_error")
++        if (not isinstance(baseline, dict) or set(baseline) != {"initial_text", "initial_modes"}
++                or not isinstance(baseline["initial_text"], dict)
++                or not isinstance(baseline["initial_modes"], dict)
++                or any(not isinstance(v, str) for v in baseline["initial_text"].values())
++                or any(type(v) is not int or not 0 <= v <= 0o7777
++                       for v in baseline["initial_modes"].values())):
++            raise ValueError("invalid_diff_baseline")
++        return baseline
+ 
+     def archive_observation(self, run_id: str, call_id: str, tool: str, content: str) -> dict:
+         """Persist captured text before replacing it with a preview; never silently clip it."""
+--- baseline/src/aster/storage/workspace.py
++++ candidate/src/aster/storage/workspace.py
+@@ -188,8 +188,8 @@
+             for path in self.files()
+         }
+ 
+-    def fingerprint(self) -> str:
+-        return digest(json.dumps(self.snapshot(), sort_keys=True))
++    def fingerprint(self, snapshot: dict[str, str] | None = None) -> str:
++        return digest(json.dumps(self.snapshot() if snapshot is None else snapshot, sort_keys=True))
+ 
+     def text_snapshot(self) -> dict[str, str]:
+         """Text baseline for a human-readable diff; hashes remain drift evidence."""

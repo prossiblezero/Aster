@@ -1,0 +1,76 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 533.687,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1696,
+  "patch_sha256": "4e2c2dd97f3d8b516f976fd9209616d48d94c58f57a081bec8cdcb9612f3eb67",
+  "requests": 54,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 1970261,
+  "output_tokens": 9689,
+  "cached_tokens": 441856,
+  "total_tokens": 1979950,
+  "final": "Implemented the fix in [sphinx/directives/other.py](/testbed/sphinx/directives/other.py:371).\n\nThe `Include` directive now emits `source-read` for regular included files before inserting their content into the current state machine. The mutable `source[0]` value is converted back into input lines, so extensions can modify included source just as they modify normal document source. Absolute and relative include paths are both covered, while existing cleanup and path handling are preserved.\n\nVerification:\n\n- Exact reproducer with replacements in both `index.rst` and the included file: passed.\n- `python -m pytest tests/test_build_html.py -q`: **539 passed**.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 54,
+    "step": 68,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "cc9a55387f5e4bdd654be918b565d0ae869e3dc9ac88f7d1b738a498a5e07318",
+      "evidence_id": "47dc4f10f0b6cf59a4cf2a532b4345ecfcdb8fdc1451bcf0ecadd441a57b838b",
+      "command": "python -m pytest tests/test_build_html.py -q"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

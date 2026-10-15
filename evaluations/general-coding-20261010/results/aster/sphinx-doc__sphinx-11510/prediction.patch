@@ -1,0 +1,46 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..c00ad2a 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
+-from docutils import nodes
++from docutils import io, nodes
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+ from docutils.parsers.rst.directives.misc import Class
+@@ -373,10 +373,29 @@ class Include(BaseInclude, SphinxDirective):
+            self.arguments[0].endswith('>'):
+             # docutils "standard" includes, do not do path processing
+             return super().run()
+-        rel_filename, filename = self.env.relfn2path(self.arguments[0])
+-        self.arguments[0] = filename
++
++        _rel_filename, filename = self.env.relfn2path(self.arguments[0])
+         self.env.note_included(filename)
+-        return super().run()
++
++        original = self.arguments[0]
++        self.arguments[0] = filename
++        original_file_input = io.FileInput
++        self_outer = self
++
++        class SourceReadFileInput(original_file_input):
++            def read(self) -> str:
++                content = super().read()
++                source = [content]
++                docname = self_outer.env.path2doc(filename) or self_outer.env.docname
++                self_outer.env.events.emit('source-read', docname, source)
++                return source[0]
++
++        io.FileInput = SourceReadFileInput
++        try:
++            return super().run()
++        finally:
++            io.FileInput = original_file_input
++            self.arguments[0] = original
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:

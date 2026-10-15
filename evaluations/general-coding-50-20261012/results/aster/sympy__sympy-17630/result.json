@@ -1,0 +1,81 @@
+{
+  "job": "aster-sympy__sympy-17630",
+  "agent": "aster",
+  "task": "sympy__sympy-17630",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 297.662,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": true,
+  "patch_bytes": 2334,
+  "patch_sha256": "c125910bb1f5e3edfe9c35824a3adc5ef379fe6d05d86c218cfeed8b988f9907",
+  "requests": 13,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 337377,
+  "output_tokens": 3504,
+  "cached_tokens": 135168,
+  "total_tokens": 340881,
+  "final": "Fixed the `BlockMatrix` multiplication failure with zero blocks.\n\nChanges:\n- Updated `BlockMatrix._blockmul` to convert scalar zero results back into dimensioned `ZeroMatrix` blocks using the corresponding block row and column sizes.\n- Added regression coverage for:\n  - Direct repeated `_blockmul`\n  - `block_collapse(B * B * B)`\n  - Preservation of matrix-valued zero blocks\n\nVerification:\n- `python bin/test -C --verbose sympy/matrices/expressions/tests/test_blockmatrix.py`\n- Result: **16 tests passed**\n- Also verified rectangular block dimensions are preserved.\n\nModified files:\n- [blockmatrix.py](/testbed/sympy/matrices/expressions/blockmatrix.py:164)\n- [test_blockmatrix.py](/testbed/sympy/matrices/expressions/tests/test_blockmatrix.py:26)",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "old20",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "test_issue_17624"
+        ],
+        "failure": [
+          "test_zero_matrix_add"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "test_bc_matmul",
+          "test_bc_matadd",
+          "test_bc_transpose",
+          "test_bc_dist_diag",
+          "test_block_plus_ident",
+          "test_BlockMatrix",
+          "test_block_collapse_explicit_matrices",
+          "test_BlockMatrix_trace",
+          "test_BlockMatrix_Determinant",
+          "test_squareBlockMatrix",
+          "test_BlockDiagMatrix",
+          "test_blockcut",
+          "test_reblock_2x2",
+          "test_deblock",
+          "test_sort_key",
+          "test_matadd_sympify",
+          "test_matadd_of_matrices",
+          "test_doit_args",
+          "test_generic_identity"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

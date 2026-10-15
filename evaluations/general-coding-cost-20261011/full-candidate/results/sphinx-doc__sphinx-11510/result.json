@@ -1,0 +1,76 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 352.836,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 3282,
+  "patch_sha256": "a93a436378e3daf465c8c563e4be847e1f2004b7168e18d8905fd68e406ff588",
+  "requests": 27,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 851560,
+  "output_tokens": 7883,
+  "cached_tokens": 487936,
+  "total_tokens": 859443,
+  "final": "Implemented the fix for included files bypassing `source-read`.\n\nChanges:\n- Updated [`sphinx/directives/other.py`](/testbed/sphinx/directives/other.py:372) so the Sphinx `include` directive emits `source-read` after decoding included content and before Docutils parses or clips it.\n- Added regression coverage for both parsed and `:literal:` includes in [`tests/test_build.py`](/testbed/tests/test_build.py:66).\n\nVerification passed:\n- `python -m pytest tests/test_build.py tests/test_application.py`: **19 passed**\n- Include/literal directive tests: **43 passed**\n- Python compilation checks passed.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 26,
+    "step": 45,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "2a0cb00cca7b2641354ed5eadbdc2bf1c352bdc35c827947de6c0f100aa75615",
+      "evidence_id": "acb413e488eb5ccf4608d9b83d86f0e55c4b3beab72c1e288db1250caa3fa052",
+      "command": "python -m pytest tests/test_build.py tests/test_application.py"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

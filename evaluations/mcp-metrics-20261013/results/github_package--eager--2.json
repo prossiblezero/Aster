@@ -1,0 +1,592 @@
+{
+  "id": "github_package--eager--2",
+  "case": "github_package",
+  "kind": "github",
+  "arm": "eager",
+  "repeat": 2,
+  "freeze_sha256": "0fec8cced9f48e70c6d73b0f44cfa2c513dbcc8df7e3047530ddfd49a9c9042c",
+  "passed": true,
+  "checks": {
+    "answer": true,
+    "completed": true,
+    "required_mcp_tools": true,
+    "mcp_only": true
+  },
+  "seconds": 23.41207196295727,
+  "startup_seconds": 4.482998269959353,
+  "error": "",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "final": "{\"name\":\"pi-monorepo\",\"private\":true,\"test_script\":\"npm run test:scripts && npm run test --workspaces --if-present\"}",
+  "usage": {
+    "usage_requests": 2,
+    "input_tokens": 22578,
+    "input_tokens_requests": 2,
+    "output_tokens": 141,
+    "output_tokens_requests": 2,
+    "cache_read_input_tokens": 19456,
+    "cache_read_input_tokens_requests": 2,
+    "reasoning_tokens": 37,
+    "reasoning_tokens_requests": 2,
+    "total_tokens": 22719,
+    "total_tokens_requests": 2
+  },
+  "state_usage_matches": true,
+  "requests_without_usage": 0,
+  "model_requests": 2,
+  "mcp_calls": 1,
+  "mcp_successes": 1,
+  "mcp_relevant_valid_calls": 0,
+  "mcp_invalid_arguments": 0,
+  "schema_unchanged": true,
+  "requests": [
+    {
+      "seconds": 5.556304894969799,
+      "schema_tokens_estimated": 7026,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__delete_file",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp__github__get_commit",
+        "mcp__github__get_file_contents",
+        "mcp__github__issue_read",
+        "mcp__github__list_commits",
+        "mcp__github__pull_request_read",
+        "mcp__github__search_code",
+        "mcp__github__search_issues",
+        "mcp__github__search_pull_requests",
+        "mcp__github__search_repositories",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 10087,
+        "input_tokens_requests": 1,
+        "output_tokens": 87,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 9728,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 20,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 10174,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_099f8f2a6c1eb4ec016acda2fe3e10819a98babeac70e132e2",
+        "request_ids": {},
+        "payload_sha256": "cc3cfdd4a795c65d2119ec2fce6c5c1fc0d54bf04a8258c1eff04e7a35b6b7c0",
+        "attempt": 1,
+        "elapsed_seconds": 5.545547,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1764,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 107
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 10087,
+          "output_tokens": 87,
+          "total_tokens": 10174,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 9728
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 20
+          },
+          "attribution": {
+            "items_count": 4,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 67
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 124,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 20
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4913,
+                "input_tokens": 4913,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4815,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 10087,
+          "input_tokens_requests": 1,
+          "output_tokens": 87,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 9728,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 20,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 10174,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_099f8f2a6c1eb4ec016acda2fe3e10819a98babeac70e132e2",
+          "request_ids": {},
+          "payload_sha256": "cc3cfdd4a795c65d2119ec2fce6c5c1fc0d54bf04a8258c1eff04e7a35b6b7c0",
+          "attempt": 1,
+          "elapsed_seconds": 5.545547,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1764,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 107
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 10087,
+            "output_tokens": 87,
+            "total_tokens": 10174,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 9728
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 20
+            },
+            "attribution": {
+              "items_count": 4,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 67
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 124,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 20
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4913,
+                  "input_tokens": 4913,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4815,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 10087,
+            "input_tokens_requests": 1,
+            "output_tokens": 87,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 9728,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 20,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 10174,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 7.602963170967996,
+      "schema_tokens_estimated": 7026,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__delete_file",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp__github__get_commit",
+        "mcp__github__get_file_contents",
+        "mcp__github__issue_read",
+        "mcp__github__list_commits",
+        "mcp__github__pull_request_read",
+        "mcp__github__search_code",
+        "mcp__github__search_issues",
+        "mcp__github__search_pull_requests",
+        "mcp__github__search_repositories",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 12491,
+        "input_tokens_requests": 1,
+        "output_tokens": 54,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 9728,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 17,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 12545,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_099f8f2a6c1eb4ec016acda30a6eb0819a98a91e7dc77eb17b",
+        "request_ids": {},
+        "payload_sha256": "eaec3ada4bd1775fae533c6b4edb047cf284bed97553b91535a5b02fb1f68e95",
+        "attempt": 1,
+        "elapsed_seconds": 7.594385,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1764,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "message",
+            "content_count": 1,
+            "content": [
+              {
+                "type": "output_text",
+                "text_length": 116
+              }
+            ]
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 12491,
+          "output_tokens": 54,
+          "total_tokens": 12545,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 9728
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 17
+          },
+          "attribution": {
+            "items_count": 7,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 124,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 22,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 67,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2267,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 17
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 37
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4961,
+                "input_tokens": 4961,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4767,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 12491,
+          "input_tokens_requests": 1,
+          "output_tokens": 54,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 9728,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 17,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 12545,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_099f8f2a6c1eb4ec016acda30a6eb0819a98a91e7dc77eb17b",
+          "request_ids": {},
+          "payload_sha256": "eaec3ada4bd1775fae533c6b4edb047cf284bed97553b91535a5b02fb1f68e95",
+          "attempt": 1,
+          "elapsed_seconds": 7.594385,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1764,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "message",
+              "content_count": 1,
+              "content": [
+                {
+                  "type": "output_text",
+                  "text_length": 116
+                }
+              ]
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 12491,
+            "output_tokens": 54,
+            "total_tokens": 12545,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 9728
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 17
+            },
+            "attribution": {
+              "items_count": 7,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 124,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 22,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 67,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2267,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 17
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 37
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4961,
+                  "input_tokens": 4961,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4767,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 12491,
+            "input_tokens_requests": 1,
+            "output_tokens": 54,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 9728,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 17,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 12545,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__github__get_file_contents",
+        "arguments": {
+          "owner": "earendil-works",
+          "repo": "pi",
+          "path": "package.json",
+          "sha": "7d75a0e3eb273dff753d49c066ea29fbe7b3b6"
+        },
+        "call_id": "call_c003026119e94f81a19cd4c83cbb32dc",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 5.574686171952635
+    }
+  ],
+  "trace_sha256": "a6a9186f2cb23d9387a17935b001661dee3aafef7297154e9c5a05dc2567510e"
+}

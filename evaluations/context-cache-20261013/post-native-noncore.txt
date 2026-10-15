@@ -1,0 +1,2131 @@
+.......................................FF............................... [  8%]
+FF..FF.................................................................. [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 34%]
+........................................................................ [ 43%]
+..............................................ssss...................... [ 52%]
+........................................................................ [ 61%]
+........................................................................ [ 69%]
+........................................................................ [ 78%]
+........................................................................ [ 87%]
+........................................................................ [ 96%]
+................................                                         [100%]
+=================================== FAILURES ===================================
+____ test_latest_parallel_batch_fits_one_budget_with_all_results[responses] ____
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_latest_parallel_batch_fit0')
+protocol = 'responses'
+
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_latest_parallel_batch_fits_one_budget_with_all_results(tmp_path, protocol):
+        runtime = runtime_at(tmp_path, protocol=protocol)
+        exchanges = [
+            exchange(f"call-{i}", f"log-{i} " * 4000 + f"final diagnosis {i}") for i in range(4)
+        ]
+        runtime._structured_history = [items[0] for items in exchanges] + [
+            items[1] for items in reversed(exchanges)
+        ]
+        calls = deepcopy(runtime._structured_history[:4])
+>       prompt, tools, report = runtime.prepare_request()
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_archives.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975caf2faa0>
+state = RunState(run_id='6f5a1a960f9f48a58c675a26307398f1', session_id='04f8ea53c3934c6ea4a172784da8504d', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Find the cause using the evidence and report it.', memory = ''
+skills = ''
+structured_history = [{'type': 'function_call', 'call_id': 'call-0', 'name': 'run_shell', 'arguments': '{"command": "cat diagnostic.txt"}'}... log-2 log-2 log-2 log-2 log-2 log-2 final diagnosis 2", "evidence_id": "evidence-call-2", "changed_paths": []}'}, ...]
+working_memory = '', budget = 4096, output_reserve = 512
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...it for existing tests.', 'maxLength': 65536, 'title': 'Code', ...}}, 'title': 'RunTests', 'type': 'object'}, ...}, ...]
+protocol = 'responses', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = False, skills_available = False, workers_available = False
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cac999e0>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cac9a700>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975caf2f1a0>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3621 tokens; input budget is 3584
+
+src/aster/context/budget.py:453: ContextBudgetError
+______ test_latest_parallel_batch_fits_one_budget_with_all_results[chat] _______
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_latest_parallel_batch_fit1')
+protocol = 'chat'
+
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_latest_parallel_batch_fits_one_budget_with_all_results(tmp_path, protocol):
+        runtime = runtime_at(tmp_path, protocol=protocol)
+        exchanges = [
+            exchange(f"call-{i}", f"log-{i} " * 4000 + f"final diagnosis {i}") for i in range(4)
+        ]
+        runtime._structured_history = [items[0] for items in exchanges] + [
+            items[1] for items in reversed(exchanges)
+        ]
+        calls = deepcopy(runtime._structured_history[:4])
+>       prompt, tools, report = runtime.prepare_request()
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_archives.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975caf2de20>
+state = RunState(run_id='acdb942cabe74b8aa5f40741018c6e40', session_id='ac7c8fbbdadb49b882a52b54709f53a7', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Find the cause using the evidence and report it.', memory = ''
+skills = ''
+structured_history = [{'type': 'function_call', 'call_id': 'call-0', 'name': 'run_shell', 'arguments': '{"command": "cat diagnostic.txt"}'}... log-2 log-2 log-2 log-2 log-2 log-2 final diagnosis 2", "evidence_id": "evidence-call-2", "changed_paths": []}'}, ...]
+working_memory = '', budget = 4096, output_reserve = 512
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...it for existing tests.', 'maxLength': 65536, 'title': 'Code', ...}}, 'title': 'RunTests', 'type': 'object'}, ...}, ...]
+protocol = 'chat', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = False, skills_available = False, workers_available = False
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cac98d60>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cac98040>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975caf2c710>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3637 tokens; input budget is 3584
+
+src/aster/context/budget.py:453: ContextBudgetError
+______ test_opted_in_worker_fits_small_context[responses-True-False-512] _______
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_opted_in_worker_fits_smal2')
+read_only = False, output_tokens = 512, memory_enabled = True
+protocol = 'responses'
+
+    @pytest.mark.parametrize("read_only,output_tokens", [(False, 512), (True, 1024)])
+    @pytest.mark.parametrize("memory_enabled", [False, True])
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_opted_in_worker_fits_small_context(tmp_path, read_only, output_tokens, memory_enabled, protocol):
+        runtime = Runtime(tmp_path, Settings(
+            max_workers=1, tool_profile="core", context_tokens=4096, output_tokens=output_tokens,
+            approval="auto", read_only=read_only, memory_enabled=memory_enabled, auto_dream=False,
+            protocol=protocol,
+        ))
+        try:
+            runtime.start(TaskSpec(prompt="Inspect source."))
+>           prompt, tools, report = runtime.prepare_request()
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_policy_input.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975cacad610>
+state = RunState(run_id='aa0e1f52bf6e4c40814657c4647f773d', session_id='34b6f351ca8b4c80ae35e325d7506c6c', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Inspect source.', memory = '', skills = '', structured_history = []
+working_memory = '', budget = 4096, output_reserve = 512
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...s': {'type': 'string'}, 'maxItems': 8, 'title': 'Memory Ids', ...}}, 'title': 'RunTests', 'type': 'object'}, ...}, ...]
+protocol = 'responses', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = True, skills_available = False, workers_available = True
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cb4e6340>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cb4e7600>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975cacae600>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3660 tokens; input budget is 3584
+
+src/aster/context/budget.py:453: ContextBudgetError
+______ test_opted_in_worker_fits_small_context[responses-True-True-1024] _______
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_opted_in_worker_fits_smal3')
+read_only = True, output_tokens = 1024, memory_enabled = True
+protocol = 'responses'
+
+    @pytest.mark.parametrize("read_only,output_tokens", [(False, 512), (True, 1024)])
+    @pytest.mark.parametrize("memory_enabled", [False, True])
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_opted_in_worker_fits_small_context(tmp_path, read_only, output_tokens, memory_enabled, protocol):
+        runtime = Runtime(tmp_path, Settings(
+            max_workers=1, tool_profile="core", context_tokens=4096, output_tokens=output_tokens,
+            approval="auto", read_only=read_only, memory_enabled=memory_enabled, auto_dream=False,
+            protocol=protocol,
+        ))
+        try:
+            runtime.start(TaskSpec(prompt="Inspect source."))
+>           prompt, tools, report = runtime.prepare_request()
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_policy_input.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975cacad760>
+state = RunState(run_id='3ca15f90208749008a180f890b85abca', session_id='6af2b406d1e146e3a671aa3c16ac0c43', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Inspect source.', memory = '', skills = '', structured_history = []
+working_memory = '', budget = 4096, output_reserve = 1024
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...lines in this page.', 'maximum': 500, 'minimum': 1, ...}}, 'required': ['pattern'], 'title': 'Search', ...}, ...}, ...]
+protocol = 'responses', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = True, skills_available = False, workers_available = True
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cb4e65c0>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cb4e7240>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975cacad4f0>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3132 tokens; input budget is 3072
+
+src/aster/context/budget.py:453: ContextBudgetError
+_________ test_opted_in_worker_fits_small_context[chat-True-False-512] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_opted_in_worker_fits_smal6')
+read_only = False, output_tokens = 512, memory_enabled = True, protocol = 'chat'
+
+    @pytest.mark.parametrize("read_only,output_tokens", [(False, 512), (True, 1024)])
+    @pytest.mark.parametrize("memory_enabled", [False, True])
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_opted_in_worker_fits_small_context(tmp_path, read_only, output_tokens, memory_enabled, protocol):
+        runtime = Runtime(tmp_path, Settings(
+            max_workers=1, tool_profile="core", context_tokens=4096, output_tokens=output_tokens,
+            approval="auto", read_only=read_only, memory_enabled=memory_enabled, auto_dream=False,
+            protocol=protocol,
+        ))
+        try:
+            runtime.start(TaskSpec(prompt="Inspect source."))
+>           prompt, tools, report = runtime.prepare_request()
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_policy_input.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975cacb0920>
+state = RunState(run_id='3b3fab264ab549bb86209bd428712675', session_id='e27d675580b4487199e8a9eaeb4399b0', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Inspect source.', memory = '', skills = '', structured_history = []
+working_memory = '', budget = 4096, output_reserve = 512
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...s': {'type': 'string'}, 'maxItems': 8, 'title': 'Memory Ids', ...}}, 'title': 'RunTests', 'type': 'object'}, ...}, ...]
+protocol = 'chat', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = True, skills_available = False, workers_available = True
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cb4e6160>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cb4e7100>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975cacae0f0>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3657 tokens; input budget is 3584
+
+src/aster/context/budget.py:453: ContextBudgetError
+_________ test_opted_in_worker_fits_small_context[chat-True-True-1024] _________
+
+tmp_path = PosixPath('/tmp/pytest-of-dzh/pytest-17/test_opted_in_worker_fits_smal7')
+read_only = True, output_tokens = 1024, memory_enabled = True, protocol = 'chat'
+
+    @pytest.mark.parametrize("read_only,output_tokens", [(False, 512), (True, 1024)])
+    @pytest.mark.parametrize("memory_enabled", [False, True])
+    @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+    def test_opted_in_worker_fits_small_context(tmp_path, read_only, output_tokens, memory_enabled, protocol):
+        runtime = Runtime(tmp_path, Settings(
+            max_workers=1, tool_profile="core", context_tokens=4096, output_tokens=output_tokens,
+            approval="auto", read_only=read_only, memory_enabled=memory_enabled, auto_dream=False,
+            protocol=protocol,
+        ))
+        try:
+            runtime.start(TaskSpec(prompt="Inspect source."))
+>           prompt, tools, report = runtime.prepare_request()
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_context_policy_input.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/aster/core/runtime.py:573: in prepare_request
+    prompt, report = self.context.build(
+src/aster/context/builder.py:36: in build
+    result = self.calculator.calculate(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <aster.context.budget.BudgetCalculator object at 0x7975cacb2420>
+state = RunState(run_id='cc0f85042e374ccb985bbe2dc8a2c405', session_id='f395a8eb80b94fcd99ccbed86c60c3ab', parent_run_id=None,...}, worker_reads={}, handoff_sources=[], worker_sessions={}, loaded_tools=[], user_inbox=[], delivered_user_messages=[])
+user = 'Inspect source.', memory = '', skills = '', structured_history = []
+working_memory = '', budget = 4096, output_reserve = 1024
+tools = [{'type': 'function', 'name': 'git_diff', 'description': "Show changes from this task's initial workspace snapshot.", ...lines in this page.', 'maximum': 500, 'minimum': 1, ...}}, 'required': ['pattern'], 'title': 'Search', ...}, ...}, ...]
+protocol = 'chat', model = 'gpt-5.6-luna', skill_bodies = {}
+memory_enabled = True, skills_available = False, workers_available = True
+environment = 'Execution environment: Python 3.12.14; Node v18.19.1; commands on PATH: python, node, npm, curl. Sandbox=required; ne..., checks and cleanup in one bounded command. Exit 0 alone does not verify a service; inspect stderr and test behavior.'
+archive = <function Runtime.prepare_request.<locals>.<lambda> at 0x7975cac9a5c0>
+validate_archive = <function Runtime.prepare_request.<locals>.validate_archive at 0x7975cac9b880>
+redact_history = <bound method EvidenceStore.redact_history of <aster.storage.evidence.EvidenceStore object at 0x7975cacb0b90>>
+
+    def calculate(
+        self,
+        state,
+        user: str,
+        memory: str = "",
+        skills: str = "",
+        structured_history: list[dict] | None = None,
+        working_memory: str = "",
+        *,
+        budget: int,
+        output_reserve: int,
+        tools: list[dict] | None = None,
+        protocol: str = "responses",
+        model: str = "",
+        skill_bodies: dict[str, str] | None = None,
+        memory_enabled: bool = False,
+        skills_available: bool = False,
+        workers_available: bool = False,
+        environment: str = "",
+        archive=None,
+        validate_archive=None,
+        redact_history=None,
+    ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
+        system = system_prompt(
+            memory_enabled, skills_available, environment, archive,
+            worker=bool(state.parent_run_id),
+            workers_available=workers_available,
+        )
+        workflow = workflow_state(state)
+        workflow_text_limit = max(
+            self.count(state.plan),
+            *(self.count(item.get(key, "")) for item in workflow["unfinished_todos"]
+              for key in ("content", "acceptance", "resolution")),
+            0,
+        )
+        history = structured_history if structured_history is not None else []
+        groups = history_groups(deepcopy(history))
+        clipped = False
+        archive_hashes = set()
+        references = {}
+        # Archive before shortening, including injected/recovered historical observations.
+        # Only the body is externalized; native call IDs and outcome envelopes stay intact.
+        for group in groups:
+            names = {}
+            for item in group:
+                if item.get("type") == "function_call":
+                    names[item["call_id"]] = item["name"]
+                for call in item.get("tool_calls", []):
+                    names[call["id"]] = call["function"]["name"]
+                if isinstance(item.get("content"), list):
+                    names.update(
+                        (block["id"], block["name"])
+                        for block in item["content"]
+                        if block.get("type") == "tool_use"
+                    )
+            for item in group:
+                if item.get("type") != "function_call_output":
+                    continue
+                value = item.get("output", "")
+                record = self._output_record(value)
+                tool = names.get(item["call_id"], "")
+                if (
+                    archive is not None
+                    and isinstance(record.get("content"), str)
+                    and tool != "observation_read"
+                ):
+                    ref = record.get("observation")
+                    if ref is None:
+                        archived = archive(item["call_id"], tool, record["content"])
+                        ref = {"id": archived["id"], "characters": archived["characters"]}
+                    if validate_archive is not None:
+                        validate_archive(ref)
+                    archive_hashes.add(ref["id"])
+                    references[item["call_id"]] = ref
+        # The native transcript already owns model text, tool observations and user feedback.
+        # Ordinary messages remain useful for direct step()/RL callers without a transcript.
+        represented_users = {
+            x.get("content")
+            for x in history
+            if x.get("role") == "user" and isinstance(x.get("content"), str)
+        }
+        has_transcript = any(
+            x.get("role") == "assistant"
+            or x.get("type") in {"reasoning", "function_call", "function_call_output"}
+            for x in history
+        )
+        messages = [
+            m
+            for m in state.messages
+            if not (
+                (m.get("role") in {"assistant", "tool"} and m.get("native", has_transcript))
+                or (m.get("role") == "user" and m.get("content") in represented_users)
+            )
+        ]
+        ordinary_ids = {id(message) for message in messages}
+        for message in messages:
+            if archive is not None and message.get("role") == "tool":
+                content = message.get("content", "")
+                if isinstance(content, str):
+                    # Legacy/imported observations have no native tool call. Preserve
+                    # them as observations, never invent protocol calls for old text.
+                    key = "legacy-" + hashlib.sha256(content.encode()).hexdigest()
+                    ref = archive(key, "historical_observation", content)
+                    archive_hashes.add(ref["id"])
+        active_bodies = {
+            name: body for name, body in (skill_bodies or {}).items() if name in state.active_skills
+        }
+        sections = {
+            "memory": memory,
+            "skills": skills,
+            "active_skill_bodies": "\n".join(
+                f"{name}:\n{body}" for name, body in active_bodies.items()
+            ),
+            "working_memory": working_memory,
+        }
+        limit = budget - output_reserve
+        removed = 0
+    
+        def render():
+            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+    
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
+            )
+    
+        prompt = render()
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+    
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+    
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
+    
+        def shrink_section():
+            key = next(key for key, value in sections.items() if value)
+            size = self.count(sections[key])
+            if key == "active_skill_bodies" and size > 96:
+                sections[key] = self._clip_tokens(
+                    sections[key],
+                    token_limit=max(96, size - (tokens(prompt) - limit)),
+                    marker="\n[skill excerpt; reload with skill_load] (use offset/limit pages)",
+                )
+            else:
+                sections[key] = ""
+    
+        while tokens(prompt) > limit:
+            index = next(
+                (
+                    i
+                    for i, m in enumerate(messages)
+                    if m.get("role") != "user" and not m.get("important")
+                ),
+                None,
+            )
+            latest_exchange = next(
+                (
+                    group
+                    for group in reversed(groups)
+                    if any(item.get("type") == "function_call_output" for item in group)
+                ),
+                groups[-1] if groups else None,
+            )
+            group_index = next(
+                (
+                    i
+                    for i, g in enumerate(groups)
+                    if g is not latest_exchange and not any(x.get("role") == "user" for x in g)
+                ),
+                None,
+            )
+            # Prefer the latest complete exchange. Older observations have already
+            # been archived; reduce their bodies before removing their complete group.
+            candidate_groups = [groups[group_index]] if group_index is not None else groups
+            candidates = [
+                item
+                for group in candidate_groups
+                for item in group
+                if item.get("type") == "function_call_output"
+                and self.count(self._output_record(item.get("output", "")).get("content", "")) > 96
+            ]
+            if index is not None:
+                messages.pop(index)
+                removed += 1
+            elif candidates:
+                item = max(
+                    candidates,
+                    key=lambda x: self.count(self._output_record(x["output"])["content"]),
+                )
+                body_size = self.count(self._output_record(item["output"])["content"])
+                deficit = (tokens(prompt) - limit + len(candidates) - 1) // len(candidates)
+                shortened = self._clip_tool_output(
+                    item["output"],
+                    token_limit=max(96, body_size - deficit),
+                    reference=references.get(item["call_id"]),
+                )
+                if shortened != item["output"]:
+                    item["output"] = shortened
+                    clipped = True
+                elif group_index is not None:
+                    removed += len(groups.pop(group_index))
+                elif any(sections.values()):
+                    shrink_section()
+                else:
+                    raise ContextBudgetError(
+                        "context_budget_exceeded: mandatory request contains an unshrinkable observation"
+                    )
+            elif group_index is not None:
+                removed += len(groups.pop(group_index))
+            elif any(sections.values()):
+                # Reconstructible recall/skill text yields to the current request and recent evidence.
+                shrink_section()
+            elif workflow_text_limit > 64:
+                # Keep every pending item identity; only shorten reconstructible prose.
+                workflow_text_limit = max(64, workflow_text_limit // 2)
+                marker = "\n[excerpt; call todo_list with offset/limit for remaining text]"
+                workflow["plan"] = self._clip_tokens(
+                    state.plan, token_limit=workflow_text_limit, marker=marker
+                )
+                for item in workflow["unfinished_todos"]:
+                    for key in ("content", "acceptance", "resolution"):
+                        if key in item:
+                            item[key] = self._clip_tokens(
+                                item[key], token_limit=workflow_text_limit, marker=marker
+                            )
+            else:
+>               raise ContextBudgetError(
+                    f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                )
+E               aster.context.budget.ContextBudgetError: context_budget_exceeded: mandatory request needs 3123 tokens; input budget is 3072
+
+src/aster/context/budget.py:453: ContextBudgetError
+=========================== short test summary info ============================
+FAILED tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]
+FAILED tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]
+FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]
+FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]
+FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]
+FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]
+6 failed, 814 passed, 4 skipped, 473 deselected in 83.45s (0:01:23)

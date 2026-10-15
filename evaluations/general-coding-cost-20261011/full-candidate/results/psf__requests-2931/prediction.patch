@@ -1,0 +1,35 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..157e2b5 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -80,7 +80,9 @@ class RequestEncodingMixin(object):
+         if parameters are supplied as a dict.
+         """
+ 
+-        if isinstance(data, (str, bytes)):
++        if isinstance(data, bytes):
++            return data
++        elif isinstance(data, str):
+             return to_native_string(data)
+         elif hasattr(data, 'read'):
+             return data
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..041176a 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -118,6 +118,15 @@ class TestRequests(object):
+         assert pr.url == req.url
+         assert pr.body == 'life=42'
+ 
++    def test_bytes_body_is_not_decoded(self):
++        body = u('ööö').encode('utf-8')
++        request = requests.Request('PUT', 'http://kennethreitz.org/', data=body)
++
++        prepared = request.prepare()
++
++        assert prepared.body == body
++        assert prepared.headers['Content-Length'] == str(len(body))
++
+     def test_no_content_length(self, httpbin):
+         get_req = requests.Request('GET', httpbin('get')).prepare()
+         assert 'Content-Length' not in get_req.headers

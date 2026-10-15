@@ -1,0 +1,82 @@
+{
+  "job": "codex-sympy__sympy-17630",
+  "agent": "codex",
+  "task": "sympy__sympy-17630",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 420.015,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 2178,
+  "patch_sha256": "fd254e8aeaf6a618ffa9c3c1212511bad68a4d7c4e8a099ac8946e88134c6e74",
+  "requests": 13,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 327707,
+  "output_tokens": 3384,
+  "cached_tokens": 308992,
+  "total_tokens": 331091,
+  "source": "SWE-bench Verified",
+  "difficulty": "1-4 hours",
+  "final": "Implemented the fix for repeated block multiplication with `ZeroMatrix` blocks.\n\nChanges:\n- Preserve block shape by converting scalar zero results back to `ZeroMatrix`.\n- Added regression coverage for repeated `_blockmul` and `block_collapse`.\n\nVerification:\n- Block matrix tests: 16 passed.\n- Matrix expression tests: 66 passed, 3 expected failures.\n- User reproduction now succeeds with `a**3` and correctly typed zero blocks.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States zero-block multiplication fixed, project regression tests pass, and the user reproduction succeeds; expected failures disclosed.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "test_issue_17624"
+        ],
+        "failure": [
+          "test_zero_matrix_add"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "test_bc_matmul",
+          "test_bc_matadd",
+          "test_bc_transpose",
+          "test_bc_dist_diag",
+          "test_block_plus_ident",
+          "test_BlockMatrix",
+          "test_block_collapse_explicit_matrices",
+          "test_BlockMatrix_trace",
+          "test_BlockMatrix_Determinant",
+          "test_squareBlockMatrix",
+          "test_BlockDiagMatrix",
+          "test_blockcut",
+          "test_reblock_2x2",
+          "test_deblock",
+          "test_sort_key",
+          "test_matadd_sympify",
+          "test_matadd_of_matrices",
+          "test_doit_args",
+          "test_generic_identity"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

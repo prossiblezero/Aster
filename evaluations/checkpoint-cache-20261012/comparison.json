@@ -1,0 +1,317 @@
+{
+  "phases": {
+    "pilot-baseline": {
+      "summary": {
+        "planned": 4,
+        "finished": 4,
+        "graded": 4,
+        "passed": 2,
+        "grading_errors": 0,
+        "normal_delivery_and_passed": 1,
+        "completed": 2,
+        "completed_but_independent_failed": 1,
+        "timed_out": 1,
+        "seconds": 2619.748,
+        "median_seconds": 703.4705,
+        "input_tokens": 2220283,
+        "output_tokens": 22019,
+        "cached_tokens": 927232,
+        "total_tokens": 2242302,
+        "requests": 85,
+        "request_errors": 7,
+        "missing_usage": 7,
+        "by_kind": {
+          "repository": {
+            "finished": 3,
+            "passed": 2
+          },
+          "terminal": {
+            "finished": 1,
+            "passed": 0
+          },
+          "small": {
+            "finished": 0,
+            "passed": 0
+          }
+        },
+        "score_policy": "one fresh attempt per task and phase; no replacement or best-of",
+        "evaluation_role": "development-set cost evaluation; pilot separate from full run",
+        "provider_aborts": [
+          "terminal-schemelike-metacircular-eval"
+        ],
+        "health_probes": {}
+      },
+      "wall_seconds": 908.014,
+      "traces": {
+        "django__django-17029": {
+          "checkpoint_bytes": 38218676,
+          "before_request_gap_seconds": 43.805,
+          "after_reply_gap_seconds": 47.229,
+          "requests": 16,
+          "requests_with_cache_key": 0
+        },
+        "psf__requests-2931": {
+          "checkpoint_bytes": 1494508,
+          "before_request_gap_seconds": 9.802,
+          "after_reply_gap_seconds": 10.213,
+          "requests": 24,
+          "requests_with_cache_key": 0
+        },
+        "sphinx-doc__sphinx-11510": {
+          "checkpoint_bytes": 14799343,
+          "before_request_gap_seconds": 39.922,
+          "after_reply_gap_seconds": 48.317,
+          "requests": 36,
+          "requests_with_cache_key": 0
+        },
+        "terminal-schemelike-metacircular-eval": {
+          "checkpoint_bytes": 164520,
+          "before_request_gap_seconds": 1.636,
+          "after_reply_gap_seconds": 1.156,
+          "requests": 9,
+          "requests_with_cache_key": 0
+        }
+      }
+    },
+    "pilot-candidate": {
+      "summary": {
+        "planned": 4,
+        "finished": 4,
+        "graded": 4,
+        "passed": 3,
+        "grading_errors": 0,
+        "normal_delivery_and_passed": 1,
+        "completed": 2,
+        "completed_but_independent_failed": 1,
+        "timed_out": 2,
+        "seconds": 2454.785,
+        "median_seconds": 640.8499999999999,
+        "input_tokens": 2613942,
+        "output_tokens": 28287,
+        "cached_tokens": 1611264,
+        "total_tokens": 2642229,
+        "requests": 98,
+        "request_errors": 4,
+        "missing_usage": 4,
+        "by_kind": {
+          "repository": {
+            "finished": 3,
+            "passed": 2
+          },
+          "terminal": {
+            "finished": 1,
+            "passed": 1
+          },
+          "small": {
+            "finished": 0,
+            "passed": 0
+          }
+        },
+        "score_policy": "one fresh attempt per task and phase; no replacement or best-of",
+        "evaluation_role": "development-set cost evaluation; pilot separate from full run",
+        "provider_aborts": [],
+        "health_probes": {}
+      },
+      "wall_seconds": 911.135,
+      "traces": {
+        "django__django-17029": {
+          "checkpoint_bytes": 1060010,
+          "before_request_gap_seconds": 11.826,
+          "after_reply_gap_seconds": 13.201,
+          "requests": 19,
+          "requests_with_cache_key": 19
+        },
+        "psf__requests-2931": {
+          "checkpoint_bytes": 347942,
+          "before_request_gap_seconds": 12.238,
+          "after_reply_gap_seconds": 13.104,
+          "requests": 29,
+          "requests_with_cache_key": 29
+        },
+        "sphinx-doc__sphinx-11510": {
+          "checkpoint_bytes": 543081,
+          "before_request_gap_seconds": 18.067,
+          "after_reply_gap_seconds": 21.81,
+          "requests": 35,
+          "requests_with_cache_key": 35
+        },
+        "terminal-schemelike-metacircular-eval": {
+          "checkpoint_bytes": 268171,
+          "before_request_gap_seconds": 8.029,
+          "after_reply_gap_seconds": 13.294,
+          "requests": 15,
+          "requests_with_cache_key": 15
+        }
+      }
+    }
+  },
+  "trace_limit": "Gaps include checkpoint work and other local work, not exclusively persistence.",
+  "gate": {
+    "proceed_to_full": false,
+    "checks": {
+      "all_graded_without_errors": true,
+      "no_lost_success": true,
+      "fixed_successes_delivered": false,
+      "fixed_success_usage_complete": false,
+      "fixed_uncached_down_5_percent": false,
+      "fixed_weighted_cost_down_5_percent": false,
+      "fixed_seconds_down_10_percent": false,
+      "no_fixed_task_over_10_percent_slower": false,
+      "all_cost_weights_not_increased": true,
+      "missing_usage_not_increased": true
+    },
+    "fixed_tasks": [
+      "django__django-17029",
+      "terminal-schemelike-metacircular-eval"
+    ],
+    "fixed_totals": {
+      "pilot-baseline": {
+        "input_tokens": 381330,
+        "cached_tokens": 207360,
+        "output_tokens": 4119,
+        "total_tokens": 385449,
+        "requests": 25,
+        "missing_usage": 5,
+        "seconds": 1090.666,
+        "uncached_input": 173970
+      },
+      "pilot-candidate": {
+        "input_tokens": 746961,
+        "cached_tokens": 378368,
+        "output_tokens": 14886,
+        "total_tokens": 761847,
+        "requests": 34,
+        "missing_usage": 2,
+        "seconds": 1173.036,
+        "uncached_input": 368593
+      }
+    },
+    "all_totals": {
+      "pilot-baseline": {
+        "input_tokens": 2220283,
+        "cached_tokens": 927232,
+        "output_tokens": 22019,
+        "total_tokens": 2242302,
+        "requests": 85,
+        "missing_usage": 7,
+        "seconds": 2619.748,
+        "uncached_input": 1293051
+      },
+      "pilot-candidate": {
+        "input_tokens": 2613942,
+        "cached_tokens": 1611264,
+        "output_tokens": 28287,
+        "total_tokens": 2642229,
+        "requests": 98,
+        "missing_usage": 4,
+        "seconds": 2454.785,
+        "uncached_input": 1002678
+      }
+    },
+    "fixed_cost_weights": [
+      {
+        "r": 0.1,
+        "q": 1,
+        "baseline": 198825.0,
+        "candidate": 421315.8
+      },
+      {
+        "r": 0.1,
+        "q": 4,
+        "baseline": 211182.0,
+        "candidate": 465973.8
+      },
+      {
+        "r": 0.1,
+        "q": 8,
+        "baseline": 227658.0,
+        "candidate": 525517.8
+      },
+      {
+        "r": 0.25,
+        "q": 1,
+        "baseline": 229929.0,
+        "candidate": 478071.0
+      },
+      {
+        "r": 0.25,
+        "q": 4,
+        "baseline": 242286.0,
+        "candidate": 522729.0
+      },
+      {
+        "r": 0.25,
+        "q": 8,
+        "baseline": 258762.0,
+        "candidate": 582273.0
+      }
+    ],
+    "all_cost_weights": [
+      {
+        "r": 0.1,
+        "q": 1,
+        "baseline": 1407793.2,
+        "candidate": 1192091.4
+      },
+      {
+        "r": 0.1,
+        "q": 4,
+        "baseline": 1473850.2,
+        "candidate": 1276952.4
+      },
+      {
+        "r": 0.1,
+        "q": 8,
+        "baseline": 1561926.2,
+        "candidate": 1390100.4
+      },
+      {
+        "r": 0.25,
+        "q": 1,
+        "baseline": 1546878.0,
+        "candidate": 1433781.0
+      },
+      {
+        "r": 0.25,
+        "q": 4,
+        "baseline": 1612935.0,
+        "candidate": 1518642.0
+      },
+      {
+        "r": 0.25,
+        "q": 8,
+        "baseline": 1701011.0,
+        "candidate": 1631790.0
+      }
+    ],
+    "gained": [
+      "terminal-schemelike-metacircular-eval"
+    ],
+    "lost": []
+  },
+  "grading_audit": {
+    "incomplete_test_execution": [
+      {
+        "phase": "pilot-candidate",
+        "task": "sphinx-doc__sphinx-11510",
+        "grade": {
+          "patch_is_None": false,
+          "patch_exists": true,
+          "patch_successfully_applied": false,
+          "resolved": false,
+          "infra_failure": false,
+          "infra_failure_reason": "no_tests_collected"
+        }
+      }
+    ],
+    "all_tests_executed": false
+  },
+  "effective_proceed_to_full": false,
+  "development_total": {
+    "task_attempts": 8,
+    "probe_attempts": 10,
+    "requests": 193,
+    "missing_usage": 11,
+    "reported_total_tokens": 4951819
+  }
+}

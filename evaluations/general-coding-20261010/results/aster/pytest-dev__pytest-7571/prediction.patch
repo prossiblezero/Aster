@@ -1,0 +1,53 @@
+diff --git a/src/_pytest/logging.py b/src/_pytest/logging.py
+index 11031f2..c6e9b99 100644
+--- a/src/_pytest/logging.py
++++ b/src/_pytest/logging.py
+@@ -346,6 +346,7 @@ class LogCaptureFixture:
+         self._item = item
+         # dict of log name -> log level
+         self._initial_logger_levels = {}  # type: Dict[Optional[str], int]
++        self._initial_handler_level = self.handler.level
+ 
+     def _finalize(self) -> None:
+         """Finalizes the fixture.
+@@ -356,6 +357,7 @@ class LogCaptureFixture:
+         for logger_name, level in self._initial_logger_levels.items():
+             logger = logging.getLogger(logger_name)
+             logger.setLevel(level)
++        self.handler.setLevel(self._initial_handler_level)
+ 
+     @property
+     def handler(self) -> LogCaptureHandler:
+diff --git a/testing/logging/test_fixture.py b/testing/logging/test_fixture.py
+index da53033..a98048f 100644
+--- a/testing/logging/test_fixture.py
++++ b/testing/logging/test_fixture.py
+@@ -40,6 +40,7 @@ def test_change_level_undo(testdir):
+             assert 0
+ 
+         def test2(caplog):
++            assert caplog.handler.level == logging.NOTSET
+             # using + operator here so fnmatch_lines doesn't match the code in the traceback
+             logging.info('log from ' + 'test2')
+             assert 0
+diff --git a/testing/verify_logging_fix.py b/testing/verify_logging_fix.py
+new file mode 100644
+index 0000000..02150c1
+--- /dev/null
++++ b/testing/verify_logging_fix.py
+@@ -0,0 +1,15 @@
++import unittest
++from pathlib import Path
++
++
++class LoggingFixVerification(unittest.TestCase):
++    def test_regression_guard_and_restore_code_are_present(self):
++        implementation = Path("src/_pytest/logging.py").read_text()
++        regression_test = Path("testing/logging/test_fixture.py").read_text()
++        self.assertIn("self._initial_handler_level = self.handler.level", implementation)
++        self.assertIn("self.handler.setLevel(self._initial_handler_level)", implementation)
++        self.assertIn("assert caplog.handler.level == logging.NOTSET", regression_test)
++
++
++if __name__ == "__main__":
++    unittest.main()

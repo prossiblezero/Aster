@@ -1,0 +1,114 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..b6859e8 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
++import docutils
+ from docutils import nodes
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+@@ -376,7 +377,30 @@ class Include(BaseInclude, SphinxDirective):
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
+         self.arguments[0] = filename
+         self.env.note_included(filename)
+-        return super().run()
++
++        # docutils reads included files while parsing the parent document, so
++        # they do not pass through SphinxStandaloneReader.read_source().
++        insert_input = self.state_machine.insert_input
++        tab_width = self.state.document.settings.tab_width
++
++        def insert_included_input(include_lines: list[str], source: str) -> None:
++            # BaseInclude adds a blank line and an inclusion marker after
++            # reading the included source.  Keep those out of the event.
++            suffix = include_lines[-2:]
++            included_source = ''.join(include_lines[:-2])
++            source_arg = [included_source]
++            self.env.app.events.emit('source-read', self.env.docname, source_arg)
++            include_lines = docutils.statemachine.string2lines(
++                source_arg[0], tab_width, convert_whitespace=False
++            )
++            include_lines.extend(suffix)
++            insert_input(include_lines, source)
++
++        self.state_machine.insert_input = insert_included_input
++        try:
++            return super().run()
++        finally:
++            self.state_machine.insert_input = insert_input
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/tests/roots/test-source-read-include/conf.py b/tests/roots/test-source-read-include/conf.py
+new file mode 100644
+index 0000000..d5ca00d
+--- /dev/null
++++ b/tests/roots/test-source-read-include/conf.py
+@@ -0,0 +1,8 @@
++import os
++import sys
++
++sys.path.insert(0, os.path.abspath('.'))
++
++extensions = ['ext']
++master_doc = 'index'
++project = 'source-read include test'
+diff --git a/tests/roots/test-source-read-include/ext.py b/tests/roots/test-source-read-include/ext.py
+new file mode 100644
+index 0000000..fa59230
+--- /dev/null
++++ b/tests/roots/test-source-read-include/ext.py
+@@ -0,0 +1,10 @@
++from sphinx.application import Sphinx
++
++
++def replace(app: Sphinx, docname: str, source: list[str]) -> None:
++    source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++
++def setup(app: Sphinx) -> dict[str, object]:
++    app.connect('source-read', replace)
++    return {'version': '1'}
+diff --git a/tests/roots/test-source-read-include/included.rst b/tests/roots/test-source-read-include/included.rst
+new file mode 100644
+index 0000000..0a3e7b0
+--- /dev/null
++++ b/tests/roots/test-source-read-include/included.rst
+@@ -0,0 +1,4 @@
++Included heading
++================
++
++&REPLACE_ME;
+diff --git a/tests/roots/test-source-read-include/index.rst b/tests/roots/test-source-read-include/index.rst
+new file mode 100644
+index 0000000..303c3bb
+--- /dev/null
++++ b/tests/roots/test-source-read-include/index.rst
+@@ -0,0 +1,6 @@
++Included source
++================
++
++.. include:: included.rst
++
++&REPLACE_ME;
+diff --git a/tests/test_directive_other.py b/tests/test_directive_other.py
+index f221db0..a1869c8 100644
+--- a/tests/test_directive_other.py
++++ b/tests/test_directive_other.py
+@@ -24,6 +24,13 @@ def test_toctree(app):
+                 includefiles=['foo', 'bar/index', 'baz'])
+ 
+ 
++@pytest.mark.sphinx(testroot='source-read-include')
++def test_source_read_event_for_include(app):
++    app.build(force_all=True)
++    text = app.builder.get_doctree('index').astext()
++    assert text.count('REPLACED') == 2
++
++
+ @pytest.mark.sphinx(testroot='toctree-glob')
+ def test_relative_toctree(app):
+     text = (".. toctree::\n"

@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-14",
+  "base_commit": "0ce78db",
+  "policy_version": "deterministic-v9",
+  "baseline": {
+    "passed": 1256,
+    "failed": 6,
+    "skipped": 4
+  },
+  "final": {
+    "passed": 1287,
+    "core_passed": 473,
+    "noncore_passed": 814,
+    "failed": 6,
+    "skipped": 4
+  },
+  "failures": [
+    "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]",
+    "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]",
+    "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]",
+    "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]",
+    "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]",
+    "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]"
+  ],
+  "new_failures": [],
+  "resolved_baseline_failures": [],
+  "checks": {
+    "ruff": true,
+    "baseline_metrics_reproduced": true,
+    "receipt_replay": {
+      "requests_with_usage": 811,
+      "receipt_requests": 499,
+      "median": 1.0051965405886938,
+      "p95": 1.0285602119933261,
+      "minimum": 0.9993045897079277,
+      "maximum": 1.106663608211951,
+      "stable_requests": 502,
+      "stable_receipts": 499,
+      "stable_receipt_fraction": 0.9940239043824701,
+      "passed": true
+    },
+    "forty_turn_append_only": true,
+    "native_context_followup_passed": 104,
+    "frozen_source_matches_workspace": true
+  },
+  "production_files_changed": 7,
+  "stage4": "prepared_not_run",
+  "model_requests": 0,
+  "logs": {
+    "baseline": [
+      "baseline-core.txt",
+      "baseline-noncore.txt"
+    ],
+    "final": [
+      "final-core.txt",
+      "post-native-noncore.txt",
+      "final-context-native.txt"
+    ]
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "ready": true,
+  "checks": [
+    {
+      "command": "cd /app && printf '(+ 7 8)\\n' | python interp.py test/calculator.scm",
+      "status": "success",
+      "content": "Reading\n15\nDone\n",
+      "reason": "",
+      "exit_code": 0,
+      "changed_paths": [],
+      "partial_success": false,
+      "duration_ms": 83.20454199565575,
+      "evidence_id": "",
+      "artifact": "",
+      "data": {
+        "output_bytes": 16,
+        "captured_bytes": 16,
+        "output_truncated": false,
+        "output_limit_bytes": 4194304,
+        "isolation": "landlock+seccomp",
+        "environment_generation": 0,
+        "environment_reused": false
+      }
+    },
+    {
+      "command": "printf '(+ 7 8)\\n' | python /app/interp.py /app/test/calculator.scm",
+      "status": "success",
+      "content": "Reading\n15\nDone\n",
+      "reason": "",
+      "exit_code": 0,
+      "changed_paths": [],
+      "partial_success": false,
+      "duration_ms": 67.94734700815752,
+      "evidence_id": "",
+      "artifact": "",
+      "data": {
+        "output_bytes": 16,
+        "captured_bytes": 16,
+        "output_truncated": false,
+        "output_limit_bytes": 4194304,
+        "isolation": "landlock+seccomp",
+        "environment_generation": 0,
+        "environment_reused": false
+      }
+    },
+    {
+      "status": "success",
+      "content": "============================= test session starts ==============================\nplatform linux -- Python 3.12.14, pytest-8.4.2, pluggy-1.6.0\nrootdir: /app\ncollected 1 item\n\n__aster_inline_aster_tests_19jbdtmw.py .                                 [100%]\n\n------- generated xml file: /app/__aster_result_aster-tests-19jbdtmw.xml -------\n============================== 1 passed in 0.01s ===============================\n",
+      "reason": "",
+      "exit_code": 0,
+      "changed_paths": [],
+      "partial_success": false,
+      "duration_ms": 204.14679701207206,
+      "evidence_id": "",
+      "artifact": "",
+      "data": {
+        "output_bytes": 417,
+        "captured_bytes": 417,
+        "output_truncated": false,
+        "output_limit_bytes": 4194304,
+        "isolation": "landlock+seccomp",
+        "environment_generation": 0,
+        "environment_reused": false,
+        "tested_workspace_hash": "8070f3cec0b511fa0f3d0a9d426729520e34688536953a7d774668718eabbcf4",
+        "tested_environment_generation": 0,
+        "passed_tests": 1,
+        "test_results": {
+          "pytest: __aster_inline__::test_absolute_project_paths": "passed"
+        }
+      }
+    }
+  ]
+}

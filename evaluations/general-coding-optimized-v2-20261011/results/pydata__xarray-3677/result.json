@@ -1,0 +1,88 @@
+{
+  "job": "aster-pydata__xarray-3677",
+  "agent": "aster",
+  "task": "pydata__xarray-3677",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 129.533,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1324,
+  "patch_sha256": "be64c22a5d68b8e634617b7c9c7a99f989d878f408d4e6569045c0eefe868605",
+  "requests": 13,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 277560,
+  "output_tokens": 2236,
+  "cached_tokens": 228352,
+  "total_tokens": 279796,
+  "final": "Implemented the fix for `Dataset.merge(DataArray)`.\n\nChanges:\n- Normalize `DataArray` inputs with `.to_dataset()` inside `dataset_merge_method` before handling overwrite behavior: [merge.py](/testbed/xarray/core/merge.py:812)\n- Added regression coverage for scalar and 1D named `DataArray` inputs: [test_merge.py](/testbed/xarray/tests/test_merge.py:155)\n\nVerification:\n- Original reproducer now succeeds and produces variables `a` and `b`.\n- `python -m pytest xarray/tests/test_merge.py`: **21 passed**\n- `python -m pytest xarray/tests/test_dataset.py -k 'merge'`: **3 passed**",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 12,
+    "step": 22,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "1b421cad0eaf8fc9a119dc41d9093d29fb1bffe5fcf0041b6028d51c7458c06a",
+      "evidence_id": "731588a19993ea95765d0e19b3819c33ed36d0ddba95351903463f8dbe24bf2f",
+      "command": "python -m pytest xarray/tests/test_dataset.py -k 'merge'"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_dataarray"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeInternals::test_broadcast_dimension_size",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_datasets",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dataarray_unnamed",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_simple",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_dims",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_alignment_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_wrong_input_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_single_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_multi_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_preserve_attrs",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_broadcast",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_broadcast_equals",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_compat",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_auto_align",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2.0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_no_conflicts"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "original_passed": true
+}

@@ -1,3 +1,4 @@
+import json
 import re
 from collections import Counter
 from html.parser import HTMLParser
@@ -8,7 +9,7 @@ SITE = Path(__file__).resolve().parents[1]
 REPO = SITE.parent
 LESSONS = SITE / "lessons"
 COURSE = REPO / "docs" / "learning"
-MARKDOWN = sorted(COURSE.glob("[0-1][0-9]-*.md"))
+MARKDOWN = [COURSE / "project-story.md", *sorted(COURSE.glob("[0-1][0-9]-*.md"))]
 FENCE = re.compile(r"^```([^\n]*)\n(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
 NODE = re.compile(r"(?P<id>[A-Za-z_][\w-]*)\s*(?P<shape>\[[^\]]*\]|\{[^}]*\}|\([^)]*\))")
 EDGE = re.compile(
@@ -169,9 +170,10 @@ def diagram_contract(raw):
     return nodes, edges
 
 
-def test_all_sixteen_lessons_have_real_content():
-    pages = sorted(LESSONS.glob("*.html"))
-    assert len(MARKDOWN) == len(pages) == 16
+def test_project_story_and_sixteen_lessons_have_real_content():
+    pages = [LESSONS / f"{source.stem}.html" for source in MARKDOWN]
+    assert len(MARKDOWN) == len(pages) == 17
+    assert set(pages) == set(LESSONS.glob("*.html"))
     for source, page in zip(MARKDOWN, pages, strict=True):
         assert page.stem == source.stem
         parsed = parse_page(page)
@@ -233,9 +235,9 @@ def test_each_mermaid_diagram_preserves_nodes_edges_labels_and_order():
             ]
             nodes, _ = diagram_contract(diagram["raw"])
             actual.append((nodes, edges, diagram["raw"]))
-    assert len(expected) == len(actual) == 11
-    assert sum(len(nodes) for nodes, _, _ in expected) == 100
-    assert sum(len(edges) for _, edges, _ in expected) == 98
+    assert len(expected) == len(actual) == 14
+    assert sum(len(nodes) for nodes, _, _ in expected) == 120
+    assert sum(len(edges) for _, edges, _ in expected) == 119
     assert actual == expected
 
 
@@ -269,3 +271,22 @@ def test_navigation_titles_do_not_repeat_chapter_numbers():
     for page in LESSONS.glob("*.html"):
         text = page.read_text(encoding="utf-8")
         assert not re.search(r'<span>(\d{2})</span>\1\s*(?:[｜·])?', text)
+
+
+def test_project_story_is_the_first_reading_entry():
+    index = (SITE / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<a class="button" href="lessons/project-story.html">', index)
+    entries = re.findall(r'<a class="lesson-row" href="([^"]+)"', index)
+    expected = [f"lessons/{source.stem}.html" for source in MARKDOWN]
+    assert entries == expected
+    search = json.loads((SITE / "search.json").read_text(encoding="utf-8"))
+    assert [entry["url"] for entry in search] == expected
+    for source in MARKDOWN:
+        text = (LESSONS / f"{source.stem}.html").read_text(encoding="utf-8")
+        sidebar = re.search(r'<aside class="sidebar">(.*?)</aside>', text).group(1)
+        links = re.findall(r'<li><a[^>]+href="([^"]+)"', sidebar)
+        assert links == [f"{lesson.stem}.html" for lesson in MARKDOWN]
+    story = (LESSONS / "project-story.html").read_text(encoding="utf-8")
+    quickstart = (LESSONS / "00-quickstart.html").read_text(encoding="utf-8")
+    assert '<a href="00-quickstart.html">00' in story
+    assert '<a href="project-story.html">← Aster 的设计与演进</a>' in quickstart

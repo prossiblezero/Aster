@@ -1,0 +1,70 @@
+{
+  "job": "pi-sphinx-doc__sphinx-11510",
+  "agent": "pi",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 802.473,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 3395,
+  "patch_sha256": "8406007cbcc256c089c58fc8e583e99fca9ad3788be0d6635d662307f3b73273",
+  "requests": 27,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 943353,
+  "output_tokens": 7845,
+  "cached_tokens": 880384,
+  "total_tokens": 951198,
+  "source": "SWE-bench Verified",
+  "difficulty": "1-4 hours",
+  "final": "Implemented the `source-read` fix for files included with `.. include::`.\n\nChanges:\n- Included file contents now pass through the mutable `source-read` event before docutils parses them.\n- Added a regression fixture covering substitutions in both the main document and included content.\n- Added an HTML build regression test.\n\nVerification:\n- `python -m pytest tests/test_build_html.py -q`\n- Result: **540 passed**\n- `python -m pytest tests/test_directive_other.py -q`\n- Result: **7 passed**",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States source-read handling for included files implemented and HTML/directive suites pass.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

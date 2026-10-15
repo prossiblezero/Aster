@@ -1,0 +1,44 @@
+{
+  "posthoc": true,
+  "model_calls": 0,
+  "changes_to_formal_scores": false,
+  "observations": [
+    {
+      "probe": "grpc_shell",
+      "shell_mode": "-c",
+      "image_id": "sha256:3399400800dcb207634daa42bc1b052e831e285cc9d221eea66c47bc0fc79791",
+      "configured_python": "/opt/task-python/bin/python",
+      "exit_code": 0,
+      "output": "/opt/task-python/bin/python\n3.12.14 | packaged by Anaconda, Inc. | (main, Aug 27 2026, 14:46:43) [GCC 14.3.0]\n1.73.0\n"
+    },
+    {
+      "probe": "grpc_shell",
+      "shell_mode": "-lc",
+      "image_id": "sha256:3399400800dcb207634daa42bc1b052e831e285cc9d221eea66c47bc0fc79791",
+      "configured_python": "/opt/task-python/bin/python",
+      "exit_code": 1,
+      "output": "/usr/local/bin/python\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import sys,grpc; print(sys.version); print(grpc.__version__)\n    ^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named 'grpc'\n"
+    },
+    {
+      "probe": "reported_nested_scheme_example",
+      "agent": "aster",
+      "candidate_sha256": "6b4517f9cc46e712451e3291ac287d5141a3bef9dec75f2cae7c4042e16565dd",
+      "exit_code": 0,
+      "output": "returncode: 0\nstdout: 'Reading\\n15\\nDone\\n'\nstderr: ''\n"
+    },
+    {
+      "probe": "reported_nested_scheme_example",
+      "agent": "pi",
+      "candidate_sha256": "f8cdee71d730a6ce991814187a883f2a2982226c7a11b407a7fee9a3ada72b6e",
+      "exit_code": 0,
+      "output": "returncode: 0\nstdout: 'Reading\\n15\\nDone\\n'\nstderr: ''\n"
+    },
+    {
+      "probe": "reported_nested_scheme_example",
+      "agent": "codex",
+      "candidate_sha256": "ec1a0dc8ea9703a44f22649f0c5fc6a3122fc295a207ac372b246e61191c68fa",
+      "exit_code": 0,
+      "output": "returncode: 0\nstdout: 'Reading\\n15\\nDone\\n'\nstderr: ''\n"
+    }
+  ]
+}

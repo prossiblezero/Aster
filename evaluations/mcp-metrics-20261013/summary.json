@@ -1,0 +1,424 @@
+{
+  "runs": 32,
+  "planned_runs": 32,
+  "missing_runs": [],
+  "retrieval": {
+    "en": {
+      "queries": 14,
+      "recall_at_1": 0.9285714285714286,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "reciprocal_rank": 0.9642857142857143
+    },
+    "zh": {
+      "queries": 14,
+      "recall_at_1": 0.0,
+      "recall_at_3": 0.0,
+      "recall_at_5": 0.0,
+      "reciprocal_rank": 0
+    },
+    "exact": {
+      "queries": 14,
+      "recall_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "reciprocal_rank": 1.0
+    }
+  },
+  "arms": {
+    "eager": {
+      "runs": 16,
+      "passed": 13,
+      "usage": {
+        "usage_requests": 44,
+        "input_tokens": 476682,
+        "input_tokens_requests": 44,
+        "output_tokens": 3763,
+        "output_tokens_requests": 44,
+        "cache_read_input_tokens": 273408,
+        "cache_read_input_tokens_requests": 44,
+        "reasoning_tokens": 1331,
+        "reasoning_tokens_requests": 44,
+        "total_tokens": 480445,
+        "total_tokens_requests": 44
+      },
+      "mean_total_tokens": 30027.8125,
+      "noncached_input_tokens": 203274,
+      "mean_seconds": 97.78152334458719,
+      "p50_seconds": 72.79387286299607,
+      "p95_seconds": 240.08740177724394,
+      "model_requests": 47,
+      "mcp_calls": 33,
+      "mcp_successes": 33,
+      "mcp_relevant_valid_calls": 30,
+      "mcp_invalid_arguments": 0,
+      "requests_without_usage": 3,
+      "http_attempts": 57,
+      "http_attempt_classes": {
+        "transport": 11,
+        "success": 44,
+        "cancelled": 2
+      },
+      "http_attempts_without_usage": 13,
+      "response_models": {
+        "": 13,
+        "gpt-5.6-luna": 44
+      },
+      "provider_flags": {},
+      "mean_first_schema_tokens": 7026,
+      "mean_first_input_tokens": 10078.733333333334,
+      "first_requests_with_usage": 15,
+      "discovery_calls": 0,
+      "load_calls": 0,
+      "total_estimated_schema_tokens": 330222,
+      "mean_model_seconds": 89.13205748375185,
+      "mean_mcp_seconds": 3.5591002118744655,
+      "p50_mcp_seconds": 0.4316779710352421,
+      "p95_mcp_seconds": 6.141971613024362,
+      "mcp_server_parameter_errors": 0
+    },
+    "lazy": {
+      "runs": 16,
+      "passed": 13,
+      "usage": {
+        "usage_requests": 73,
+        "input_tokens": 566701,
+        "input_tokens_requests": 73,
+        "output_tokens": 4612,
+        "output_tokens_requests": 73,
+        "cache_read_input_tokens": 292352,
+        "cache_read_input_tokens_requests": 73,
+        "reasoning_tokens": 1185,
+        "reasoning_tokens_requests": 73,
+        "total_tokens": 571313,
+        "total_tokens_requests": 73
+      },
+      "mean_total_tokens": 35707.0625,
+      "noncached_input_tokens": 274349,
+      "mean_seconds": 134.95329625299928,
+      "p50_seconds": 150.30329878249904,
+      "p95_seconds": 240.07092572402325,
+      "model_requests": 76,
+      "mcp_calls": 35,
+      "mcp_successes": 34,
+      "mcp_relevant_valid_calls": 30,
+      "mcp_invalid_arguments": 0,
+      "requests_without_usage": 3,
+      "http_attempts": 89,
+      "http_attempt_classes": {
+        "success": 73,
+        "transport": 14,
+        "cancelled": 2
+      },
+      "http_attempts_without_usage": 16,
+      "response_models": {
+        "gpt-5.6-luna": 73,
+        "": 16
+      },
+      "provider_flags": {},
+      "mean_first_schema_tokens": 2159,
+      "mean_first_input_tokens": 6587.375,
+      "first_requests_with_usage": 16,
+      "discovery_calls": 16,
+      "load_calls": 15,
+      "total_estimated_schema_tokens": 186126,
+      "mean_model_seconds": 128.62748810253834,
+      "mean_mcp_seconds": 3.5883620064269053,
+      "p50_mcp_seconds": 0.43551625998225063,
+      "p95_mcp_seconds": 5.855595646135043,
+      "mcp_server_parameter_errors": 1
+    }
+  },
+  "tool_failures": [
+    {
+      "id": "files_create--lazy--2",
+      "arm": "lazy",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__read_file",
+        "arguments": {
+          "path": "sales.csv",
+          "start": 1,
+          "limit": 10000
+        },
+        "call_id": "call_eY3V9CSm8it6BnErpmc2ucHl",
+        "idempotency_key": null
+      },
+      "reason": "mcp_tool_error",
+      "content": "{\"content\": [{\"type\": \"text\", \"text\": \"Error executing tool read_file: start must be positive; limit must be 1..2000\"}], \"isError\": true, \"resultType\": \"complete\"}",
+      "server_parameter_error": true
+    }
+  ],
+  "schema_scaling": [
+    {
+      "catalog_tools": 14,
+      "eager_schema_tokens": 7026,
+      "two_loaded_schema_tokens": 2653,
+      "reduction": 0.6224025049814973,
+      "tokenizer": "cl100k_base",
+      "kind": "offline_schema_only"
+    },
+    {
+      "catalog_tools": 30,
+      "eager_schema_tokens": 10554,
+      "two_loaded_schema_tokens": 2813,
+      "reduction": 0.733465984460868,
+      "tokenizer": "cl100k_base",
+      "kind": "offline_schema_only"
+    },
+    {
+      "catalog_tools": 34,
+      "eager_schema_tokens": 11784,
+      "two_loaded_schema_tokens": 2852,
+      "reduction": 0.7579769178547182,
+      "tokenizer": "cl100k_base",
+      "kind": "offline_schema_only"
+    }
+  ],
+  "idempotency": {
+    "operations": 10,
+    "replays": 20,
+    "successful_replays": 20,
+    "conflicts_blocked": 10,
+    "unchanged_files": 10
+  },
+  "relative_change_lazy_vs_eager": {
+    "mean_total_tokens": 0.1891329912893256,
+    "mean_seconds": 0.38015129686021387,
+    "model_requests": 0.6170212765957446,
+    "mean_first_schema_tokens": -0.692712781098776,
+    "mean_first_input_tokens": -0.3464084441828008,
+    "noncached_input_tokens": 0.34965120969725594
+  },
+  "successful_calls_outside_constraints": [
+    {
+      "id": "files_create--eager--2",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100,
+          "offset": 0
+        },
+        "call_id": "call_c4b9s13TyeDZ1Tbz4tuumR5r",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "files_create--lazy--2",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100
+        },
+        "call_id": "call_9ZwmHJkrDCYnfcQlsH7doZ5a",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "files_update--eager--1",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100,
+          "offset": 0
+        },
+        "call_id": "call_fa696573379a4299af6f5255b4cf09c2",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "files_update--lazy--1",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100
+        },
+        "call_id": "call_d1334f640b4940d2bde5defe20940c45",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "files_update--lazy--1",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": "",
+          "limit": 100
+        },
+        "call_id": "call_adf270ab264e4a478fc1bb86a497188f",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "files_update--lazy--2",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100
+        },
+        "call_id": "call_0dee1d65a0ce43bc8bbc06a961789f6d",
+        "idempotency_key": null
+      }
+    },
+    {
+      "id": "github_package--eager--2",
+      "call": {
+        "kind": "tool",
+        "name": "mcp__github__get_file_contents",
+        "arguments": {
+          "owner": "earendil-works",
+          "repo": "pi",
+          "path": "package.json",
+          "sha": "7d75a0e3eb273dff753d49c066ea29fbe7b3b6"
+        },
+        "call_id": "call_c003026119e94f81a19cd4c83cbb32dc",
+        "idempotency_key": null
+      }
+    }
+  ],
+  "transport_clean_pairs": {
+    "pairs": 6,
+    "eager_tokens": 38817.333333333336,
+    "eager_seconds": 38.12114136920233,
+    "eager_requests": 3.5,
+    "lazy_tokens": 42441.333333333336,
+    "lazy_seconds": 50.836488058654744,
+    "lazy_requests": 5.333333333333333
+  },
+  "task_types": {
+    "github": {
+      "eager": {
+        "runs": 8,
+        "passed": 7,
+        "mean_tokens": 20678,
+        "mean_seconds": 98.49960693453613
+      },
+      "lazy": {
+        "runs": 8,
+        "passed": 7,
+        "mean_tokens": 30224.625,
+        "mean_seconds": 153.88935804949142
+      }
+    },
+    "files": {
+      "eager": {
+        "runs": 8,
+        "passed": 6,
+        "mean_tokens": 39377.625,
+        "mean_seconds": 97.06343975463824
+      },
+      "lazy": {
+        "runs": 8,
+        "passed": 6,
+        "mean_tokens": 41189.5,
+        "mean_seconds": 116.01723445650714
+      }
+    }
+  },
+  "lazy_discovery_queries": {
+    "": 11,
+    "issue": 2,
+    "read repository file commit contents": 1,
+    "repository search repo get": 1,
+    "repository search": 1
+  },
+  "failures": [
+    {
+      "id": "files_create--eager--1",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": false,
+        "mcp_only": true,
+        "product": false,
+        "preserved:sales.csv": true
+      },
+      "phase": "failed",
+      "stop_reason": "provider_error",
+      "error": "",
+      "seconds": 187.99006768793333
+    },
+    {
+      "id": "files_create--eager--2",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": true,
+        "mcp_only": true,
+        "product": true,
+        "preserved:sales.csv": true
+      },
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "error": "TimeoutError: ",
+      "seconds": 240.08038471697364
+    },
+    {
+      "id": "files_create--lazy--1",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": false,
+        "mcp_only": true,
+        "product": false,
+        "preserved:sales.csv": true
+      },
+      "phase": "failed",
+      "stop_reason": "provider_error",
+      "error": "",
+      "seconds": 204.7756432800088
+    },
+    {
+      "id": "files_delete--lazy--2",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": true,
+        "mcp_only": true,
+        "deleted": true,
+        "preserved:keep.txt": true
+      },
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "error": "TimeoutError: ",
+      "seconds": 240.0880285470048
+    },
+    {
+      "id": "github_commit--eager--2",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": true,
+        "mcp_only": true
+      },
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "error": "TimeoutError: ",
+      "seconds": 240.10845295805484
+    },
+    {
+      "id": "github_issue--lazy--2",
+      "checks": {
+        "answer": false,
+        "completed": false,
+        "required_mcp_tools": true,
+        "mcp_only": true
+      },
+      "phase": "stopped",
+      "stop_reason": "cancelled",
+      "error": "TimeoutError: ",
+      "seconds": 240.0652247830294
+    }
+  ]
+}

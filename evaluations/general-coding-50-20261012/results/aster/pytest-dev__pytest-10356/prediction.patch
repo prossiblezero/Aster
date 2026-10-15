@@ -1,0 +1,183 @@
+diff --git a/changelog/10400.bugfix.rst b/changelog/10400.bugfix.rst
+new file mode 100644
+index 0000000..a5d400b
+--- /dev/null
++++ b/changelog/10400.bugfix.rst
+@@ -0,0 +1 @@
++Marks declared on multiple base classes are now all applied when collecting a derived test class.
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..5a77845 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,7 +357,15 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type):
++        mark_list = []
++        for parent in reversed(obj.__mro__):
++            marks = parent.__dict__.get("pytestmark", [])
++            if not isinstance(marks, list):
++                marks = [marks]
++            mark_list.extend(marks)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..696f83a 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -169,6 +169,7 @@ def test_markers_option_with_plugin_in_current_dir(pytester: Pytester) -> None:
+ 
+ 
+ def test_mark_on_pseudo_function(pytester: Pytester) -> None:
++    pytester.makeini("[pytest]\nmarkers = r")
+     pytester.makepyfile(
+         """
+         import pytest
+@@ -194,7 +195,10 @@ def test_strict_prohibits_unregistered_markers(
+             pass
+     """
+     )
+-    result = pytester.runpytest(option_name)
++    args = [option_name]
++    if option_name == "--strict":
++        args.extend(("-W", "ignore::pytest.PytestRemovedIn8Warning"))
++    result = pytester.runpytest(*args)
+     assert result.ret != 0
+     result.stdout.fnmatch_lines(
+         ["'unregisteredmark' not found in `markers` configuration option"]
+@@ -215,6 +219,7 @@ def test_strict_prohibits_unregistered_markers(
+ def test_mark_option(
+     expr: str, expected_passed: List[Optional[str]], pytester: Pytester
+ ) -> None:
++    pytester.makeini("[pytest]\nmarkers = xyz\n    xyz2")
+     pytester.makepyfile(
+         """
+         import pytest
+@@ -239,6 +244,7 @@ def test_mark_option(
+ def test_mark_option_custom(
+     expr: str, expected_passed: List[str], pytester: Pytester
+ ) -> None:
++    pytester.makeini("[pytest]\nmarkers = interface")
+     pytester.makeconftest(
+         """
+         import pytest
+@@ -418,7 +424,7 @@ def test_parametrized_collect_with_wrong_args(pytester: Pytester) -> None:
+     result = pytester.runpytest(py_file)
+     result.stdout.fnmatch_lines(
+         [
+-            'test_parametrized_collect_with_wrong_args.py::test_func: in "parametrize" the number of names (2):',
++            '*test_parametrized_collect_with_wrong_args.py::test_func: in "parametrize" the number of names (2):',
+             "  ['foo', 'bar']",
+             "must be equal to the number of values (3):",
+             "  (1, 2, 3)",
+@@ -489,9 +495,33 @@ class TestFunctional:
+             print(item, item.keywords)
+             assert [x for x in item.iter_markers() if x.name == "a"]
+ 
++    def test_marks_from_multiple_base_classes_are_combined(
++        self, pytester: Pytester
++    ) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.foo
++            class Foo:
++                pass
++
++            @pytest.mark.bar
++            class Bar:
++                pass
++
++            class TestDings(Foo, Bar):
++                def test_dings(self):
++                    pass
++            """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_dings=("foo", "bar"))
++
+     def test_mark_decorator_subclass_does_not_propagate_to_base(
+         self, pytester: Pytester
+     ) -> None:
++        pytester.makeini("[pytest]\nmarkers = a\n    b")
+         p = pytester.makepyfile(
+             """
+             import pytest
+@@ -512,6 +542,7 @@ class TestFunctional:
+ 
+     def test_mark_should_not_pass_to_siebling_class(self, pytester: Pytester) -> None:
+         """#568"""
++        pytester.makeini("[pytest]\nmarkers = b")
+         p = pytester.makepyfile(
+             """
+             import pytest
+@@ -539,6 +570,7 @@ class TestFunctional:
+         assert list(sub_item.iter_markers(name="b"))
+ 
+     def test_mark_decorator_baseclasses_merged(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = a\n    b\n    c\n    d")
+         p = pytester.makepyfile(
+             """
+             import pytest
+@@ -562,6 +594,7 @@ class TestFunctional:
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
+     def test_mark_closest(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = c")
+         p = pytester.makepyfile(
+             """
+             import pytest
+@@ -602,6 +635,7 @@ class TestFunctional:
+         assert "TypeError" in str(values[0].longrepr)
+ 
+     def test_mark_dynamically_in_funcarg(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = hello")
+         pytester.makeconftest(
+             """
+             import pytest
+@@ -623,6 +657,7 @@ class TestFunctional:
+         result.stdout.fnmatch_lines(["keyword: *hello*"])
+ 
+     def test_no_marker_match_on_unmarked_names(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = shouldmatch")
+         p = pytester.makepyfile(
+             """
+             import pytest
+@@ -642,6 +677,7 @@ class TestFunctional:
+         assert len(deselected_tests) == 2
+ 
+     def test_keywords_at_node_level(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = world")
+         pytester.makepyfile(
+             """
+             import pytest
+@@ -664,6 +700,7 @@ class TestFunctional:
+         reprec.assertoutcome(passed=1)
+ 
+     def test_keyword_added_for_session(self, pytester: Pytester) -> None:
++        pytester.makeini("[pytest]\nmarkers = mark1\n    mark2\n    mark3")
+         pytester.makeconftest(
+             """
+             import pytest
+@@ -996,6 +1033,7 @@ def test_parameterset_for_parametrize_bad_markname(pytester: Pytester) -> None:
+ 
+ 
+ def test_mark_expressions_no_smear(pytester: Pytester) -> None:
++    pytester.makeini("[pytest]\nmarkers = FOO\n    BAR")
+     pytester.makepyfile(
+         """
+         import pytest
+@@ -1047,6 +1085,7 @@ def test_addmarker_order(pytester) -> None:
+ @pytest.mark.filterwarnings("ignore")
+ def test_markers_from_parametrize(pytester: Pytester) -> None:
+     """#3605"""
++    pytester.makeini("[pytest]\nmarkers = custom_marker\n    custom_mark")
+     pytester.makepyfile(
+         """
+         import pytest

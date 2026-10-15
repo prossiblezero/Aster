@@ -1,0 +1,76 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..9b0e742 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -8,6 +8,7 @@ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+ from docutils.parsers.rst.directives.misc import Class
+ from docutils.parsers.rst.directives.misc import Include as BaseInclude
++from docutils.statemachine import string2lines
+ 
+ from sphinx import addnodes
+ from sphinx.domains.changeset import VersionChange  # noqa: F401  # for compatibility
+@@ -376,6 +377,28 @@ class Include(BaseInclude, SphinxDirective):
+         rel_filename, filename = self.env.relfn2path(self.arguments[0])
+         self.arguments[0] = filename
+         self.env.note_included(filename)
++
++        # An included file is inserted into the current state machine instead
++        # of being read by SphinxStandaloneReader.  Apply source-read to its
++        # contents before they are parsed so source-level transformations also
++        # affect included reST files.
++        if not any(option in self.options for option in ('literal', 'code', 'parser')):
++            insert_input = self.state_machine.insert_input
++
++            def insert_transformed_input(lines: list[str], source: str) -> None:
++                content = '\\n'.join(lines[:-1])
++                arg = [content]
++                self.env.events.emit('source-read', self.env.docname, arg)
++                transformed = string2lines(arg[0], self.state.document.settings.tab_width,
++                                           convert_whitespace=True)
++                insert_input(transformed + lines[-1:], source)
++
++            self.state_machine.insert_input = insert_transformed_input
++            try:
++                return super().run()
++            finally:
++                self.state_machine.insert_input = insert_input
++
+         return super().run()
+ 
+ 
+diff --git a/tests/test_build.py b/tests/test_build.py
+index ed4bc43..ba5e0e8 100644
+--- a/tests/test_build.py
++++ b/tests/test_build.py
+@@ -63,6 +63,30 @@ def test_root_doc_not_found(tmp_path, make_app):
+         app.builder.build_all()  # no index.rst
+ 
+ 
++def test_source_read_event_for_include(tmp_path, make_app):
++    (tmp_path / 'conf.py').write_text('', encoding='utf8')
++    (tmp_path / 'index.rst').write_text(
++        'Test\n====\n\n.. include:: included.rst\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++    (tmp_path / 'included.rst').write_text(
++        'Included\n========\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++
++    app = make_app('html', srcdir=tmp_path)
++
++    def replace(app, docname, source):
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++    app.connect('source-read', replace)
++    app.build()
++
++    output = (app.outdir / 'index.html').read_text(encoding='utf8')
++    assert output.count('REPLACED') == 2
++    assert '&amp;REPLACE_ME;' not in output
++
++
+ @pytest.mark.sphinx(buildername='text', testroot='circular')
+ def test_circular_toctree(app, status, warning):
+     app.builder.build_all()

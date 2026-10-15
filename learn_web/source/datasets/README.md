@@ -1,10 +1,14 @@
 # Aster 评测数据集
 
+通用编码评测入口是 [2026-10-10 二十题小集](general-coding-20261010/README.md)：12 道 SWE-bench Verified 仓库修复、6 道 Terminal-Bench 归档终端编码、2 道 Aider Polyglot Python 实现。17 道本项目新增题、3 道历史题，选题不使用子任务可拆分性。Aster / pi / Codex 同模型原始 60 次运行的独立评分分别为 **12/20、15/20、14/20**，见[原始报告](../evaluations/general-coding-20261010/REPORT.md)。纳入 Aster 五题重跑后，合并成绩分别为 **15/20、15/20、14/20**，见[对比表](../evaluations/general-coding-retry-20261010/combined/REPORT.md)；该口径含选择性补测与环境适配，共 65 次尝试，仍是 20 道任务。这是固定配比小集及本地适配结果，不是原来源完整榜单，也不与下面历史集合直接累加计数。
+
+[2026-10-11 优化后完整复测](../evaluations/general-coding-optimized-v2-20261011/REPORT.md)沿用同样二十题，两版各运行二十次全新尝试，分别为 **14/20、15/20**，不与旧轮择优合并。最终版正常交付且独立通过 **15/20**，与 pi 固定历史 15/20 持平；内部完成 18 题中仍有 3 题独立失败。题目已用于诊断与优化，按开发集复测记录；生产修改和容器环境适配分别披露，任务数仍为 20。
+
 轻量委派迭代使用独立的[十题调查集](subagent-ten-20261003/README.md)：10 道不同任务、80 个行为事实、7 个源码快照。它保留旧六题并新增四题，测试明确分工下的源码调查和受限审查；不计入下面基础任务总数，也不代表代码修复或自主拆分能力。
 
 当前基础评测包含 **193 条主任务、85 个机制场景**。上下文专项另有 **12 道代码任务和 1 个信息丢失控制**；恢复专项有 **12 个故障注入场景，复用已有 5 道仓库题**，不把它们算成 12 道新代码题。另有 **12 组上下文压力配置、16 组工具可见性配置、10 个停滞检测器边界契约**。配置数、重复次数、开关条件及单元测试都不算新增任务；v4 报告保留当时的 69 个机制场景口径。
 
-Worker 委派当前选题入口是 [`worker-code-v2/`](worker-code-v2/)：从 Aider Polyglot、BigCodeBench、Terminal-Bench、SWE-bench Pro 和 SWE-bench Verified 固定选择 20 条代码任务，分为 6 条 simple、10 条 medium、4 条 hard。原始材料按固定 revision 与 SHA-256 下载到私有缓存；8 道轻量控制题已验证初始失败、参考解通过。其余准备状态逐题记录，尚无本集的真实模型成绩。v1 保留为历史清单，两版不能相加计数；新集不由旧 `benchmark_tasks.json` 执行器加载。
+Worker 委派专项的历史选题入口是 [`worker-code-v2/`](worker-code-v2/)：从 Aider Polyglot、BigCodeBench、Terminal-Bench、SWE-bench Pro 和 SWE-bench Verified 固定选择 20 条代码任务，分为 6 条 simple、10 条 medium、4 条 hard。原始材料按固定 revision 与 SHA-256 下载到私有缓存；该冻结二十题已有[真实模型对照](../evaluations/worker-code-20260928/REPORT.md)，solo / current_worker 独立通过分别为 14/20、13/20。后续扩展与保留集按各自清单记录，不与此历史二十题混算。v1 保留为历史清单，各版不能相加计数；这些专项不由旧 `benchmark_tasks.json` 执行器加载。
 
 | 数据范围 | 数量 | 定义位置 |
 |---|---:|---|

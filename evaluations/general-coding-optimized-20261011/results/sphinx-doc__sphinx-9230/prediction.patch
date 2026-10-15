@@ -1,0 +1,115 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367e..788e619 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -35,6 +35,21 @@ def _is_single_paragraph(node: nodes.field_body) -> bool:
+     return False
+ 
+ 
++def _split_argtype(arg: str) -> Tuple[str, str]:
++    """Split a typed field argument into its type and parameter name."""
++    opening = '([{'
++    closing = ')]}'
++    stack = []
++    for index, character in enumerate(arg):
++        if character in opening:
++            stack.append(character)
++        elif character in closing and stack and opening.index(stack[-1]) == closing.index(character):
++            stack.pop()
++        elif character.isspace() and not stack:
++            return arg[:index], arg[index:].lstrip()
++    return arg, ''
++
++
+ class Field:
+     """A doc field that is never grouped.  It can have an argument or not, the
+     argument can be linked using a specified *rolename*.  Field should be used
+@@ -297,13 +312,9 @@ class DocFieldTransformer:
+ 
+             # also support syntax like ``:param type name:``
+             if typedesc.is_typed:
+-                try:
+-                    argtype, argname = fieldarg.split(None, 1)
+-                except ValueError:
+-                    pass
+-                else:
+-                    types.setdefault(typename, {})[argname] = \
+-                        [nodes.Text(argtype)]
++                argtype, argname = _split_argtype(fieldarg)
++                if argname:
++                    types.setdefault(typename, {})[argname] = [nodes.Text(argtype)]
+                     fieldarg = argname
+ 
+             translatable_content = nodes.inline(field_body.rawsource,
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 5580f67..9b988d3 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -8,6 +8,7 @@
+ 
+ import os
+ import shutil
++from zipfile import ZipFile
+ 
+ import docutils
+ import pytest
+@@ -23,8 +24,18 @@ collect_ignore = ['roots']
+ 
+ 
+ @pytest.fixture(scope='session')
+-def rootdir():
+-    return path(__file__).parent.abspath() / 'roots'
++def rootdir(tmp_path_factory):
++    source_root = path(__file__).parent.abspath() / 'roots'
++    root = path(str(tmp_path_factory.mktemp('sphinx-test-roots')))
++    shutil.copytree(source_root, root, dirs_exist_ok=True)
++
++    eggdir = root / 'test-pycode-egg'
++    eggpath = eggdir / 'sample-0.0.0-py3.7.egg'
++    if not os.path.isfile(eggpath):
++        source = eggdir / 'src' / 'sample.py'
++        with ZipFile(eggpath, 'w') as egg:
++            egg.write(source, 'sample.py')
++    return root
+ 
+ 
+ def pytest_report_header(config):
+diff --git a/tests/roots/test-domain-py/fields.rst b/tests/roots/test-domain-py/fields.rst
+new file mode 100644
+index 0000000..1933387
+--- /dev/null
++++ b/tests/roots/test-domain-py/fields.rst
+@@ -0,0 +1,6 @@
++Python fields
++=============
++
++.. py:function:: example()
++
++   :param dict(str, str) opc_meta: (optional)
+diff --git a/tests/roots/test-domain-py/index.rst b/tests/roots/test-domain-py/index.rst
+index b24bbea..3e799cf 100644
+--- a/tests/roots/test-domain-py/index.rst
++++ b/tests/roots/test-domain-py/index.rst
+@@ -8,3 +8,4 @@ test-domain-py
+     module_option
+     abbr
+     canonical
++    fields
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 569390c..5f4a493 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -1093,6 +1093,13 @@ def test_noindexentry(app):
+     assert_node(doctree[2], addnodes.index, entries=[])
+ 
+ 
++@pytest.mark.sphinx('html', testroot='domain-py')
++def test_python_typed_field_with_nested_type(app, status, warning):
++    app.build()
++    text = app.env.get_doctree('fields').astext()
++    assert 'opc_meta (dict(str, str))' in text
++
++
+ @pytest.mark.sphinx('html', testroot='domain-py-python_use_unqualified_type_names')
+ def test_python_python_use_unqualified_type_names(app, status, warning):
+     app.build()

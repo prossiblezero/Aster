@@ -1,0 +1,37 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263..92d685a 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -961,7 +961,10 @@ def _recursive_to_string(doprint, arg):
+             left, right = "()"
+         else:
+             raise NotImplementedError("unhandled type: %s, %s" % (type(arg), arg))
+-        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + right
++        body = ', '.join(_recursive_to_string(doprint, e) for e in arg)
++        if isinstance(arg, tuple) and len(arg) == 1:
++            body += ','
++        return left + body + right
+     elif isinstance(arg, str):
+         return arg
+     else:
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 023c2fb..4e55d02 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -74,6 +74,16 @@ def test_no_args():
+     assert f() == 1
+ 
+ 
++def test_single_element_tuple():
++    f = lambdify([], (1,))
++    assert inspect.getsource(f) == 'def _lambdifygenerated():\n    return (1,)\n'
++    assert f() == (1,)
++
++    nested = lambdify([], ((1,),))
++    assert inspect.getsource(nested) == 'def _lambdifygenerated():\n    return ((1,),)\n'
++    assert nested() == ((1,),)
++
++
+ def test_single_arg():
+     f = lambdify(x, 2*x)
+     assert f(1) == 2

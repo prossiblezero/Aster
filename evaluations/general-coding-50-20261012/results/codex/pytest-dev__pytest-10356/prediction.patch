@@ -1,0 +1,74 @@
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..24d984e 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -355,9 +355,20 @@ class MarkDecorator:
+         return self.with_args(*args, **kwargs)
+ 
+ 
+-def get_unpacked_marks(obj: object) -> Iterable[Mark]:
++def get_unpacked_marks(
++    obj: object, *, consider_mro: bool = False
++) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type) and consider_mro:
++        mark_list = []
++        for cls in obj.__mro__:
++            marks = cls.__dict__.get("pytestmark", [])
++            if isinstance(marks, list):
++                mark_list.extend(marks)
++            else:
++                mark_list.append(marks)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+diff --git a/src/_pytest/python.py b/src/_pytest/python.py
+index 3db8775..5e17ac3 100644
+--- a/src/_pytest/python.py
++++ b/src/_pytest/python.py
+@@ -311,7 +311,9 @@ class PyobjMixin(nodes.Node):
+             # XXX evil hack
+             # used to avoid Function marker duplication
+             if self._ALLOW_MARKERS:
+-                self.own_markers.extend(get_unpacked_marks(self.obj))
++                self.own_markers.extend(
++                    get_unpacked_marks(self.obj, consider_mro=isinstance(self.obj, type))
++                )
+                 # This assumes that `obj` is called before there is a chance
+                 # to add custom keys to `self.keywords`, so no fear of overriding.
+                 self.keywords.update((mark.name, mark) for mark in self.own_markers)
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..7b1df85 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,27 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_inheritance(self, pytester: Pytester) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.a
++            class Base1(object):
++                pass
++
++            @pytest.mark.b
++            class Base2(object):
++                pass
++
++            class Test(Base1, Base2):
++                def test_marked(self):
++                    pass
++        """
++        )
++        items, rec = pytester.inline_genitems(p)
++        assert [mark.name for mark in items[0].iter_markers()] == ["a", "b"]
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

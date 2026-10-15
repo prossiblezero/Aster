@@ -1,0 +1,75 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 246.212,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 3128,
+  "patch_sha256": "e8602fb605161474373624b64fda4410e434b7153bdb11d4a28df3d728d317ee",
+  "requests": 18,
+  "missing_usage": 1,
+  "request_errors": 1,
+  "input_tokens": 518647,
+  "output_tokens": 5989,
+  "cached_tokens": 392192,
+  "total_tokens": 524636,
+  "final": "Implemented support for applying `source-read` transformations to reStructuredText files included with `.. include::`.\n\nChanges:\n- Updated [sphinx/directives/other.py](/testbed/sphinx/directives/other.py:365) to emit `source-read` for ordinary included reST content before it enters the parser.\n- Preserved existing behavior for standard, literal, code, and parser-specific includes.\n- Added a regression test in [tests/test_build.py](/testbed/tests/test_build.py:67) that builds HTML and verifies replacements occur both in the included file and the parent document.\n\nVerification:\n- `python -m pytest tests/test_build.py::test_source_read_event_for_include -q` passed.\n- `python -m pytest tests/test_build.py -q` passed: 11 tests.\n- `python -m pytest tests/test_parser.py -q` passed.\n- Python compilation passed.\n- `flake8` could not run because it is not installed in the environment.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 17,
+    "step": 36,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "852733a827318cc1fd7c0b1d1d64d5174938df908edde07a3a7e5ab4d408b14d",
+      "evidence_id": "3761c666bf848654ead44a29f24182e794034327f9dbc88dc4b42da0a880cb77",
+      "command": "python -m pytest tests/test_parser.py -q"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event",
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

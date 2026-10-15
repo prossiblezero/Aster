@@ -2,6 +2,39 @@
 
 日期：2026-09-18。授权 DNS 和 Node 内置测试运行器先独立交付；随后增加默认关闭的受控依赖复用。两阶段的检查分别记录。
 
+## 工作区绝对路径与沙箱安装
+
+**历史实现，已于 2026-10-12 随优化版本回退。** 当前生产源码 `c6b651d` 使用 Landlock/seccomp 与临时工作区副本，不依赖 bubblewrap；命令须使用工作区相对路径。以下保留当时的实现、安装和验证记录，参见[回退报告](../evaluations/final-repair-20261012/REPORT.md)。
+
+2026-10-11 修复工作区路径不一致：此前 `read_file` 可以读取 `/app/interp.py`，Shell 却在 `/tmp/aster-exec-*` 执行，`cd /app` 会指向被 Landlock 拒绝的原目录。这是 Aster 的执行环境缺陷。
+
+现在用 bubblewrap 在私有挂载命名空间中，将过滤后的执行副本映射到原工作区路径。`cd /app`、`python /app/interp.py`、配置内的绝对路径和子进程都指向同一副本；正式 `run_tests` 也保留原路径。没有改写命令字符串，也没有把命令的写权限直接授予宿主项目。敏感文件与控制目录继续在复制时排除，Landlock/seccomp、只读模式、写入范围、并发版本检查和回写校验继续生效。其余宿主文件系统只读挂载，实际读取仍受 Landlock 限制。每条命令有独立的可写 `TMPDIR`，临时测试目录不会继承项目配置。
+
+需要 Linux Landlock ABI ≥ 3、libseccomp、支持 `--json-status-fd` 的 bubblewrap，以及创建用户/挂载命名空间的权限。Debian/Ubuntu 安装与检查：
+
+```bash
+sudo apt-get install bubblewrap libseccomp2
+bwrap --ro-bind / / -- true
+```
+
+Ubuntu 24.04 开启 `apparmor_restrict_unprivileged_userns` 时，若检查报 `setting up uid map: Permission denied`，管理员可安装本仓库的程序级许可：
+
+```bash
+sudo install -m 644 scripts/aster-bwrap.apparmor /etc/apparmor.d/aster-bwrap
+sudo apparmor_parser -r /etc/apparmor.d/aster-bwrap
+bwrap --ro-bind / / -- true
+```
+
+该 profile 仅为 `/usr/bin/bwrap` 放行用户命名空间，不关闭全局 AppArmor 限制。若发行版已提供 bubblewrap profile，应由管理员在已有配置中处理许可，避免重复的执行路径绑定。容器还须允许 bubblewrap 创建挂载命名空间；仅在容器中安装软件包不一定足够。默认 `sandbox="required"` 在依赖或命名空间不可用时返回 `sandbox_unavailable`，命令不会执行。
+
+本次在允许命名空间的离线验证容器中，Aster 工程用例 1,213 项通过，4 项 Go 用例因未安装 Go 跳过；网站静态检查复测 26 项通过。最新路径专项 [test_workspace_paths.py](../tests/test_workspace_paths.py) 7 项通过，覆盖原绝对路径、子进程、工具缓存路径、正式验收、敏感文件/项目外访问、只读/写范围和命名空间启动失败。Ruff 与 AppArmor profile 的离线语法检查通过。
+
+在原解释器任务镜像 `alexgshaw/schemelike-metacircular-eval:20251031` 中，`cd /app && printf '(+ 7 8)\n' | python interp.py test/calculator.scm` 和使用 `/app/interp.py`、`/app/test/calculator.scm` 绝对路径的命令都成功，输出 `Reading`、`15`、`Done`，没有改变项目文件。验证容器单独允许创建命名空间，命令内仍启用 Landlock/seccomp。初次检查时，本机 AppArmor 未放行 bubblewrap，默认模式明确拒绝执行且没有命令副作用。随后用户完成上述管理员配置，普通用户 `dzh` 的 `bwrap --ro-bind / / -- true` 检查成功；本机运行 `python -m pytest -q tests/test_workspace_paths.py`，7 项全部通过，确认修复已在宿主生效。
+
+本次修复不回填既有 benchmark 的分数；2026-10-11 第二轮的 Aster 15/20 保持原始记录。路径回归与解释器启动检查属于工程验证，不能直接计为整题独立验收通过。
+
+随后完成[解释器整题重跑](../evaluations/general-coding-path-retry-20261011/REPORT.md)：真实 Aster 自主使用原绝对路径成功自测，随后因模型请求连续三次超时而以 `provider_error` 退出，未生成 `eval.scm`；独立评分仍未通过，合并后保持 15/20。
+
 ## 授权联网的系统读取
 
 `network` 默认仍为 `false`。显式开启后，Landlock 只增加 `/etc/resolv.conf`、`/etc/hosts`、`/etc/nsswitch.conf`、`/etc/gai.conf` 四个已有文件的只读权限。符号链接先解析到真实文件，因此本机 `/etc/resolv.conf` 指向的 `/run/systemd/resolve/stub-resolv.conf` 可读；没有放开 `/etc`、`/run` 整个目录，也没有系统写权限。现有证书路径继续使用原有只读授权。

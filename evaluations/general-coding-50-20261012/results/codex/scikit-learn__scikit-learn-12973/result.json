@@ -1,0 +1,92 @@
+{
+  "job": "codex-scikit-learn__scikit-learn-12973",
+  "agent": "codex",
+  "task": "scikit-learn__scikit-learn-12973",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 250.108,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 2757,
+  "patch_sha256": "3125f6d04255dc8488d378b9eb39a895de0fa1479d625ac062ec386e06872e70",
+  "requests": 11,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 247199,
+  "output_tokens": 2873,
+  "cached_tokens": 217344,
+  "total_tokens": 250072,
+  "final": "Implemented the `LassoLarsIC.copy_X` fix.\n\n- `fit(copy_X=None)` now inherits `self.copy_X`.\n- Explicit `fit(..., copy_X=...)` overrides the estimator setting.\n- Added regression coverage.\n\nValidation: `641 passed` in `sklearn/linear_model/tests`.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "new30",
+  "difficulty": "15 min - 1 hour",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [],
+        "failure": [
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_fit_copyX_behaviour[False]"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "sklearn/linear_model/tests/test_least_angle.py::test_simple",
+          "sklearn/linear_model/tests/test_least_angle.py::test_simple_precomputed",
+          "sklearn/linear_model/tests/test_least_angle.py::test_all_precomputed",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_lstsq",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_gives_lstsq_solution",
+          "sklearn/linear_model/tests/test_least_angle.py::test_collinearity",
+          "sklearn/linear_model/tests/test_least_angle.py::test_no_path",
+          "sklearn/linear_model/tests/test_least_angle.py::test_no_path_precomputed",
+          "sklearn/linear_model/tests/test_least_angle.py::test_no_path_all_precomputed",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[Lars]",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[LarsCV]",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_precompute[LassoLarsIC]",
+          "sklearn/linear_model/tests/test_least_angle.py::test_singular_matrix",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_early_stopping",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_path_length",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_ill_conditioned",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_ill_conditioned2",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_add_features",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_n_nonzero_coefs",
+          "sklearn/linear_model/tests/test_least_angle.py::test_multitarget",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_cv",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_cv_max_iter",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_ic",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_path_readonly_data",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lars_path_positive_constraint",
+          "sklearn/linear_model/tests/test_least_angle.py::test_estimatorclasses_positive_constraint",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_lasso_cd_positive",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_vs_R_implementation",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_copyX_behaviour[True]",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_copyX_behaviour[False]",
+          "sklearn/linear_model/tests/test_least_angle.py::test_lasso_lars_fit_copyX_behaviour[True]"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

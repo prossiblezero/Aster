@@ -1,0 +1,164 @@
+{
+  "all_150_unique_attempts_scored": true,
+  "same_prompts_images_models_and_task_deadlines": true,
+  "formal_provider_requests": 1988,
+  "formal_request_hashes_checked": 1988,
+  "request_errors_by_type": {
+    "aster": {
+      "BrokenPipeError": 21,
+      "ReadError": 1,
+      "ReadTimeout": 1
+    },
+    "pi": {
+      "http_503": 1,
+      "stream_error": 2,
+      "BrokenPipeError": 1,
+      "ReadError": 1
+    },
+    "codex": {
+      "ReadError": 4,
+      "stream_error": 1,
+      "http_503": 1,
+      "BrokenPipeError": 1
+    }
+  },
+  "observed_upstream_faults": [
+    {
+      "agent": "pi",
+      "task": "psf__requests-2931",
+      "request_id": "8ac72f2f171e4487b83b1fb50be2801a",
+      "http_status": 503,
+      "stream_error": null,
+      "passed": false,
+      "normal_delivery_and_passed": false
+    },
+    {
+      "agent": "pi",
+      "task": "terminal-kv-store-grpc",
+      "request_id": "c73eda5f23264bf8896e37de1b40eb3c",
+      "http_status": 200,
+      "stream_error": {
+        "code": "upstream_http2_stream_error",
+        "message": "Upstream HTTP/2 stream failed"
+      },
+      "passed": true,
+      "normal_delivery_and_passed": false
+    },
+    {
+      "agent": "pi",
+      "task": "aider-javascript-go-counting",
+      "request_id": "7f559aa785984dc09ed746631a40da6d",
+      "http_status": 200,
+      "stream_error": {
+        "code": "upstream_http2_stream_error",
+        "message": "Upstream HTTP/2 stream failed"
+      },
+      "passed": false,
+      "normal_delivery_and_passed": false
+    },
+    {
+      "agent": "codex",
+      "task": "sympy__sympy-23262",
+      "request_id": "dc577aef70454c5f9c9d9fbf6d85e09e",
+      "http_status": 200,
+      "stream_error": {
+        "code": "upstream_http2_stream_error",
+        "message": "Upstream HTTP/2 stream failed"
+      },
+      "passed": true,
+      "normal_delivery_and_passed": true
+    },
+    {
+      "agent": "codex",
+      "task": "psf__requests-2931",
+      "request_id": "33947210a71e4b089e3e10df22645e15",
+      "http_status": 503,
+      "stream_error": null,
+      "passed": true,
+      "normal_delivery_and_passed": true
+    }
+  ],
+  "zero_test_status_jobs": [
+    "aster-astropy__astropy-14182",
+    "aster-aider-cpp-meetup"
+  ],
+  "aster_completion": {
+    "completed": 40,
+    "completed_but_failed": [
+      "sympy__sympy-17630",
+      "pytest-dev__pytest-10356",
+      "terminal-kv-store-grpc",
+      "bigcodebench-479",
+      "bigcodebench-804",
+      "bigcodebench-1052",
+      "bigcodebench-35",
+      "bigcodebench-602"
+    ],
+    "passed_without_normal_delivery": [
+      "terminal-custom-memory-heap-crash",
+      "terminal-schemelike-metacircular-eval",
+      "terminal-cobol-modernization",
+      "pylint-dev__pylint-7277"
+    ]
+  },
+  "background_usage_included_in_formal_totals": {
+    "aster": {
+      "requests": 17,
+      "missing_usage": 10,
+      "total_tokens": 52390,
+      "classification": "original max_output_tokens=768, matching the frozen Aster maintenance client"
+    },
+    "pi": {
+      "requests": 0,
+      "missing_usage": 0,
+      "total_tokens": 0,
+      "classification": "original max_output_tokens=768, matching the frozen Aster maintenance client"
+    },
+    "codex": {
+      "requests": 0,
+      "missing_usage": 0,
+      "total_tokens": 0,
+      "classification": "original max_output_tokens=768, matching the frozen Aster maintenance client"
+    }
+  },
+  "smoke_usage_excluded_from_formal_totals": {
+    "aster": {
+      "requests": 6,
+      "missing_usage": 0,
+      "request_errors": 0,
+      "input_tokens": 41594,
+      "output_tokens": 588,
+      "cached_tokens": 19968,
+      "total_tokens": 42182,
+      "seconds": 176.986
+    },
+    "pi": {
+      "requests": 4,
+      "missing_usage": 0,
+      "request_errors": 0,
+      "input_tokens": 23141,
+      "output_tokens": 427,
+      "cached_tokens": 10240,
+      "total_tokens": 23568,
+      "seconds": 61.249
+    },
+    "codex": {
+      "requests": 2,
+      "missing_usage": 0,
+      "request_errors": 0,
+      "input_tokens": 22464,
+      "output_tokens": 312,
+      "cached_tokens": 7680,
+      "total_tokens": 22776,
+      "seconds": 22.314
+    }
+  },
+  "formal_and_smoke_requests": 2000,
+  "formal_and_smoke_reported_tokens": 41744747,
+  "formal_and_smoke_missing_usage": 36,
+  "formal_first_launch_utc": "2026-10-12T14:47:40.978023+00:00",
+  "runner_completion_observed_utc": "2026-10-12T17:10:42.424924+00:00",
+  "formal_wall_minutes_upper_bound": 143.02,
+  "wall_time_note": "Includes formal container setup, solving and scoring; excludes preflight and integration smokes. Completion is the controller exit observation, so this is an upper bound.",
+  "post_run_analysis": true
+}

@@ -1,0 +1,77 @@
+diff --git a/formal_blockmatrix_test.py b/formal_blockmatrix_test.py
+new file mode 100644
+index 0000000..343ed4b
+--- /dev/null
++++ b/formal_blockmatrix_test.py
+@@ -0,0 +1,21 @@
++import unittest
++from sympy import BlockMatrix, MatrixSymbol, ZeroMatrix, block_collapse
++
++class BlockMatrixZeroMultiplicationTest(unittest.TestCase):
++    def test_repeated_multiplication(self):
++        a = MatrixSymbol('a', 2, 2)
++        z = ZeroMatrix(2, 2)
++        b = BlockMatrix([[a, z], [z, z]])
++        result = b._blockmul(b)
++        self.assertEqual(result.blocks[0, 1], z)
++        self.assertEqual(block_collapse(b * b * b), BlockMatrix([[a**3, z], [z, z]]))
++
++    def test_non_square_block_dimensions(self):
++        a = MatrixSymbol('a', 2, 2)
++        b = BlockMatrix([[a, ZeroMatrix(2, 3)], [ZeroMatrix(3, 2), ZeroMatrix(3, 3)]])
++        result = b._blockmul(b)
++        self.assertEqual(result.blocks[0, 1], ZeroMatrix(2, 3))
++        self.assertEqual(result.blocks[1, 0], ZeroMatrix(3, 2))
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/sympy/matrices/expressions/blockmatrix.py b/sympy/matrices/expressions/blockmatrix.py
+index 95302a0..40716bb 100644
+--- a/sympy/matrices/expressions/blockmatrix.py
++++ b/sympy/matrices/expressions/blockmatrix.py
+@@ -164,7 +164,14 @@ def structurally_equal(self, other):
+     def _blockmul(self, other):
+         if (isinstance(other, BlockMatrix) and
+                 self.colblocksizes == other.rowblocksizes):
+-            return BlockMatrix(self.blocks*other.blocks)
++            blocks = self.blocks*other.blocks
++            # Matrix multiplication simplifies zero matrix products to scalar
++            # zero, but block entries must retain their matrix dimensions.
++            blocks = Matrix(self.blockshape[0], other.blockshape[1],
++                lambda i, j: ZeroMatrix(self.rowblocksizes[i],
++                                         other.colblocksizes[j])
++                if blocks[i, j].is_zero else blocks[i, j])
++            return BlockMatrix(blocks)
+ 
+         return self * other
+ 
+diff --git a/sympy/matrices/expressions/tests/test_blockmatrix.py b/sympy/matrices/expressions/tests/test_blockmatrix.py
+index 1e1033a..d92640b 100644
+--- a/sympy/matrices/expressions/tests/test_blockmatrix.py
++++ b/sympy/matrices/expressions/tests/test_blockmatrix.py
+@@ -2,7 +2,7 @@
+     block_collapse, bc_matmul, bc_block_plus_ident, BlockDiagMatrix,
+     BlockMatrix, bc_dist, bc_matadd, bc_transpose, bc_inverse,
+     blockcut, reblock_2x2, deblock)
+-from sympy.matrices.expressions import (MatrixSymbol, Identity,
++from sympy.matrices.expressions import (MatrixSymbol, Identity, ZeroMatrix,
+         Inverse, trace, Transpose, det)
+ from sympy.matrices import (
+     Matrix, ImmutableMatrix, ImmutableSparseMatrix)
+@@ -97,6 +97,16 @@ def test_BlockMatrix():
+     Z = MatrixSymbol('Z', *A.shape)
+     assert block_collapse(Ab + Z) == A + Z
+ 
++def test_blockmul_zero_blocks():
++    a = MatrixSymbol('a', 2, 2)
++    z = ZeroMatrix(2, 2)
++    b = BlockMatrix([[a, z], [z, z]])
++
++    result = b._blockmul(b)
++    assert result.blocks[0, 1] == ZeroMatrix(2, 2)
++    assert block_collapse(b*b*b) == BlockMatrix([[a**3, z], [z, z]])
++
++
+ def test_block_collapse_explicit_matrices():
+     A = Matrix([[1, 2], [3, 4]])
+     assert block_collapse(BlockMatrix([[A]])) == A

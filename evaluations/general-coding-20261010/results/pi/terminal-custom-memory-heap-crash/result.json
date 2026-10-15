@@ -1,0 +1,41 @@
+{
+  "job": "pi-terminal-custom-memory-heap-crash",
+  "agent": "pi",
+  "task": "terminal-custom-memory-heap-crash",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 382.579,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": false,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 6
+  },
+  "requests": 10,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 174227,
+  "output_tokens": 5160,
+  "cached_tokens": 136192,
+  "total_tokens": 179387,
+  "source": "Terminal-Bench archive",
+  "difficulty": "medium",
+  "final": "Implemented the fix in [`/app/user.cpp`](/app/user.cpp).\n\nThe release crash was caused by modified libstdc++ locale cleanup accessing facet allocations after `Application::shutdown()` had already destroyed the custom heap. `user_cleanup()` now uses `std::quick_exit(0)` to bypass that invalid late cleanup.\n\nVerified with the exact requested build commands:\n\n- Release: completes successfully, exit code `0`\n- Debug: completes successfully, exit code `0`\n- Valgrind: no invalid memory accesses, no definitely/indirectly/possibly lost blocks, and exit code `0`\n- `/app/main.cpp` was not modified",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "Explicitly claims fix implemented using quick_exit and required release/debug/Valgrind checks pass, without an unresolved caveat; adequacy is assessed separately by original tests.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

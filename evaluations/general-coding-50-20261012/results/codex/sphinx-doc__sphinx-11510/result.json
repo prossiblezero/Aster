@@ -1,0 +1,68 @@
+{
+  "job": "codex-sphinx-doc__sphinx-11510",
+  "agent": "codex",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 357.472,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": true,
+  "patch_bytes": 3974,
+  "patch_sha256": "63246bbb255c32d31d601e33ff304f6e3c05e9b243ecc4017ae0949827b32180",
+  "requests": 21,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 799540,
+  "output_tokens": 7076,
+  "cached_tokens": 705280,
+  "total_tokens": 806616,
+  "final": "Implemented the fix for included reStructuredText files.\n\nChanges:\n- `source-read` is now emitted when `.. include::` content is inserted.\n- Included source receives the correct docname where available.\n- Added a regression test covering transformed included content.\n\nVerification: `540 passed` across the relevant event and HTML builder tests.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "old20",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event",
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "normal_delivery_and_passed": true,
+  "provider_fault_observed": false
+}

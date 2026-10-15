@@ -1,0 +1,76 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 628.979,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 8353,
+  "patch_sha256": "b60954995c626dae36a96d387fad4c2979eebc30d5f4eb473f2cacb0295617d4",
+  "requests": 36,
+  "missing_usage": 1,
+  "request_errors": 1,
+  "input_tokens": 1224964,
+  "output_tokens": 12329,
+  "cached_tokens": 320512,
+  "total_tokens": 1237293,
+  "final": "Implemented the fix for `source-read` processing of included files.\n\nChanges:\n- Updated [`sphinx/directives/other.py`](/testbed/sphinx/directives/other.py:367) so included source is read, passed through `source-read`, and then parsed or inserted.\n- Preserved support for regular, literal, code, parser, clipping, dependency tracking, and circular-include handling.\n- Added regression coverage in [`tests/test_build.py`](/testbed/tests/test_build.py:57) covering replacement in both the parent document and an included file.\n\nVerification:\n- `python -m pytest tests/test_build.py`\n- Result: **11 passed**\n- Compilation and line-length checks passed.\n- Ruff could not run because the installed version rejects the repository’s existing `show-source` configuration; Flake8 is not installed.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 34,
+    "step": 54,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "7a37d329c2993d61e2bd94683a9de967a40b2ad01a7142d068acdfb1222bafb0",
+      "evidence_id": "d48faf82dac2b54839aef1f26f96ef16651f50e9fcdb4f79478498dc431a07bf",
+      "command": "python -m pytest tests/test_build.py"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

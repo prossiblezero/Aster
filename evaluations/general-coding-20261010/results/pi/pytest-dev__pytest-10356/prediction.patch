@@ -1,0 +1,76 @@
+diff --git a/changelog/10000.bugfix.rst b/changelog/10000.bugfix.rst
+new file mode 100644
+index 0000000..89635fa
+--- /dev/null
++++ b/changelog/10000.bugfix.rst
+@@ -0,0 +1 @@
++Marks declared on multiple base classes are now correctly applied to tests in derived classes.
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..087a7a7 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,7 +357,16 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type):
++        mark_list = []
++        for cls in reversed(obj.__mro__):
++            marks = cls.__dict__.get("pytestmark", [])
++            if isinstance(marks, list):
++                mark_list.extend(marks)
++            else:
++                mark_list.append(marks)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+@@ -388,7 +397,11 @@ def store_mark(obj, mark: Mark) -> None:
+     assert isinstance(mark, Mark), mark
+     # Always reassign name to avoid updating pytestmark in a reference that
+     # was only borrowed.
+-    obj.pytestmark = [*get_unpacked_marks(obj), mark]
++    if isinstance(obj, type):
++        mark_list = obj.__dict__.get("pytestmark", [])
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
++    obj.pytestmark = [*normalize_mark_list(mark_list), mark]
+ 
+ 
+ # Typing for builtin pytest marks. This is cheating; it gives builtin marks
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..f4bbd67 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,29 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_baseclasses_merged(
++        self, pytester: Pytester
++    ) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.foo
++            class Foo:
++                pass
++
++            @pytest.mark.bar
++            class Bar:
++                pass
++
++            class TestDings(Foo, Bar):
++                def test_dings(self):
++                    pass
++        """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_dings=("foo", "bar"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

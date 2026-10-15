@@ -1,0 +1,37 @@
+diff --git a/lib/matplotlib/contour.py b/lib/matplotlib/contour.py
+index 3f84250..656e2d1 100644
+--- a/lib/matplotlib/contour.py
++++ b/lib/matplotlib/contour.py
+@@ -932,6 +932,10 @@ class ContourSet(ContourLabeler, mcoll.Collection):
+                 ", ".join(map(repr, kwargs))
+             )
+ 
++    def set_paths(self, paths):
++        self._paths = paths
++        self.stale = True
++
+     allsegs = _api.deprecated("3.8", pending=True)(property(lambda self: [
+         p.vertices for c in self.collections for p in c.get_paths()]))
+     allkinds = _api.deprecated("3.8", pending=True)(property(lambda self: [
+diff --git a/lib/matplotlib/tests/test_contour.py b/lib/matplotlib/tests/test_contour.py
+index b6ddb28..bd32451 100644
+--- a/lib/matplotlib/tests/test_contour.py
++++ b/lib/matplotlib/tests/test_contour.py
+@@ -787,6 +787,17 @@ def test_contour_clip_path():
+     assert cs.get_clip_path() is not None
+ 
+ 
++def test_contour_set_paths():
++    cs = plt.contour(np.arange(16).reshape((4, 4)))
++    paths = cs.get_paths()[::-1]
++    cs.stale = False
++
++    cs.set_paths(paths)
++
++    assert cs.get_paths() is paths
++    assert cs.stale
++
++
+ def test_bool_autolevel():
+     x, y = np.random.rand(2, 9)
+     z = (np.arange(9) % 2).reshape((3, 3)).astype(bool)

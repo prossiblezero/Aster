@@ -1,0 +1,90 @@
+diff --git a/sphinx/parsers.py b/sphinx/parsers.py
+index 1269884..ba66032 100644
+--- a/sphinx/parsers.py
++++ b/sphinx/parsers.py
+@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
+ 
+ import docutils.parsers
+ import docutils.parsers.rst
++import docutils.statemachine
+ from docutils import nodes
+ from docutils.parsers.rst import states
+ from docutils.statemachine import StringList
+@@ -46,6 +47,26 @@ class Parser(docutils.parsers.Parser):
+         self.env = app.env
+ 
+ 
++class SphinxRSTStateMachine(states.RSTStateMachine):
++    """A reST state machine that emits ``source-read`` for included files."""
++
++    def insert_input(self, input_lines: StringList, source: str) -> None:
++        env = getattr(self.document.settings, 'env', None)
++        if env:
++            arg = ['\n'.join(input_lines)]
++            env.events.emit('source-read', source, arg)
++            input_lines = StringList(
++                docutils.statemachine.string2lines(
++                    arg[0],
++                    tab_width=self.document.settings.tab_width,
++                    convert_whitespace=True,
++                ),
++                source,
++            )
++
++        super().insert_input(input_lines, source)
++
++
+ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     """A reST parser for Sphinx."""
+ 
+@@ -62,7 +83,7 @@ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     def parse(self, inputstring: str | StringList, document: nodes.document) -> None:
+         """Parse text and generate a document tree."""
+         self.setup_parse(inputstring, document)  # type: ignore[arg-type]
+-        self.statemachine = states.RSTStateMachine(
++        self.statemachine = SphinxRSTStateMachine(
+             state_classes=self.state_classes,
+             initial_state=self.initial_state,
+             debug=document.reporter.debug_flag)
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 86163c6..8d9f7a6 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -9,7 +9,7 @@ from sphinx.util.docutils import new_document
+ 
+ 
+ @pytest.mark.sphinx(testroot='basic')
+-@patch('docutils.parsers.rst.states.RSTStateMachine')
++@patch('sphinx.parsers.SphinxRSTStateMachine')
+ def test_RSTParser_prolog_epilog(RSTStateMachine, app):
+     document = new_document('dummy.rst')
+     document.settings = Mock(tab_width=8, language_code='')
+@@ -55,3 +55,28 @@ def test_RSTParser_prolog_epilog(RSTStateMachine, app):
+     (content, _), _ = RSTStateMachine().run.call_args
+     assert list(content.xitems()) == [('dummy.rst', 0, '        hello Sphinx world'),
+                                       ('dummy.rst', 1, '  Sphinx is a document generator')]
++
++
++def test_source_read_event_for_include(tmp_path, make_app):
++    (tmp_path / 'conf.py').write_text('', encoding='utf8')
++    (tmp_path / 'index.rst').write_text(
++        'Title\n=====\n\n.. include:: included.rst\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++    (tmp_path / 'included.rst').write_text(
++        'Included\n========\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++
++    app = make_app('html', srcdir=tmp_path)
++    included_sources = []
++
++    def replace(app, docname, source):
++        included_sources.append((docname, source[0]))
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED-' + docname)
++
++    app.connect('source-read', replace)
++    app.build()
++
++    assert False, repr(included_sources)
++    assert 'REPLACE_ME' not in (app.outdir / 'index.html').read_text(encoding='utf8')

@@ -1,0 +1,55 @@
+diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+index d7605b0..8538375 100644
+--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+@@ -246,12 +246,18 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+         world_arrays = tuple(map(np.asanyarray, world_arrays))
+         world_arrays_new = []
+         iworld_curr = -1
++        dropped_world = self.dropped_world_dimensions.get("value", ())
++        idropped_world = 0
+         for iworld in range(self._wcs.world_n_dim):
+             if iworld in self._world_keep:
+                 iworld_curr += 1
+                 world_arrays_new.append(world_arrays[iworld_curr])
+             else:
+-                world_arrays_new.append(1.)
++                # A dropped world coordinate can be coupled to a kept pixel
++                # coordinate.  Use the value at the slice reference point so
++                # that the full WCS inverse respects fixed pixel dimensions.
++                world_arrays_new.append(dropped_world[idropped_world])
++                idropped_world += 1
+ 
+         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
+         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))
+diff --git a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+index a354114..74e0745 100644
+--- a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+@@ -218,6 +218,26 @@ def test_spectral_slice():
+     assert EXPECTED_SPECTRAL_SLICE_REPR.strip() in repr(wcs)
+ 
+ 
++def test_world_to_pixel_with_coupled_dropped_world_axis():
++    wcs = WCS(header={
++        'WCSAXES': 3,
++        'CRPIX1': 50.5,
++        'CRPIX2': 13.,
++        'CRPIX3': 1.,
++        'PC1_1': 0., 'PC1_2': -1., 'PC1_3': 0.,
++        'PC2_1': 1., 'PC2_2': 0., 'PC2_3': -1.,
++        'CDELT1': 5., 'CDELT2': 5., 'CDELT3': .055,
++        'CUNIT1': 'arcsec', 'CUNIT2': 'arcsec', 'CUNIT3': 'Angstrom',
++        'CTYPE1': 'HPLN-TAN', 'CTYPE2': 'HPLT-TAN', 'CTYPE3': 'WAVE',
++        'CRVAL1': 0., 'CRVAL2': 0., 'CRVAL3': 1.05,
++    })
++    sliced = SlicedLowLevelWCS(wcs, 0)
++
++    expected = wcs.world_to_pixel_values(0., 0., 1.05e-10)[:2]
++
++    assert_allclose(sliced.world_to_pixel_values(0., 0.), expected)
++
++
+ EXPECTED_SPECTRAL_RANGE_REPR = """
+ SlicedLowLevelWCS Transformation
+ 

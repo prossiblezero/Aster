@@ -1,0 +1,80 @@
+diff --git a/xarray/coding/cftimeindex.py b/xarray/coding/cftimeindex.py
+index 4005d4f..213e48c 100644
+--- a/xarray/coding/cftimeindex.py
++++ b/xarray/coding/cftimeindex.py
+@@ -252,6 +252,7 @@ class CFTimeIndex(pd.Index):
+         result = object.__new__(cls)
+         result._data = np.array(data, dtype="O")
+         result.name = name
++        result._cache = {}
+         return result
+ 
+     def _partial_date_slice(self, resolution, parsed):
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index ac0a923..ae02c21 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -3547,7 +3547,7 @@ class Dataset(Mapping, ImplementsDatasetReduce, DataWithCoords):
+ 
+     def merge(
+         self,
+-        other: "CoercibleMapping",
++        other: Union["DataArray", "CoercibleMapping"],
+         inplace: bool = None,
+         overwrite_vars: Union[Hashable, Iterable[Hashable]] = frozenset(),
+         compat: str = "no_conflicts",
+@@ -3563,8 +3563,8 @@ class Dataset(Mapping, ImplementsDatasetReduce, DataWithCoords):
+ 
+         Parameters
+         ----------
+-        other : Dataset or castable to Dataset
+-            Dataset or variables to merge with this dataset.
++        other : Dataset, DataArray, or castable to Dataset
++            Dataset, DataArray, or variables to merge with this dataset.
+         overwrite_vars : Hashable or iterable of Hashable, optional
+             If provided, update variables of these name(s) without checking for
+             conflicts in this dataset.
+diff --git a/xarray/core/merge.py b/xarray/core/merge.py
+index 10c7804..51acf7d 100644
+--- a/xarray/core/merge.py
++++ b/xarray/core/merge.py
+@@ -797,7 +797,7 @@ def merge(
+ 
+ def dataset_merge_method(
+     dataset: "Dataset",
+-    other: "CoercibleMapping",
++    other: Union["DataArray", "CoercibleMapping"],
+     overwrite_vars: Union[Hashable, Iterable[Hashable]],
+     compat: str,
+     join: str,
+@@ -808,6 +808,10 @@ def dataset_merge_method(
+     # we are locked into supporting overwrite_vars for the Dataset.merge
+     # method due for backwards compatibility
+     # TODO: consider deprecating it?
++    from .dataarray import DataArray
++
++    if isinstance(other, DataArray):
++        other = other.to_dataset()
+ 
+     if isinstance(overwrite_vars, Iterable) and not isinstance(overwrite_vars, str):
+         overwrite_vars = set(overwrite_vars)
+diff --git a/xarray/tests/test_merge.py b/xarray/tests/test_merge.py
+index c1e6c7a..c9b82d4 100644
+--- a/xarray/tests/test_merge.py
++++ b/xarray/tests/test_merge.py
+@@ -134,6 +134,15 @@ class TestMergeFunction:
+ 
+ 
+ class TestMergeMethod:
++    def test_merge_dataarray(self):
++        ds = xr.Dataset({"a": 0})
++        da = xr.DataArray([1, 2], dims="x", coords={"x": [10, 20]}, name="b")
++
++        expected = xr.merge([ds, da])
++        actual = ds.merge(da)
++
++        assert actual.identical(expected)
++
+     def test_merge(self):
+         data = create_test_data()
+         ds1 = data[["var1"]]

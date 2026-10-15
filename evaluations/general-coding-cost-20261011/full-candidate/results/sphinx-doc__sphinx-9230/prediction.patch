@@ -1,0 +1,64 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367e..ce9bfaf 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -18,6 +18,23 @@ from sphinx import addnodes
+ from sphinx.environment import BuildEnvironment
+ from sphinx.util.typing import TextlikeNode
+ 
++
++def _split_type_and_argument(fieldarg: str) -> Tuple[str, str]:
++    """Split a compact typed field argument without breaking nested types."""
++    opening = {'(': ')', '[': ']', '{': '}'}
++    closing = set(opening.values())
++    delimiters = []
++    for index, char in enumerate(fieldarg):
++        if char in opening:
++            delimiters.append(opening[char])
++        elif char in closing:
++            if delimiters and char == delimiters[-1]:
++                delimiters.pop()
++        elif char.isspace() and not delimiters:
++            return fieldarg[:index], fieldarg[index:].lstrip()
++    return '', ''
++
++
+ if TYPE_CHECKING:
+     from sphinx.directive import ObjectDescription
+ 
+@@ -297,11 +314,8 @@ class DocFieldTransformer:
+ 
+             # also support syntax like ``:param type name:``
+             if typedesc.is_typed:
+-                try:
+-                    argtype, argname = fieldarg.split(None, 1)
+-                except ValueError:
+-                    pass
+-                else:
++                argtype, argname = _split_type_and_argument(fieldarg)
++                if argname:
+                     types.setdefault(typename, {})[argname] = \
+                         [nodes.Text(argtype)]
+                     fieldarg = argname
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 569390c..31b4df1 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -914,6 +914,17 @@ def test_canonical_duplicated(app, warning):
+     assert warning.getvalue() != ""
+ 
+ 
++def test_compact_typed_field_with_nested_type(app):
++    text = (".. py:module:: example\n"
++            ".. py:class:: Class\n"
++            "\n"
++            "   :param dict(str,str) opc_meta: (optional)\n")
++    doctree = restructuredtext.parse(app, text)
++
++    field = doctree[3][1][0][0]
++    assert field.astext() == "Parameters\n\nopc_meta (dict(str,str)) -- (optional)"
++
++
+ def test_info_field_list(app):
+     text = (".. py:module:: example\n"
+             ".. py:class:: Class\n"

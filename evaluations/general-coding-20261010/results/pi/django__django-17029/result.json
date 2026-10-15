@@ -1,0 +1,104 @@
+{
+  "job": "pi-django__django-17029",
+  "agent": "pi",
+  "task": "django__django-17029",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 67.724,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1350,
+  "patch_sha256": "70ed2ceddde805c94990b4f46efae14665c4014513a1f5ef7b322906e82d90c1",
+  "requests": 11,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 209928,
+  "output_tokens": 2623,
+  "cached_tokens": 180224,
+  "total_tokens": 212551,
+  "source": "SWE-bench Verified",
+  "difficulty": "<15 min fix",
+  "final": "Implemented the fix in [django/apps/registry.py](/testbed/django/apps/registry.py:379) by clearing `get_swappable_settings_name` in `Apps.clear_cache()`.\n\nAdded a regression test in [tests/apps/tests.py](/testbed/tests/apps/tests.py:255) covering cache invalidation when changing available apps.\n\nVerification passed:\n\n- `python tests/runtests.py --settings=test_sqlite --parallel 1 apps` — 44 tests passed\n- `python tests/runtests.py --settings=test_sqlite --parallel 1 field_deconstruction` — 35 tests passed\n- `git diff --check` — clean",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States implemented fix and passing regression/public tests.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "test_clear_cache (apps.tests.AppsTests.test_clear_cache)"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "test_app_default_auto_field (apps.tests.AppConfigTests.test_app_default_auto_field)",
+          "test_default_auto_field_setting (apps.tests.AppConfigTests.test_default_auto_field_setting)",
+          "If single element in __path__, use it (in preference to __file__).",
+          "If the __path__ attr contains duplicate paths and there is no",
+          "If the __path__ attr is empty, use __file__ if set.",
+          "If the __path__ attr is empty and there is no __file__, raise.",
+          "If path set as class attr, overrides __path__ and __file__.",
+          "test_invalid_label (apps.tests.AppConfigTests.test_invalid_label)",
+          "If the __path__ attr is length>1, use __file__ if set.",
+          "If the __path__ attr is length>1 and there is no __file__, raise.",
+          "If there is no __path__ attr, use __file__.",
+          "If there is no __path__ or __file__, raise ImproperlyConfigured.",
+          "If subclass sets path as class attr, no module attributes needed.",
+          "test_repr (apps.tests.AppConfigTests.test_repr)",
+          "A Py3.3+ namespace package with multiple locations cannot be an app.",
+          "Multiple locations are ok only if app-config has explicit path.",
+          "A Py3.3+ namespace package can be an app if it has only one path.",
+          "Tests when INSTALLED_APPS contains an incorrect app config.",
+          "test_duplicate_labels (apps.tests.AppsTests.test_duplicate_labels)",
+          "test_duplicate_names (apps.tests.AppsTests.test_duplicate_names)",
+          "Makes a new model at runtime and ensures it goes into the right place.",
+          "Tests apps.get_app_config().",
+          "Tests apps.get_app_configs().",
+          "apps.get_containing_app_config() should raise an exception if",
+          "Tests apps.get_model().",
+          "App discovery should preserve stack traces. Regression test for #22920.",
+          "Tests apps.is_installed().",
+          "Tests apps.lazy_model_operation().",
+          "Test for behavior when two models clash in the app registry.",
+          "apps.get_models() raises an exception if apps.models_ready isn't True.",
+          "The models in the models.py file were loaded correctly.",
+          "Load an app that doesn't provide an AppConfig class.",
+          "Tests when INSTALLED_APPS contains an app that doesn't exist, either",
+          "test_no_such_app_config (apps.tests.AppsTests.test_no_such_app_config)",
+          "test_no_such_app_config_with_choices (apps.tests.AppsTests.test_no_such_app_config_with_choices)",
+          "Tests when INSTALLED_APPS contains a class that isn't an app config.",
+          "Load an app that provides an AppConfig class.",
+          "Tests the ready property of the main registry.",
+          "test_relabeling (apps.tests.AppsTests.test_relabeling)",
+          "Only one main registry can exist.",
+          "Load an app that provides two AppConfig classes.",
+          "Load an app that provides two AppConfig classes, one being the default.",
+          "Load an app that provides two default AppConfig classes."
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

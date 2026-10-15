@@ -1,0 +1,61 @@
+diff --git a/changelog/10314.bugfix.rst b/changelog/10314.bugfix.rst
+new file mode 100644
+index 0000000..da93a03
+--- /dev/null
++++ b/changelog/10314.bugfix.rst
+@@ -0,0 +1 @@
++Marks are now inherited from all base classes when collecting tests with multiple inheritance.
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..ddfeb2a 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,7 +357,16 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type):
++        mark_list = []
++        for cls in reversed(obj.__mro__):
++            marks = cls.__dict__.get("pytestmark", [])
++            if isinstance(marks, list):
++                mark_list.extend(marks)
++            else:
++                mark_list.append(marks)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..ee8c254 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,27 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_baseclasses_merged(self, pytester: Pytester) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.foo
++            class Foo:
++                pass
++
++            @pytest.mark.bar
++            class Bar:
++                pass
++
++            class Test(Foo, Bar):
++                def test_marked(self):
++                    pass
++        """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_marked=("bar", "foo"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

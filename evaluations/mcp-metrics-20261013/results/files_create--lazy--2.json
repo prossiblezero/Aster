@@ -1,0 +1,3328 @@
+{
+  "id": "files_create--lazy--2",
+  "case": "files_create",
+  "kind": "files",
+  "arm": "lazy",
+  "repeat": 2,
+  "freeze_sha256": "0fec8cced9f48e70c6d73b0f44cfa2c513dbcc8df7e3047530ddfd49a9c9042c",
+  "passed": true,
+  "checks": {
+    "answer": true,
+    "completed": true,
+    "required_mcp_tools": true,
+    "mcp_only": true,
+    "product": true,
+    "preserved:sales.csv": true
+  },
+  "seconds": 142.70485778700095,
+  "startup_seconds": 0,
+  "error": "",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "final": "{\"quantity\":10,\"revenue_cents\":2060}",
+  "usage": {
+    "usage_requests": 8,
+    "input_tokens": 66007,
+    "input_tokens_requests": 8,
+    "output_tokens": 567,
+    "output_tokens_requests": 8,
+    "cache_read_input_tokens": 44032,
+    "cache_read_input_tokens_requests": 8,
+    "reasoning_tokens": 124,
+    "reasoning_tokens_requests": 8,
+    "total_tokens": 66574,
+    "total_tokens_requests": 8
+  },
+  "state_usage_matches": true,
+  "requests_without_usage": 0,
+  "model_requests": 8,
+  "mcp_calls": 6,
+  "mcp_successes": 5,
+  "mcp_relevant_valid_calls": 4,
+  "mcp_invalid_arguments": 0,
+  "schema_unchanged": true,
+  "requests": [
+    {
+      "seconds": 12.50820206105709,
+      "schema_tokens_estimated": 2159,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 6609,
+        "input_tokens_requests": 1,
+        "output_tokens": 48,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 5632,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 19,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 6657,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa205edc819ba21cefcceb929c1f",
+        "request_ids": {},
+        "payload_sha256": "5342d64edb36e49ee6f7defa8a2651e5f0805b7fde9875c4587f4721a2e0f0b3",
+        "attempt": 1,
+        "elapsed_seconds": 12.497021,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1740,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 49
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 6609,
+          "output_tokens": 48,
+          "total_tokens": 6657,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 5632
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 19
+          },
+          "attribution": {
+            "items_count": 4,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 29
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 19
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1433,
+                "input_tokens": 1433,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4199,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 6609,
+          "input_tokens_requests": 1,
+          "output_tokens": 48,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 5632,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 19,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 6657,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa205edc819ba21cefcceb929c1f",
+          "request_ids": {},
+          "payload_sha256": "5342d64edb36e49ee6f7defa8a2651e5f0805b7fde9875c4587f4721a2e0f0b3",
+          "attempt": 1,
+          "elapsed_seconds": 12.497021,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1740,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 49
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 6609,
+            "output_tokens": 48,
+            "total_tokens": 6657,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 5632
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 19
+            },
+            "attribution": {
+              "items_count": 4,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 29
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 19
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1433,
+                  "input_tokens": 1433,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4199,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 6609,
+            "input_tokens_requests": 1,
+            "output_tokens": 48,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 5632,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 19,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 6657,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 34.78911800205242,
+      "schema_tokens_estimated": 2204,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 7144,
+        "input_tokens_requests": 1,
+        "output_tokens": 72,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 6656,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 21,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 7216,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa2d175c819b846589db23f7e47c",
+        "request_ids": {},
+        "payload_sha256": "99412675f7252bc88a6f02c7a11ba36abb9a5336474aa78cdf4268eb1e23aac3",
+        "attempt": 1,
+        "elapsed_seconds": 34.777798,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1764,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 140
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 7144,
+          "output_tokens": 72,
+          "total_tokens": 7216,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 6656
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 21
+          },
+          "attribution": {
+            "items_count": 7,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 29,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 77,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 51
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 126,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 21
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1483,
+                "input_tokens": 1483,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4941,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 7144,
+          "input_tokens_requests": 1,
+          "output_tokens": 72,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 6656,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 21,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 7216,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa2d175c819b846589db23f7e47c",
+          "request_ids": {},
+          "payload_sha256": "99412675f7252bc88a6f02c7a11ba36abb9a5336474aa78cdf4268eb1e23aac3",
+          "attempt": 1,
+          "elapsed_seconds": 34.777798,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1764,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 140
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 7144,
+            "output_tokens": 72,
+            "total_tokens": 7216,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 6656
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 21
+            },
+            "attribution": {
+              "items_count": 7,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 29,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 77,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 51
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 126,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 21
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1483,
+                  "input_tokens": 1483,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4941,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 7144,
+            "input_tokens_requests": 1,
+            "output_tokens": 72,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 6656,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 21,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 7216,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 16.862737905001268,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 7653,
+        "input_tokens_requests": 1,
+        "output_tokens": 131,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 14,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 7784,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa518630819bbb06b621c57e0200",
+        "request_ids": {},
+        "payload_sha256": "ef3b837433f2a2399c4fd1d4b7e178984fea45ee6b9245805c68b8ab9fbaef5d",
+        "attempt": 1,
+        "elapsed_seconds": 16.851285,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 4,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1700,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "message",
+            "content_count": 1,
+            "content": [
+              {
+                "type": "output_text",
+                "text_length": 71
+              }
+            ]
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 24
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 44
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 7653,
+          "output_tokens": 131,
+          "total_tokens": 7784,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 14
+          },
+          "attribution": {
+            "items_count": 12,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 14
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 43
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 43
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 31
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 7653,
+          "input_tokens_requests": 1,
+          "output_tokens": 131,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 0,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 14,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 7784,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa518630819bbb06b621c57e0200",
+          "request_ids": {},
+          "payload_sha256": "ef3b837433f2a2399c4fd1d4b7e178984fea45ee6b9245805c68b8ab9fbaef5d",
+          "attempt": 1,
+          "elapsed_seconds": 16.851285,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 4,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1700,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "message",
+              "content_count": 1,
+              "content": [
+                {
+                  "type": "output_text",
+                  "text_length": 71
+                }
+              ]
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 24
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 44
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 7653,
+            "output_tokens": 131,
+            "total_tokens": 7784,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 14
+            },
+            "attribution": {
+              "items_count": 12,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 14
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 43
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 43
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 31
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 7653,
+            "input_tokens_requests": 1,
+            "output_tokens": 131,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 0,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 14,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 7784,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 16.279033732018434,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 8224,
+        "input_tokens_requests": 1,
+        "output_tokens": 43,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 6656,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 8,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 8267,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa65b088819b9deb73d17ccf7be4",
+        "request_ids": {},
+        "payload_sha256": "adf1a952c4cba76aff44058d9b54b21286d33b3efac425fc9bfee15a192d172b",
+        "attempt": 1,
+        "elapsed_seconds": 16.26753,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1612,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 43
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 8224,
+          "output_tokens": 43,
+          "total_tokens": 8267,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 6656
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 8
+          },
+          "attribution": {
+            "items_count": 16,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 31,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 241,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 197,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 35
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 16,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 8
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1833,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4823,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 8224,
+          "input_tokens_requests": 1,
+          "output_tokens": 43,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 6656,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 8,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 8267,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa65b088819b9deb73d17ccf7be4",
+          "request_ids": {},
+          "payload_sha256": "adf1a952c4cba76aff44058d9b54b21286d33b3efac425fc9bfee15a192d172b",
+          "attempt": 1,
+          "elapsed_seconds": 16.26753,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1612,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 43
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 8224,
+            "output_tokens": 43,
+            "total_tokens": 8267,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 6656
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 8
+            },
+            "attribution": {
+              "items_count": 16,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 31,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 241,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 197,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 35
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 16,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 8
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1833,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4823,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 8224,
+            "input_tokens_requests": 1,
+            "output_tokens": 43,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 6656,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 8,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 8267,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 12.456901823054068,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 8582,
+        "input_tokens_requests": 1,
+        "output_tokens": 126,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 0,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 31,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 8708,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa72c7a0819b9bc142675b9474cf",
+        "request_ids": {},
+        "payload_sha256": "e45fc2ce5c6f0743d0e4ee0670634636d21cd580e5a79f9aebde6e2d6e6f5943",
+        "attempt": 1,
+        "elapsed_seconds": 12.445044,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 3,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1804,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "message",
+            "content_count": 1,
+            "content": [
+              {
+                "type": "output_text",
+                "text_length": 88
+              }
+            ]
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 72
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 8582,
+          "output_tokens": 126,
+          "total_tokens": 8708,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 31
+          },
+          "attribution": {
+            "items_count": 20,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 31,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 35,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 197,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 241,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 313,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 40
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 55
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 10,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 16,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 31
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 8582,
+          "input_tokens_requests": 1,
+          "output_tokens": 126,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 0,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 31,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 8708,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa72c7a0819b9bc142675b9474cf",
+          "request_ids": {},
+          "payload_sha256": "e45fc2ce5c6f0743d0e4ee0670634636d21cd580e5a79f9aebde6e2d6e6f5943",
+          "attempt": 1,
+          "elapsed_seconds": 12.445044,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 3,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1804,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "message",
+              "content_count": 1,
+              "content": [
+                {
+                  "type": "output_text",
+                  "text_length": 88
+                }
+              ]
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 72
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 8582,
+            "output_tokens": 126,
+            "total_tokens": 8708,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 0
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 31
+            },
+            "attribution": {
+              "items_count": 20,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 31,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 35,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 197,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 241,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 313,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 40
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 55
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 10,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 16,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 31
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 8582,
+            "input_tokens_requests": 1,
+            "output_tokens": 126,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 0,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 31,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 8708,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 14.363532823044807,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 8898,
+        "input_tokens_requests": 1,
+        "output_tokens": 69,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 7680,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 9,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 8967,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa800bbc819b8d4fca7a66f0ec7a",
+        "request_ids": {},
+        "payload_sha256": "c8bb234ef500690ba7e430ddb4bc7713ae57a386d9101de011733835a4e68ac4",
+        "attempt": 1,
+        "elapsed_seconds": 14.351829,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1636,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 136
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 8898,
+          "output_tokens": 69,
+          "total_tokens": 8967,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 7680
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 9
+          },
+          "attribution": {
+            "items_count": 23,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 29,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 51,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 31,
+                "input_tokens": 31,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 35,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 40,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 108,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 3,
+                "input_tokens": 241,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 313,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 188,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 197,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 456,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 60
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 55,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 126,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 107,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 10,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 33,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 16,
+                "input_tokens": 16,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 9
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1833,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4941,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 8898,
+          "input_tokens_requests": 1,
+          "output_tokens": 69,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 7680,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 9,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 8967,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa800bbc819b8d4fca7a66f0ec7a",
+          "request_ids": {},
+          "payload_sha256": "c8bb234ef500690ba7e430ddb4bc7713ae57a386d9101de011733835a4e68ac4",
+          "attempt": 1,
+          "elapsed_seconds": 14.351829,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1636,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 136
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 8898,
+            "output_tokens": 69,
+            "total_tokens": 8967,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 7680
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 9
+            },
+            "attribution": {
+              "items_count": 23,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 29,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 51,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 31,
+                  "input_tokens": 31,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 35,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 40,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 108,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 3,
+                  "input_tokens": 241,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 313,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 188,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 197,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 456,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 60
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 55,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 126,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 107,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 10,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 33,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 16,
+                  "input_tokens": 16,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 9
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1833,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4941,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 8898,
+            "input_tokens_requests": 1,
+            "output_tokens": 69,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 7680,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 9,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 8967,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 17.060544012114406,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 9268,
+        "input_tokens_requests": 1,
+        "output_tokens": 45,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 8704,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 8,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 9313,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaa8fd1d4819b97a75512dcb74944",
+        "request_ids": {},
+        "payload_sha256": "1c9ae0b9e9bd18e39aa1127ec6073ab50155183ec0d305585c374508b6fce8ab",
+        "attempt": 1,
+        "elapsed_seconds": 17.048645,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1612,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "function_call",
+            "arguments_length": 51
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 9268,
+          "output_tokens": 45,
+          "total_tokens": 9313,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 8704
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 8
+          },
+          "attribution": {
+            "items_count": 26,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 29,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 51,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 31,
+                "input_tokens": 31,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 35,
+                "input_tokens": 35,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 40,
+                "input_tokens": 40,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 60,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 108,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 456,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 313,
+                "input_tokens": 313,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 241,
+                "input_tokens": 241,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 103,
+                "input_tokens": 188,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 197,
+                "input_tokens": 197,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 251,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 37
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 55,
+                "input_tokens": 55,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 126,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 155,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 16,
+                "input_tokens": 16,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 33,
+                "input_tokens": 33,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 11,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 10,
+                "input_tokens": 10,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 8
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1833,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4941,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 9268,
+          "input_tokens_requests": 1,
+          "output_tokens": 45,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 8704,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 8,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 9313,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaa8fd1d4819b97a75512dcb74944",
+          "request_ids": {},
+          "payload_sha256": "1c9ae0b9e9bd18e39aa1127ec6073ab50155183ec0d305585c374508b6fce8ab",
+          "attempt": 1,
+          "elapsed_seconds": 17.048645,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1612,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "function_call",
+              "arguments_length": 51
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 9268,
+            "output_tokens": 45,
+            "total_tokens": 9313,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 8704
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 8
+            },
+            "attribution": {
+              "items_count": 26,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 29,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 51,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 31,
+                  "input_tokens": 31,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 35,
+                  "input_tokens": 35,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 40,
+                  "input_tokens": 40,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 60,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 108,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 456,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 313,
+                  "input_tokens": 313,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 241,
+                  "input_tokens": 241,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 103,
+                  "input_tokens": 188,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 197,
+                  "input_tokens": 197,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 251,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 37
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 55,
+                  "input_tokens": 55,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 126,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 155,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 16,
+                  "input_tokens": 16,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 33,
+                  "input_tokens": 33,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 11,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 10,
+                  "input_tokens": 10,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 8
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1833,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4941,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 9268,
+            "input_tokens_requests": 1,
+            "output_tokens": 45,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 8704,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 8,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 9313,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "seconds": 14.552404772024602,
+      "schema_tokens_estimated": 2828,
+      "visible_tools": [
+        "git_diff",
+        "list_files",
+        "mcp__filesystem__create_directory",
+        "mcp__filesystem__list_directory",
+        "mcp__filesystem__read_file",
+        "mcp__filesystem__write_file",
+        "mcp_list",
+        "patch_file",
+        "read_file",
+        "run_shell",
+        "run_tests",
+        "search",
+        "tool_load",
+        "write_file"
+      ],
+      "usage": {
+        "usage_requests": 1,
+        "input_tokens": 9629,
+        "input_tokens_requests": 1,
+        "output_tokens": 33,
+        "output_tokens_requests": 1,
+        "cache_read_input_tokens": 8704,
+        "cache_read_input_tokens_requests": 1,
+        "reasoning_tokens": 14,
+        "reasoning_tokens_requests": 1,
+        "total_tokens": 9662,
+        "total_tokens_requests": 1
+      },
+      "diagnostics": {
+        "requested_model": "gpt-5.6-luna",
+        "response_model": "gpt-5.6-luna",
+        "protocol": "responses",
+        "response_id": "resp_0c428fcc9307e0f0016acdaaa041b8819b8396072e9badf2a4",
+        "request_ids": {},
+        "payload_sha256": "7bad249397dfc9b8e5aeb23543a8bf5ec4f7ef357cda440052bdddb37b6d860a",
+        "attempt": 1,
+        "elapsed_seconds": 14.540182,
+        "classification": "success",
+        "terminal_status": "completed",
+        "output_count": 2,
+        "output_structure": [
+          {
+            "type": "reasoning",
+            "encrypted_content_length": 1700,
+            "content_count": 0,
+            "content": []
+          },
+          {
+            "type": "message",
+            "content_count": 1,
+            "content": [
+              {
+                "type": "output_text",
+                "text_length": 36
+              }
+            ]
+          }
+        ],
+        "output_text_length": 0,
+        "raw_usage": {
+          "input_tokens": 9629,
+          "output_tokens": 33,
+          "total_tokens": 9662,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 8704
+          },
+          "output_tokens_details": {
+            "reasoning_tokens": 14
+          },
+          "attribution": {
+            "items_count": 29,
+            "items": [
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 29,
+                "input_tokens": 29,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 51,
+                "input_tokens": 51,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 31,
+                "input_tokens": 31,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 35,
+                "input_tokens": 35,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 40,
+                "input_tokens": 40,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 60,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 37,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 108,
+                "input_tokens": 108,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 103,
+                "input_tokens": 188,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 314,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 313,
+                "input_tokens": 313,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 456,
+                "input_tokens": 456,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 197,
+                "input_tokens": 197,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 251,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 241,
+                "input_tokens": 241,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 43,
+                "input_tokens": 43,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 55,
+                "input_tokens": 55,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 126,
+                "input_tokens": 126,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 155,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 19
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 33,
+                "input_tokens": 33,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 16,
+                "input_tokens": 16,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 11,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 10,
+                "input_tokens": 10,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 10,
+                "output_tokens": 0
+              },
+              {
+                "cache_write_tokens": 0,
+                "cached_tokens": 0,
+                "input_tokens": 2,
+                "output_tokens": 14
+              }
+            ],
+            "request_fields_count": 2,
+            "request_fields": {
+              "tools": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 1833,
+                "input_tokens": 1833,
+                "output_tokens": 0
+              },
+              "instructions": {
+                "cache_write_tokens": 0,
+                "cached_tokens": 4941,
+                "input_tokens": 4941,
+                "output_tokens": 0
+              }
+            }
+          }
+        },
+        "usage": {
+          "usage_requests": 1,
+          "input_tokens": 9629,
+          "input_tokens_requests": 1,
+          "output_tokens": 33,
+          "output_tokens_requests": 1,
+          "cache_read_input_tokens": 8704,
+          "cache_read_input_tokens_requests": 1,
+          "reasoning_tokens": 14,
+          "reasoning_tokens_requests": 1,
+          "total_tokens": 9662,
+          "total_tokens_requests": 1
+        },
+        "usage_observed": true,
+        "flags": []
+      },
+      "attempts": [
+        {
+          "type": "diagnostic",
+          "requested_model": "gpt-5.6-luna",
+          "response_model": "gpt-5.6-luna",
+          "protocol": "responses",
+          "response_id": "resp_0c428fcc9307e0f0016acdaaa041b8819b8396072e9badf2a4",
+          "request_ids": {},
+          "payload_sha256": "7bad249397dfc9b8e5aeb23543a8bf5ec4f7ef357cda440052bdddb37b6d860a",
+          "attempt": 1,
+          "elapsed_seconds": 14.540182,
+          "classification": "success",
+          "terminal_status": "completed",
+          "output_count": 2,
+          "output_structure": [
+            {
+              "type": "reasoning",
+              "encrypted_content_length": 1700,
+              "content_count": 0,
+              "content": []
+            },
+            {
+              "type": "message",
+              "content_count": 1,
+              "content": [
+                {
+                  "type": "output_text",
+                  "text_length": 36
+                }
+              ]
+            }
+          ],
+          "output_text_length": 0,
+          "raw_usage": {
+            "input_tokens": 9629,
+            "output_tokens": 33,
+            "total_tokens": 9662,
+            "input_tokens_details": {
+              "cache_write_tokens": 0,
+              "cached_tokens": 8704
+            },
+            "output_tokens_details": {
+              "reasoning_tokens": 14
+            },
+            "attribution": {
+              "items_count": 29,
+              "items": [
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 29,
+                  "input_tokens": 29,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 51,
+                  "input_tokens": 51,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 31,
+                  "input_tokens": 31,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 35,
+                  "input_tokens": 35,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 40,
+                  "input_tokens": 40,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 60,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 37,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 108,
+                  "input_tokens": 108,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 103,
+                  "input_tokens": 188,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 314,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 313,
+                  "input_tokens": 313,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 456,
+                  "input_tokens": 456,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 197,
+                  "input_tokens": 197,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 251,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 241,
+                  "input_tokens": 241,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 43,
+                  "input_tokens": 43,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 55,
+                  "input_tokens": 55,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 126,
+                  "input_tokens": 126,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 155,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 19
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 33,
+                  "input_tokens": 33,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 16,
+                  "input_tokens": 16,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 11,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 10,
+                  "input_tokens": 10,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 0,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 10,
+                  "output_tokens": 0
+                },
+                {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 0,
+                  "input_tokens": 2,
+                  "output_tokens": 14
+                }
+              ],
+              "request_fields_count": 2,
+              "request_fields": {
+                "tools": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 1833,
+                  "input_tokens": 1833,
+                  "output_tokens": 0
+                },
+                "instructions": {
+                  "cache_write_tokens": 0,
+                  "cached_tokens": 4941,
+                  "input_tokens": 4941,
+                  "output_tokens": 0
+                }
+              }
+            }
+          },
+          "usage": {
+            "usage_requests": 1,
+            "input_tokens": 9629,
+            "input_tokens_requests": 1,
+            "output_tokens": 33,
+            "output_tokens_requests": 1,
+            "cache_read_input_tokens": 8704,
+            "cache_read_input_tokens_requests": 1,
+            "reasoning_tokens": 14,
+            "reasoning_tokens_requests": 1,
+            "total_tokens": 9662,
+            "total_tokens_requests": 1
+          },
+          "usage_observed": true,
+          "flags": []
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp_list",
+        "arguments": {
+          "server": "filesystem",
+          "limit": 50,
+          "refresh": true
+        },
+        "call_id": "call_65302771689d42dfb6151634710257ee",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.4266917279455811
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "tool_load",
+        "arguments": {
+          "names": [
+            "mcp__filesystem__list_directory",
+            "mcp__filesystem__read_file",
+            "mcp__filesystem__create_directory",
+            "mcp__filesystem__write_file"
+          ]
+        },
+        "call_id": "call_c368c4ef245446fcaac1f282b3e30ee8",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 5.309900734573603e-05
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__list_directory",
+        "arguments": {
+          "path": ".",
+          "limit": 100
+        },
+        "call_id": "call_9ZwmHJkrDCYnfcQlsH7doZ5a",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.4260852759471163
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__read_file",
+        "arguments": {
+          "path": "sales.csv",
+          "start": 1,
+          "limit": 10000
+        },
+        "call_id": "call_eY3V9CSm8it6BnErpmc2ucHl",
+        "idempotency_key": null
+      },
+      "status": "error",
+      "reason": "mcp_tool_error",
+      "seconds": 0.4280181979993358
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__read_file",
+        "arguments": {
+          "path": "sales.csv",
+          "start": 1,
+          "limit": 2000
+        },
+        "call_id": "call_c4c9ad40a0924c35b36050b14777221b",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.41045120905619115
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__create_directory",
+        "arguments": {
+          "path": "reports"
+        },
+        "call_id": "call_5cbf640abe57497fb52afa32fde3d146",
+        "idempotency_key": "create-reports-totals-task"
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.4457287769764662
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__write_file",
+        "arguments": {
+          "path": "reports/totals.json",
+          "content": "{\"quantity\":10,\"revenue_cents\":2060}"
+        },
+        "call_id": "call_afbb816764094d27a95e1e55462c6886",
+        "idempotency_key": "write-reports-totals-task"
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.42741261702030897
+    },
+    {
+      "call": {
+        "kind": "tool",
+        "name": "mcp__filesystem__read_file",
+        "arguments": {
+          "path": "reports/totals.json",
+          "start": 1,
+          "limit": 20
+        },
+        "call_id": "call_4f817f7edc4043a48821fdf6a12c48e9",
+        "idempotency_key": null
+      },
+      "status": "success",
+      "reason": "",
+      "seconds": 0.424242096953094
+    }
+  ],
+  "trace_sha256": "ab5c16e2702900c1dcade2ad5ab7e746169e724814518097cf082afedaff5c13"
+}

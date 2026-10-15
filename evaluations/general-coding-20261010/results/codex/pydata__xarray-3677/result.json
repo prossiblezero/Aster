@@ -1,0 +1,82 @@
+{
+  "job": "codex-pydata__xarray-3677",
+  "agent": "codex",
+  "task": "pydata__xarray-3677",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 72.231,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1220,
+  "patch_sha256": "98d29584b277a1d6ce181424e48dc4403e87aa953880c536397d82b6df2e2273",
+  "requests": 10,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 248404,
+  "output_tokens": 1693,
+  "cached_tokens": 221696,
+  "total_tokens": 250097,
+  "source": "SWE-bench Verified",
+  "difficulty": "15 min - 1 hour",
+  "final": "Implemented the fix.\n\n`Dataset.merge()` now converts named `DataArray` inputs via `to_dataset()`, matching top-level `xr.merge()` behavior. Added a regression test covering the reported example.\n\nVerification:\n\n- `python -m pytest xarray/tests/test_merge.py`\n- Result: **22 passed**\n- Exact example confirmed identical output.\n- Unnamed `DataArray` still raises the expected `ValueError`.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States Dataset.merge fix implemented, 22 regression tests pass, and named/unnamed DataArray behavior is checked.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_dataarray"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeInternals::test_broadcast_dimension_size",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_datasets",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dataarray_unnamed",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_simple",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_dims",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_alignment_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_wrong_input_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_single_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_multi_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_preserve_attrs",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_broadcast",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_broadcast_equals",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_compat",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_auto_align",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2.0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_no_conflicts"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

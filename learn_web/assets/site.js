@@ -6,6 +6,7 @@
   const lesson = body.dataset.lesson || '';
   const siteRoot = new URL(`${body.dataset.root || '.'}/`, window.location.href);
   const slugs = [
+    'project-story',
     '00-quickstart', '01-agent-loop', '02-model-protocols', '03-tool-system',
     '04-permissions-sandbox', '05-state-and-evidence', '06-context-budget',
     '07-context-archives', '08-hooks-and-completion', '09-checkpoint-resume',
@@ -51,7 +52,7 @@
   }
 
   function updateProgress() {
-    if (progress) progress.textContent = `${Math.min(16, Object.keys(done).length)} / 16 章已完成`;
+    if (progress) progress.textContent = `${Object.keys(done).length} / ${slugs.length} 篇已完成`;
   }
 
   if (toggle && validLessons.has(lesson)) {

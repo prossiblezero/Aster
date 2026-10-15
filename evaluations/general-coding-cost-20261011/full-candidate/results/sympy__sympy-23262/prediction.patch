@@ -1,0 +1,34 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263..f0ae8e9 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -961,7 +961,8 @@ def _recursive_to_string(doprint, arg):
+             left, right = "()"
+         else:
+             raise NotImplementedError("unhandled type: %s, %s" % (type(arg), arg))
+-        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + right
++        separator = ',' if isinstance(arg, tuple) and len(arg) == 1 else ''
++        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + separator + right
+     elif isinstance(arg, str):
+         return arg
+     else:
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 023c2fb..28d2f33 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -1182,6 +1182,15 @@ def test_lambdify_inspect():
+     assert 'x**2' in inspect.getsource(f)
+ 
+ 
++def test_lambdify_singleton_tuple():
++    f = lambdify([], (1,))
++    assert inspect.getsource(f) == 'def _lambdifygenerated():\n    return (1,)\n'
++    assert f() == (1,)
++
++    f = lambdify([], (1, 2))
++    assert f() == (1, 2)
++
++
+ def test_issue_14941():
+     x, y = Dummy(), Dummy()
+ 

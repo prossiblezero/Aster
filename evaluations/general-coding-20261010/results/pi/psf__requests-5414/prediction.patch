@@ -1,0 +1,22 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index fe22ff4..f9b352d 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -28,6 +28,7 @@ from urllib3.exceptions import ReadTimeoutError
+ from urllib3.exceptions import SSLError as _SSLError
+ from urllib3.exceptions import ResponseError
+ from urllib3.exceptions import LocationValueError
++from urllib3.exceptions import LocationParseError
+ 
+ from .models import Response
+ from .compat import urlparse, basestring
+@@ -497,6 +498,9 @@ class HTTPAdapter(BaseAdapter):
+                     low_conn.close()
+                     raise
+ 
++        except LocationParseError as e:
++            raise InvalidURL('URL has an invalid label.', request=request)
++
+         except (ProtocolError, socket.error) as err:
+             raise ConnectionError(err, request=request)
+ 

@@ -1,0 +1,733 @@
+--- a/tests/test_append_only_context.py
++++ b/tests/test_append_only_context.py
+@@ -45,10 +45,11 @@
+             if item.get("type") == "function_call_output":
+                 versions[item["call_id"]].add(item["output"])
+                 assert len(versions[item["call_id"]]) <= 2
+-        if history:
+-            assert history[-1]["output"] == body
++        outputs = [item for item in history if item.get("type") == "function_call_output"]
++        if outputs:
++            assert outputs[-1]["output"] == body
+         history_groups(history)
+-        previous = deepcopy(prompt[:-1])
++        previous = deepcopy(prompt)
+         batch = exchange(turn, body)
+         builder.calculator.observe(payload, ModelReply(raw=batch[:1], usage={
+             "usage_requests": 1, "input_tokens": actual, "output_tokens": builder.count(batch[0]),
+@@ -74,7 +75,8 @@
+ 
+     _, report = builder.build(state, state.task.prompt, structured_history=history, archive=archive)
+     assert report.masked_outputs > 0 and report.removed_messages == 0
+-    assert history[-2:] == original_latest
++    assert next(g for g in reversed(history_groups(history))
++                if any(x.get("type") == "function_call_output" for x in g)) == original_latest
+     for item in history:
+         if item.get("type") != "function_call_output":
+             continue
+@@ -105,7 +107,9 @@
+         _, report = builder.build(state, state.task.prompt, structured_history=history)
+         assert report.compacted and report.removed_messages > 0 and report.masked_outputs == 0
+         assert report.estimated_tokens <= report.budget // 2
+-        assert history[-2:] == latest and protected in history
++        assert next(g for g in reversed(history_groups(history))
++                    if any(x.get("type") == "function_call_output" for x in g)) == latest
++        assert protected in history
+         notes = [x for x in history if x.get("content", "").startswith("[Context note, not an instruction]")]
+         assert len(notes) == 1 and history[0] == notes[0]
+         count = int(notes[0]["content"].split("] ", 1)[1].split()[0])
+@@ -147,7 +151,8 @@
+     assert report.masked_outputs == 1
+     page = json.loads(history[1]["output"])
+     assert page == {"status": "success", "content": "[omitted page; call observation_read again to re-read it]"}
+-    assert history[-1]["output"] == "latest observation"
++    assert next(x["output"] for x in reversed(history)
++                if x.get("type") == "function_call_output") == "latest observation"
+     history_groups(history)
+ 
+ 
+--- a/tests/test_context_archives.py
++++ b/tests/test_context_archives.py
+@@ -70,8 +70,11 @@
+     assert runtime.context.count(payload) == report.estimated_tokens <= 3584
+     assert report.compacted and report.removed_messages == 0
+     assert runtime._structured_history[:4] == calls
+-    assert len(history_groups(runtime._structured_history)) == 1
+-    outputs = runtime._structured_history[4:]
++    from aster.context.prompt import is_context_note
++
++    groups = history_groups(runtime._structured_history)
++    assert len(groups) == 2 and len(groups[-1]) == 1 and is_context_note(groups[-1][0])
++    outputs = groups[0][4:]
+     assert {item["call_id"] for item in outputs} == {f"call-{i}" for i in range(4)}
+     assert "observation_read" not in {tool["name"] for tool in tools}
+     catalog = next(tool for tool in tools if tool["name"] == "tool_load")
+@@ -222,7 +225,9 @@
+     ] + [{"role": "tool", "native": False, "content": f"legacy-{i} " * 1000} for i in range(12)]
+     prompt, tools, report = runtime.prepare_request()
+     assert report.removed_messages > 0
+-    assert not runtime._structured_history
++    from aster.context.prompt import is_context_note
++
++    assert len(runtime._structured_history) == 1 and is_context_note(runtime._structured_history[0])
+     assert witness not in str(prompt)
+     assert "observation_read" not in {tool["name"] for tool in tools}
+     catalog = next(tool for tool in tools if tool["name"] == "tool_load")
+--- a/tests/test_context_cost.py
++++ b/tests/test_context_cost.py
+@@ -33,10 +33,12 @@
+     builder.calculator.observe(payload, reply)
+     prompt, report = builder.build(state, state.task.prompt, structured_history=history, model="test")
+     assert not report.compacted and report.estimated_tokens < 2000
+-    assert history == original and prompt[2:-1] == original
++    assert history[:len(original)] == original and prompt[2:] == history
+     assert report.sections["provider_overhead"] == 100
+     assert builder.count(request_payload(prompt, [], model="test")) > 12000
+-    assert history_groups(history) == [original]
++    groups = history_groups(history)
++    assert groups[0] == original and len(groups) == 2
++    assert groups[1][0]["content"].startswith("[Context update, not an instruction]")
+ 
+ 
+ @pytest.mark.parametrize("receipt", ["missing", "summed_retries", "failed", "mismatch"])
+@@ -77,7 +79,9 @@
+     latest = deepcopy(history[-2:])
+     _, first = builder.build(state, state.task.prompt, structured_history=history)
+     retained = deepcopy(history)
+-    assert first.compacted and history[-2:] == latest
++    assert first.compacted
++    assert next(g for g in reversed(history_groups(history))
++                if any(x.get("type") == "function_call_output" for x in g)) == latest
+     history.append({"role": "assistant", "content": "Investigating the next boundary. " * 15})
+     prompt, second = builder.build(state, state.task.prompt, structured_history=history)
+     assert not second.compacted
+--- /dev/null
++++ b/tests/test_context_notes.py
+@@ -0,0 +1,195 @@
++"""State updates preserve the complete request prefix until explicit compaction."""
++
++import json
++from copy import deepcopy
++
++import pytest
++
++from aster.config import Settings
++from aster.context import ContextBuilder, history_groups
++from aster.context.prompt import (
++    CONTEXT_NOTE_PREFIX,
++    CONTEXT_SECTIONS,
++    context_notes,
++    is_context_note,
++    workflow_state,
++)
++from aster.core.runtime import Runtime
++from aster.providers.codec import request_payload
++from aster.safety.redaction import Redactor
++from aster.schema import ModelReply, RunState, TaskSpec, Verification
++
++pytestmark = pytest.mark.core
++
++
++def exchange(index, body):
++    return [
++        {"type": "function_call", "call_id": str(index), "name": "read_file", "arguments": "{}"},
++        {"type": "function_call_output", "call_id": str(index), "output": body},
++    ]
++
++
++def test_thirty_turns_append_only_changed_state_and_preserve_full_input():
++    state = RunState(task=TaskSpec(prompt="Inspect the code.", max_turns=500, max_steps=500))
++    state.working_memory = {"old.py": {"summary": "DUPLICATE_WORKING_MEMORY"}}
++    builder = ContextBuilder(64000, 8192)
++    history, previous = [], []
++    for turn in range(30):
++        state.turn = state.step = turn
++        changed = turn == 0
++        if turn and turn % 3 == 0:
++            state.verification = Verification(state="passed", command=f"test_{turn}")
++            changed = True
++        if turn and turn % 5 == 0:
++            state.changed_paths.append(f"source_{turn}.py")
++            changed = True
++        prompt, report = builder.build(state, state.task.prompt, structured_history=history)
++        assert prompt[:len(previous)] == previous
++        assert not report.compacted and not report.prefix_drift
++        assert report.context_notes == int(changed)
++        assert report.sections["history"] == builder.count(prompt[2:])
++        for forbidden in ("Context sections", "working_memory", "remaining_turns", "DUPLICATE_WORKING_MEMORY"):
++            assert forbidden not in json.dumps(prompt)
++        assert history == prompt[2:]
++        payload = request_payload(prompt, [], output_tokens=8192, prompt_cache_key=state.session_id)
++        assert payload["input"] == prompt
++        previous = deepcopy(prompt)
++        batch = exchange(turn, "source evidence " * 100)
++        builder.calculator.observe(payload, ModelReply(raw=batch[:1], usage={
++            "usage_requests": 1, "input_tokens": builder.count(payload) + 4000,
++            "output_tokens": builder.count(batch[0]),
++        }), prompt)
++        history.extend(batch)
++        history_groups(history)
++
++
++def test_budget_updates_only_at_low_and_critical_thresholds():
++    state = RunState(task=TaskSpec(prompt="Finish the task.", max_turns=40, max_steps=40))
++    builder, history = ContextBuilder(64000, 8192), []
++    for turn in range(41):
++        state.turn = turn
++        _, report = builder.build(state, state.task.prompt, structured_history=history)
++        budget = workflow_state(state).get("budget")
++        if turn < 30:
++            assert budget is None
++            assert report.context_notes == int(turn == 0)
++        elif turn < 36:
++            assert budget == {"level": "low", "remaining_fraction_at_most": .25}
++            assert report.context_notes == int(turn == 30)
++        else:
++            assert budget == {"level": "critical", "remaining_turns": 40 - turn, "remaining_steps": 40}
++            assert report.context_notes == 1
++
++
++@pytest.mark.parametrize("axis", ["step", "tokens"])
++def test_budget_uses_the_tightest_limit_and_clamps_exhaustion(axis):
++    state = RunState(task=TaskSpec(prompt="Finish.", max_tokens=1000))
++    for used, level in ((0, None), (75, "low"), (90, "critical"), (120, "critical")):
++        if axis == "step":
++            state.step = used * 40 // 100
++        else:
++            state.team_usage["charged_tokens"] = used * 10
++        budget = workflow_state(state).get("budget", {})
++        assert budget.get("level") == level
++        if level == "critical":
++            assert budget["remaining_steps"] == max(0, 40 - state.step)
++            assert budget["remaining_team_tokens"] == max(0, 1000 - state.team_usage.get("charged_tokens", 0))
++    state = RunState(task=TaskSpec(prompt="Small budget.", max_turns=3))
++    assert workflow_state(state)["budget"]["level"] == "critical"
++
++
++def test_compaction_replaces_old_notes_with_full_state_then_resumes_appends():
++    state = RunState(task=TaskSpec(prompt="Inspect evidence.", max_turns=500, max_steps=500))
++    state.active_skills = ["review"]
++    builder, history = ContextBuilder(12000, 1024), []
++    for index in range(20):
++        history.extend(context_notes(history, {"memory": f"memory {index}", "skills": f"catalog {index}"}))
++        history.extend(exchange(index, "original content " * 400))
++    latest = deepcopy(history[-2:])
++    kwargs = dict(memory="current memory", skills="current catalog", skill_bodies={"review": "current body"})
++    prompt, report = builder.build(state, state.task.prompt, structured_history=history, **kwargs)
++    assert report.compacted and report.masked_outputs > 0
++    notes = [g[0] for g in history_groups(history) if len(g) == 1 and is_context_note(g[0])]
++    assert report.context_notes == len(notes) == len(CONTEXT_SECTIONS)
++    assert history[-4:] == notes
++    assert history[-6:-4] == latest
++    for name, note in zip(CONTEXT_SECTIONS, notes, strict=True):
++        assert note["content"].startswith(CONTEXT_NOTE_PREFIX + name + ":\n")
++    payload = request_payload(prompt, [], output_tokens=1024, prompt_cache_key=state.session_id)
++    batch = exchange("next", "next observation")
++    builder.calculator.observe(payload, ModelReply(usage={
++        "usage_requests": 1, "input_tokens": builder.count(payload), "output_tokens": builder.count(batch[0]),
++    }), prompt)
++    history.extend(batch)
++    after, report = builder.build(state, state.task.prompt, structured_history=history, **kwargs)
++    assert after[:len(prompt)] == prompt
++    assert not report.compacted and not report.prefix_drift and report.context_notes == 0
++
++
++def test_effective_value_is_derived_from_history_including_clears_and_branches():
++    history = context_notes([], {"memory": "first", "skills": "catalog"})
++    original = deepcopy(history)
++    assert context_notes(history, {"memory": "first", "skills": "catalog"}) == []
++    cleared = context_notes(history, {"skills": "catalog"})
++    assert cleared == [{"role": "user", "content": CONTEXT_NOTE_PREFIX + "memory:\n[cleared]"}]
++    history.extend(cleared)
++    assert context_notes(history, {"skills": "catalog"}) == []
++    assert context_notes(history, {"memory": "first", "skills": "catalog"}) == original[:1]
++    assert context_notes(original, {"memory": "first", "skills": "catalog"}) == []
++    assert not is_context_note({"role": "assistant", "content": cleared[0]["content"]})
++    assert not is_context_note({"role": "user", "content": [{"type": "text", "text": "note"}]})
++
++
++@pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
++def test_protocol_keeps_tool_results_before_context_text(protocol):
++    notes = context_notes([], {"memory": "source facts", "skills": "review catalog"})
++    assert len(notes) == 2
++    history = [*exchange("c1", "source text"), *notes]
++    payload = request_payload(history, [], protocol=protocol)
++    wire = payload.get("input", payload.get("messages"))
++    history_groups(wire)
++    if protocol == "anthropic":
++        assert [block["type"] for block in wire[-1]["content"]] == ["tool_result", "text", "text"]
++        assert [block["text"] for block in wire[-1]["content"][1:]] == [n["content"] for n in notes]
++    else:
++        assert wire[-2:] == notes
++
++
++def test_resume_preserves_entire_last_request_prefix(tmp_path):
++    settings = Settings(memory_enabled=False, auto_dream=False, context_tokens=64000, output_tokens=8192)
++    runtime = Runtime(tmp_path, settings)
++    runtime.start(TaskSpec(prompt="Inspect the source.", max_turns=500, max_steps=500))
++    first, _, _ = runtime.prepare_request()
++    runtime._structured_history.extend(exchange("c1", "source evidence"))
++    runtime.state.step = runtime.state.turn = 1
++    before, tools, _ = runtime.prepare_request()
++    assert before[:len(first)] == first
++    runtime.checkpoint()
++    restored = Runtime(tmp_path, settings)
++    restored.resume(runtime.state.run_id)
++    restored._structured_history.extend(exchange("c2", "new evidence"))
++    restored.state.verification = Verification(state="passed", command="pytest")
++    after, next_tools, report = restored.prepare_request()
++    assert next_tools == tools and not report.compacted
++    assert after[:len(before)] == before
++    assert report.context_notes == 1
++    assert restored.evidence.events(restored.state.run_id)[-1]["context_notes"] == 1
++
++
++def test_notes_persist_only_redacted_values():
++    state = RunState(task=TaskSpec(prompt="Inspect.", max_turns=500, max_steps=500))
++    builder, history = ContextBuilder(64000, 8192), []
++    redactor = Redactor(["secret-value"])
++    prompt, report = builder.build(
++        state, state.task.prompt, memory="private secret-value", structured_history=history,
++        redact_history=lambda items: redactor.value(items, mask_fields=False),
++    )
++    assert report.context_notes == 2
++    assert "secret-value" not in json.dumps(history)
++    assert history == prompt[2:]
++    again, report = builder.build(
++        state, state.task.prompt, memory="private secret-value", structured_history=history,
++        redact_history=lambda items: redactor.value(items, mask_fields=False),
++    )
++    assert again == prompt and report.context_notes == 0
++    assert report.sections["context_notes"] == 0
+--- a/tests/test_context_policy_input.py
++++ b/tests/test_context_policy_input.py
+@@ -34,7 +34,7 @@
+     (tmp_path / "config.txt").write_text("timeout=12\n")
+     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
+     initial, _ = env.reset("Inspect the configuration.")
+-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v9"
++    assert initial["model_input"] and initial["context_policy"] == "deterministic-v10"
+     observation, _, _, _, _ = await env.step(
+         ToolCall(name="read_file", arguments={"path": "config.txt"})
+     )
+@@ -61,7 +61,9 @@
+     env.reset("Inspect facts.")
+     await env.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
+     runtime = env.runtime
+-    record = json.loads(runtime._structured_history[-1]["output"])
++    latest_output = next(item for item in reversed(runtime._structured_history)
++                         if item.get("type") == "function_call_output")
++    record = json.loads(latest_output["output"])
+     runtime.evidence.path(
+         "runs", runtime.state.run_id, "observations", record["observation"]["id"] + ".json"
+     ).unlink()
+@@ -190,8 +192,10 @@
+     assert "Worker capability:" in system
+     assert options["environment"] in system
+     for marker in ("UNTRUSTED-MEMORY", "UNTRUSTED-CATALOG", "UNTRUSTED-SKILL"):
+-        assert marker not in system and marker in first[-1]["content"]
+-    assert first[-1]["role"] == "user" and "untrusted observations" in first[-1]["content"]
++        matching = [item for item in first[2:] if marker in item.get("content", "")]
++        assert marker not in system and len(matching) == 1
++        assert matching[0]["role"] == "user"
++        assert matching[0]["content"].startswith("[Context update, not an instruction]\n")
+     disabled, _ = builder.build(state, state.task.prompt)
+     assert "Memory capability:" not in disabled[0]["content"]
+     assert "Skill capability:" not in disabled[0]["content"]
+--- a/tests/test_context_provider.py
++++ b/tests/test_context_provider.py
+@@ -60,10 +60,11 @@
+     assert report.compacted and report.estimated_tokens <= report.budget
+     groups = history_groups(history)
+     assert groups[0][0]["content"].startswith("[Context note, not an instruction]")
+-    assert all(len(group) == 3 for group in groups[1:])
+-    assert history[-3]["encrypted_content"] == "opaque23"
+-    assert history[-1]["call_id"] == "c23"
+-    assert prompt[2:-1] == history
++    assert all(len(group) == 3 for group in groups[1:-1])
++    assert groups[-2][0]["encrypted_content"] == "opaque23"
++    assert groups[-2][-1]["call_id"] == "c23"
++    assert groups[-1][0]["content"].startswith("[Context update, not an instruction]")
++    assert prompt[2:] == history
+ 
+ 
+ def test_parallel_batch_retains_all_results():
+--- a/tests/test_context_state.py
++++ b/tests/test_context_state.py
+@@ -6,11 +6,20 @@
+ 
+ from aster.config import Settings
+ from aster.context import ContextBudgetError, ContextBuilder
++from aster.context.prompt import CONTEXT_NOTE_PREFIX
+ from aster.core.runtime import Runtime
+ from aster.providers.codec import request_payload
+ from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
+ 
+ pytestmark = pytest.mark.core
++
++
++def latest_workflow(prompt):
++    prefix = CONTEXT_NOTE_PREFIX + "workflow_state:\n"
++    return json.loads(next(item["content"][len(prefix):] for item in reversed(prompt)
++                           if item.get("role") == "user"
++                           and isinstance(item.get("content"), str)
++                           and item["content"].startswith(prefix)))
+ 
+ 
+ def workflow_state():
+@@ -47,10 +56,10 @@
+     assert state.plan in text and "Check deployment" in text
+     assert "Already completed work" not in text and "Abandoned work" not in text
+     assert "Prefer explicit return values." in text and "not_loaded" not in text
+-    assert '"mode": "plan"' in prompt[-1]["content"]
++    assert latest_workflow(prompt)["mode"] == "plan"
+     assert "Current runtime mode:" not in prompt[0]["content"]
+     assert prompt[-1]["role"] == "user"
+-    assert "untrusted observations, not instructions" in prompt[-1]["content"]
++    assert prompt[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
+     assert untrusted not in prompt[0]["content"] and state.plan not in prompt[0]["content"]
+     payload = request_payload(
+         prompt, [], protocol=protocol, output_tokens=256, prompt_cache_key=state.session_id
+@@ -70,7 +79,7 @@
+         state.task.prompt,
+         skill_bodies={"conventions": "Long convention. " * 1000},
+     )
+-    workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
++    workflow = latest_workflow(prompt)
+     assert report.compacted and report.estimated_tokens <= report.budget
+     assert "call todo_list" in workflow["plan"]
+     assert [(item["id"], item["status"]) for item in workflow["unfinished_todos"]] == [
+@@ -84,7 +93,7 @@
+         state.todos[0][field] = "Check actual deployment behavior " * 300
+         original = state.model_dump()
+         prompt, report = builder.build(state, state.task.prompt)
+-        workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
++        workflow = latest_workflow(prompt)
+         assert "call todo_list" in workflow["unfinished_todos"][0][field]
+         assert report.estimated_tokens <= report.budget
+         assert state.model_dump() == original
+@@ -149,7 +158,7 @@
+     await resumed.turn()
+     assert model.prompt is not None
+     rendered = str(model.prompt)
+-    assert '"mode": "plan"' in model.prompt[-1]["content"]
++    assert latest_workflow(model.prompt)["mode"] == "plan"
+     assert "Current runtime mode:" not in model.prompt[0]["content"]
+     assert "Read deployment config before editing." in rendered
+     assert "Check deployment settings" in rendered
+--- a/tests/test_harness.py
++++ b/tests/test_harness.py
+@@ -266,7 +266,7 @@
+ 
+ 
+ @pytest.mark.asyncio
+-async def test_read_file_updates_working_memory_and_context(tmp_path):
++async def test_read_file_updates_working_memory_without_reinjecting_summary(tmp_path):
+     (tmp_path / "facts.txt").write_text("deploy key is red\n")
+     runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
+     runtime.start(TaskSpec(prompt="inspect facts.txt"))
+@@ -276,10 +276,10 @@
+     prompt, _ = runtime.context.build(
+         runtime.state,
+         runtime.state.task.prompt,
+-        working_memory=runtime.memory.working_section(runtime.state.working_memory),
+     )
+     rendered = str(prompt)
+-    assert "deploy key is red" in rendered
++    assert "deploy key is red" not in rendered
++    assert "working_memory" not in rendered
+ 
+ 
+ @pytest.mark.asyncio
+--- a/tests/test_history_gateway_metadata.py
++++ b/tests/test_history_gateway_metadata.py
+@@ -79,7 +79,9 @@
+     session = runtime.state.session_id
+     runtime.switch_model("next")
+     assert runtime.state.session_id == session and runtime.settings.model == "next-model"
+-    assert runtime._structured_history[-1]["phase"] == "final_answer"
++    assistant = next(item for item in reversed(runtime._structured_history)
++                     if item.get("role") == "assistant")
++    assert assistant["phase"] == "final_answer"
+     wire = request_payload(
+         runtime._structured_history, [], protocol="responses", model="next-model"
+     )
+--- a/tests/test_protocol_pairing.py
++++ b/tests/test_protocol_pairing.py
+@@ -6,6 +6,7 @@
+ import pytest
+ 
+ from aster.config import Settings
++from aster.context.prompt import is_context_note
+ from aster.core.runtime import Runtime
+ from aster.messages import ContextHistoryError, history_groups
+ from aster.providers.client import ModelClient
+@@ -254,9 +255,12 @@
+ @pytest.mark.parametrize("source", ["direct", "model"])
+ async def test_blank_call_id_is_rejected_before_write_or_checkpoint(source, tmp_path):
+     call = ToolCall(name="write_file", call_id=" \t", arguments={"path": "new.txt", "content": "x"})
++    sent_history = []
+ 
+     class BlankIdModel:
+-        async def complete(self, *_):
++        async def complete(self, prompt, _tools):
++            sent_history.extend(deepcopy(prompt[2:]))
++            assert len(sent_history) == 1 and is_context_note(sent_history[0])
+             return ModelReply(calls=[call])
+ 
+     runtime = Runtime(tmp_path, Settings(approval="auto"), model=BlankIdModel())
+@@ -266,5 +270,5 @@
+     else:
+         assert (await runtime.turn()).stop_reason == "context_history_invalid"
+     assert not (tmp_path / "new.txt").exists()
+-    assert runtime._structured_history == []
++    assert runtime._structured_history == sent_history
+     runtime.checkpoint()
+--- a/tests/test_receipt_metering.py
++++ b/tests/test_receipt_metering.py
+@@ -22,7 +22,7 @@
+     return state, builder, prompt, payload
+ 
+ 
+-def test_receipt_charges_only_new_observations_and_positive_tail_growth():
++def test_receipt_charges_only_new_observations_and_appended_context_notes():
+     _, builder, prompt, payload = anchored()
+     calculator = builder.calculator
+     additions = [
+@@ -33,13 +33,28 @@
+         {"role": "user", "content": "Also check the callers."},
+     ]
+     tail = {"role": "user", "content": "new workflow state " * 100}
+-    current = [*prompt[:-1], *additions, tail]
++    current = [*prompt, *additions, tail]
+     expected = (5080 + calculator.count(additions[2]) + calculator.count(additions[4])
+-                + max(0, calculator.count(tail) - calculator.count(prompt[-1])))
++                + calculator.count(tail))
+     assert calculator.estimate(current, {**payload, "input": current}) == (expected, "receipt")
+     current[-1] = {"role": "user", "content": "short"}
+     assert calculator.estimate(current, {**payload, "input": current}) == (
+-        5080 + calculator.count(additions[2]) + calculator.count(additions[4]), "receipt")
++        5080 + calculator.count(additions[2]) + calculator.count(additions[4])
++        + calculator.count(current[-1]), "receipt")
++
++
++@pytest.mark.parametrize("change", ["replace_last", "remove_last"])
++def test_receipt_anchor_covers_the_final_input_item(change):
++    _, builder, prompt, payload = anchored()
++    current = deepcopy(prompt)
++    if change == "replace_last":
++        current[-1]["content"] = "replaced state"
++    else:
++        current.pop()
++    payload = {**payload, "input": current}
++    assert builder.calculator._first_changed_item(current) == len(prompt) - 1
++    assert builder.calculator.estimate(current, payload) == (
++        builder.calculator.request_tokens(payload), "local")
+ 
+ 
+ def test_history_drift_is_located_before_falling_back_to_local_count():
+--- a/tests/test_review_regressions.py
++++ b/tests/test_review_regressions.py
+@@ -134,7 +134,10 @@
+             if self.turn == 1:
+                 return ModelReply(text="Inspecting both files.", calls=calls, raw=raw)
+             start = next(i for i, item in enumerate(prompt) if item.get("type") == "reasoning")
+-            exchanges = history_groups(prompt[start:-1])
++            from aster.context.prompt import is_context_note
++
++            exchanges = [group for group in history_groups(prompt[start:])
++                         if not (len(group) == 1 and is_context_note(group[0]))]
+             assert len(exchanges) == 1 and len(exchanges[0]) == 6
+             assert exchanges[0][0]["encrypted_content"] == "opaque"
+             return ModelReply(text="done", raw=[{"role": "assistant", "content": "done"}])
+--- a/tests/test_runtime_lifecycle.py
++++ b/tests/test_runtime_lifecycle.py
+@@ -2,6 +2,7 @@
+ 
+ import asyncio
+ import json
++from copy import deepcopy
+ 
+ import pytest
+ 
+@@ -160,10 +161,11 @@
+     runtime.start(TaskSpec(prompt="demo"))
+     pending = asyncio.create_task(runtime.turn())
+     await entered.wait()
++    sent_history = deepcopy(runtime._structured_history)
+     runtime.abort()
+     await pending
+     assert runtime.state.step == 0 and runtime.state.stop_reason == "user_abort"
+-    assert runtime._structured_history == [] and not (tmp_path / "late.txt").exists()
++    assert runtime._structured_history == sent_history and not (tmp_path / "late.txt").exists()
+ 
+ 
+ def test_resume_rejects_active_state_and_invalid_checkpoint_without_replacing_state(tmp_path):
+--- a/tests/test_session_continuation.py
++++ b/tests/test_session_continuation.py
+@@ -568,7 +568,10 @@
+         "protocol": "responses",
+         "model": old.settings.model,
+     }
+-    assert restored._structured_history == [{"role": "assistant", "content": "Still working"}]
++    from aster.context.prompt import is_context_note
++
++    assert restored._structured_history[:-1] == [{"role": "assistant", "content": "Still working"}]
++    assert is_context_note(restored._structured_history[-1])
+     again = Runtime(tmp_path, restored.settings)
+     again.resume(restored.state.run_id)
+     assert again._history_origins == restored._history_origins
+--- a/tests/test_session_navigation_ui.py
++++ b/tests/test_session_navigation_ui.py
+@@ -35,6 +35,7 @@
+         await pilot.pause()
+         assert app.screen.id == "_default"
+         assert "另一个方案" not in json.dumps(app.runtime._structured_history, ensure_ascii=False)
++        assert not any("[Context update" in text for text, _ in app._view()["log"])
+ 
+ 
+ @pytest.mark.smoke
+--- a/tests/test_skill_snapshots.py
++++ b/tests/test_skill_snapshots.py
+@@ -7,6 +7,7 @@
+ import pytest
+ 
+ from aster.config import ModelProfile, Settings
++from aster.context.prompt import CONTEXT_NOTE_PREFIX
+ from aster.core.runtime import Runtime
+ from aster.schema import ModelReply, TaskSpec, ToolCall
+ 
+@@ -27,6 +28,13 @@
+ 
+ def version(body):
+     return hashlib.sha256(body.encode()).hexdigest()
++
++
++def latest_section(prompt, name):
++    prefix = CONTEXT_NOTE_PREFIX + name + ":\n"
++    return next(item["content"][len(prefix):] for item in reversed(prompt)
++                if item.get("role") == "user" and isinstance(item.get("content"), str)
++                and item["content"].startswith(prefix))
+ 
+ 
+ async def test_selected_pages_and_model_body_do_not_reread_changed_source(tmp_path, monkeypatch):
+@@ -55,7 +63,9 @@
+     prompt, _, _ = runtime.prepare_request()
+     assert body in prompt[-1]["content"]
+     assert "SECOND VERSION" not in prompt[-1]["content"]
+-    assert version(body) in prompt[-1]["content"]
++    assert json.loads(latest_section(prompt, "workflow_state"))["active_skill_versions"] == {
++        "guide": version(body)
++    }
+ 
+ 
+ async def test_refresh_notifies_version_and_failure_keeps_selected_body(tmp_path):
+@@ -186,8 +196,10 @@
+             self.called = True
+             actual = json.dumps(messages)
+             assert old_secret not in actual and new_secret not in actual
+-            assert expected in messages[-1]["content"]
+-            assert version(expected) in messages[-1]["content"]
++            assert latest_section(messages, "active_skill_bodies") == "guide:\n" + expected
++            assert json.loads(latest_section(messages, "workflow_state"))["active_skill_versions"] == {
++                "guide": version(expected)
++            }
+             return ModelReply(text="Inspected.")
+ 
+     runtime.model = InspectModel()
+--- a/tests/test_stable_prefix.py
++++ b/tests/test_stable_prefix.py
+@@ -8,6 +8,7 @@
+ 
+ from aster.config import Settings
+ from aster.context import ContextBuilder
++from aster.context.prompt import CONTEXT_NOTE_PREFIX
+ from aster.core.runtime import Runtime
+ from aster.messages import history_groups
+ from aster.providers.codec import request_payload
+@@ -50,7 +51,6 @@
+         task,
+         memory="Earlier memory.",
+         skills="Earlier catalog.",
+-        working_memory="Earlier working memory.",
+         structured_history=history,
+         tools=tools,
+         protocol=protocol,
+@@ -68,7 +68,6 @@
+         task,
+         memory="Updated memory.",
+         skills="Updated catalog.",
+-        working_memory="Updated working memory.",
+         skill_bodies={"conventions": "Check public interfaces."},
+         structured_history=history,
+         tools=tools,
+@@ -77,12 +76,14 @@
+     )
+ 
+     assert first[1] == second[1] == {"role": "user", "content": task}
+-    assert first[:-1] == second[:-1]
+-    assert first[2:-1] == second[2:-1] == original_history == history
++    assert first == second[:len(first)]
++    assert first[2:2 + len(original_history)] == original_history
++    assert second[2:] == history
+     assert "Current runtime mode:" not in second[0]["content"]
+     assert second[-1]["role"] == "user"
+-    dynamic = second[-1]["content"]
+-    assert '"mode": "plan"' in dynamic and '"remaining_steps": 38' in dynamic
++    assert second[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
++    dynamic = "\n".join(item["content"] for item in second[len(first):])
++    assert '"mode": "plan"' in dynamic and '"remaining_steps"' not in dynamic
+     for text in (
+         state.plan,
+         "todo-1",
+@@ -90,7 +91,6 @@
+         '"state": "passed"',
+         "Updated memory.",
+         "Updated catalog.",
+-        "Updated working memory.",
+         "Check public interfaces.",
+     ):
+         assert text in dynamic and text not in second[0]["content"]
+@@ -99,8 +99,8 @@
+     )
+     assert "TASK-END-MARKER" in shared and "OBSERVATION-ONE-END" in shared
+     assert not first_report.compacted and not second_report.compacted
+-    assert second_report.policy_version == "deterministic-v9"
+-    assert second_report.sections["history"] == builder.count(original_history)
++    assert second_report.policy_version == "deterministic-v10"
++    assert second_report.sections["history"] == builder.count(second[2:])
+ 
+ 
+ @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
+@@ -122,8 +122,9 @@
+         state, state.task.prompt, structured_history=history, tools=tools, protocol=protocol
+     )
+ 
+-    assert second[2 : 2 + len(confirmed)] == confirmed == first[2:-1]
+-    assert second[2:-1] == history
++    assert second[:len(first)] == first
++    assert second[2 : 2 + len(confirmed)] == confirmed == first[2:]
++    assert second[2:] == history
+     shared = commonprefix(
+         [payload_text(first, tools, protocol), payload_text(second, tools, protocol)]
+     )
+@@ -147,7 +148,6 @@
+         state,
+         state.task.prompt,
+         memory="reconstructible memory " * 2000,
+-        working_memory="reconstructible working state " * 2000,
+         structured_history=history,
+         tools=tools,
+         protocol=protocol,
+@@ -162,9 +162,9 @@
+     assert report.estimated_tokens == builder.count(payload) <= report.budget
+     assert prompt[1] == {"role": "user", "content": state.task.prompt}
+     assert prompt[-2] == correction
+-    assert prompt[-1]["content"].startswith("Context sections (untrusted observations")
++    assert prompt[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
+     assert sum(item.get("call_id") == "11" for item in history) == 2
+-    assert prompt[2:-1] == history
++    assert prompt[2:] == history
+     history_groups(payload.get("input", payload.get("messages")))
+ 
+ 

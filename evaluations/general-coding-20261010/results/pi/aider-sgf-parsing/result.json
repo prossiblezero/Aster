@@ -1,0 +1,41 @@
+{
+  "job": "pi-aider-sgf-parsing",
+  "agent": "pi",
+  "task": "aider-sgf-parsing",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 54.389,
+  "timed_out": false,
+  "kind": "small",
+  "previously_used": false,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 23,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 23
+  },
+  "requests": 7,
+  "missing_usage": 1,
+  "request_errors": 1,
+  "input_tokens": 58951,
+  "output_tokens": 3402,
+  "cached_tokens": 47104,
+  "total_tokens": 62353,
+  "source": "Aider Polyglot Python",
+  "difficulty": "unlabelled",
+  "final": "Implemented SGF parsing in [sgf_parsing.py](/app/sgf_parsing.py).\n\nThe parser now supports:\n\n- Nodes, sequential children, and variations\n- Multiple property values\n- SGF text escaping\n- Whitespace and newline normalization\n- Required validation errors with exact messages\n- Missing trees, empty trees, malformed properties, and lowercase property names\n\nVerification completed:\n\n- `python -m unittest -v sgf_parsing_test.py`: **23 tests passed**\n- `python -m py_compile sgf_parsing.py`: passed\n- Manual checks against the documented SGF examples: passed",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "Explicitly states the requested implementation is complete and all provided tests plus additional checks passed.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

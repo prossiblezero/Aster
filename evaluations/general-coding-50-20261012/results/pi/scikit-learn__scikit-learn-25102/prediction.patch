@@ -1,0 +1,232 @@
+diff --git a/sklearn/_config.py b/sklearn/_config.py
+index e4c398c..f4ac66f 100644
+--- a/sklearn/_config.py
++++ b/sklearn/_config.py
+@@ -15,6 +15,7 @@ _global_config = {
+     "enable_cython_pairwise_dist": True,
+     "array_api_dispatch": False,
+     "transform_output": "default",
++    "preserve_dtypes": False,
+ }
+ _threadlocal = threading.local()
+ 
+@@ -54,6 +55,7 @@ def set_config(
+     enable_cython_pairwise_dist=None,
+     array_api_dispatch=None,
+     transform_output=None,
++    preserve_dtypes=None,
+ ):
+     """Set global scikit-learn configuration
+ 
+@@ -134,6 +136,10 @@ def set_config(
+ 
+         .. versionadded:: 1.2
+ 
++    preserve_dtypes : bool, default=None
++        If True, preserve the dtypes of unchanged input columns when pandas
++        output is requested.
++
+     See Also
+     --------
+     config_context : Context manager for global scikit-learn configuration.
+@@ -157,6 +163,8 @@ def set_config(
+         local_config["array_api_dispatch"] = array_api_dispatch
+     if transform_output is not None:
+         local_config["transform_output"] = transform_output
++    if preserve_dtypes is not None:
++        local_config["preserve_dtypes"] = preserve_dtypes
+ 
+ 
+ @contextmanager
+@@ -170,6 +178,7 @@ def config_context(
+     enable_cython_pairwise_dist=None,
+     array_api_dispatch=None,
+     transform_output=None,
++    preserve_dtypes=None,
+ ):
+     """Context manager for global scikit-learn configuration.
+ 
+@@ -249,6 +258,10 @@ def config_context(
+ 
+         .. versionadded:: 1.2
+ 
++    preserve_dtypes : bool, default=None
++        If True, preserve the dtypes of unchanged input columns when pandas
++        output is requested.
++
+     Yields
+     ------
+     None.
+@@ -286,6 +299,7 @@ def config_context(
+         enable_cython_pairwise_dist=enable_cython_pairwise_dist,
+         array_api_dispatch=array_api_dispatch,
+         transform_output=transform_output,
++        preserve_dtypes=preserve_dtypes,
+     )
+ 
+     try:
+diff --git a/sklearn/tests/test_config.py b/sklearn/tests/test_config.py
+index bcc4c23..ae3a6b1 100644
+--- a/sklearn/tests/test_config.py
++++ b/sklearn/tests/test_config.py
+@@ -17,6 +17,7 @@ def test_config_context():
+         "pairwise_dist_chunk_size": 256,
+         "enable_cython_pairwise_dist": True,
+         "transform_output": "default",
++        "preserve_dtypes": False,
+     }
+ 
+     # Not using as a context manager affects nothing
+@@ -33,6 +34,7 @@ def test_config_context():
+             "pairwise_dist_chunk_size": 256,
+             "enable_cython_pairwise_dist": True,
+             "transform_output": "default",
++            "preserve_dtypes": False,
+         }
+     assert get_config()["assume_finite"] is False
+ 
+@@ -66,6 +68,7 @@ def test_config_context():
+         "pairwise_dist_chunk_size": 256,
+         "enable_cython_pairwise_dist": True,
+         "transform_output": "default",
++        "preserve_dtypes": False,
+     }
+ 
+     # No positional arguments
+diff --git a/sklearn/utils/_set_output.py b/sklearn/utils/_set_output.py
+index 335773c..07da7ac 100644
+--- a/sklearn/utils/_set_output.py
++++ b/sklearn/utils/_set_output.py
+@@ -12,6 +12,7 @@ def _wrap_in_pandas_container(
+     *,
+     columns,
+     index=None,
++    dtypes=None,
+ ):
+     """Create a Pandas DataFrame.
+ 
+@@ -36,6 +37,10 @@ def _wrap_in_pandas_container(
+     index : array-like, default=None
+         Index for data.
+ 
++    dtypes : array-like or pandas.Series, default=None
++        Dtypes to use for the output columns. If a pandas Series is provided,
++        its index is matched to the output column names.
++
+     Returns
+     -------
+     dataframe : DataFrame
+@@ -57,9 +62,14 @@ def _wrap_in_pandas_container(
+             data_to_wrap.columns = columns
+         if index is not None:
+             data_to_wrap.index = index
++        if dtypes is not None:
++            data_to_wrap = data_to_wrap.astype(dtypes)
+         return data_to_wrap
+ 
+-    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    data = pd.DataFrame(data_to_wrap, index=index, columns=columns)
++    if dtypes is not None:
++        data = data.astype(dtypes)
++    return data
+ 
+ 
+ def _get_output_config(method, estimator=None):
+@@ -93,7 +103,12 @@ def _get_output_config(method, estimator=None):
+             f"output config must be 'default' or 'pandas' got {dense_config}"
+         )
+ 
+-    return {"dense": dense_config}
++    return {
++        "dense": dense_config,
++        "preserve_dtypes": est_sklearn_output_config.get(
++            "preserve_dtypes", get_config().get("preserve_dtypes", False)
++        ),
++    }
+ 
+ 
+ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+@@ -126,11 +141,22 @@ def _wrap_data_with_container(method, data_to_wrap, original_input, estimator):
+     if output_config["dense"] == "default" or not _auto_wrap_is_configured(estimator):
+         return data_to_wrap
+ 
+-    # dense_config == "pandas"
++    # Match dtypes by feature name. This supports selectors and column reordering,
++    # while avoiding casts for features whose values may have been transformed.
++    dtypes = None
++    if output_config["preserve_dtypes"] and hasattr(original_input, "dtypes"):
++        input_dtypes = original_input.dtypes
++        output_columns = estimator.get_feature_names_out()
++        if hasattr(input_dtypes, "reindex"):
++            matched_dtypes = input_dtypes.reindex(output_columns)
++            if not matched_dtypes.isna().any():
++                dtypes = matched_dtypes
++
+     return _wrap_in_pandas_container(
+         data_to_wrap=data_to_wrap,
+         index=getattr(original_input, "index", None),
+         columns=estimator.get_feature_names_out,
++        dtypes=dtypes,
+     )
+ 
+ 
+@@ -208,7 +234,7 @@ class _SetOutputMixin:
+             setattr(cls, method, wrapped_method)
+ 
+     @available_if(_auto_wrap_is_configured)
+-    def set_output(self, *, transform=None):
++    def set_output(self, *, transform=None, preserve_dtypes=None):
+         """Set output container.
+ 
+         See :ref:`sphx_glr_auto_examples_miscellaneous_plot_set_output.py`
+@@ -223,18 +249,25 @@ class _SetOutputMixin:
+             - `"pandas"`: DataFrame output
+             - `None`: Transform configuration is unchanged
+ 
++        preserve_dtypes : bool, default=None
++            If True, preserve the dtypes of unchanged input columns when
++            returning pandas output.
++
+         Returns
+         -------
+         self : estimator instance
+             Estimator instance.
+         """
+-        if transform is None:
++        if transform is None and preserve_dtypes is None:
+             return self
+ 
+         if not hasattr(self, "_sklearn_output_config"):
+             self._sklearn_output_config = {}
+ 
+-        self._sklearn_output_config["transform"] = transform
++        if transform is not None:
++            self._sklearn_output_config["transform"] = transform
++        if preserve_dtypes is not None:
++            self._sklearn_output_config["preserve_dtypes"] = preserve_dtypes
+         return self
+ 
+ 
+diff --git a/sklearn/utils/tests/test_set_output.py b/sklearn/utils/tests/test_set_output.py
+index ac73ca0..0178f6c 100644
+--- a/sklearn/utils/tests/test_set_output.py
++++ b/sklearn/utils/tests/test_set_output.py
+@@ -36,6 +36,18 @@ def test__wrap_in_pandas_container_dense_update_columns_and_index():
+     assert_array_equal(new_df.index, new_index)
+ 
+ 
++def test__wrap_in_pandas_container_preserves_dtypes():
++    """Check that explicitly supplied pandas dtypes are applied."""
++    pd = pytest.importorskip("pandas")
++    X = np.asarray([[1.0, 2.0], [3.0, 4.0]])
++    dtypes = pd.Series([np.float16, "category"], index=["a", "b"])
++
++    X_wrapped = _wrap_in_pandas_container(X, columns=["a", "b"], dtypes=dtypes)
++
++    assert X_wrapped.dtypes.iloc[0] == np.dtype("float16")
++    assert isinstance(X_wrapped.dtypes.iloc[1], pd.CategoricalDtype)
++
++
+ def test__wrap_in_pandas_container_error_validation():
+     """Check errors in _wrap_in_pandas_container."""
+     X = np.asarray([[1, 0, 3], [0, 0, 1]])

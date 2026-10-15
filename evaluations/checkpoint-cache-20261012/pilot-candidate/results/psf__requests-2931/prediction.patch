@@ -1,0 +1,35 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..8ddfa2f 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -444,7 +444,10 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 (body, content_type) = self._encode_files(files, data)
+             else:
+                 if data:
+-                    body = self._encode_params(data)
++                    if isinstance(data, bytes):
++                        body = data
++                    else:
++                        body = self._encode_params(data)
+                     if isinstance(data, basestring) or hasattr(data, 'read'):
+                         content_type = None
+                     else:
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..2dd5df0 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -983,6 +983,14 @@ class TestRequests(object):
+ 
+         assert 'multipart/form-data' in p.headers['Content-Type']
+ 
++    def test_can_send_non_ascii_bytes(self):
++        data = u('ööö').encode('utf-8')
++        request = requests.Request('PUT', 'http://example.com/put', data=data)
++        prepared = request.prepare()
++
++        assert prepared.body == data
++        assert prepared.headers['Content-Length'] == str(len(data))
++
+     def test_can_send_bytes_bytearray_objects_with_files(self, httpbin):
+         # Test bytes:
+         data = {'a': 'this is a string'}

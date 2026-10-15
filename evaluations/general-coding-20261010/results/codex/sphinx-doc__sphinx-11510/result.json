@@ -1,0 +1,70 @@
+{
+  "job": "codex-sphinx-doc__sphinx-11510",
+  "agent": "codex",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 278.785,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 8990,
+  "patch_sha256": "1fadb141c0374ae49cf0659a0588237d46f29e5faf65e236bf4ae185b5112fbc",
+  "requests": 32,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 1032007,
+  "output_tokens": 10825,
+  "cached_tokens": 894976,
+  "total_tokens": 1042832,
+  "source": "SWE-bench Verified",
+  "difficulty": "1-4 hours",
+  "final": "Implemented the fix in [sphinx/directives/other.py](/testbed/sphinx/directives/other.py:367): included files now pass through `source-read` before parsing, so mutations affect their rendered output.\n\nAdded regression coverage in [tests/test_build_html.py](/testbed/tests/test_build_html.py:47).\n\nVerification:\n\n- Focused regression: passed\n- HTML and directive suites: `547 passed`\n- Full suite: one unrelated existing failure in `test_latex_images` due unavailable remote image access\n- `git diff --check` and compilation passed",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "qualified",
+    "reason": "Claims implementation and passing focused/HTML tests, but explicitly discloses an unresolved full-suite failure attributed to unavailable remote image access.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

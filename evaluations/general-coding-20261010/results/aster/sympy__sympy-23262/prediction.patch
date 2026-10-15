@@ -1,0 +1,71 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 1877c3f..1e1163d 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -541,6 +541,13 @@ def _print_Indexed(self, expr):
+         index = expr.args[1:]
+         return "{}[{}]".format(str(base), ", ".join([self._print(ind) for ind in index]))
+ 
++    def _print_tuple(self, expr):
++        if len(expr) == 1:
++            return "(%s,)" % self._print(expr[0])
++        return "(%s)" % self.stringify(expr, ", ")
++
++    _print_Tuple = _print_tuple
++
+     def _print_Pow(self, expr, rational=False):
+         return self._hprint_Pow(expr, rational=rational)
+ 
+diff --git a/sympy/printing/tests/test_pycode.py b/sympy/printing/tests/test_pycode.py
+index f4937a9..9790030 100644
+--- a/sympy/printing/tests/test_pycode.py
++++ b/sympy/printing/tests/test_pycode.py
+@@ -3,7 +3,7 @@
+ from sympy.codegen.cfunctions import expm1, log1p
+ from sympy.codegen.scipy_nodes import cosm1
+ from sympy.codegen.matrix_nodes import MatrixSolve
+-from sympy.core import Expr, Mod, symbols, Eq, Le, Gt, zoo, oo, Rational, Pow
++from sympy.core import Expr, Mod, symbols, Eq, Le, Gt, zoo, oo, Rational, Pow, Tuple
+ from sympy.core.numbers import pi
+ from sympy.core.singleton import S
+ from sympy.functions import acos, KroneckerDelta, Piecewise, sign, sqrt, Min, Max
+@@ -58,6 +58,8 @@ def test_PythonCodePrinter():
+     assert prntr.doprint(KroneckerDelta(x,y)) == '(1 if x == y else 0)'
+ 
+     assert prntr.doprint((2,3)) == "(2, 3)"
++    assert prntr.doprint((2,)) == "(2,)"
++    assert prntr.doprint(Tuple(2)) == "(2,)"
+     assert prntr.doprint([2,3]) == "[2, 3]"
+ 
+     assert prntr.doprint(Min(x, y)) == "min(x, y)"
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263..8952bb9 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -961,7 +961,8 @@ def _recursive_to_string(doprint, arg):
+             left, right = "()"
+         else:
+             raise NotImplementedError("unhandled type: %s, %s" % (type(arg), arg))
+-        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + right
++        comma = ',' if isinstance(arg, tuple) and len(arg) == 1 else ''
++        return left +', '.join(_recursive_to_string(doprint, e) for e in arg) + comma + right
+     elif isinstance(arg, str):
+         return arg
+     else:
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 023c2fb..2343a18 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -360,6 +360,12 @@ def test_vector_simple():
+     raises(TypeError, lambda: f(0))
+ 
+ 
++def test_vector_singleton():
++    f = lambdify([], (1,))
++    assert inspect.getsource(f) == "def _lambdifygenerated():\n    return (1,)\n"
++    assert f() == (1,)
++
++
+ def test_vector_discontinuous():
+     f = lambdify(x, (-1/x, 1/x))
+     raises(ZeroDivisionError, lambda: f(0))

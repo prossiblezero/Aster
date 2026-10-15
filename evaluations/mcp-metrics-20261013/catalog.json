@@ -1,0 +1,727 @@
+{
+  "mcp__github__get_commit": {
+    "server": "github",
+    "original": "get_commit",
+    "description": "[github] Get details for a commit from a GitHub repository",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "string",
+          "description": "Level of detail to include for changed files. \"none\" omits stats and files entirely. \"stats\" (default) includes per-file metadata: filename, status, and lines-of-code counts (additions, deletions, changes), with no patch content. \"full_patch\" additionally includes the unified diff content for each file and can be very large.",
+          "default": "stats",
+          "enum": [
+            "none",
+            "stats",
+            "full_patch"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "Repository owner",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name",
+          "x-mcp-header": "repo"
+        },
+        "sha": {
+          "type": "string",
+          "description": "Commit SHA, branch name, or tag name"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "sha"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__get_file_contents": {
+    "server": "github",
+    "original": "get_file_contents",
+    "description": "[github] Get the contents of a file or directory from a GitHub repository",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "type",
+              "name",
+              "path",
+              "size",
+              "sha",
+              "url",
+              "git_url",
+              "html_url",
+              "download_url"
+            ]
+          },
+          "description": "Subset of fields to return for each entry when the path is a directory. If omitted, all fields are returned. Ignored when the path is a single file. Use this to reduce response size when listing directories and you only need specific fields, e.g. just 'name' and 'type'."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Repository owner (username or organization)",
+          "x-mcp-header": "owner"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path to file/directory",
+          "default": "/"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Accepts optional git refs such as `refs/tags/{tag}`, `refs/heads/{branch}` or `refs/pull/{pr_number}/head`"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name",
+          "x-mcp-header": "repo"
+        },
+        "sha": {
+          "type": "string",
+          "description": "Accepts optional commit SHA. If specified, it will be used instead of ref"
+        }
+      },
+      "required": [
+        "owner",
+        "repo"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__issue_read": {
+    "server": "github",
+    "original": "issue_read",
+    "description": "[github] Get information about a specific issue in a GitHub repository.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "issue_number": {
+          "type": "number",
+          "description": "The number of the issue"
+        },
+        "method": {
+          "type": "string",
+          "description": "The read operation to perform on a single issue.\nOptions are:\n1. get - Get issue details. Also returns best-effort hierarchy flags (`has_parent`, `has_children`); `parent` and `sub_issues_summary` are optional relationship summaries, and `closed_by_pull_requests` summarizes the pull requests configured to close the issue as `total_count` plus up to 5 `references`.\n2. get_comments - Get issue comments.\n3. get_sub_issues - Get sub-issues (children) of the issue.\n4. get_parent - Get the parent issue, if this issue is a sub-issue of another.\n5. get_labels - Get labels assigned to the issue.\n",
+          "enum": [
+            "get",
+            "get_comments",
+            "get_sub_issues",
+            "get_parent",
+            "get_labels"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner of the repository",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "repo": {
+          "type": "string",
+          "description": "The name of the repository",
+          "x-mcp-header": "repo"
+        }
+      },
+      "required": [
+        "method",
+        "owner",
+        "repo",
+        "issue_number"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__list_commits": {
+    "server": "github",
+    "original": "list_commits",
+    "description": "[github] Get list of commits of a branch in a GitHub repository. Returns at least 30 results per page by default, but can return more if specified using the perPage parameter (up to 100).",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Author username or email address to filter commits by"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sha",
+              "html_url",
+              "commit",
+              "author",
+              "committer"
+            ]
+          },
+          "description": "Subset of fields to return for each commit. If omitted, all fields are returned. Use this to reduce response size when you only need specific fields, e.g. just 'sha' and 'html_url'."
+        },
+        "owner": {
+          "type": "string",
+          "description": "Repository owner",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Only commits containing this file path will be returned"
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name",
+          "x-mcp-header": "repo"
+        },
+        "sha": {
+          "type": "string",
+          "description": "Commit SHA, branch or tag name to list commits of. If not provided, uses the default branch of the repository. If a commit SHA is provided, will list commits up to that SHA."
+        },
+        "since": {
+          "type": "string",
+          "description": "Only commits after this date will be returned (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DD)"
+        },
+        "until": {
+          "type": "string",
+          "description": "Only commits before this date will be returned (ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DD)"
+        }
+      },
+      "required": [
+        "owner",
+        "repo"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__pull_request_read": {
+    "server": "github",
+    "original": "pull_request_read",
+    "description": "[github] Get information on a specific pull request in GitHub repository.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "string",
+          "description": "Cursor for pagination, used only by the get_review_comments method. Pass the endCursor from the previous page's PageInfo to fetch the next page."
+        },
+        "method": {
+          "type": "string",
+          "description": "Action to specify what pull request data needs to be retrieved from GitHub. \nPossible options: \n 1. get - Get details of a specific pull request.\n 2. get_diff - Get the diff of a pull request.\n 3. get_status - Get combined commit status of a head commit in a pull request.\n 4. get_files - Get the list of files changed in a pull request. Use with pagination parameters to control the number of results returned.\n 5. get_commits - Get the list of commits on a pull request. Use with pagination parameters to control the number of results returned.\n 6. get_review_comments - Get review threads on a pull request. Each thread contains logically grouped review comments made on the same code location during pull request reviews. Returns thread metadata and comments with nullable current and original line-range coordinates (line, start_line, original_line, original_start_line). Current coordinates are omitted when unavailable, such as for outdated comments. Use cursor-based pagination (perPage, after) to control results.\n 7. get_reviews - Get the reviews on a pull request. When asked for review comments, use get_review_comments method. Use with pagination parameters to control the number of results returned.\n 8. get_comments - Get comments on a pull request. Use this if user doesn't specifically want review comments. Use with pagination parameters to control the number of results returned.\n 9. get_check_runs - Get check runs for the head commit of a pull request. Check runs are the individual CI/CD jobs and checks that run on the PR.\n",
+          "enum": [
+            "get",
+            "get_diff",
+            "get_status",
+            "get_files",
+            "get_commits",
+            "get_review_comments",
+            "get_reviews",
+            "get_comments",
+            "get_check_runs"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "Repository owner",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "pullNumber": {
+          "type": "number",
+          "description": "Pull request number"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Repository name",
+          "x-mcp-header": "repo"
+        }
+      },
+      "required": [
+        "method",
+        "owner",
+        "repo",
+        "pullNumber"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__search_code": {
+    "server": "github",
+    "original": "search_code",
+    "description": "[github] Fast and precise code search across ALL GitHub repositories using GitHub's native search engine. Best for finding exact symbols, functions, classes, or specific code patterns.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "name",
+              "path",
+              "sha",
+              "repository",
+              "text_matches"
+            ]
+          },
+          "description": "Subset of fields to return for each code search result. If omitted, all fields are returned. Use this to reduce response size when you only need specific fields; omitting 'repository' and 'text_matches' in particular drops the largest per-result data."
+        },
+        "order": {
+          "type": "string",
+          "description": "Sort order for results",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query (GitHub code search REST). Implicit AND between terms; supports `OR`, `NOT`, and `\"quoted phrase\"` for exact match. Qualifiers: `repo:owner/repo`, `org:`, `user:`, `language:`, `path:dir` (prefix match), `filename:exact.ext`, `extension:`, `in:file`, `in:path`, `size:`, `is:archived`, `is:fork`. Max 256 chars. Examples: `WithContext language:go org:github`; `\"package main\" repo:o/r`; `func extension:go path:cmd repo:o/r`; `NOT TODO language:go repo:o/r`."
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort field ('indexed' only)"
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__search_issues": {
+    "server": "github",
+    "original": "search_issues",
+    "description": "[github] Search issues using natural-language semantic matching. Best for conceptual or paraphrased queries (e.g. \"login fails after password reset\"). Already scoped to is:issue.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "number",
+              "title",
+              "body",
+              "state",
+              "state_reason",
+              "draft",
+              "locked",
+              "html_url",
+              "user",
+              "author_association",
+              "labels",
+              "assignee",
+              "assignees",
+              "milestone",
+              "comments",
+              "reactions",
+              "created_at",
+              "updated_at",
+              "closed_at",
+              "closed_by",
+              "type",
+              "repository_url",
+              "pull_request",
+              "field_values"
+            ]
+          },
+          "description": "Subset of fields to return for each issue result. If omitted, all fields are returned. Use this to reduce response size when you only need specific fields; omitting 'body', 'reactions', and 'labels' in particular drops the largest per-result data."
+        },
+        "order": {
+          "type": "string",
+          "description": "Sort order",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "Optional repository owner. If provided with repo, only issues for this repository are listed.",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "query": {
+          "type": "string",
+          "description": "The search query, as natural language. When the user gives alternative wordings, include them as plain words rather than joining them with OR."
+        },
+        "repo": {
+          "type": "string",
+          "description": "Optional repository name. If provided with owner, only issues for this repository are listed.",
+          "x-mcp-header": "repo"
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort field by number of matches of categories, defaults to best match",
+          "enum": [
+            "comments",
+            "reactions",
+            "reactions-+1",
+            "reactions--1",
+            "reactions-smile",
+            "reactions-thinking_face",
+            "reactions-heart",
+            "reactions-tada",
+            "interactions",
+            "created",
+            "updated"
+          ]
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__search_pull_requests": {
+    "server": "github",
+    "original": "search_pull_requests",
+    "description": "[github] Search for pull requests in GitHub repositories using issues search syntax already scoped to is:pr",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "number",
+              "title",
+              "body",
+              "state",
+              "state_reason",
+              "draft",
+              "locked",
+              "html_url",
+              "user",
+              "author_association",
+              "labels",
+              "assignee",
+              "assignees",
+              "milestone",
+              "comments",
+              "reactions",
+              "created_at",
+              "updated_at",
+              "closed_at",
+              "closed_by",
+              "pull_request",
+              "repository_url"
+            ]
+          },
+          "description": "Subset of fields to return for each pull request result. If omitted, all fields are returned. Use this to reduce response size when you only need specific fields; omitting 'body', 'reactions', and 'labels' in particular drops the largest per-result data."
+        },
+        "order": {
+          "type": "string",
+          "description": "Sort order",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "description": "Optional repository owner. If provided with repo, only pull requests for this repository are listed.",
+          "x-mcp-header": "owner"
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query using GitHub pull request search syntax"
+        },
+        "repo": {
+          "type": "string",
+          "description": "Optional repository name. If provided with owner, only pull requests for this repository are listed.",
+          "x-mcp-header": "repo"
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort field by number of matches of categories, defaults to best match",
+          "enum": [
+            "comments",
+            "reactions",
+            "reactions-+1",
+            "reactions--1",
+            "reactions-smile",
+            "reactions-thinking_face",
+            "reactions-heart",
+            "reactions-tada",
+            "interactions",
+            "created",
+            "updated"
+          ]
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__github__search_repositories": {
+    "server": "github",
+    "original": "search_repositories",
+    "description": "[github] Find GitHub repositories by name, description, readme, topics, or other metadata. Perfect for discovering projects, finding examples, or locating specific repositories across GitHub.",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "minimal_output": {
+          "type": "boolean",
+          "description": "Return minimal repository information (default: true). When false, modern clients receive additional curated repository details, not the complete GitHub API object. Legacy clients retain full GitHub API repository objects.",
+          "default": true
+        },
+        "order": {
+          "type": "string",
+          "description": "Sort order",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "page": {
+          "type": "number",
+          "description": "Page number for pagination (min 1)",
+          "minimum": 1
+        },
+        "perPage": {
+          "type": "number",
+          "description": "Results per page for pagination (min 1, max 100)",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "query": {
+          "type": "string",
+          "description": "Repository search query. Examples: 'machine learning in:name stars:>1000 language:python', 'topic:react', 'user:facebook'. Supports advanced search syntax for precise filtering."
+        },
+        "sort": {
+          "type": "string",
+          "description": "Sort repositories by field, defaults to best match",
+          "enum": [
+            "stars",
+            "forks",
+            "help-wanted-issues",
+            "updated"
+          ]
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "effect": "read"
+  },
+  "mcp__filesystem__list_directory": {
+    "server": "filesystem",
+    "original": "list_directory",
+    "description": "[filesystem] List one directory in pages. Paths are relative to the configured root.",
+    "schema": {
+      "properties": {
+        "path": {
+          "default": ".",
+          "title": "Path",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 100,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "list_directoryArguments"
+    },
+    "effect": "read"
+  },
+  "mcp__filesystem__read_file": {
+    "server": "filesystem",
+    "original": "read_file",
+    "description": "[filesystem] Read UTF-8 lines and a whole-file sha256 for subsequent edits; at most 1 MiB.",
+    "schema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "start": {
+          "default": 1,
+          "title": "Start",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 200,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object",
+      "title": "read_fileArguments"
+    },
+    "effect": "read"
+  },
+  "mcp__filesystem__write_file": {
+    "server": "filesystem",
+    "original": "write_file",
+    "description": "[filesystem] Create a UTF-8 file, or replace it using the sha256 returned by read_file.\n\n            Parent directories must exist. Omitting expected_sha256 means create-only.\n            Concurrent external edits must be coordinated by the caller.\n            ",
+    "schema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "expected_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Sha256"
+        }
+      },
+      "required": [
+        "path",
+        "content"
+      ],
+      "type": "object",
+      "title": "write_fileArguments"
+    },
+    "effect": "write"
+  },
+  "mcp__filesystem__create_directory": {
+    "server": "filesystem",
+    "original": "create_directory",
+    "description": "[filesystem] Create one directory under an existing parent. Refuses existing paths.",
+    "schema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object",
+      "title": "create_directoryArguments"
+    },
+    "effect": "write"
+  },
+  "mcp__filesystem__delete_file": {
+    "server": "filesystem",
+    "original": "delete_file",
+    "description": "[filesystem] Delete one previously read file after checking its sha256. Never deletes directories.",
+    "schema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "expected_sha256": {
+          "title": "Expected Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "expected_sha256"
+      ],
+      "type": "object",
+      "title": "delete_fileArguments"
+    },
+    "effect": "write"
+  }
+}

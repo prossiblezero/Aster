@@ -1,0 +1,96 @@
+--- baseline/src/aster/tools/schemas.py
++++ candidate/src/aster/tools/schemas.py
+@@ -243,7 +243,7 @@
+     ),
+     "run_tests": (
+         RunTests,
+-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
++        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. A leading cd <workspace root> && is accepted. Prefer the project's documented test entry point and setup. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
+         "process",
+     ),
+     "observation_read": (
+--- baseline/src/aster/tools/testing.py
++++ candidate/src/aster/tools/testing.py
+@@ -31,7 +31,7 @@
+     for case in root.iter("testcase"):
+         if not case.get("name"):
+             raise ValueError("unnamed_junit_test")
+-        children = {child.tag for child in case}
++        children = {child.tag: child for child in case}
+         status = next(
+             (
+                 result
+@@ -44,9 +44,15 @@
+             ),
+             "passed",
+         )
++        detail = children.get("error")
++        if detail is None:
++            detail = children.get("failure")
+         cases.append(
+             {"name": case.get("name"), "classname": case.get("classname", ""), "status": status}
+         )
++        if detail is not None:
++            message = detail.get("message") or (detail.text or "").strip().split("\n")[-1]
++            cases[-1]["message"] = " ".join(message.split())[:180]
+     return cases
+ 
+ 
+@@ -61,6 +67,17 @@
+ ) -> Outcome:
+     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
+     argv = shlex.split(command)
++    if argv[:1] == ["cd"]:
++        # A redundant root chdir needs no shell, nor a second execution boundary.
++        prefix = 2 if argv[1:2] == ["--"] else 1
++        if len(argv) > prefix + 2 and argv[prefix + 1] == "&&":
++            try:
++                same_root = workspace.path(argv[prefix]) == workspace.root
++            except (OSError, ValueError):
++                same_root = False
++            if same_root and not any(c in argv[prefix] for c in ";|&><$`\n"):
++                argv = argv[prefix + 2:]
++                command = shlex.join(argv)
+     verification_command = shlex.join(argv)
+     python_paths = []
+     if len(argv) > 1 and argv[1] == "python" and (paths := local_python_paths(argv[0])):
+@@ -78,6 +95,7 @@
+             content=(
+                 "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, or go test without a .venv/bin/ "
+                 "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
++                "A leading cd <workspace root> && is accepted; other directory changes and compound commands are not. "
+                 "With reuse_environment enabled, installed "
+                 "project .venv dependencies are exposed automatically; keep them installed until "
+                 "verification finishes. Other commands belong in run_shell, which does not "
+@@ -303,7 +321,10 @@
+             program = """import os, sys
+ try:
+     import pytest
+-except ImportError:
++except ImportError as exc:
++    print('Cannot import pytest in the test interpreter: ' + str(exc), file=sys.stderr)
++    print('Use the documented project test script, or install its test dependencies. '
++          'python -m unittest requires unittest.TestCase tests and project setup.', file=sys.stderr)
+     raise SystemExit(127)
+ sys.path.insert(0, os.getcwd())
+ raise SystemExit(pytest.main(sys.argv[1:]))
+@@ -449,4 +470,19 @@
+             if test_results.get(key) != "failed":
+                 test_results[key] = status
+     result.data["test_results"] = test_results
++    if cases is not None:
++        counts = {status: sum(case["status"] == status for case in cases)
++                  for status in ("passed", "failed", "error", "skipped")}
++        lines = ["[Test report: " + ", ".join(f"{n} {status}" for status, n in counts.items())
++                 + "; outcome=" + result.status + ("/" + result.reason if result.reason else "") + "]"]
++        problems = sorted((case for case in cases if case["status"] in {"failed", "error"}),
++                          key=lambda case: case["status"] != "failed")
++        for case in problems[:8]:
++            identity = (case["classname"] + "::" + case["name"])[:240]
++            lines.append(f"{case['status']}: {identity}: {case.get('message', '')}")
++        if len(problems) > 8:
++            lines.append(f"{len(problems) - 8} more failures/errors in the full output.")
++        if counts["error"]:
++            lines.append("Framework errors are unresolved; these counts do not establish their cause.")
++        result.content = "\n".join(lines) + "\n\n" + result.content
+     return result

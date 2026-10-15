@@ -1,0 +1,88 @@
+{
+  "job": "aster-sympy__sympy-17630",
+  "agent": "aster",
+  "task": "sympy__sympy-17630",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 518.996,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 3370,
+  "patch_sha256": "bf668803f3c3a53526c6bf77ed65a489780b76cd9a6879c51c2a13e861568a62",
+  "requests": 24,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 570619,
+  "output_tokens": 7016,
+  "cached_tokens": 361472,
+  "total_tokens": 577635,
+  "final": "Formal verification completed successfully via `run_tests`:\n\n```text\npython -m unittest -q test_zero_blockmatrix_unittest\nRan 1 test in 0.003s\n\nOK\n```\n\nThe test exercises the real implementation and verifies repeated `_blockmul`, `block_collapse`, and preservation of `ZeroMatrix` block shape.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 24,
+    "step": 38,
+    "final_revisions": 1,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "a0cd4a301b367fbe27ff08516f3f29a7ae1c35359e56446875dd50edffc50866",
+      "evidence_id": "3842176cf181dbdd05670c97d7c78453c3e31bcb86276c950b63b674edaa9a80",
+      "command": "python -m unittest -q test_zero_blockmatrix_unittest"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "test_issue_17624"
+        ],
+        "failure": [
+          "test_zero_matrix_add"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "test_bc_matmul",
+          "test_bc_matadd",
+          "test_bc_transpose",
+          "test_bc_dist_diag",
+          "test_block_plus_ident",
+          "test_BlockMatrix",
+          "test_block_collapse_explicit_matrices",
+          "test_BlockMatrix_trace",
+          "test_BlockMatrix_Determinant",
+          "test_squareBlockMatrix",
+          "test_BlockDiagMatrix",
+          "test_blockcut",
+          "test_reblock_2x2",
+          "test_deblock",
+          "test_sort_key",
+          "test_matadd_sympify",
+          "test_matadd_of_matrices",
+          "test_doit_args",
+          "test_generic_identity"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

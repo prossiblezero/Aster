@@ -1,0 +1,55 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..8f39d6a 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -444,7 +444,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 (body, content_type) = self._encode_files(files, data)
+             else:
+                 if data:
+-                    body = self._encode_params(data)
++                    body = data if isinstance(data, bytes) else self._encode_params(data)
+                     if isinstance(data, basestring) or hasattr(data, 'read'):
+                         content_type = None
+                     else:
+diff --git a/requests/packages/urllib3/connection.py b/requests/packages/urllib3/connection.py
+index bb7f3e5..fc3b966 100644
+--- a/requests/packages/urllib3/connection.py
++++ b/requests/packages/urllib3/connection.py
+@@ -1,5 +1,6 @@
+ from __future__ import absolute_import
+ import datetime
++import errno
+ import os
+ import sys
+ import socket
+@@ -142,6 +143,13 @@ class HTTPConnection(_HTTPConnection, object):
+                 (self.host, self.timeout))
+ 
+         except SocketError as e:
++            # Some platforms report an unreachable route immediately instead
++            # of allowing the finite connect timeout to expire.
++            if (self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT and
++                    e.errno in (errno.EHOSTUNREACH, errno.ENETUNREACH)):
++                raise ConnectTimeoutError(
++                    self, "Connection to %s timed out. (connect timeout=%s)" %
++                    (self.host, self.timeout))
+             raise NewConnectionError(
+                 self, "Failed to establish a new connection: %s" % e)
+ 
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..a5783a6 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -157,6 +157,12 @@ class TestRequests(object):
+                                    params=b'test=foo').prepare()
+         assert request.url == 'http://example.com/?test=foo'
+ 
++    def test_bytes_body_is_not_decoded(self):
++        data = u('ööö').encode('utf-8')
++        request = requests.Request('PUT', 'http://example.com', data=data).prepare()
++        assert request.body == data
++        assert request.headers['Content-Length'] == str(len(data))
++
+     def test_mixed_case_scheme_acceptable(self, httpbin):
+         s = requests.Session()
+         s.proxies = getproxies()

@@ -1,0 +1,35 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 0683f3a..481dd1f 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -376,6 +376,7 @@ class Apps:
+         # Call expire cache on each model. This will purge
+         # the relation tree and the fields cache.
+         self.get_models.cache_clear()
++        self.get_swappable_settings_name.cache_clear()
+         if self.ready:
+             # Circumvent self.get_models() to prevent that the cache is refilled.
+             # This particularly prevents that an empty value is cached while cloning.
+diff --git a/tests/apps/tests.py b/tests/apps/tests.py
+index 9f989c5..efe4a52 100644
+--- a/tests/apps/tests.py
++++ b/tests/apps/tests.py
+@@ -327,6 +327,18 @@ class AppsTests(SimpleTestCase):
+         finally:
+             apps.apps_ready = True
+ 
++    @isolate_apps("apps", kwarg_name="apps")
++    def test_clear_cache_clears_swappable_settings_name(self, apps):
++        class SwappableModel(models.Model):
++            class Meta:
++                swappable = "TEST_MODEL"
++
++        self.assertEqual(
++            apps.get_swappable_settings_name("apps.swappablemodel"), "TEST_MODEL"
++        )
++        apps.set_available_apps([])
++        self.assertIsNone(apps.get_swappable_settings_name("apps.swappablemodel"))
++
+     @isolate_apps("apps", kwarg_name="apps")
+     def test_lazy_model_operation(self, apps):
+         """

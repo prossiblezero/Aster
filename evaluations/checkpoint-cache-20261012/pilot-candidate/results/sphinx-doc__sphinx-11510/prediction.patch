@@ -1,0 +1,112 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..62625a4 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
+-from docutils import nodes
++from docutils import io, nodes
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+ from docutils.parsers.rst.directives.misc import Class
+@@ -369,14 +369,38 @@ class Include(BaseInclude, SphinxDirective):
+     """
+ 
+     def run(self) -> list[Node]:
+-        if self.arguments[0].startswith('<') and \
+-           self.arguments[0].endswith('>'):
+-            # docutils "standard" includes, do not do path processing
++        if not (self.arguments[0].startswith('<') and
++                self.arguments[0].endswith('>')):
++            rel_filename, filename = self.env.relfn2path(self.arguments[0])
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++
++        # Included files are read by docutils without going through
++        # SphinxStandaloneReader.read_source(), so source-read would otherwise
++        # only see the containing document.  Intercept FileInput for the
++        # duration of this include and emit the event before docutils applies
++        # include options or inserts the source into the state machine.
++        original_file_input = io.FileInput
++        directive = self
++
++        class IncludeInput(original_file_input):
++            def _emit_source_read(self, source: str) -> str:
++                arg = [source]
++                directive.env.events.emit('source-read', directive.env.docname, arg)
++                return arg[0]
++
++            def read(self) -> str:
++                return self._emit_source_read(super().read())
++
++            def readlines(self) -> list[str]:
++                source = self._emit_source_read(''.join(super().readlines()))
++                return source.splitlines(keepends=True)
++
++        io.FileInput = IncludeInput
++        try:
+             return super().run()
+-        rel_filename, filename = self.env.relfn2path(self.arguments[0])
+-        self.arguments[0] = filename
+-        self.env.note_included(filename)
+-        return super().run()
++        finally:
++            io.FileInput = original_file_input
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/tests/roots/test-source-read-include/conf.py b/tests/roots/test-source-read-include/conf.py
+new file mode 100644
+index 0000000..3d3b155
+--- /dev/null
++++ b/tests/roots/test-source-read-include/conf.py
+@@ -0,0 +1,8 @@
++project = 'test'
++
++
++def setup(app):
++    def replace(app, docname, source):
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++    app.connect('source-read', replace)
+diff --git a/tests/roots/test-source-read-include/included.rst b/tests/roots/test-source-read-include/included.rst
+new file mode 100644
+index 0000000..0cc6ba3
+--- /dev/null
++++ b/tests/roots/test-source-read-include/included.rst
+@@ -0,0 +1,4 @@
++Included
++========
++
++&REPLACE_ME;
+diff --git a/tests/roots/test-source-read-include/index.rst b/tests/roots/test-source-read-include/index.rst
+new file mode 100644
+index 0000000..2264ed4
+--- /dev/null
++++ b/tests/roots/test-source-read-include/index.rst
+@@ -0,0 +1,6 @@
++Test
++====
++
++.. include:: included.rst
++
++&REPLACE_ME;
+diff --git a/tests/test_directive_other.py b/tests/test_directive_other.py
+index f221db0..4f477cf 100644
+--- a/tests/test_directive_other.py
++++ b/tests/test_directive_other.py
+@@ -148,3 +148,12 @@ def test_toctree_twice(app):
+     assert_node(doctree[0][0],
+                 entries=[(None, 'foo'), (None, 'foo')],
+                 includefiles=['foo', 'foo'])
++
++
++@pytest.mark.sphinx(buildername='html', testroot='source-read-include')
++def test_source_read_event_for_include(app):
++    app.build()
++
++    html = (app.outdir / 'index.html').read_text(encoding='utf8')
++    assert html.count('REPLACED') == 2
++    assert 'REPLACE_ME' not in html

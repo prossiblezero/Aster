@@ -1,0 +1,90 @@
+diff --git a/pylint/config/argument.py b/pylint/config/argument.py
+index 30a5fd1..2dcce4d 100644
+--- a/pylint/config/argument.py
++++ b/pylint/config/argument.py
+@@ -112,9 +112,39 @@ def _regex_transformer(value: str) -> Pattern[str]:
+ 
+ 
+ def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
+-    """Transforms a comma separated list of regular expressions."""
++    """Transforms a comma separated list of regular expressions.
++
++    Commas in repetition quantifiers are part of a regular expression rather
++    than separators. An escaped comma can be used for other regular
++    expressions containing commas.
++    """
++    if isinstance(value, (list, tuple)):
++        values = value
++    else:
++        values: list[str] = []
++        start = 0
++        escaped = False
++        in_quantifier = False
++        for index, character in enumerate(value):
++            if escaped:
++                escaped = False
++            elif character == "\\":
++                escaped = True
++            elif character == "{":
++                in_quantifier = True
++            elif character == "}":
++                in_quantifier = False
++            elif character == "," and not in_quantifier:
++                pattern = value[start:index].strip()
++                if pattern:
++                    values.append(pattern)
++                start = index + 1
++        pattern = value[start:].strip()
++        if pattern:
++            values.append(pattern)
++
+     patterns: list[Pattern[str]] = []
+-    for pattern in _csv_transformer(value):
++    for pattern in values:
+         patterns.append(_regex_transformer(pattern))
+     return patterns
+ 
+diff --git a/tests/config/test_config.py b/tests/config/test_config.py
+index 83c8b07..56d02b8 100644
+--- a/tests/config/test_config.py
++++ b/tests/config/test_config.py
+@@ -11,6 +11,7 @@ from tempfile import TemporaryDirectory
+ import pytest
+ from pytest import CaptureFixture
+ 
++from pylint.config.argument import _regexp_csv_transfomer
+ from pylint.config.exceptions import ArgumentPreprocessingError
+ from pylint.interfaces import CONFIDENCE_LEVEL_NAMES
+ from pylint.lint import Run as LintRun
+@@ -131,20 +132,23 @@ def test_regex_error(capsys: CaptureFixture) -> None:
+     assert assertString in output.err
+ 
+ 
++def test_csv_regex_supports_commas_in_regexes() -> None:
++    patterns = _regexp_csv_transfomer(r"(foo{1,3}), bar\,baz")
++
++    assert [pattern.pattern for pattern in patterns] == ["(foo{1,3})", r"bar\,baz"]
++    assert patterns[0].fullmatch("fooo")
++    assert patterns[1].fullmatch("bar,baz")
++
++
+ def test_csv_regex_error(capsys: CaptureFixture) -> None:
+-    """Check that we correctly error when an option is passed and one
+-    of its comma-separated regular expressions values is an invalid regular expression.
+-    """
++    """Check that we correctly error on an invalid regular expression."""
+     with pytest.raises(SystemExit):
+         Run(
+-            [str(EMPTY_MODULE), r"--bad-names-rgx=(foo{1,3})"],
++            [str(EMPTY_MODULE), r"--bad-names-rgx=(foo{1,3"],
+             exit=False,
+         )
+     output = capsys.readouterr()
+-    assert (
+-        r"Error in provided regular expression: (foo{1 beginning at index 0: missing ), unterminated subpattern"
+-        in output.err
+-    )
++    assert "Error in provided regular expression" in output.err
+ 
+ 
+ def test_short_verbose(capsys: CaptureFixture) -> None:

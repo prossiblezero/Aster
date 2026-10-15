@@ -1,0 +1,69 @@
+diff --git a/sphinx/parsers.py b/sphinx/parsers.py
+index 1269884..fe610d6 100644
+--- a/sphinx/parsers.py
++++ b/sphinx/parsers.py
+@@ -46,6 +46,17 @@ class Parser(docutils.parsers.Parser):
+         self.env = app.env
+ 
+ 
++class SphinxRSTStateMachine(states.RSTStateMachine):
++    """RST state machine which processes source inserted by ``include``."""
++
++    def insert_input(self, input_lines: list[str], source: str) -> None:
++        source_text = '\n'.join(input_lines)
++        arg = [source_text]
++        docname = self._sphinx_env.path2doc(source) or self._sphinx_env.docname
++        self._sphinx_env.events.emit('source-read', docname, arg)
++        super().insert_input(arg[0].split('\n'), source)
++
++
+ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     """A reST parser for Sphinx."""
+ 
+@@ -62,11 +73,11 @@ class RSTParser(docutils.parsers.rst.Parser, Parser):
+     def parse(self, inputstring: str | StringList, document: nodes.document) -> None:
+         """Parse text and generate a document tree."""
+         self.setup_parse(inputstring, document)  # type: ignore[arg-type]
+-        self.statemachine = states.RSTStateMachine(
++        self.statemachine = SphinxRSTStateMachine(
+             state_classes=self.state_classes,
+             initial_state=self.initial_state,
+             debug=document.reporter.debug_flag)
+-
++        self.statemachine._sphinx_env = self.env
+         # preprocess inputstring
+         if isinstance(inputstring, str):
+             lines = docutils.statemachine.string2lines(
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 86163c6..d1ff1fb 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -55,3 +55,28 @@ def test_RSTParser_prolog_epilog(RSTStateMachine, app):
+     (content, _), _ = RSTStateMachine().run.call_args
+     assert list(content.xitems()) == [('dummy.rst', 0, '        hello Sphinx world'),
+                                       ('dummy.rst', 1, '  Sphinx is a document generator')]
++
++
++@pytest.mark.sphinx(testroot='basic')
++def test_source_read_event_updates_included_source(app):
++    (app.srcdir / 'index.rst').write_text(
++        'Test\n====\n\n.. include:: included.rst\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++    (app.srcdir / 'included.rst').write_text(
++        'Included\n========\n\n&REPLACE_ME;\n',
++        encoding='utf8',
++    )
++    seen_docnames = []
++
++    def replace(app, docname, source):
++        seen_docnames.append(docname)
++        source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++    app.connect('source-read', replace)
++    app.build(force_all=True)
++
++    output = (app.outdir / 'index.html').read_text(encoding='utf8')
++    assert output.count('REPLACED') == 2, seen_docnames
++    assert '&amp;REPLACE_ME;' not in output
++    assert 'included' in seen_docnames

@@ -1,0 +1,81 @@
+{
+  "job": "pi-pydata__xarray-3677",
+  "agent": "pi",
+  "task": "pydata__xarray-3677",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 212.484,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": true,
+  "patch_bytes": 1220,
+  "patch_sha256": "98d29584b277a1d6ce181424e48dc4403e87aa953880c536397d82b6df2e2273",
+  "requests": 10,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 145389,
+  "output_tokens": 1821,
+  "cached_tokens": 115712,
+  "total_tokens": 147210,
+  "final": "Implemented the fix for `Dataset.merge(DataArray)`.\n\nChanges:\n- Normalize a `DataArray` to a `Dataset` inside `dataset_merge_method`.\n- Added a regression test confirming `ds.merge(da)` matches `xr.merge([ds, da])`.\n\nVerification:\n- `python -m pytest xarray/tests/test_merge.py -q`\n- Result: `22 passed`\n- Manual merge check also produced the expected dataset containing variables `a` and `b`.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "old20",
+  "difficulty": "15 min - 1 hour",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_dataarray"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "xarray/tests/test_merge.py::TestMergeInternals::test_broadcast_dimension_size",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_arrays",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_datasets",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dataarray_unnamed",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_simple",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_dicts_dims",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_alignment_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_wrong_input_error",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_single_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_multi_var",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_preserve_attrs",
+          "xarray/tests/test_merge.py::TestMergeFunction::test_merge_no_conflicts_broadcast",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_broadcast_equals",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_compat",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_auto_align",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[fill_value0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_fill_value[2.0]",
+          "xarray/tests/test_merge.py::TestMergeMethod::test_merge_no_conflicts"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "normal_delivery_and_passed": true,
+  "provider_fault_observed": false
+}

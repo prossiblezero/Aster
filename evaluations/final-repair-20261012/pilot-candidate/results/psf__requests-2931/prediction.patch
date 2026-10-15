@@ -1,0 +1,46 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index 6266d5b..9b2d85a 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -427,9 +427,7 @@ class HTTPAdapter(BaseAdapter):
+ 
+         except MaxRetryError as e:
+             if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
++                raise ConnectTimeout(e, request=request)
+ 
+             if isinstance(e.reason, ResponseError):
+                 raise RetryError(e, request=request)
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..8f39d6a 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -444,7 +444,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 (body, content_type) = self._encode_files(files, data)
+             else:
+                 if data:
+-                    body = self._encode_params(data)
++                    body = data if isinstance(data, bytes) else self._encode_params(data)
+                     if isinstance(data, basestring) or hasattr(data, 'read'):
+                         content_type = None
+                     else:
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..e0b26b1 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -157,6 +157,13 @@ class TestRequests(object):
+                                    params=b'test=foo').prepare()
+         assert request.url == 'http://example.com/?test=foo'
+ 
++    def test_bytes_data_is_not_decoded(self):
++        data = u'ööö'.encode('utf-8')
++        request = requests.Request('PUT', 'http://example.com',
++                                   data=data).prepare()
++        assert request.body == data
++        assert request.headers['Content-Length'] == str(len(data))
++
+     def test_mixed_case_scheme_acceptable(self, httpbin):
+         s = requests.Session()
+         s.proxies = getproxies()

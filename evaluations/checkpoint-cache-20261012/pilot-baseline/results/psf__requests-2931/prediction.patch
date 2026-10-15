@@ -1,0 +1,61 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index 6266d5b..9b2d85a 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -427,9 +427,7 @@ class HTTPAdapter(BaseAdapter):
+ 
+         except MaxRetryError as e:
+             if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
++                raise ConnectTimeout(e, request=request)
+ 
+             if isinstance(e.reason, ResponseError):
+                 raise RetryError(e, request=request)
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..3ddc1e9 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -81,7 +81,7 @@ class RequestEncodingMixin(object):
+         """
+ 
+         if isinstance(data, (str, bytes)):
+-            return to_native_string(data)
++            return data
+         elif hasattr(data, 'read'):
+             return data
+         elif hasattr(data, '__iter__'):
+@@ -386,6 +386,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 fragment = fragment.encode('utf-8')
+ 
+         enc_params = self._encode_params(params)
++        if isinstance(enc_params, bytes):
++            enc_params = to_native_string(enc_params)
+         if enc_params:
+             if query:
+                 query = '%s&%s' % (query, enc_params)
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..af5d505 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -1666,6 +1666,19 @@ def test_data_argument_accepts_tuples(list_of_tuples):
+         assert p.body == urlencode(data)
+ 
+ 
++def test_prepared_request_preserves_binary_body():
++    body = u('ööö').encode('utf-8')
++    p = PreparedRequest()
++    p.prepare(
++        method='PUT',
++        url='http://www.example.com',
++        data=body,
++        hooks=default_hooks()
++    )
++    assert p.body == body
++    assert p.headers['Content-Length'] == str(len(body))
++
++
+ def assert_copy(p, p_copy):
+     for attr in ('method', 'url', 'headers', '_cookies', 'body', 'hooks'):
+         assert getattr(p, attr) == getattr(p_copy, attr)

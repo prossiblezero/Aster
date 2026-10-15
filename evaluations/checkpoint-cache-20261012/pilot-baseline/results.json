@@ -1,0 +1,381 @@
+[
+  {
+    "job": "aster-django__django-17029",
+    "agent": "aster",
+    "task": "django__django-17029",
+    "smoke": false,
+    "exit_code": 0,
+    "seconds": 312.704,
+    "timed_out": false,
+    "kind": "repository",
+    "previously_used": false,
+    "patch_bytes": 1471,
+    "patch_sha256": "9aab5190d07d5cd5a3819f08494c088d9a321a3281f821e5d49fb2e75f70782e",
+    "requests": 16,
+    "missing_usage": 0,
+    "request_errors": 0,
+    "input_tokens": 341024,
+    "output_tokens": 3077,
+    "cached_tokens": 191488,
+    "total_tokens": 344101,
+    "final": "Implemented the app registry cache fix.\n\nChanges:\n- Added `self.get_swappable_settings_name.cache_clear()` to [`django/apps/registry.py`](/testbed/django/apps/registry.py:370).\n- Added a regression test covering cache invalidation after restricting available apps in [`tests/apps/tests.py`](/testbed/tests/apps/tests.py:255).\n\nVerification:\n- Focused test passed: 1 test.\n- Public apps test label passed: 44 tests.\n\nCommand:\n```text\npython tests/runtests.py --settings=test_sqlite --parallel 1 apps\n```\n\nResult: `OK`",
+    "phase": "completed",
+    "stop_reason": "verified",
+    "runtime": {
+      "turn": 15,
+      "step": 27,
+      "final_revisions": 0,
+      "verification": {
+        "state": "passed",
+        "workspace_hash": "3706b0e7844d2a956a67b8c37cdbe9fa3c5c32d76f5d9fe3ebd7983b68f2fbcd",
+        "evidence_id": "abb17c45e27551d634e599bb7bf09f4a5b453b0cb340de2f8767acf1a1b49224",
+        "command": "python tests/runtests.py --settings=test_sqlite --parallel 1 apps"
+      },
+      "verification_failures": {}
+    },
+    "grade": {
+      "patch_is_None": false,
+      "patch_exists": true,
+      "patch_successfully_applied": true,
+      "resolved": true,
+      "infra_failure": false,
+      "tests_status": {
+        "FAIL_TO_PASS": {
+          "success": [
+            "test_clear_cache (apps.tests.AppsTests.test_clear_cache)"
+          ],
+          "failure": []
+        },
+        "PASS_TO_PASS": {
+          "success": [
+            "test_app_default_auto_field (apps.tests.AppConfigTests.test_app_default_auto_field)",
+            "test_default_auto_field_setting (apps.tests.AppConfigTests.test_default_auto_field_setting)",
+            "If single element in __path__, use it (in preference to __file__).",
+            "If the __path__ attr contains duplicate paths and there is no",
+            "If the __path__ attr is empty, use __file__ if set.",
+            "If the __path__ attr is empty and there is no __file__, raise.",
+            "If path set as class attr, overrides __path__ and __file__.",
+            "test_invalid_label (apps.tests.AppConfigTests.test_invalid_label)",
+            "If the __path__ attr is length>1, use __file__ if set.",
+            "If the __path__ attr is length>1 and there is no __file__, raise.",
+            "If there is no __path__ attr, use __file__.",
+            "If there is no __path__ or __file__, raise ImproperlyConfigured.",
+            "If subclass sets path as class attr, no module attributes needed.",
+            "test_repr (apps.tests.AppConfigTests.test_repr)",
+            "A Py3.3+ namespace package with multiple locations cannot be an app.",
+            "Multiple locations are ok only if app-config has explicit path.",
+            "A Py3.3+ namespace package can be an app if it has only one path.",
+            "Tests when INSTALLED_APPS contains an incorrect app config.",
+            "test_duplicate_labels (apps.tests.AppsTests.test_duplicate_labels)",
+            "test_duplicate_names (apps.tests.AppsTests.test_duplicate_names)",
+            "Makes a new model at runtime and ensures it goes into the right place.",
+            "Tests apps.get_app_config().",
+            "Tests apps.get_app_configs().",
+            "apps.get_containing_app_config() should raise an exception if",
+            "Tests apps.get_model().",
+            "App discovery should preserve stack traces. Regression test for #22920.",
+            "Tests apps.is_installed().",
+            "Tests apps.lazy_model_operation().",
+            "Test for behavior when two models clash in the app registry.",
+            "apps.get_models() raises an exception if apps.models_ready isn't True.",
+            "The models in the models.py file were loaded correctly.",
+            "Load an app that doesn't provide an AppConfig class.",
+            "Tests when INSTALLED_APPS contains an app that doesn't exist, either",
+            "test_no_such_app_config (apps.tests.AppsTests.test_no_such_app_config)",
+            "test_no_such_app_config_with_choices (apps.tests.AppsTests.test_no_such_app_config_with_choices)",
+            "Tests when INSTALLED_APPS contains a class that isn't an app config.",
+            "Load an app that provides an AppConfig class.",
+            "Tests the ready property of the main registry.",
+            "test_relabeling (apps.tests.AppsTests.test_relabeling)",
+            "Only one main registry can exist.",
+            "Load an app that provides two AppConfig classes.",
+            "Load an app that provides two AppConfig classes, one being the default.",
+            "Load an app that provides two default AppConfig classes."
+          ],
+          "failure": []
+        },
+        "FAIL_TO_FAIL": {
+          "success": [],
+          "failure": []
+        },
+        "PASS_TO_FAIL": {
+          "success": [],
+          "failure": []
+        }
+      }
+    },
+    "graded": true,
+    "passed": true,
+    "grading_error": false,
+    "original_passed": true
+  },
+  {
+    "job": "aster-psf__requests-2931",
+    "agent": "aster",
+    "task": "psf__requests-2931",
+    "smoke": false,
+    "exit_code": 124,
+    "seconds": 900.103,
+    "timed_out": true,
+    "kind": "repository",
+    "previously_used": false,
+    "patch_bytes": 2204,
+    "patch_sha256": "b8c2756260c151c8e0f7a98a917a1c2c2ead837845941482e03a76a8428f2d05",
+    "requests": 24,
+    "missing_usage": 1,
+    "request_errors": 1,
+    "input_tokens": 613989,
+    "output_tokens": 5571,
+    "cached_tokens": 399360,
+    "total_tokens": 619560,
+    "final": "",
+    "phase": null,
+    "stop_reason": null,
+    "runtime": {
+      "turn": null,
+      "step": null,
+      "final_revisions": null,
+      "verification": null,
+      "verification_failures": null
+    },
+    "grade": {
+      "patch_is_None": false,
+      "patch_exists": true,
+      "patch_successfully_applied": true,
+      "resolved": true,
+      "infra_failure": false,
+      "tests_status": {
+        "FAIL_TO_PASS": {
+          "success": [
+            "test_requests.py::TestRequests::test_binary_put"
+          ],
+          "failure": []
+        },
+        "PASS_TO_PASS": {
+          "success": [
+            "test_requests.py::TestRequests::test_entry_points",
+            "test_requests.py::TestRequests::test_invalid_url",
+            "test_requests.py::TestRequests::test_basic_building",
+            "test_requests.py::TestRequests::test_path_is_not_double_encoded",
+            "test_requests.py::TestRequests::test_params_are_added_before_fragment",
+            "test_requests.py::TestRequests::test_params_original_order_is_preserved_by_default",
+            "test_requests.py::TestRequests::test_params_bytes_are_encoded",
+            "test_requests.py::TestRequests::test_connection_error_invalid_domain",
+            "test_requests.py::TestRequests::test_connection_error_invalid_port",
+            "test_requests.py::TestRequests::test_LocationParseError",
+            "test_requests.py::TestRequests::test_links",
+            "test_requests.py::TestRequests::test_cookie_parameters",
+            "test_requests.py::TestRequests::test_cookie_as_dict_keeps_len",
+            "test_requests.py::TestRequests::test_cookie_as_dict_keeps_items",
+            "test_requests.py::TestRequests::test_cookie_as_dict_keys",
+            "test_requests.py::TestRequests::test_cookie_as_dict_values",
+            "test_requests.py::TestRequests::test_cookie_as_dict_items",
+            "test_requests.py::TestRequests::test_response_is_iterable",
+            "test_requests.py::TestRequests::test_response_decode_unicode",
+            "test_requests.py::TestRequests::test_get_auth_from_url",
+            "test_requests.py::TestRequests::test_get_auth_from_url_encoded_spaces",
+            "test_requests.py::TestRequests::test_get_auth_from_url_not_encoded_spaces",
+            "test_requests.py::TestRequests::test_get_auth_from_url_percent_chars",
+            "test_requests.py::TestRequests::test_get_auth_from_url_encoded_hashes",
+            "test_requests.py::TestRequests::test_http_error",
+            "test_requests.py::TestRequests::test_transport_adapter_ordering",
+            "test_requests.py::TestRequests::test_long_authinfo_in_url",
+            "test_requests.py::TestRequests::test_nonhttp_schemes_dont_check_URLs",
+            "test_requests.py::TestRequests::test_basic_auth_str_is_always_native",
+            "test_requests.py::TestContentEncodingDetection::test_html4_pragma",
+            "test_requests.py::TestContentEncodingDetection::test_html_charset",
+            "test_requests.py::TestContentEncodingDetection::test_none",
+            "test_requests.py::TestContentEncodingDetection::test_precedence",
+            "test_requests.py::TestContentEncodingDetection::test_xhtml_pragma",
+            "test_requests.py::TestContentEncodingDetection::test_xml",
+            "test_requests.py::TestCaseInsensitiveDict::test_contains",
+            "test_requests.py::TestCaseInsensitiveDict::test_copy",
+            "test_requests.py::TestCaseInsensitiveDict::test_delitem",
+            "test_requests.py::TestCaseInsensitiveDict::test_docstring_example",
+            "test_requests.py::TestCaseInsensitiveDict::test_equality",
+            "test_requests.py::TestCaseInsensitiveDict::test_fixes_649",
+            "test_requests.py::TestCaseInsensitiveDict::test_get",
+            "test_requests.py::TestCaseInsensitiveDict::test_getitem",
+            "test_requests.py::TestCaseInsensitiveDict::test_iter",
+            "test_requests.py::TestCaseInsensitiveDict::test_iterable_init",
+            "test_requests.py::TestCaseInsensitiveDict::test_kwargs_init",
+            "test_requests.py::TestCaseInsensitiveDict::test_len",
+            "test_requests.py::TestCaseInsensitiveDict::test_lower_items",
+            "test_requests.py::TestCaseInsensitiveDict::test_mapping_init",
+            "test_requests.py::TestCaseInsensitiveDict::test_preserve_key_case",
+            "test_requests.py::TestCaseInsensitiveDict::test_preserve_last_key_case",
+            "test_requests.py::TestCaseInsensitiveDict::test_setdefault",
+            "test_requests.py::TestCaseInsensitiveDict::test_update",
+            "test_requests.py::TestCaseInsensitiveDict::test_update_retains_unchanged",
+            "test_requests.py::UtilsTestCase::test_address_in_network",
+            "test_requests.py::UtilsTestCase::test_dotted_netmask",
+            "test_requests.py::UtilsTestCase::test_get_auth_from_url",
+            "test_requests.py::UtilsTestCase::test_get_environ_proxies",
+            "test_requests.py::UtilsTestCase::test_get_environ_proxies_ip_ranges",
+            "test_requests.py::UtilsTestCase::test_guess_filename_when_filename_is_an_int",
+            "test_requests.py::UtilsTestCase::test_guess_filename_when_int",
+            "test_requests.py::UtilsTestCase::test_guess_filename_with_file_like_obj",
+            "test_requests.py::UtilsTestCase::test_guess_filename_with_unicode_name",
+            "test_requests.py::UtilsTestCase::test_is_ipv4_address",
+            "test_requests.py::UtilsTestCase::test_is_valid_cidr",
+            "test_requests.py::UtilsTestCase::test_requote_uri_properly_requotes",
+            "test_requests.py::UtilsTestCase::test_requote_uri_with_unquoted_percents",
+            "test_requests.py::UtilsTestCase::test_select_proxies",
+            "test_requests.py::UtilsTestCase::test_super_len_correctly_calculates_len_of_partially_read_file",
+            "test_requests.py::UtilsTestCase::test_super_len_io_streams",
+            "test_requests.py::TestMorselToCookieExpires::test_expires_invalid_int",
+            "test_requests.py::TestMorselToCookieExpires::test_expires_invalid_str",
+            "test_requests.py::TestMorselToCookieExpires::test_expires_none",
+            "test_requests.py::TestMorselToCookieExpires::test_expires_valid_str",
+            "test_requests.py::TestMorselToCookieMaxAge::test_max_age_invalid_str",
+            "test_requests.py::TestMorselToCookieMaxAge::test_max_age_valid_int",
+            "test_requests.py::TestTimeout::test_connect_timeout",
+            "test_requests.py::TestTimeout::test_total_timeout_connect",
+            "test_requests.py::test_data_argument_accepts_tuples",
+            "test_requests.py::test_prepared_request_empty_copy",
+            "test_requests.py::test_prepared_request_no_cookies_copy",
+            "test_requests.py::test_prepared_request_complete_copy",
+            "test_requests.py::test_prepare_unicode_url",
+            "test_requests.py::test_vendor_aliases"
+          ],
+          "failure": []
+        },
+        "FAIL_TO_FAIL": {
+          "success": [],
+          "failure": []
+        },
+        "PASS_TO_FAIL": {
+          "success": [],
+          "failure": []
+        }
+      }
+    },
+    "graded": true,
+    "passed": true,
+    "grading_error": false,
+    "original_passed": true
+  },
+  {
+    "job": "aster-sphinx-doc__sphinx-11510",
+    "agent": "aster",
+    "task": "sphinx-doc__sphinx-11510",
+    "smoke": false,
+    "exit_code": 0,
+    "seconds": 628.979,
+    "timed_out": false,
+    "kind": "repository",
+    "previously_used": false,
+    "patch_bytes": 8353,
+    "patch_sha256": "b60954995c626dae36a96d387fad4c2979eebc30d5f4eb473f2cacb0295617d4",
+    "requests": 36,
+    "missing_usage": 1,
+    "request_errors": 1,
+    "input_tokens": 1224964,
+    "output_tokens": 12329,
+    "cached_tokens": 320512,
+    "total_tokens": 1237293,
+    "final": "Implemented the fix for `source-read` processing of included files.\n\nChanges:\n- Updated [`sphinx/directives/other.py`](/testbed/sphinx/directives/other.py:367) so included source is read, passed through `source-read`, and then parsed or inserted.\n- Preserved support for regular, literal, code, parser, clipping, dependency tracking, and circular-include handling.\n- Added regression coverage in [`tests/test_build.py`](/testbed/tests/test_build.py:57) covering replacement in both the parent document and an included file.\n\nVerification:\n- `python -m pytest tests/test_build.py`\n- Result: **11 passed**\n- Compilation and line-length checks passed.\n- Ruff could not run because the installed version rejects the repository’s existing `show-source` configuration; Flake8 is not installed.",
+    "phase": "completed",
+    "stop_reason": "verified",
+    "runtime": {
+      "turn": 34,
+      "step": 54,
+      "final_revisions": 0,
+      "verification": {
+        "state": "passed",
+        "workspace_hash": "7a37d329c2993d61e2bd94683a9de967a40b2ad01a7142d068acdfb1222bafb0",
+        "evidence_id": "d48faf82dac2b54839aef1f26f96ef16651f50e9fcdb4f79478498dc431a07bf",
+        "command": "python -m pytest tests/test_build.py"
+      },
+      "verification_failures": {}
+    },
+    "grade": {
+      "patch_is_None": false,
+      "patch_exists": true,
+      "patch_successfully_applied": true,
+      "resolved": false,
+      "infra_failure": false,
+      "tests_status": {
+        "FAIL_TO_PASS": {
+          "success": [
+            "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+          ],
+          "failure": [
+            "tests/test_directive_other.py::test_include_source_read_event"
+          ]
+        },
+        "PASS_TO_PASS": {
+          "success": [
+            "tests/test_directive_other.py::test_toctree",
+            "tests/test_directive_other.py::test_relative_toctree",
+            "tests/test_directive_other.py::test_toctree_urls_and_titles",
+            "tests/test_directive_other.py::test_toctree_glob",
+            "tests/test_directive_other.py::test_toctree_glob_and_url",
+            "tests/test_directive_other.py::test_reversed_toctree",
+            "tests/test_directive_other.py::test_toctree_twice"
+          ],
+          "failure": []
+        },
+        "FAIL_TO_FAIL": {
+          "success": [],
+          "failure": []
+        },
+        "PASS_TO_FAIL": {
+          "success": [],
+          "failure": []
+        }
+      }
+    },
+    "graded": true,
+    "passed": false,
+    "grading_error": false,
+    "original_passed": false
+  },
+  {
+    "job": "aster-terminal-schemelike-metacircular-eval",
+    "agent": "aster",
+    "task": "terminal-schemelike-metacircular-eval",
+    "smoke": false,
+    "exit_code": 0,
+    "seconds": 777.962,
+    "timed_out": false,
+    "kind": "terminal",
+    "previously_used": false,
+    "grade": {
+      "passed": false,
+      "exit_code": 1,
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+      "expected_tests": 1
+    },
+    "requests": 9,
+    "missing_usage": 5,
+    "request_errors": 5,
+    "input_tokens": 40306,
+    "output_tokens": 1042,
+    "cached_tokens": 15872,
+    "total_tokens": 41348,
+    "final": "",
+    "phase": "failed",
+    "stop_reason": "provider_error",
+    "runtime": {
+      "turn": 4,
+      "step": 10,
+      "final_revisions": 0,
+      "verification": {
+        "state": "missing",
+        "workspace_hash": "2f6ffc4d533fe77c44953aaa0919c1afd6a338017b0395273fa801aae5f150b1",
+        "evidence_id": "",
+        "command": ""
+      },
+      "verification_failures": {}
+    },
+    "graded": true,
+    "passed": false,
+    "grading_error": false,
+    "original_passed": true
+  }
+]

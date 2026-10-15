@@ -1,0 +1,158 @@
+[
+  {
+    "id": "github_repository",
+    "kind": "github",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n查找 earendil-works/pi 的 GitHub 仓库，返回 full_name 和 html_url。",
+    "gold": {
+      "full_name": "earendil-works/pi",
+      "html_url": "https://github.com/earendil-works/pi"
+    },
+    "tools": [
+      "mcp__github__search_repositories"
+    ],
+    "target": {
+      "owner": "earendil-works",
+      "repo": "pi"
+    }
+  },
+  {
+    "id": "github_package",
+    "kind": "github",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 earendil-works/pi 仓库提交 7d75a0e3eb273dff753d49c066ea29fbe7b3b6f6 的根目录 package.json，返回其中的 name、private 和 scripts.test（结果键为 test_script）。",
+    "gold": {
+      "name": "pi-monorepo",
+      "private": true,
+      "test_script": "npm run test:scripts && npm run test --workspaces --if-present"
+    },
+    "tools": [
+      "mcp__github__get_file_contents"
+    ],
+    "target": {
+      "owner": "earendil-works",
+      "repo": "pi",
+      "sha": "7d75a0e3eb273dff753d49c066ea29fbe7b3b6f6"
+    }
+  },
+  {
+    "id": "github_issue",
+    "kind": "github",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 openai/codex 仓库的 Issue #53509，返回 number、title 和作者登录名 author。",
+    "gold": {
+      "number": 53509,
+      "title": "Withdrawn by reporter",
+      "author": "AustinConlon"
+    },
+    "tools": [
+      "mcp__github__issue_read"
+    ],
+    "target": {
+      "owner": "openai",
+      "repo": "codex",
+      "issue_number": 53509
+    }
+  },
+  {
+    "id": "github_commit",
+    "kind": "github",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 openai/codex 仓库提交 12cca49c81c8aa6a37a5cc4e39964ee3b70f9458，返回完整 sha 和提交说明首行 subject。",
+    "gold": {
+      "sha": "12cca49c81c8aa6a37a5cc4e39964ee3b70f9458",
+      "subject": "Reject duplicate Host headers in the network proxy (#53506)"
+    },
+    "tools": [
+      "mcp__github__get_commit"
+    ],
+    "target": {
+      "owner": "openai",
+      "repo": "codex",
+      "sha": "12cca49c81c8aa6a37a5cc4e39964ee3b70f9458"
+    }
+  },
+  {
+    "id": "files_inventory",
+    "kind": "files",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n列出 input 目录中的文件，读取其中的 project.json，返回排序后的直接子项名称列表 files、配置中的 owner 和 retries。",
+    "files": {
+      "input/project.json": "{\"owner\":\"Lin\",\"retries\":4,\"region\":\"cn-east\"}\n",
+      "input/notes.txt": "Fixture notes.\n",
+      "input/data.csv": "id,value\na,7\n"
+    },
+    "gold": {
+      "files": [
+        "data.csv",
+        "notes.txt",
+        "project.json"
+      ],
+      "owner": "Lin",
+      "retries": 4
+    },
+    "tools": [
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_file"
+    ],
+    "target": {}
+  },
+  {
+    "id": "files_create",
+    "kind": "files",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 sales.csv，计算 quantity 总和和 quantity×price_cents 的总和。创建 reports 目录，将结果写入 reports/totals.json，内容为 JSON 对象 {\"quantity\":整数,\"revenue_cents\":整数}，读回核对。最终返回同一 JSON 对象。",
+    "files": {
+      "sales.csv": "item,quantity,price_cents\npen,3,120\nbook,2,750\nclip,5,40\n"
+    },
+    "gold": {
+      "quantity": 10,
+      "revenue_cents": 2060
+    },
+    "product": "reports/totals.json",
+    "tools": [
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__write_file"
+    ],
+    "target": {}
+  },
+  {
+    "id": "files_update",
+    "kind": "files",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 config.json，把 retries 改为 5、timeout_seconds 改为 12，其余字段保留。使用服务的文件哈希前置条件安全更新并读回核对。最终返回更新后的完整 JSON。",
+    "files": {
+      "config.json": "{\"retries\":1,\"timeout_seconds\":3,\"owner\":\"Ada\",\"enabled\":true}\n"
+    },
+    "gold": {
+      "retries": 5,
+      "timeout_seconds": 12,
+      "owner": "Ada",
+      "enabled": true
+    },
+    "product": "config.json",
+    "tools": [
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__write_file"
+    ],
+    "target": {}
+  },
+  {
+    "id": "files_delete",
+    "kind": "files",
+    "prompt": "请使用已配置的 MCP 服务完成任务；文件和 GitHub 数据均通过 MCP 读取或操作，不使用内置文件工具、Shell 或网络替代方式。可以按需发现和加载工具。最终只返回一个 JSON 对象，不使用 Markdown 代码围栏。\n读取 scratch.txt 取得哈希后删除它，保留 keep.txt。检查文件最终状态，返回 {\"deleted\":\"scratch.txt\",\"kept\":\"keep.txt\"}。",
+    "files": {
+      "scratch.txt": "temporary evaluation data\n",
+      "keep.txt": "must remain unchanged\n"
+    },
+    "gold": {
+      "deleted": "scratch.txt",
+      "kept": "keep.txt"
+    },
+    "deleted": "scratch.txt",
+    "tools": [
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__delete_file",
+      "mcp__filesystem__list_directory"
+    ],
+    "required_tools": [
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__delete_file"
+    ],
+    "target": {}
+  }
+]

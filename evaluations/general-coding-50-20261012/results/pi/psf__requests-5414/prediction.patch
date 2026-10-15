@@ -1,0 +1,46 @@
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d..9fd7d80 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -384,6 +384,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+             scheme, auth, host, port, path, query, fragment = parse_url(url)
+         except LocationParseError as e:
+             raise InvalidURL(*e.args)
++        except UnicodeError:
++            raise InvalidURL('URL has an invalid label.')
+ 
+         if not scheme:
+             error = ("Invalid URL {0!r}: No schema supplied. Perhaps you meant http://{0}?")
+@@ -403,7 +405,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+                 raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++        elif host.startswith(u'*') or host.startswith(u'.') or u'..' in host:
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 463e8bf..0e030d0 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -2488,6 +2488,7 @@ class TestPreparingURLs(object):
+             b"http://*",
+             u"http://*.google.com",
+             u"http://*",
++            u"http://.example.com",
+             u"http://☃.net/"
+         )
+     )
+@@ -2496,6 +2497,11 @@ class TestPreparingURLs(object):
+         with pytest.raises(requests.exceptions.InvalidURL):
+             r.prepare()
+ 
++    def test_preparing_url_with_empty_label(self):
++        r = requests.Request('GET', url='http://.example.com')
++        with pytest.raises(requests.exceptions.InvalidURL, match='URL has an invalid label.'):
++            r.prepare()
++
+     @pytest.mark.parametrize(
+         'url, exception',
+         (

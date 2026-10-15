@@ -1,0 +1,45 @@
+{
+  "pytest": {
+    "passed": 1267,
+    "skipped": 4,
+    "failed": 0,
+    "seconds": 368.06,
+    "log": "artifacts/private/final-repair-20261012/candidate-tests.txt"
+  },
+  "ruff": "passed: src tests scripts learn_web/scripts learn_web/tests",
+  "git_diff_check": "passed",
+  "native_django_preflight": {
+    "baseline": 43,
+    "candidate": 43
+  },
+  "scorer_preflight": "passed; official test patch unchanged; one genuine Sphinx assertion failure retained",
+  "rollback": {
+    "pytest": {
+      "passed": 1223,
+      "skipped": 4,
+      "failed": 6,
+      "seconds": 146.78,
+      "log": "artifacts/private/final-repair-20261012/rollback-tests.txt"
+    },
+    "failures": [
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]",
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]"
+    ],
+    "isolated_original_recheck": {
+      "passed": 9,
+      "failed": 6,
+      "seconds": 1.54,
+      "source": "artifacts/private/final-repair-20261012/rollback/aster",
+      "same_failures_reproduced": true
+    },
+    "ruff": "passed: src tests scripts learn_web/scripts learn_web/tests",
+    "git_diff_src_tests_ci": "empty; exact c6b651d contents",
+    "note": "Original 4096-token context tests exceed their input allowance; assertions and source remain as requested at c6b651d.",
+    "cli_help": "passed via aster --help",
+    "tui_help": "passed via aster-tui --help"
+  }
+}

@@ -1,0 +1,45 @@
+--- a/evaluations/cache-probe-20261014/boundary_model.py
++++ b/evaluations/cache-probe-20261014/boundary_model.py
+@@ -20,7 +20,7 @@
+ ENC = tiktoken.get_encoding("o200k_base")
+ 
+ 
+-def analyse(runs, offset):
++def analyse(runs, offset, *, append_only=False):
+     floor = lambda x: (x - offset) // 1024 * 1024 + offset  # noqa: E731
+     count, uncached = collections.Counter(), collections.Counter()
+     exact = predicted = 0
+@@ -33,11 +33,13 @@
+             c = (usage.get("input_tokens_details") or {}).get("cached_tokens", 0) or 0
+             if not i:
+                 continue
+-            tail = len(ENC.encode(payload["input"][-1]["content"])) + 4
++            # v10 retains every input item; a final tool result is not a replaced tail.
++            tail = 0 if append_only else len(ENC.encode(payload["input"][-1]["content"])) + 4
+             if prev is None:
+                 kind = "first"
+                 counterfactual += i - c
+-            elif not stable(prev["input"], payload["input"]):
++            elif not (prev["input"] == payload["input"][:len(prev["input"])] if append_only
++                      else stable(prev["input"], payload["input"])):
+                 kind, snaps = "rewrite", []
+                 counterfactual += i - c
+             else:
+@@ -72,5 +74,6 @@
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument("runs", type=Path)
+     parser.add_argument("--offset", type=int, default=512)
++    parser.add_argument("--append-only", action="store_true", help="Retain the whole v10 input; tail=0")
+     args = parser.parse_args()
+-    print(json.dumps(analyse(args.runs, args.offset), indent=2))
++    print(json.dumps(analyse(args.runs, args.offset, append_only=args.append_only), indent=2))
+--- a/scripts/benchmark_robustness.py
++++ b/scripts/benchmark_robustness.py
+@@ -184,7 +184,6 @@
+         runtime.state.model_copy(deep=True),
+         runtime.state.task.prompt,
+         structured_history=copy.deepcopy(runtime._structured_history),
+-        working_memory=runtime.memory.working_section(runtime.state.working_memory),
+         tools=runtime.tool_definitions(),
+         protocol=settings.protocol,
+         model=settings.model,

@@ -1,0 +1,92 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..1f0926c 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -3,6 +3,7 @@ from __future__ import annotations
+ import re
+ from typing import TYPE_CHECKING, Any, cast
+ 
++from docutils import io as docutils_io
+ from docutils import nodes
+ from docutils.parsers.rst import directives
+ from docutils.parsers.rst.directives.admonitions import BaseAdmonition
+@@ -369,14 +370,31 @@ class Include(BaseInclude, SphinxDirective):
+     """
+ 
+     def run(self) -> list[Node]:
+-        if self.arguments[0].startswith('<') and \
+-           self.arguments[0].endswith('>'):
+-            # docutils "standard" includes, do not do path processing
++        if not (self.arguments[0].startswith('<') and \
++                self.arguments[0].endswith('>')):
++            rel_filename, filename = self.env.relfn2path(self.arguments[0])
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++
++        # Include reads files directly through docutils, bypassing the
++        # Sphinx reader and therefore the source-read event.  Wrap that
++        # input only for this include so the event sees the decoded source
++        # before docutils parses or clips it.
++        env = self.env
++        original_file_input = docutils_io.FileInput
++
++        class IncludeFileInput(original_file_input):
++            def read(self) -> str:
++                content = super().read()
++                source = [content]
++                env.events.emit('source-read', env.docname, source)
++                return source[0]
++
++        docutils_io.FileInput = IncludeFileInput
++        try:
+             return super().run()
+-        rel_filename, filename = self.env.relfn2path(self.arguments[0])
+-        self.arguments[0] = filename
+-        self.env.note_included(filename)
+-        return super().run()
++        finally:
++            docutils_io.FileInput = original_file_input
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:
+diff --git a/tests/test_build.py b/tests/test_build.py
+index ed4bc43..b707276 100644
+--- a/tests/test_build.py
++++ b/tests/test_build.py
+@@ -63,6 +63,36 @@ def test_root_doc_not_found(tmp_path, make_app):
+         app.builder.build_all()  # no index.rst
+ 
+ 
++def test_source_read_event_for_include(tmp_path, make_app):
++    (tmp_path / 'conf.py').write_text("""
++def replace(app, docname, source):
++    source[0] = source[0].replace('&REPLACE_ME;', 'REPLACED')
++
++
++def setup(app):
++    app.connect('source-read', replace)
++    return {'version': '1'}
++""", encoding='utf8')
++    (tmp_path / 'index.rst').write_text("""
++Title
++=====
++
++.. include:: included.rst
++
++.. include:: included.txt
++   :literal:
++""", encoding='utf8')
++    (tmp_path / 'included.rst').write_text('&REPLACE_ME;\n', encoding='utf8')
++    (tmp_path / 'included.txt').write_text('&REPLACE_ME;\n', encoding='utf8')
++
++    app = make_app('html', srcdir=tmp_path)
++    app.build()
++
++    output = (app.outdir / 'index.html').read_text(encoding='utf8')
++    assert 'REPLACED' in output
++    assert '&amp;REPLACE_ME;' not in output
++
++
+ @pytest.mark.sphinx(buildername='text', testroot='circular')
+ def test_circular_toctree(app, status, warning):
+     app.builder.build_all()

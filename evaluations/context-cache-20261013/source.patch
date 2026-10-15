@@ -1,0 +1,523 @@
+--- baseline/src/aster/context/budget.py
++++ candidate/src/aster/context/budget.py
+@@ -1,9 +1,10 @@
+-"""Fixed context policy: count the request, trim whole exchanges, keep the current task."""
++"""Receipt-based budgets with append-only history between explicit compactions."""
+ 
+ from __future__ import annotations
+ 
+ import hashlib
+ import json
++import re
+ from copy import deepcopy
+ from dataclasses import dataclass
+ 
+@@ -29,8 +30,12 @@
+     compacted: bool
+     removed_messages: int
+     sections: dict[str, int]
+-    policy_version: str = "deterministic-v7"
++    policy_version: str = "deterministic-v9"
+     archive_hashes: tuple[str, ...] = ()
++    estimate_basis: str = "local"
++    prefix_drift: bool = False
++    first_changed_item: int | None = None
++    masked_outputs: int = 0
+ 
+ 
+ @dataclass(frozen=True)
+@@ -44,6 +49,10 @@
+ class BudgetCalculator:
+     def __init__(self):
+         self.encoder = tiktoken.get_encoding("cl100k_base") if tiktoken else None
++        self._scope = None
++        self._reasoning_tokens = {}
++        self._provider_overhead = 0
++        self._anchor = None
+ 
+     def count(self, value) -> int:
+         text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+@@ -53,6 +62,87 @@
+             if self.encoder
+             else len(text.encode())
+         )
++
++    def request_tokens(self, payload, *, overhead=True):
++        """Count known opaque replay by its reported tokens, preserving the wire bytes."""
++        extra = 0
++        if "input" in payload and self._reasoning_tokens:
++            items = []
++            for item in payload["input"]:
++                opaque = item.get("encrypted_content") if item.get("type") == "reasoning" else None
++                key = hashlib.sha256(opaque.encode()).hexdigest() if isinstance(opaque, str) else None
++                if key in self._reasoning_tokens:
++                    extra += self._reasoning_tokens[key]
++                    item = {**item, "encrypted_content": ""}
++                items.append(item)
++            payload = {**payload, "input": items}
++        return self.count(payload) + extra + (self._provider_overhead if overhead else 0)
++
++    @staticmethod
++    def _canon(value):
++        return json.dumps(value, sort_keys=True, ensure_ascii=False)
++
++    def _shape(self, payload):
++        # Tool discovery can enlarge schemas without changing a single history item.
++        return self._canon({key: payload.get(key) for key in ("model", "tools", "instructions", "system")})
++
++    def _first_changed_item(self, prompt):
++        if self._anchor is None:
++            return None
++        for index, item in enumerate(self._anchor["items"]):
++            if index >= len(prompt) - 1 or self._canon(prompt[index]) != item:
++                return index
++        return None
++
++    def estimate(self, prompt, payload) -> tuple[int, str]:
++        anchor = self._anchor
++        if (anchor is not None and self._shape(payload) == anchor["shape"]
++                and self._first_changed_item(prompt) is None):
++            added = sum(self.count(item) for item in prompt[len(anchor["items"]):-1]
++                        if not (item.get("role") == "assistant"
++                                or item.get("type") in {"reasoning", "function_call", "message"}))
++            tail = max(0, self.count(prompt[-1]) - anchor["tail"])
++            return anchor["tokens"] + added + tail, "receipt"
++        return self.request_tokens(payload), "local"
++
++    def observe(self, payload, reply, prompt=None):
++        """Use the successful attempt's receipt, never summed retry accounting."""
++        self._anchor = None
++        diagnostic = reply.diagnostics
++        if diagnostic:
++            if diagnostic.get("classification") != "success" or diagnostic.get("flags"):
++                return
++            usage = diagnostic.get("usage", {})
++        else:
++            usage = reply.usage
++        if usage.get("usage_requests") != 1:
++            return
++        inputs, outputs = usage.get("input_tokens"), usage.get("output_tokens")
++        if type(inputs) is not int or inputs <= 0 or type(outputs) is not int or outputs < 0:
++            return
++        if prompt:
++            self._anchor = {
++                "items": [self._canon(item) for item in prompt[:-1]],
++                "tail": self.count(prompt[-1]),
++                "tokens": inputs + outputs,
++                "shape": self._shape(payload),
++            }
++        # Compatible endpoints can add instructions not present in the local request.
++        # Keep the largest observed positive overhead within this run/model scope.
++        self._provider_overhead = max(
++            self._provider_overhead, inputs - self.request_tokens(payload, overhead=False)
++        )
++        if "input" not in payload:
++            return
++        reasoning = usage.get("reasoning_tokens", outputs)
++        if type(reasoning) is not int or not 0 <= reasoning <= outputs:
++            return
++        for item in reply.raw:
++            opaque = item.get("encrypted_content") if item.get("type") == "reasoning" else None
++            if isinstance(opaque, str) and opaque:
++                # Multiple opaque items conservatively each reserve the reply's total.
++                key = hashlib.sha256(opaque.encode()).hexdigest()
++                self._reasoning_tokens[key] = max(self._reasoning_tokens.get(key, 0), reasoning)
+ 
+     def calculate(
+         self,
+@@ -77,6 +167,12 @@
+         validate_archive=None,
+         redact_history=None,
+     ):
++        scope = (state.session_id, protocol, model)
++        if scope != self._scope:
++            self._scope = scope
++            self._reasoning_tokens.clear()
++            self._provider_overhead = 0
++            self._anchor = None
+         system = system_prompt(
+             memory_enabled, skills_available, environment, archive,
+             worker=bool(state.parent_run_id),
+@@ -175,19 +271,92 @@
+         def render():
+             return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+ 
++        def payload_of(prompt):
++            return request_payload(
++                prompt, tools or [], protocol=protocol, model=model,
++                output_tokens=output_reserve, prompt_cache_key=state.session_id,
++            )
++
++        prompt = render()
++        payload = payload_of(prompt)
++        full_before = self.request_tokens(payload)
++        before, estimate_basis = self.estimate(prompt, payload)
++        first_changed_item = self._first_changed_item(prompt)
++        anchored = estimate_basis == "receipt"
++        trigger = limit - min(output_reserve, limit // 8)
++        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
++        compacting = before > (trigger if anchored else limit)
++        masked_outputs = 0
++
+         def tokens(prompt):
+-            return self.count(
+-                request_payload(
+-                    prompt,
+-                    tools or [],
+-                    protocol=protocol,
+-                    model=model,
+-                    output_tokens=output_reserve,
+-                )
+-            )
+-
+-        prompt = render()
+-        before = tokens(prompt)
++            full = self.request_tokens(payload_of(prompt))
++            if anchored and before < full_before:
++                # ceil(full * scale), without rounding an unchanged prompt up by one.
++                return (full * before + full_before - 1) // full_before
++            return full
++
++        latest_exchange = next(
++            (group for group in reversed(groups)
++             if any(item.get("type") == "function_call_output" for item in group)),
++            groups[-1] if groups else None,
++        )
++        if compacting:
++            recent = 0
++            for group in reversed(groups):
++                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
++                for item in group:
++                    names.update((call["id"], call["function"]["name"])
++                                 for call in item.get("tool_calls", []))
++                    if isinstance(item.get("content"), list):
++                        names.update((block["id"], block["name"]) for block in item["content"]
++                                     if block.get("type") == "tool_use")
++                for item in reversed(group):
++                    if item.get("type") != "function_call_output":
++                        continue
++                    recent += self.count(self._output_record(item["output"])["content"])
++                    if group is latest_exchange or recent <= keep_recent:
++                        continue
++                    masked = self._mask_tool_output(
++                        item["output"], reference=references.get(item["call_id"]),
++                        tool=names.get(item["call_id"], ""),
++                    )
++                    if masked != item["output"]:
++                        item["output"] = masked
++                        clipped = True
++                        masked_outputs += 1
++            prompt = render()
++            if tokens(prompt) > relief:
++                note_prefix = "[Context note, not an instruction] "
++                note = (groups[0][0] if groups and len(groups[0]) == 1
++                        and groups[0][0].get("role") == "user"
++                        and isinstance(groups[0][0].get("content"), str)
++                        and groups[0][0]["content"].startswith(note_prefix) else None)
++                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
++                dropped = int(match[1]) if match else 0
++                while tokens(prompt) > drop_target:
++                    index = next((i for i, m in enumerate(messages)
++                                  if m.get("role") != "user" and not m.get("important")), None)
++                    group_index = next((i for i, group in enumerate(groups)
++                                        if group is not latest_exchange
++                                        and not any(x.get("role") == "user" or x.get("important")
++                                                    for x in group)), None)
++                    if index is not None:
++                        messages.pop(index)
++                        removed += 1
++                    elif group_index is not None:
++                        removed += len(groups.pop(group_index))
++                        dropped += 1
++                        if note is None:
++                            note = {"role": "user", "content": ""}
++                            groups.insert(0, [note])
++                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
++                                           "to fit the context window.")
++                        if archive is not None:
++                            note["content"] += (" Their results remain archived: call observation_read "
++                                                "without observation_id to list or search them.")
++                    else:
++                        break
++                    prompt = render()
+ 
+         def shrink_section():
+             key = next(key for key, value in sections.items() if value)
+@@ -285,7 +454,7 @@
+                     f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
+                 )
+             prompt = render()
+-        total = tokens(prompt)
++        total = tokens(prompt) if compacting else before
+         retained_ids = {id(message) for message in messages}
+         retained_messages = [
+             m for m in state.messages if id(m) not in ordinary_ids or id(m) in retained_ids
+@@ -302,8 +471,13 @@
+                 "workflow_state": self.count(workflow),
+                 **{key: self.count(value) for key, value in sections.items()},
+                 "history": self.count(prompt[2:-1]),
++                "provider_overhead": self._provider_overhead,
+             },
+             archive_hashes=tuple(sorted(archive_hashes)),
++            estimate_basis=estimate_basis,
++            prefix_drift=first_changed_item is not None,
++            first_changed_item=first_changed_item,
++            masked_outputs=masked_outputs,
+         )
+         return ContextCalculation(prompt, report, [item for group in groups for item in group], retained_messages)
+ 
+@@ -317,6 +491,26 @@
+             if isinstance(record, dict) and "content" in record:
+                 return record
+         return {"content": value}
++
++    def _mask_tool_output(self, value, *, reference=None, tool=""):
++        record = self._output_record(value)
++        content = record["content"]
++        if (self.count(content) <= 48 or isinstance(content, str) and content.startswith(
++            ("[archived:", "[omitted page;", "[omitted image result]", "[omitted:")
++        )):
++            return value
++        if isinstance(content, list):
++            record["content"] = "[omitted image result]"
++        elif reference is not None:
++            record["content"] = (f"[archived: {reference['characters']} chars; "
++                                 f"observation_read observation_id={reference['id']}]")
++            record["observation"] = reference
++        elif tool == "observation_read":
++            record["content"] = "[omitted page; call observation_read again to re-read it]"
++        else:
++            record["content"] = f"[omitted: {len(content)} chars]"
++        record.pop("page", None)
++        return json.dumps(record, ensure_ascii=False) if len(record) > 1 else record["content"]
+ 
+     def _clip_tool_output(self, value, *, token_limit: int, reference=None):
+         """Shorten only permitted body text, retaining status, provenance and call pairing."""
+--- baseline/src/aster/core/runtime.py
++++ candidate/src/aster/core/runtime.py
+@@ -617,6 +617,7 @@
+             protocol=self.settings.protocol,
+             model=self.settings.model,
+             output_tokens=self.settings.effective_output_tokens,
++            prompt_cache_key=state.session_id,
+         )
+         # Keep the actual model observation apart from the full execution trace.
+         request_hash = self._request_hash(payload)
+@@ -634,6 +635,10 @@
+             archive_hashes=report.archive_hashes,
+             request_artifact="/".join(artifact),
+             request_sha256=request_hash,
++            estimate_basis=report.estimate_basis,
++            prefix_drift=report.prefix_drift,
++            first_changed_item=report.first_changed_item,
++            masked_outputs=report.masked_outputs,
+         )
+         return prompt, tool_defs, report
+ 
+@@ -670,15 +675,15 @@
+             self.finish(reason)
+             return state
+         self._team.parent.checkpoint()
+-        request_hash = self._request_hash(
+-            request_payload(
+-                prompt,
+-                tool_defs,
+-                protocol=self.settings.protocol,
+-                model=self.settings.model,
+-                output_tokens=self.settings.effective_output_tokens,
+-            )
+-        )
++        payload = request_payload(
++            prompt,
++            tool_defs,
++            protocol=self.settings.protocol,
++            model=self.settings.model,
++            output_tokens=self.settings.effective_output_tokens,
++            prompt_cache_key=state.session_id,
++        )
++        request_hash = self._request_hash(payload)
+         request_usage = {}
+         try:
+             request_messages = prompt
+@@ -686,6 +691,7 @@
+                 reply = await self.model.complete(
+                     request_messages,
+                     tool_defs,
++                    prompt_cache_key=state.session_id,
+                     on_event=lambda event: self.evidence.emit(
+                         state.run_id,
+                         "provider_attempt" if event.get("type") == "diagnostic" else (
+@@ -718,6 +724,7 @@
+             self._team.parent.checkpoint()
+         for name, value in reply.usage.items():
+             state.usage[name] = state.usage.get(name, 0) + value
++        self.context.calculator.observe(payload, reply, prompt)
+         if state.terminal:
+             return state
+         ids = [call.call_id for call in reply.calls]
+@@ -863,6 +870,7 @@
+                 ) if key in outcome.data},
+                 **(
+                     {key: outcome.data[key] for key in ("path", "start", "end", "source_sha256")}
++                    | {key: outcome.data[key] for key in ("truncated", "next_start") if key in outcome.data}
+                     if call.name == "read_file" and outcome.status == "success"
+                     else {}
+                 ),
+@@ -1401,7 +1409,9 @@
+         if call.name == "mcp_list" or call.name in self.mcp.tools:
+             outcome.content = self.evidence.redactor.text(outcome.content)
+         if (call.name in self.mcp.tools
+-                or (call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data)):
++                or (call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data)
++                or (call.name not in {"read_file", "observation_read", "todo_list", "skill_load"}
++                    and isinstance(outcome.content, str) and len(outcome.content) > 8192)):
+             outcome.content = self.evidence.redactor.text(outcome.content)
+             ref = None
+             try:
+--- baseline/src/aster/knowledge/maintenance.py
++++ candidate/src/aster/knowledge/maintenance.py
+@@ -245,11 +245,13 @@
+         memories = [{key: item.get(key) for key in ("id", "text", "kind", "when", "tags")}
+                     for item in existing]
+         messages = [{"role": "system", "content": INSTRUCTION}, {"role": "user", "content": ""}]
++        job_id = uuid4().hex
+         while True:
+             messages[1]["content"] = json.dumps({"evidence": visible, "memories": memories},
+                                                 ensure_ascii=False, separators=(",", ":"))
+             estimate = rt.context.count(request_payload(messages, [tool], protocol=rt.settings.protocol,
+-                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS))
++                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS,
++                                                       prompt_cache_key="memory-" + job_id))
+             if estimate <= min(INPUT_TOKENS, rt.settings.effective_context_tokens - OUTPUT_TOKENS):
+                 break
+             longest = max(visible.values(), key=lambda item: len(item["text"]))
+@@ -261,7 +263,7 @@
+                 memories.pop()
+             else:
+                 return None
+-        return {"id": uuid4().hex,
++        return {"id": job_id,
+                 "pending": pending, "sources": sources, "revision": revision,
+                 "fingerprints": fingerprints,
+                 "memory_ids": [item["id"] for item in memories], "messages": messages,
+@@ -325,7 +327,8 @@
+         usage = {}
+         try:
+             if isinstance(model, ModelClient):
+-                reply = await model.complete(job["messages"], job["tools"], on_event=lambda event:
++                reply = await model.complete(job["messages"], job["tools"],
++                    prompt_cache_key="memory-" + job["id"], on_event=lambda event:
+                     rt.evidence.emit(owner.run_id, "memory_provider", job_id=job["id"], **event))
+             else:
+                 reply = await model.complete(job["messages"], job["tools"])
+--- baseline/src/aster/providers/client.py
++++ candidate/src/aster/providers/client.py
+@@ -28,19 +28,23 @@
+         self.circuit = CircuitBreaker(settings.circuit_failures, settings.circuit_cooldown)
+ 
+     async def complete(
+-        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
++        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None,
++        prompt_cache_key: str | None = None,
+     ) -> ModelReply:
+         try:
+             with self.circuit.guard(lambda exc: isinstance(exc, ProviderError) and
+                                     exc.details["category"] in {"transport", "transient_http", "transient_provider"}):
+-                return await self._complete(messages, tools, on_event=on_event)
++                return await self._complete(
++                    messages, tools, on_event=on_event, prompt_cache_key=prompt_cache_key
++                )
+         except CircuitOpen as exc:
+             self.last_usage, self.last_diagnostics = {}, {"retry_after": exc.retry_after}
+             raise ProviderError(str(exc), category="circuit_open", attempts=0,
+                                 diagnostics=self.last_diagnostics) from None
+ 
+     async def _complete(
+-        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
++        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None,
++        prompt_cache_key: str | None = None,
+     ) -> ModelReply:
+         accounting = RequestAccounting(self.settings, self.redaction_secrets)
+         try:
+@@ -53,6 +57,7 @@
+                 protocol=protocol,
+                 model=self.settings.model,
+                 output_tokens=self.settings.effective_output_tokens,
++                prompt_cache_key=prompt_cache_key,
+             )
+             suffix = {"responses": "/responses", "chat": "/chat/completions", "anthropic": "/messages"}[
+                 protocol
+--- baseline/src/aster/providers/codec.py
++++ candidate/src/aster/providers/codec.py
+@@ -143,7 +143,10 @@
+     return "\n\n".join(system), result
+ 
+ 
+-def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
++def request_payload(
++    messages, tools, *, protocol="responses", model="", output_tokens=2048,
++    prompt_cache_key: str | None = None,
++):
+     """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
+     history_groups(messages)
+     if protocol in {"chat", "anthropic"} and any(
+@@ -190,6 +193,8 @@
+             "max_output_tokens": output_tokens,
+             "store": False,
+         }
++        if prompt_cache_key is not None:
++            payload["prompt_cache_key"] = prompt_cache_key
+     history_groups(payload.get("input", payload.get("messages", [])))
+     return payload
+ 
+--- baseline/src/aster/tools/workspace.py
++++ candidate/src/aster/tools/workspace.py
+@@ -28,6 +28,8 @@
+ if TYPE_CHECKING:
+     from .registry import ToolContext
+ 
++READ_FILE_CHARACTERS = 24_000
++
+ def text_page(text: str, offset: int, limit: int) -> Outcome:
+     if offset > len(text):
+         return Outcome(status="blocked", reason="page_out_of_range", content=f"total={len(text)}")
+@@ -98,14 +100,26 @@
+     async def _read_file(self, args: ReadFile) -> Outcome:
+         text = self.context.workspace.read(args.path)
+         lines = text.splitlines()
++        selected, characters, truncated = [], 0, False
++        for line in lines[args.start - 1:args.end]:
++            size = len(line) + bool(selected)
++            if characters + size > READ_FILE_CHARACTERS:
++                if not selected:
++                    selected.append(line[:READ_FILE_CHARACTERS])
++                truncated = True
++                break
++            selected.append(line)
++            characters += size
++        end = args.start + len(selected) - 1 if selected else min(args.end, len(lines))
+         return Outcome(
+             status="success",
+-            content="\n".join(lines[args.start - 1 : args.end]),
++            content="\n".join(selected),
+             data={
+                 "path": args.path,
+                 "start": args.start,
+-                "end": min(args.end, len(lines)),
++                "end": end,
+                 "source_sha256": digest(text),
++                **({"truncated": True, "next_start": end + 1} if truncated else {}),
+             },
+         )
+ 
+--- baseline/src/aster/training/env.py
++++ candidate/src/aster/training/env.py
+@@ -185,7 +185,7 @@
+                 self.runtime.finish("context_archive_unavailable", failed=True)
+         return {
+             "model_input": copy.deepcopy(prompt),
+-            "context_policy": report.policy_version if report else "deterministic-v7",
++            "context_policy": report.policy_version if report else "deterministic-v9",
+             "context_tokens": report.estimated_tokens if report else 0,
+             "task": state.task.model_dump(),
+             "phase": state.phase,

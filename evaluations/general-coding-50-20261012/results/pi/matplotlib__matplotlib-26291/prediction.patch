@@ -1,0 +1,63 @@
+diff --git a/lib/mpl_toolkits/axes_grid1/inset_locator.py b/lib/mpl_toolkits/axes_grid1/inset_locator.py
+index 9d35051..af2b518 100644
+--- a/lib/mpl_toolkits/axes_grid1/inset_locator.py
++++ b/lib/mpl_toolkits/axes_grid1/inset_locator.py
+@@ -3,6 +3,7 @@ A collection of functions and objects for creating or placing inset axes.
+ """
+ 
+ from matplotlib import _api, _docstring
++from matplotlib.artist import Artist
+ from matplotlib.offsetbox import AnchoredOffsetbox
+ from matplotlib.patches import Patch, Rectangle
+ from matplotlib.path import Path
+@@ -65,11 +66,18 @@ class AnchoredLocatorBase(AnchoredOffsetbox):
+             bbox_to_anchor=bbox_to_anchor, bbox_transform=bbox_transform
+         )
+ 
++    def set_figure(self, fig):
++        # AnchoredOffsetbox.set_figure assumes that its child is an Artist,
++        # but locator boxes intentionally have no child.
++        Artist.set_figure(self, fig)
++
+     def draw(self, renderer):
+         raise RuntimeError("No draw method should be called")
+ 
+     def __call__(self, ax, renderer):
+         self.axes = ax
++        if renderer is None:
++            renderer = ax.figure._get_renderer()
+         bbox = self.get_window_extent(renderer)
+         px, py = self.get_offset(bbox.width, bbox.height, 0, 0, renderer)
+         bbox_canvas = Bbox.from_bounds(px, py, bbox.width, bbox.height)
+@@ -284,6 +292,7 @@ def _add_inset_axes(parent_axes, axes_class, axes_kwargs, axes_locator):
+         axes_class = HostAxes
+     if axes_kwargs is None:
+         axes_kwargs = {}
++    axes_locator.set_figure(parent_axes.figure)
+     inset_axes = axes_class(
+         parent_axes.figure, parent_axes.get_position(),
+         **{"navigate": False, **axes_kwargs, "axes_locator": axes_locator})
+diff --git a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+index b615747..9a04ff7 100644
+--- a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
++++ b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+@@ -1,4 +1,5 @@
+ from itertools import product
++import io
+ import platform
+ 
+ import matplotlib as mpl
+@@ -204,6 +205,13 @@ def test_inset_axes():
+     ax.add_artist(asb)
+ 
+ 
++def test_inset_axes_tight_bbox():
++    fig, (ax, ax2) = plt.subplots(1, 2, figsize=[5.5, 2.8])
++    inset_axes(ax, width=1.3, height=0.9)
++
++    fig.savefig(io.BytesIO(), bbox_inches="tight")
++
++
+ def test_inset_axes_complete():
+     dpi = 100
+     figsize = (6, 5)

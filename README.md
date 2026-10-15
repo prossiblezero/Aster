@@ -310,6 +310,7 @@ Aster/
 
 | 入口 | 内容 |
 |---|---|
+| [先读：Aster 的设计与演进](docs/learning/project-story.md) | 从项目动机到真实评测，把上下文、会话、子 Agent、记忆与降耗的取舍串成完整故事 |
 | [分阶段教程](docs/learning/README.md) | 从一次任务出发，逐步理解循环、协议、工具、上下文、记忆与评测 |
 | [教学网站](learn_web/README.md) | 本地构建、预览及 GitHub Pages 部署方法 |
 | [完整配置](docs/configuration.md) | 模型 profile、预算、权限与功能开关 |

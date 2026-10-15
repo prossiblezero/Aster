@@ -1,0 +1,83 @@
+{
+  "aster-astropy__astropy-14182": {
+    "classification": "candidate_deleted_required_runtime_data",
+    "model_rerun": false,
+    "independent_test_assertions_executed": false,
+    "evidence": [
+      "prediction.patch deletes astropy/utils/iers/data/eopc04_IAU2000.62-now",
+      "preserved tool calls explicitly run rm -f on that path twice",
+      "run_instance.log confirms the candidate patch and original test patch both applied cleanly",
+      "pytest initialization imports astropy.utils.iers; missing bundled file triggers unavailable HTTP fallback and aborts before collection"
+    ],
+    "interpretation": "Keep failed: caused by candidate deletion, not an external grading environment failure. The upstream report patch_successfully_applied=false field is misleading here; actual patch application succeeded."
+  },
+  "aster-terminal-regex-chess": {
+    "classification": "native_request_deadline_exhausted",
+    "model_rerun": false,
+    "phase": "failed",
+    "stop_reason": "provider_error",
+    "events": [
+      {
+        "seq": 165,
+        "time": "2026-10-12T16:09:39.321864+00:00",
+        "attempt": 1,
+        "elapsed_seconds": 120.006878,
+        "first_event_seconds": 37.55459058302222,
+        "first_text_seconds": 38.843186197045725,
+        "retrying": true
+      },
+      {
+        "seq": 168,
+        "time": "2026-10-12T16:11:39.589789+00:00",
+        "attempt": 2,
+        "elapsed_seconds": 120.016724,
+        "first_event_seconds": 33.518622322008014,
+        "first_text_seconds": null,
+        "retrying": true
+      },
+      {
+        "seq": 248,
+        "time": "2026-10-12T16:13:40.105219+00:00",
+        "attempt": 3,
+        "elapsed_seconds": 120.013721,
+        "first_event_seconds": 37.547354770009406,
+        "first_text_seconds": 86.32037051295629,
+        "retrying": false
+      }
+    ],
+    "interpretation": "Three native streaming attempts timed out at 120 seconds despite receiving stream events. HTTP 200 and later gateway BrokenPipeError do not establish a provider outage. Keep the original failed attempt and its missing usage; do not count client disconnects as proven supplier faults."
+  },
+  "aster-terminal-kv-store-grpc": {
+    "classification": "required_service_not_listening_at_grade_time",
+    "model_rerun": false,
+    "passed_tests": 5,
+    "failed_tests": 2,
+    "evidence": [
+      "test_real_grpc_server_running reports port 5328 not listening",
+      "test_grpc_server_functionality receives connection refused on 127.0.0.1:5328"
+    ],
+    "interpretation": "Task requires a running gRPC service. Native process lifecycle semantics were preserved for each client; no task-specific background-service override was added. This result does not by itself distinguish a server logic problem from failure to keep the process alive."
+  },
+  "codex-terminal-kv-store-grpc": {
+    "classification": "required_service_not_listening_at_grade_time",
+    "model_rerun": false,
+    "passed_tests": 5,
+    "failed_tests": 2,
+    "evidence": [
+      "test_real_grpc_server_running reports port 5328 not listening",
+      "test_grpc_server_functionality receives connection refused on 127.0.0.1:5328"
+    ],
+    "interpretation": "Task requires a running gRPC service. Native process lifecycle semantics were preserved for each client; no task-specific background-service override was added. This result does not by itself distinguish a server logic problem from failure to keep the process alive."
+  },
+  "aster-aider-cpp-meetup": {
+    "classification": "candidate_compile_error_after_task_timeout",
+    "model_rerun": false,
+    "independent_test_assertions_executed": false,
+    "evidence": [
+      "candidate defines scheduler::wedteenth() and scheduler::thurteenth() via a macro",
+      "candidate header declares different method names; g++ reports no declaration matches for both methods",
+      "reference preflight compiled and executed 90 tests"
+    ],
+    "interpretation": "Candidate source/header mismatch prevents compilation. Retain failed; this is not a missing compiler or dependency in the grader."
+  }
+}

@@ -1,0 +1,53 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..5c4dedf 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -80,7 +80,9 @@ class RequestEncodingMixin(object):
+         if parameters are supplied as a dict.
+         """
+ 
+-        if isinstance(data, (str, bytes)):
++        if isinstance(data, bytes):
++            return data
++        elif isinstance(data, str):
+             return to_native_string(data)
+         elif hasattr(data, 'read'):
+             return data
+@@ -387,6 +389,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+ 
+         enc_params = self._encode_params(params)
+         if enc_params:
++            if isinstance(enc_params, bytes):
++                enc_params = to_native_string(enc_params)
+             if query:
+                 query = '%s&%s' % (query, enc_params)
+             else:
+@@ -444,7 +448,10 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 (body, content_type) = self._encode_files(files, data)
+             else:
+                 if data:
+-                    body = self._encode_params(data)
++                    if isinstance(data, bytes):
++                        body = data
++                    else:
++                        body = self._encode_params(data)
+                     if isinstance(data, basestring) or hasattr(data, 'read'):
+                         content_type = None
+                     else:
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..9e7d2c1 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -157,6 +157,12 @@ class TestRequests(object):
+                                    params=b'test=foo').prepare()
+         assert request.url == 'http://example.com/?test=foo'
+ 
++    def test_binary_data_is_not_decoded(self):
++        data = b'\x00\xff'
++        request = requests.Request('PUT', 'http://example.com',
++                                   data=data).prepare()
++        assert request.body == data
++
+     def test_mixed_case_scheme_acceptable(self, httpbin):
+         s = requests.Session()
+         s.proxies = getproxies()

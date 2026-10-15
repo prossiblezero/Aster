@@ -1,0 +1,14 @@
+{
+  "job": "aster-bigcodebench-524",
+  "agent": "aster",
+  "task": "bigcodebench-524",
+  "smoke": false,
+  "prompt": "Calculate statistical measurements (mean and standard deviation) of the values associated with each key in a list of dictionaries, and visualize mean and standard deviation with bar charts.\nThe function should raise the exception for: ValueError: If the input data is empty. TypeError: If the input is not a list of dictionaries or if any value in the dictionaries is not numeric.\nThe function should output with:\n    tuple:\n    dict: A dictionary with keys and their corresponding mean and standard deviation.\n    list: A list of matplotlib Axes objects for each key's visualization.\nYou should write self-contained code starting with:\n```\nfrom collections import defaultdict\nimport numpy as np\nimport matplotlib.pyplot as plt\ndef task_func(data):\n```\nImplement task_func in solution.py.\nfrom collections import defaultdict\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef task_func(data):\n    \"\"\"\n    Calculate statistical measurements (mean and standard deviation) of the values associated with\n    each key in a list of dictionaries, and visualize mean and standard deviation with bar charts.\n\n    Parameters:\n    data (list): The list of dictionaries. Must not be empty. Each dictionary must have numeric values.\n\n    Returns:\n    tuple:\n        - dict: A dictionary with keys and their corresponding mean and standard deviation.\n        - list: A list of matplotlib Axes objects for each key's visualization.\n\n    Requirements:\n    - numpy\n    - matplotlib.pyplot\n    - collections.defaultdict\n    \n    Raises:\n    - ValueError: If the input data is empty.\n    - TypeError: If the input is not a list of dictionaries or if any value in the dictionaries is not numeric.\n    \n    Example:\n    >>> stats, axes = task_func([{'cat': 1, 'dog': 3}, {'cat' : 2, 'dog': 5}, {'cat' : 3, 'dog': 7}])\n    >>> stats\n    {'cat': {'mean': 2.0, 'std': 0.816496580927726}, 'dog': {'mean': 5.0, 'std': 1.632993161855452}}\n    >>> axes\n    [<Axes: title={'center': 'Statistics of cat'}, ylabel='Value'>, <Axes: title={'center': 'Statistics of dog'}, ylabel='Value'>]\n    \"\"\"\n\n\nCommands start in the task workspace. Use workspace-relative paths when possible.\n\nWork in /app. Dependencies are preinstalled. python on PATH is the task interpreter. Internet access is unavailable; local services are allowed. Implement the request, run relevant checks, and summarize the actual result.",
+  "prompt_sha256": "3ee2ab4a1c78d37828db16c76ca0d02e5136ea6565186f066adc9938d85e61e9",
+  "image_id": "sha256:84c7fae6b256dcc56a350790e2a9715eefc7dad662a9d8e8a472363aa71ef18d",
+  "model": "gpt-5.6-luna",
+  "seconds_limit": 900,
+  "source_commit": "c6b651d29f2e9c3de8074d3d90c4ee0c103adca0",
+  "started": 1791820505.9579308,
+  "runner_sha256": "307df8f589aa05fe1ce721704e399e422a7da351552f8cb42f88c07b5b98f447"
+}

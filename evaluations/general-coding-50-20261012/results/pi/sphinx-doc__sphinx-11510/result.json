@@ -1,0 +1,69 @@
+{
+  "job": "pi-sphinx-doc__sphinx-11510",
+  "agent": "pi",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 370.655,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": true,
+  "patch_bytes": 8068,
+  "patch_sha256": "ff8586f563eaeca7c88040db9d0ae5305c671b9253fe5f96cc7e507374b4abf1",
+  "requests": 22,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 708653,
+  "output_tokens": 6812,
+  "cached_tokens": 591360,
+  "total_tokens": 715465,
+  "final": "Implemented support for `source-read` transformations in `.. include::` content.\n\nChanges:\n- Updated [`sphinx/directives/other.py`](/testbed/sphinx/directives/other.py) so included source is passed through the `source-read` event before parsing or insertion.\n- Preserved Docutils include behavior for literal, code, parser, clipping, dependency tracking, and circular include handling.\n- Added regression coverage in [`tests/test_directive_other.py`](/testbed/tests/test_directive_other.py).\n\nVerification:\n- `python -m pytest tests/test_directive_other.py tests/test_events.py tests/test_parser.py -q`\n- Result: `12 passed`\n- `git diff --check` passed.\n- Ruff was unavailable in the environment.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "old20",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

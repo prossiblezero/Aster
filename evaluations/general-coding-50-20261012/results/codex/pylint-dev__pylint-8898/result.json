@@ -1,0 +1,79 @@
+{
+  "job": "codex-pylint-dev__pylint-8898",
+  "agent": "codex",
+  "task": "pylint-dev__pylint-8898",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 301.03,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1752,
+  "patch_sha256": "68857e7d50229df9d6a71668bfab80fa511a7ff5f9356ff38a6778543763b091",
+  "requests": 11,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 315366,
+  "output_tokens": 4141,
+  "cached_tokens": 260352,
+  "total_tokens": 319507,
+  "final": "Implemented comma-safe regex parsing for `regexp_csv` options using CSV quoting.\n\n`\"(foo{1,3})\"` now remains a single regex, while existing comma-separated patterns continue to work.\n\nVerification:\n- `76 passed` in `tests/config`\n- Syntax check passed with Pylint\n- `git diff --check` passed",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "new30",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [],
+        "failure": [
+          "tests/config/test_config.py::test_csv_regex_error"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/config/test_config.py::test_can_read_toml_env_variable",
+          "tests/config/test_config.py::test_unknown_message_id",
+          "tests/config/test_config.py::test_unknown_option_name",
+          "tests/config/test_config.py::test_unknown_short_option_name",
+          "tests/config/test_config.py::test_unknown_confidence",
+          "tests/config/test_config.py::test_empty_confidence",
+          "tests/config/test_config.py::test_unknown_yes_no",
+          "tests/config/test_config.py::test_unknown_py_version",
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo-expected0]",
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo,bar-expected1]",
+          "tests/config/test_config.py::test_regex_error",
+          "tests/config/test_config.py::test_short_verbose",
+          "tests/config/test_config.py::test_argument_separator",
+          "tests/config/test_config.py::test_clear_cache_post_run",
+          "tests/config/test_config.py::test_enable_all_disable_all_mutually_exclusive",
+          "tests/config/test_config.py::test_disable_before_enable_all_takes_effect",
+          "tests/config/test_config.py::test_enable_before_disable_all_takes_effect"
+        ],
+        "failure": [
+          "tests/config/test_config.py::test_csv_regex_comma_in_quantifier[foo,"
+        ]
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

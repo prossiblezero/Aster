@@ -1,0 +1,14 @@
+{
+  "job": "aster-pytest-dev__pytest-7571",
+  "agent": "aster",
+  "task": "pytest-dev__pytest-7571",
+  "smoke": false,
+  "prompt": "caplog fixture doesn't restore log level after test\nFrom the documentation at https://docs.pytest.org/en/6.0.0/logging.html#caplog-fixture, \"The log levels set are restored automatically at the end of the test\".\r\nIt used to work, but looks broken in new 6.0 release. Minimal example to reproduce:\r\n\r\n```\r\ndef test_foo(caplog):\r\n    caplog.set_level(42)\r\n\r\ndef test_bar(caplog):\r\n    print(caplog.handler.level)\r\n```\r\n\r\nIt prints \"0\" for pytest<6, \"42\" after.\n\n\nWork in /testbed. Dependencies are preinstalled. python on PATH is the task interpreter. Internet access is unavailable; local services are allowed. Implement the request, run relevant checks, and summarize the actual result. Public test command format: python -m pytest <test path>.",
+  "prompt_sha256": "0982e1109b16567c62b53be33a3d5e60ff4c26bbb4a209930089977861b0a9f6",
+  "image_id": "sha256:0a1f84cd32e2c8332f90bfad6f3fd16304f25c01384adb4ffd4f7250316bd60a",
+  "model": "gpt-5.6-luna",
+  "seconds_limit": 900,
+  "source_commit": "c6b651d29f2e9c3de8074d3d90c4ee0c103adca0",
+  "started": 1791654043.810649,
+  "runner_sha256": "307df8f589aa05fe1ce721704e399e422a7da351552f8cb42f88c07b5b98f447"
+}

@@ -1,0 +1,83 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 529.971,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1751,
+  "patch_sha256": "f64673ef285d20a01563dbee4e7b28d51e74e745a7cf617f6951a82e3a27f735",
+  "requests": 42,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 945675,
+  "output_tokens": 12167,
+  "cached_tokens": 460800,
+  "total_tokens": 957842,
+  "source": "SWE-bench Verified",
+  "difficulty": "1-4 hours",
+  "final": "Implemented the fix in [sphinx/directives/other.py](/testbed/sphinx/directives/other.py:372).\n\nIncluded files are now read through a wrapper that emits `source-read` and applies `source[0]` substitutions before Docutils parses the content. Existing include handling, including literal and code modes, remains delegated to Docutils.\n\nVerification completed:\n\n- Direct reproduction: both top-level and included `&REPLACE_ME;` occurrences became `REPLACED`.\n- `python -m pytest tests/test_build_html.py tests/test_application.py tests/test_events.py -q`\n- Result: **550 passed**\n- Python compilation check passed.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "completion_claim": {
+    "label": "success",
+    "reason": "States included-file source-read fix implemented and verified by a direct reproduction and 550 project tests.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_include_source_read_event_nested_includes"
+        ],
+        "failure": [
+          "tests/test_directive_other.py::test_include_source_read_event"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "tests/test_directive_other.py::test_toctree",
+          "tests/test_directive_other.py::test_relative_toctree",
+          "tests/test_directive_other.py::test_toctree_urls_and_titles",
+          "tests/test_directive_other.py::test_toctree_glob",
+          "tests/test_directive_other.py::test_toctree_glob_and_url",
+          "tests/test_directive_other.py::test_reversed_toctree",
+          "tests/test_directive_other.py::test_toctree_twice"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "runtime": {
+    "turn": 42,
+    "step": 62,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "98253d48ac49f3a5bd2e94f5c81a322e23610eb74035b11914ec7364fefab950",
+      "evidence_id": "d20c2a409607040feff897a13218fe3d34964098eec27cc2e6f30b7502e1c1ef",
+      "command": "python -m pytest tests/test_build_html.py tests/test_application.py tests/test_events.py -q"
+    },
+    "verification_failures": {},
+    "feedback": ""
+  }
+}

@@ -1,0 +1,82 @@
+diff --git a/AUTHORS b/AUTHORS
+index ca2872f..284f985 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -41,6 +41,7 @@ Arel Cordero
+ Arias Emmanuel
+ Ariel Pillemer
+ Armin Rigo
++Aster
+ Aron Coyle
+ Aron Curzon
+ Aviral Verma
+diff --git a/changelog/10314.bugfix.rst b/changelog/10314.bugfix.rst
+new file mode 100644
+index 0000000..0e3e095
+--- /dev/null
++++ b/changelog/10314.bugfix.rst
+@@ -0,0 +1 @@
++Marks declared on multiple base classes are now correctly inherited according to the class MRO.
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..6980250 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -355,9 +355,14 @@ class MarkDecorator:
+         return self.with_args(*args, **kwargs)
+ 
+ 
+-def get_unpacked_marks(obj: object) -> Iterable[Mark]:
++def get_unpacked_marks(obj: object, *, consider_mro: bool = False) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
++    if isinstance(obj, type) and consider_mro:
++        mark_list = []
++        for cls in reversed(obj.__mro__):
++            mark_list.extend(vars(cls).get("pytestmark", []))
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
+     if not isinstance(mark_list, list):
+         mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+diff --git a/src/_pytest/python.py b/src/_pytest/python.py
+index 3db8775..7fd1827 100644
+--- a/src/_pytest/python.py
++++ b/src/_pytest/python.py
+@@ -311,7 +311,7 @@ class PyobjMixin(nodes.Node):
+             # XXX evil hack
+             # used to avoid Function marker duplication
+             if self._ALLOW_MARKERS:
+-                self.own_markers.extend(get_unpacked_marks(self.obj))
++                self.own_markers.extend(get_unpacked_marks(self.obj, consider_mro=True))
+                 # This assumes that `obj` is called before there is a chance
+                 # to add custom keys to `self.keywords`, so no fear of overriding.
+                 self.keywords.update((mark.name, mark) for mark in self.own_markers)
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..4ef93e4 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,24 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_baseclasses_merged(self, pytester: Pytester) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.foo
++            class Foo(object): pass
++
++            @pytest.mark.bar
++            class Bar(object): pass
++
++            class TestDings(Foo, Bar):
++                def test_dings(self): pass
++            """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_dings=("bar", "foo"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

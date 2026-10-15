@@ -1,0 +1,98 @@
+diff --git a/django/contrib/admin/filters.py b/django/contrib/admin/filters.py
+index d65e01d..9d595e5 100644
+--- a/django/contrib/admin/filters.py
++++ b/django/contrib/admin/filters.py
+@@ -193,11 +193,15 @@ class RelatedFieldListFilter(FieldListFilter):
+     def expected_parameters(self):
+         return [self.lookup_kwarg, self.lookup_kwarg_isnull]
+ 
+-    def field_choices(self, field, request, model_admin):
+-        ordering = ()
++    def get_ordering(self, field, request, model_admin):
++        ordering = field.remote_field.model._meta.ordering or ()
+         related_admin = model_admin.admin_site._registry.get(field.remote_field.model)
+         if related_admin is not None:
+-            ordering = related_admin.get_ordering(request)
++            ordering = related_admin.get_ordering(request) or ordering
++        return ordering
++
++    def field_choices(self, field, request, model_admin):
++        ordering = self.get_ordering(field, request, model_admin)
+         return field.get_choices(include_blank=False, ordering=ordering)
+ 
+     def choices(self, changelist):
+@@ -419,4 +423,8 @@ FieldListFilter.register(lambda f: True, AllValuesFieldListFilter)
+ class RelatedOnlyFieldListFilter(RelatedFieldListFilter):
+     def field_choices(self, field, request, model_admin):
+         pk_qs = model_admin.get_queryset(request).distinct().values_list('%s__pk' % self.field_path, flat=True)
+-        return field.get_choices(include_blank=False, limit_choices_to={'pk__in': pk_qs})
++        return field.get_choices(
++            include_blank=False,
++            limit_choices_to={'pk__in': pk_qs},
++            ordering=self.get_ordering(field, request, model_admin),
++        )
+diff --git a/tests/admin_filters/models.py b/tests/admin_filters/models.py
+index ae78282..804793e 100644
+--- a/tests/admin_filters/models.py
++++ b/tests/admin_filters/models.py
+@@ -50,6 +50,9 @@ class Employee(models.Model):
+     department = models.ForeignKey(Department, models.CASCADE, to_field="code")
+     name = models.CharField(max_length=100)
+ 
++    class Meta:
++        ordering = ('name',)
++
+     def __str__(self):
+         return self.name
+ 
+diff --git a/tests/admin_filters/tests.py b/tests/admin_filters/tests.py
+index 4ff7d01..0086cf1 100644
+--- a/tests/admin_filters/tests.py
++++ b/tests/admin_filters/tests.py
+@@ -591,6 +591,18 @@ class ListFiltersTests(TestCase):
+         expected = [(self.john.pk, 'John Blue'), (self.jack.pk, 'Jack Red')]
+         self.assertEqual(filterspec.lookup_choices, expected)
+ 
++    def test_relatedfieldlistfilter_foreignkey_meta_ordering(self):
++        class BookAdmin(ModelAdmin):
++            list_filter = ('employee',)
++
++        modeladmin = BookAdmin(Book, site)
++        request = self.request_factory.get('/')
++        request.user = self.alfred
++        changelist = modeladmin.get_changelist_instance(request)
++        filterspec = changelist.get_filters(request)[0][0]
++        expected = [(self.jack.pk, 'Jack Red'), (self.john.pk, 'John Blue')]
++        self.assertEqual(filterspec.lookup_choices, expected)
++
+     def test_relatedfieldlistfilter_manytomany(self):
+         modeladmin = BookAdmin(Book, site)
+ 
+@@ -708,6 +720,27 @@ class ListFiltersTests(TestCase):
+         expected = [(self.alfred.pk, 'alfred'), (self.bob.pk, 'bob')]
+         self.assertEqual(sorted(filterspec.lookup_choices), sorted(expected))
+ 
++    def test_relatedonlyfieldlistfilter_foreignkey_ordering(self):
++        class EmployeeAdminWithOrdering(ModelAdmin):
++            ordering = ('-name',)
++
++        class BookAdmin(ModelAdmin):
++            list_filter = (('employee', RelatedOnlyFieldListFilter),)
++
++        self.djangonaut_book.employee = self.john
++        self.djangonaut_book.save()
++        self.bio_book.employee = self.jack
++        self.bio_book.save()
++        site.register(Employee, EmployeeAdminWithOrdering)
++        self.addCleanup(lambda: site.unregister(Employee))
++        modeladmin = BookAdmin(Book, site)
++        request = self.request_factory.get('/')
++        request.user = self.alfred
++        changelist = modeladmin.get_changelist_instance(request)
++        filterspec = changelist.get_filters(request)[0][0]
++        expected = [(self.john.pk, 'John Blue'), (self.jack.pk, 'Jack Red')]
++        self.assertEqual(filterspec.lookup_choices, expected)
++
+     def test_relatedonlyfieldlistfilter_underscorelookup_foreignkey(self):
+         Department.objects.create(code='TEST', description='Testing')
+         self.djangonaut_book.employee = self.john

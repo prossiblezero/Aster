@@ -1,0 +1,46 @@
+diff --git a/lib/matplotlib/contour.py b/lib/matplotlib/contour.py
+index 3f84250..f25f7c5 100644
+--- a/lib/matplotlib/contour.py
++++ b/lib/matplotlib/contour.py
+@@ -943,6 +943,10 @@ class ContourSet(ContourLabeler, mcoll.Collection):
+     alpha = property(lambda self: self.get_alpha())
+     linestyles = property(lambda self: self._orig_linestyles)
+ 
++    def set_paths(self, paths):
++        self._paths = paths
++        self.stale = True
++
+     @_api.deprecated("3.8")
+     @property
+     def collections(self):
+diff --git a/lib/matplotlib/tests/test_contour.py b/lib/matplotlib/tests/test_contour.py
+index b6ddb28..20ea279 100644
+--- a/lib/matplotlib/tests/test_contour.py
++++ b/lib/matplotlib/tests/test_contour.py
+@@ -11,6 +11,7 @@ import matplotlib as mpl
+ from matplotlib import pyplot as plt, rc_context, ticker
+ from matplotlib.colors import LogNorm, same_color
+ import matplotlib.patches as mpatches
++from matplotlib.path import Path
+ from matplotlib.testing.decorators import image_comparison
+ import pytest
+ 
+@@ -787,6 +788,18 @@ def test_contour_clip_path():
+     assert cs.get_clip_path() is not None
+ 
+ 
++def test_contour_set_paths():
++    fig, ax = plt.subplots()
++    cs = ax.contour([[0, 1], [1, 0]])
++    paths = [Path([[0, 0], [1, 1]])]
++
++    cs.stale = False
++    cs.set_paths(paths)
++
++    assert cs.get_paths() is paths
++    assert cs.stale
++
++
+ def test_bool_autolevel():
+     x, y = np.random.rand(2, 9)
+     z = (np.arange(9) % 2).reshape((3, 3)).astype(bool)

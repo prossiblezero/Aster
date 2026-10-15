@@ -1,0 +1,88 @@
+{
+  "job": "aster-pytest-dev__pytest-7571",
+  "agent": "aster",
+  "task": "pytest-dev__pytest-7571",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 174.94,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 2135,
+  "patch_sha256": "b997e29ee84205183053380d6d2e49f6e3b3007725b94f6a6e14b7d4a8a2c548",
+  "requests": 19,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 405310,
+  "output_tokens": 6534,
+  "cached_tokens": 195584,
+  "total_tokens": 411844,
+  "source": "SWE-bench Verified",
+  "difficulty": "15 min - 1 hour",
+  "final": "Implemented the `caplog` handler-level restoration fix.\n\nChanges:\n- [src/_pytest/logging.py](/testbed/src/_pytest/logging.py:349) snapshots the initial handler level and restores it during fixture finalization.\n- [testing/logging/test_fixture.py](/testbed/testing/logging/test_fixture.py:42) adds a regression assertion that the next test sees `logging.NOTSET`.\n- Added [testing/verify_logging_fix.py](/testbed/testing/verify_logging_fix.py) for environment-level verification.\n\nVerification:\n- Successful formal check via `run_tests`:\n  `python testing/verify_logging_fix.py`\n  `Ran 1 test ... OK`\n- The focused pytest command could not run because pytest is not installed in the task interpreter.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "completion_claim": {
+    "label": "qualified",
+    "reason": "Claims fix implemented and a custom unittest passed, but explicitly says the focused pytest suite could not run because pytest was unavailable in its task interpreter.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level_undos_handler_level"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level",
+          "testing/logging/test_fixture.py::test_with_statement",
+          "testing/logging/test_fixture.py::test_log_access",
+          "testing/logging/test_fixture.py::test_messages",
+          "testing/logging/test_fixture.py::test_record_tuples",
+          "testing/logging/test_fixture.py::test_unicode",
+          "testing/logging/test_fixture.py::test_clear",
+          "testing/logging/test_fixture.py::test_caplog_captures_for_all_stages",
+          "testing/logging/test_fixture.py::test_fixture_help",
+          "testing/logging/test_fixture.py::test_change_level_undo",
+          "testing/logging/test_fixture.py::test_ini_controls_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_can_override_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_captures_despite_exception",
+          "testing/logging/test_fixture.py::test_log_report_captures_according_to_config_option_upon_failure"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "runtime": {
+    "turn": 19,
+    "step": 32,
+    "final_revisions": 1,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "33f9adcc3b89d18ffc3dc22c8132401afa3eaca548dc24c5e7b7c95c0ac8a9db",
+      "evidence_id": "aad0a75a29b5c021dc5817038bfeba945e8a7020c60432888d6bb8fe1e166bf8",
+      "command": "python testing/verify_logging_fix.py"
+    },
+    "verification_failures": {},
+    "feedback": "Completion requirements missing: run a successful verification command via run_tests (run_shell checks do not update formal verification)"
+  }
+}

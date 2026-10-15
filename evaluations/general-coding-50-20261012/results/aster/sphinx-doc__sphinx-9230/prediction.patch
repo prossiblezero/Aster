@@ -1,0 +1,55 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367e..f2c53f3 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -295,13 +295,23 @@ class DocFieldTransformer:
+                     types.setdefault(typename, {})[fieldarg] = content
+                 continue
+ 
+-            # also support syntax like ``:param type name:``
++            # also support syntax like ``:param type name:``.  Types may
++            # contain spaces inside brackets, for example
++            # ``dict(str, str) name``.
+             if typedesc.is_typed:
+-                try:
+-                    argtype, argname = fieldarg.split(None, 1)
+-                except ValueError:
+-                    pass
+-                else:
++                argtype = argname = None
++                depth = 0
++                for index, char in enumerate(fieldarg):
++                    if char in '([{':
++                        depth += 1
++                    elif char in ')]}':
++                        depth = max(depth - 1, 0)
++                    elif char.isspace() and depth == 0:
++                        argtype = fieldarg[:index]
++                        argname = fieldarg[index:].lstrip()
++                        break
++
++                if argtype and argname:
+                     types.setdefault(typename, {})[argname] = \
+                         [nodes.Text(argtype)]
+                     fieldarg = argname
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 569390c..7676eab 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -1008,6 +1008,16 @@ def test_info_field_list_var(app):
+                 refdomain="py", reftype="class", reftarget="int", **{"py:class": "Class"})
+ 
+ 
++def test_info_field_list_parenthesized_type(app):
++    text = (".. py:class:: Class\n"
++            "\n"
++            "   :param dict(str, str) opc_meta: (optional)\n")
++    doctree = restructuredtext.parse(app, text)
++
++    paragraph = doctree[1][1][0][0][1][0]
++    assert paragraph.astext() == "opc_meta (dict(str, str)) -- (optional)"
++
++
+ @pytest.mark.sphinx(freshenv=True)
+ def test_module_index(app):
+     text = (".. py:module:: docutils\n"

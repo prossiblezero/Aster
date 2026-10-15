@@ -1,0 +1,39 @@
+diff --git a/sphinx/directives/other.py b/sphinx/directives/other.py
+index 19f7c0a..75c2fae 100644
+--- a/sphinx/directives/other.py
++++ b/sphinx/directives/other.py
+@@ -369,14 +369,27 @@ class Include(BaseInclude, SphinxDirective):
+     """
+ 
+     def run(self) -> list[Node]:
+-        if self.arguments[0].startswith('<') and \
+-           self.arguments[0].endswith('>'):
+-            # docutils "standard" includes, do not do path processing
++        if not (self.arguments[0].startswith('<') and \
++                self.arguments[0].endswith('>')):
++            rel_filename, filename = self.env.relfn2path(self.arguments[0])
++            self.arguments[0] = filename
++            self.env.note_included(filename)
++
++        # ``docutils`` reads regular includes and inserts their lines directly
++        # into the current state machine.  Give extensions the same opportunity
++        # to modify this source as they have for a document read by Sphinx.
++        insert_input = self.state_machine.insert_input
++
++        def insert_included_source(input_lines: list[str], source: str) -> None:
++            arg = [chr(10).join(input_lines)]
++            self.env.events.emit('source-read', self.env.docname, arg)
++            insert_input(arg[0].splitlines(), source)
++
++        self.state_machine.insert_input = insert_included_source
++        try:
+             return super().run()
+-        rel_filename, filename = self.env.relfn2path(self.arguments[0])
+-        self.arguments[0] = filename
+-        self.env.note_included(filename)
+-        return super().run()
++        finally:
++            self.state_machine.insert_input = insert_input
+ 
+ 
+ def setup(app: Sphinx) -> dict[str, Any]:

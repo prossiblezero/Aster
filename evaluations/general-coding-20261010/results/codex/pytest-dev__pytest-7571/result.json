@@ -1,0 +1,75 @@
+{
+  "job": "codex-pytest-dev__pytest-7571",
+  "agent": "codex",
+  "task": "pytest-dev__pytest-7571",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 281.1,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 2132,
+  "patch_sha256": "e373f20ea9817eba14ee936ffabb26fe7fa8bb6a6835824074041fd8b4d93b51",
+  "requests": 9,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 239671,
+  "output_tokens": 2892,
+  "cached_tokens": 210688,
+  "total_tokens": 242563,
+  "source": "SWE-bench Verified",
+  "difficulty": "15 min - 1 hour",
+  "final": "Implemented the `caplog` handler-level restoration fix.\n\nChanges:\n- Restore the capture handler’s original level during fixture finalization.\n- Added regression coverage for levels leaking between tests.\n\nChecks passed:\n\n- `python -m pytest testing/logging/test_fixture.py` — 15 passed\n- `python -m pytest testing/logging` — passed\n- `git diff --check` — passed",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States capture handler-level restoration fixed and focused/full logging tests passed.",
+    "labelled_before_official_scoring": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level_undos_handler_level"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level",
+          "testing/logging/test_fixture.py::test_with_statement",
+          "testing/logging/test_fixture.py::test_log_access",
+          "testing/logging/test_fixture.py::test_messages",
+          "testing/logging/test_fixture.py::test_record_tuples",
+          "testing/logging/test_fixture.py::test_unicode",
+          "testing/logging/test_fixture.py::test_clear",
+          "testing/logging/test_fixture.py::test_caplog_captures_for_all_stages",
+          "testing/logging/test_fixture.py::test_fixture_help",
+          "testing/logging/test_fixture.py::test_change_level_undo",
+          "testing/logging/test_fixture.py::test_ini_controls_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_can_override_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_captures_despite_exception",
+          "testing/logging/test_fixture.py::test_log_report_captures_according_to_config_option_upon_failure"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  }
+}

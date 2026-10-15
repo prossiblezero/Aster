@@ -1,0 +1,14 @@
+{
+  "job": "pi-bigcodebench-35",
+  "agent": "pi",
+  "task": "bigcodebench-35",
+  "smoke": false,
+  "prompt": "Replace all elements in DataFrame columns that do not exist in the target_values array with zeros, and then output the distribution of each column after replacing. - label each plot as the name of the column it corresponds to.\nThe function should output with:\n    matplotlib.axes.Axes: The Axes object of the plotted data.\nYou should write self-contained code starting with:\n```\nimport seaborn as sns\nimport matplotlib.pyplot as plt\ndef task_func(df, target_values=[1, 3, 4]):\n```\nImplement task_func in solution.py.\nimport seaborn as sns\nimport matplotlib.pyplot as plt\n\n\ndef task_func(df, target_values=[1, 3, 4]):\n    \"\"\"\n    Replace all elements in DataFrame columns that do not exist in the target_values array with zeros, and then output the distribution of each column after replacing.\n    - label each plot as the name of the column it corresponds to.\n\n    Parameters:\n    - df (DataFrame): The input pandas DataFrame.\n    - target_values (list) : Array of values not to replace by zero.\n\n    Returns:\n    - matplotlib.axes.Axes: The Axes object of the plotted data.\n\n    Requirements:\n    - seaborn\n    - matplotlib.pyplot\n\n    Example:\n    >>> import pandas as pd\n    >>> import numpy as np\n    >>> np.random.seed(42)\n    >>> df = pd.DataFrame(np.random.randint(0,10,size=(100, 5)), columns=list('ABCDE'))\n    >>> print(df.head(2))\n       A  B  C  D  E\n    0  6  3  7  4  6\n    1  9  2  6  7  4\n    >>> df1, ax = task_func(df)\n    >>> print(ax)\n    Axes(0.125,0.11;0.775x0.77)\n    \"\"\"\n\n\nCommands start in the task workspace. Use workspace-relative paths when possible.\n\nWork in /app. Dependencies are preinstalled. python on PATH is the task interpreter. Internet access is unavailable; local services are allowed. Implement the request, run relevant checks, and summarize the actual result.",
+  "prompt_sha256": "865c8b0257376877d5537374790105e06dcc07ab7e461ecec5af751b680bf359",
+  "image_id": "sha256:84c7fae6b256dcc56a350790e2a9715eefc7dad662a9d8e8a472363aa71ef18d",
+  "model": "gpt-5.6-luna",
+  "seconds_limit": 900,
+  "source_commit": "c6b651d29f2e9c3de8074d3d90c4ee0c103adca0",
+  "started": 1791822027.1967473,
+  "runner_sha256": "307df8f589aa05fe1ce721704e399e422a7da351552f8cb42f88c07b5b98f447"
+}

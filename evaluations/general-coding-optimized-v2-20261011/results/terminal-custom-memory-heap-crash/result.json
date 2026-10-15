@@ -1,0 +1,47 @@
+{
+  "job": "aster-terminal-custom-memory-heap-crash",
+  "agent": "aster",
+  "task": "terminal-custom-memory-heap-crash",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 321.297,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": false,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 6
+  },
+  "requests": 38,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 589544,
+  "output_tokens": 12554,
+  "cached_tokens": 345600,
+  "total_tokens": 602098,
+  "final": "Fixed the RELEASE-mode crash in [`user.cpp`](/app/user.cpp) by eagerly initializing the relevant libstdc++ stream/locale facets before the program installs its temporary custom heap. This prevents optimized libstdc++ lazy initialization from allocating through the invalid heap state.\n\nVerification passed via `run_tests`:\n\n- RELEASE build: successful\n- DEBUG build: successful\n- Both executables completed normally\n- Valgrind: `ERROR SUMMARY: 0 errors`\n- `definitely lost`, `indirectly lost`, and `possibly lost`: `0 bytes`\n\nA temporary verification harness remains at `/app/.tmp_formal_verification.py` because the sandbox denied its removal; it does not affect the program or production build.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 37,
+    "step": 52,
+    "final_revisions": 1,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "27c8c988bbb1a2210cc134378e104360ff5b99e13caf612ff2e5d8af1c22c34c",
+      "evidence_id": "bc838cbdc8369dab95b05fd85f256eee4bb2b8bb1ea6883fa8f61871e938d08d",
+      "command": "python .tmp_formal_verification.py"
+    },
+    "verification_failures": {}
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "original_passed": false
+}

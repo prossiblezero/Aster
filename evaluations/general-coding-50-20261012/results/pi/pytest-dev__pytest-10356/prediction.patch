@@ -1,0 +1,59 @@
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 800a25c..82aeb39 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -357,9 +357,17 @@ class MarkDecorator:
+ 
+ def get_unpacked_marks(obj: object) -> Iterable[Mark]:
+     """Obtain the unpacked marks that are stored on an object."""
+-    mark_list = getattr(obj, "pytestmark", [])
+-    if not isinstance(mark_list, list):
+-        mark_list = [mark_list]
++    if inspect.isclass(obj) and "pytestmark" not in type(obj).__dict__:
++        mark_list = []
++        for cls in obj.__mro__:
++            mark = cls.__dict__.get("pytestmark", [])
++            if not isinstance(mark, list):
++                mark = [mark]
++            mark_list.extend(mark)
++    else:
++        mark_list = getattr(obj, "pytestmark", [])
++        if not isinstance(mark_list, list):
++            mark_list = [mark_list]
+     return normalize_mark_list(mark_list)
+ 
+ 
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index 65f2581..dc6c7e1 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -561,6 +561,29 @@ class TestFunctional:
+         items, rec = pytester.inline_genitems(p)
+         self.assert_markers(items, test_foo=("a", "b", "c"), test_bar=("a", "b", "d"))
+ 
++    def test_mark_decorator_multiple_baseclasses_merged(
++        self, pytester: Pytester
++    ) -> None:
++        p = pytester.makepyfile(
++            """
++            import pytest
++
++            @pytest.mark.foo
++            class Foo:
++                pass
++
++            @pytest.mark.bar
++            class Bar:
++                pass
++
++            class Test(Foo, Bar):
++                def test_method(self):
++                    pass
++            """
++        )
++        items, rec = pytester.inline_genitems(p)
++        self.assert_markers(items, test_method=("foo", "bar"))
++
+     def test_mark_closest(self, pytester: Pytester) -> None:
+         p = pytester.makepyfile(
+             """

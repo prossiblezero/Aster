@@ -1,0 +1,20 @@
+| Metric | aster |
+|---|---:|
+| tasks | 20 |
+| requests | 382 |
+| followups | 360 |
+| rewrites | 2 |
+| strict_rewrites | 360 |
+| low_hits | 120 |
+| rewrite_uncached | 49896 |
+| stable_miss | 2098041 |
+| stable_hit_mean | 0.783 |
+| stable_hit_p10 | 0.228 |
+| input | 10043357 |
+| cached | 7261184 |
+| uncached | 2782173 |
+| cache_ratio | 0.723 |
+| missing_usage | 2 |
+| cache_keys | 382 |
+| mean_input_items | 64.034 |
+| mean_input_tokens | 26429.887 |

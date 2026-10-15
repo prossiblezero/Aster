@@ -1,0 +1,79 @@
+[
+  {
+    "task": "django__django-11400",
+    "baseline_passed": false,
+    "candidate_passed": false,
+    "phase": "completed",
+    "timed_out": false,
+    "compactions": 0,
+    "reason": "两项 get_choices 默认排序断言失败。内部仅运行 admin_filters，自测未覆盖独立测试中的 model_fields 默认排序。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/logs/evaluation/context-cache-20261013/aster/django__django-11400/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "sympy__sympy-17630",
+    "baseline_passed": false,
+    "candidate_passed": false,
+    "phase": "completed",
+    "timed_out": false,
+    "compactions": 0,
+    "reason": "test_zero_matrix_add 失败：Add(ZeroMatrix(2, 2), ZeroMatrix(2, 2)) 没有返回预期的 ZeroMatrix。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/logs/evaluation/context-cache-20261013/aster/sympy__sympy-17630/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "sphinx-doc__sphinx-11510",
+    "baseline_passed": false,
+    "candidate_passed": false,
+    "phase": "completed",
+    "timed_out": false,
+    "compactions": 1,
+    "reason": "include 的 source-read 事件与嵌套 include 两项断言失败。唯一一次压缩发生在最后的最终回复前；该次回复之后没有再修改代码。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/logs/evaluation/context-cache-20261013/aster/sphinx-doc__sphinx-11510/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "pytest-dev__pytest-10356",
+    "baseline_passed": false,
+    "candidate_passed": false,
+    "phase": null,
+    "timed_out": true,
+    "compactions": 0,
+    "reason": "达到 900 秒上限；保存的补丁在 test_mark_mro 失败，get_unpacked_marks 返回 generator，独立测试预期 list。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/logs/evaluation/context-cache-20261013/aster/pytest-dev__pytest-10356/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "terminal-cancel-async-tasks",
+    "baseline_passed": true,
+    "candidate_passed": false,
+    "phase": "completed",
+    "timed_out": false,
+    "compactions": 0,
+    "reason": "3 个任务、并发上限 2 时，SIGINT 后没有完成清理，Cleaned up. 为 0 而预期为 2。自测覆盖了单任务取消，漏掉排队任务与异步清理的组合。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/runs/aster-terminal-cancel-async-tasks/grading/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "terminal-custom-memory-heap-crash",
+    "baseline_passed": true,
+    "candidate_passed": false,
+    "phase": "stopped",
+    "timed_out": false,
+    "compactions": 0,
+    "reason": "Release 构建在计算完成后以 -11（SIGSEGV）退出；Debug 与 Valgrind 检查通过，Release 退出崩溃仍未修复。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/runs/aster-terminal-custom-memory-heap-crash/grading/test_output.txt",
+    "foreground_request_faults": []
+  },
+  {
+    "task": "terminal-kv-store-grpc",
+    "baseline_passed": false,
+    "candidate_passed": false,
+    "phase": "completed",
+    "timed_out": false,
+    "compactions": 0,
+    "reason": "评分时 5328 端口没有监听，真实 RPC 调用失败。轨迹 seq=2716 中 python /app/server.py 返回 Permission denied；之后只验证了内存方法，最终仍被内部验收放行。属于隔离路径使用与服务启动验收问题，不能称为纯供应商故障。",
+    "independent_test_evidence": "artifacts/private/context-cache-20261013/runs/aster-terminal-kv-store-grpc/grading/test_output.txt",
+    "foreground_request_faults": []
+  }
+]

@@ -1,0 +1,35 @@
+diff --git a/xarray/core/rolling.py b/xarray/core/rolling.py
+index c194ec0..42d8138 100644
+--- a/xarray/core/rolling.py
++++ b/xarray/core/rolling.py
+@@ -973,7 +973,7 @@ class Coarsen(CoarsenArithmetic, Generic[T_Xarray]):
+             else:
+                 reshaped[key] = var
+ 
+-        should_be_coords = set(window_dim) & set(self.obj.coords)
++        should_be_coords = set(self.obj.coords)
+         result = reshaped.set_coords(should_be_coords)
+         if isinstance(self.obj, DataArray):
+             return self.obj._from_temp_dataset(result)
+diff --git a/xarray/tests/test_coarsen.py b/xarray/tests/test_coarsen.py
+index d444998..9cb1c6a 100644
+--- a/xarray/tests/test_coarsen.py
++++ b/xarray/tests/test_coarsen.py
+@@ -318,3 +318,17 @@ def test_coarsen_construct(dask: bool) -> None:
+ 
+     with pytest.raises(ValueError):
+         ds.coarsen(time=12).construct(time=("bar",))
++
++
++def test_coarsen_construct_preserves_non_dimensional_coords() -> None:
++    da = xr.DataArray(np.arange(24), dims=["time"])
++    ds = da.assign_coords(day=365 * da).to_dataset(name="T")
++
++    actual = ds.coarsen(time=12).construct(time=("year", "month"))
++
++    assert "day" in actual.coords
++    assert "day" not in actual.data_vars
++    expected_day = xr.DataArray(
++        ds.day.data.reshape((2, 12)), dims=("year", "month"), name="day"
++    )
++    assert_identical(actual.day.variable, expected_day.variable)

@@ -1,0 +1,41 @@
+{
+  "job": "codex-terminal-custom-memory-heap-crash",
+  "agent": "codex",
+  "task": "terminal-custom-memory-heap-crash",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 356.754,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": false,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 6
+  },
+  "requests": 9,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 244269,
+  "output_tokens": 4503,
+  "cached_tokens": 216832,
+  "total_tokens": 248772,
+  "source": "Terminal-Bench archive",
+  "difficulty": "medium",
+  "final": "Updated [user.cpp](/app/user.cpp:5) to initialize libstdc++ locale facets before the custom heap is enabled, preventing release teardown from freeing heap-owned facet data after the heap is destroyed.\n\nVerified:\n\n- Release build: passes\n- Debug build: passes\n- Valgrind: 0 errors, 0 definitely/indirectly lost bytes\n- Only 73,728 bytes remain reachable from libstdc++’s exception pool, not leaked application memory",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States heap/locale lifetime fix applied and release/debug builds plus Valgrind checks pass; reachable libstdc++ pool memory is explained without an unresolved requirement.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

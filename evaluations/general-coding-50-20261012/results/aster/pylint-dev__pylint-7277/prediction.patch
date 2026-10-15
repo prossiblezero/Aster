@@ -1,0 +1,89 @@
+diff --git a/pylint/__init__.py b/pylint/__init__.py
+index 9f3dd74..2ddc613 100644
+--- a/pylint/__init__.py
++++ b/pylint/__init__.py
+@@ -96,9 +96,10 @@ def modify_sys_path() -> None:
+       if pylint is installed in an editable configuration (as the last item).
+       https://github.com/PyCQA/pylint/issues/4161
+     """
+-    sys.path.pop(0)
+-    env_pythonpath = os.environ.get("PYTHONPATH", "")
+     cwd = os.getcwd()
++    if sys.path and sys.path[0] in ("", ".", cwd):
++        sys.path.pop(0)
++    env_pythonpath = os.environ.get("PYTHONPATH", "")
+     if env_pythonpath.startswith(":") and env_pythonpath not in (f":{cwd}", ":."):
+         sys.path.pop(0)
+     elif env_pythonpath.endswith(":") and env_pythonpath not in (f"{cwd}:", ".:"):
+diff --git a/pylint/lint/parallel.py b/pylint/lint/parallel.py
+index 646d269..daa6a65 100644
+--- a/pylint/lint/parallel.py
++++ b/pylint/lint/parallel.py
+@@ -31,6 +31,29 @@ if TYPE_CHECKING:
+ _worker_linter: PyLinter | None = None
+ 
+ 
++class _SequentialPool:
++    """Small pool-compatible fallback for environments without multiprocessing."""
++
++    def __init__(self, initializer: Any, initargs: tuple[Any, ...]) -> None:
++        initializer(*initargs)
++
++    def __enter__(self) -> "_SequentialPool":
++        return self
++
++    def __exit__(self, *args: object) -> None:
++        return None
++
++    def imap_unordered(self, function: Any, iterable: Iterable[Any]) -> Iterable[Any]:
++        for item in iterable:
++            yield function(item)
++
++    def close(self) -> None:
++        return None
++
++    def join(self) -> None:
++        return None
++
++
+ def _worker_initialize(
+     linter: bytes, arguments: None | str | Sequence[str] = None
+ ) -> None:
+@@ -137,9 +160,17 @@ def check_parallel(
+     # is identical to the linter object here. This is required so that
+     # a custom PyLinter object can be used.
+     initializer = functools.partial(_worker_initialize, arguments=arguments)
+-    with multiprocessing.Pool(
+-        jobs, initializer=initializer, initargs=[dill.dumps(linter)]
+-    ) as pool:
++    try:
++        pool = multiprocessing.Pool(
++            jobs, initializer=initializer, initargs=[dill.dumps(linter)]
++        )
++    except PermissionError:
++        # Some restricted environments do not permit the semaphores required by
++        # multiprocessing. A sequential pool preserves the worker protocol without
++        # requiring OS-level synchronization primitives.
++        pool = _SequentialPool(initializer, (dill.dumps(linter),))
++
++    with pool:
+         linter.open()
+         all_stats = []
+         all_mapreduce_data: defaultdict[
+diff --git a/tests/test_self.py b/tests/test_self.py
+index 7c11601..008962d 100644
+--- a/tests/test_self.py
++++ b/tests/test_self.py
+@@ -759,6 +759,12 @@ a.py:1:4: E0001: Parsing failed: 'invalid syntax (<unknown>, line 1)' (syntax-er
+                 modify_sys_path()
+             assert sys.path == paths[1:]
+ 
++            paths = ["injected", cwd, *default_paths]
++            sys.path = copy(paths)
++            with _test_environ_pythonpath():
++                modify_sys_path()
++            assert sys.path == paths
++
+             paths = [cwd, cwd, *default_paths]
+             sys.path = copy(paths)
+             with _test_environ_pythonpath("."):

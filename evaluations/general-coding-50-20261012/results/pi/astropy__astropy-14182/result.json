@@ -1,0 +1,69 @@
+{
+  "job": "pi-astropy__astropy-14182",
+  "agent": "pi",
+  "task": "astropy__astropy-14182",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 332.28,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1812,
+  "patch_sha256": "2d181a253cd3c11f8c4bc8065976f809e8c5bd3d03feb7dbedbce5175d118350",
+  "requests": 20,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 479199,
+  "output_tokens": 4667,
+  "cached_tokens": 417792,
+  "total_tokens": 483866,
+  "final": "Implemented support for `header_rows` in RestructuredText output.\n\nChanges:\n- Added `header_rows` to `astropy.io.ascii.RST`.\n- Correctly selects the separator line after all header rows.\n- Adjusted data parsing offsets for multiple header rows.\n- Added a read/write test covering `name` and `unit` rows.\n\nValidation passed:\n\n```text\n203 passed\n```\n\nTested files include `test_rst.py`, `test_fixedwidth.py`, and `test_write.py`.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "new30",
+  "difficulty": "15 min - 1 hour",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_names",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_names_include",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_exclude",
+          "astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column",
+          "astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column_header",
+          "astropy/io/ascii/tests/test_rst.py::test_read_right_indented_table",
+          "astropy/io/ascii/tests/test_rst.py::test_trailing_spaces_in_row_definition",
+          "astropy/io/ascii/tests/test_rst.py::test_write_normal"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "normal_delivery_and_passed": true,
+  "provider_fault_observed": false
+}

@@ -1,0 +1,69 @@
+{
+  "job": "codex-astropy__astropy-14182",
+  "agent": "codex",
+  "task": "astropy__astropy-14182",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 214.784,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1725,
+  "patch_sha256": "0972fda907b2aca8f4a6370f4840bce54f1c6cc3d7530d8eb43b137d8edee769",
+  "requests": 15,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 446327,
+  "output_tokens": 3294,
+  "cached_tokens": 388352,
+  "total_tokens": 449621,
+  "final": "Implemented support for `header_rows` in RST output.\n\nChanges:\n- `RST` now accepts and forwards `header_rows`.\n- RST separators are placed after all header rows.\n- Added regression coverage for `name` and `unit` rows.\n\nValidation: `825 passed, 36 skipped, 6 xfailed` in `astropy/io/ascii/tests`.",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "new30",
+  "difficulty": "15 min - 1 hour",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [],
+        "failure": [
+          "astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_names",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_names_include",
+          "astropy/io/ascii/tests/test_rst.py::test_read_normal_exclude",
+          "astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column",
+          "astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column_header",
+          "astropy/io/ascii/tests/test_rst.py::test_read_right_indented_table",
+          "astropy/io/ascii/tests/test_rst.py::test_trailing_spaces_in_row_definition",
+          "astropy/io/ascii/tests/test_rst.py::test_write_normal"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

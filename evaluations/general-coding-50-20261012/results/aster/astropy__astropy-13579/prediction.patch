@@ -1,0 +1,57 @@
+diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+index d7605b0..28ba723 100644
+--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py
+@@ -246,12 +246,19 @@ class SlicedLowLevelWCS(BaseWCSWrapper):
+         world_arrays = tuple(map(np.asanyarray, world_arrays))
+         world_arrays_new = []
+         iworld_curr = -1
++        if self._world_keep.size < self._wcs.world_n_dim:
++            dropped_world = iter(self.dropped_world_dimensions["value"])
++        else:
++            dropped_world = iter(())
+         for iworld in range(self._wcs.world_n_dim):
+             if iworld in self._world_keep:
+                 iworld_curr += 1
+                 world_arrays_new.append(world_arrays[iworld_curr])
+             else:
+-                world_arrays_new.append(1.)
++                # The dropped world coordinates are fixed by the pixel slice.
++                # They cannot be replaced by an arbitrary value when axes are
++                # coupled in the underlying WCS.
++                world_arrays_new.append(next(dropped_world))
+ 
+         world_arrays_new = np.broadcast_arrays(*world_arrays_new)
+         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))
+diff --git a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+index a354114..a730b10 100644
+--- a/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
++++ b/astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py
+@@ -65,6 +65,27 @@ def test_invalid_slices():
+         SlicedLowLevelWCS(WCS_SPECTRAL_CUBE, [None, None, 1000.100])
+ 
+ 
++def test_world_to_pixel_with_coupled_dropped_axis():
++    header = {
++        'WCSAXES': 3,
++        'CRPIX1': 1., 'CRPIX2': 1., 'CRPIX3': 1.,
++        'PC1_1': 1., 'PC1_2': 0., 'PC1_3': 0.,
++        'PC2_1': 0., 'PC2_2': 1., 'PC2_3': -1.,
++        'PC3_1': 0., 'PC3_2': 0., 'PC3_3': 1.,
++        'CDELT1': 1., 'CDELT2': 1., 'CDELT3': 1.,
++        'CUNIT1': 'deg', 'CUNIT2': 'deg', 'CUNIT3': 'Hz',
++        'CTYPE1': 'GLON-CAR', 'CTYPE2': 'GLAT-CAR', 'CTYPE3': 'FREQ',
++        'CRVAL1': 0., 'CRVAL2': 0., 'CRVAL3': 10.,
++    }
++    wcs = WCS(header=header)
++    sliced = SlicedLowLevelWCS(wcs, 0)
++
++    # Pixel 0 on the sliced axis corresponds to frequency 10 Hz.  The
++    # spectral world coordinate must be retained when inverting the slice.
++    expected = wcs.world_to_pixel_values(0., 0., 10.)[:2]
++    assert_allclose(sliced.world_to_pixel_values(0., 0.), expected)
++
++
+ @pytest.mark.parametrize("item, ndim, expected", (
+     ([Ellipsis, 10], 4, [slice(None)] * 3 + [10]),
+     ([10, slice(20, 30)], 5, [10, slice(20, 30)] + [slice(None)] * 3),

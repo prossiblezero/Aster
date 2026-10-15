@@ -1,0 +1,37 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367e..6d48e91 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -298,7 +298,7 @@ class DocFieldTransformer:
+             # also support syntax like ``:param type name:``
+             if typedesc.is_typed:
+                 try:
+-                    argtype, argname = fieldarg.split(None, 1)
++                    argtype, argname = fieldarg.rsplit(None, 1)
+                 except ValueError:
+                     pass
+                 else:
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index 569390c..50390ac 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -1008,6 +1008,19 @@ def test_info_field_list_var(app):
+                 refdomain="py", reftype="class", reftarget="int", **{"py:class": "Class"})
+ 
+ 
++def test_info_field_list_type_with_whitespace(app):
++    text = (".. py:class:: Class\n"
++            "\n"
++            "   :param dict(str, str) opc_meta: (optional)\n")
++    doctree = restructuredtext.parse(app, text)
++
++    assert_node(doctree[1][1][0][0], ([nodes.field_name, "Parameters"],
++                                      [nodes.field_body, nodes.paragraph]))
++    paragraph = doctree[1][1][0][0][1][0]
++    assert paragraph.astext() == "opc_meta (dict(str, str)) -- (optional)"
++    assert paragraph[0].astext() == "opc_meta"
++
++
+ @pytest.mark.sphinx(freshenv=True)
+ def test_module_index(app):
+     text = (".. py:module:: docutils\n"

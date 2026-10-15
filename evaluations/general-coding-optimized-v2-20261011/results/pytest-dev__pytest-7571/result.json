@@ -1,0 +1,81 @@
+{
+  "job": "aster-pytest-dev__pytest-7571",
+  "agent": "aster",
+  "task": "pytest-dev__pytest-7571",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 107.226,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 1670,
+  "patch_sha256": "9aa39c678eb6d68d18ecd27605a4a7202036e7493d2d1831824a2921bca36049",
+  "requests": 14,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 282909,
+  "output_tokens": 2665,
+  "cached_tokens": 228352,
+  "total_tokens": 285574,
+  "final": "Implemented the caplog log-level restoration fix.\n\nChanges:\n- Updated [`src/_pytest/logging.py`](/testbed/src/_pytest/logging.py:287) so `catching_logs` saves and restores the handler’s original level, in addition to restoring the root logger level.\n- Added a regression assertion to [`testing/logging/test_fixture.py`](/testbed/testing/logging/test_fixture.py:42) verifying that a subsequent test sees `logging.NOTSET`.\n\nVerification:\n- Exact reproducer: `2 passed`\n- Focused fixture tests: `14 passed`\n- Full logging test suite: `57 passed`\n- One existing `PytestDeprecationWarning` about the `junit_family` default was reported.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 13,
+    "step": 24,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "dd5ab6dfbd3684a49374dbd115cdf8b3a9c7b039d41fbbba31d06e786866757f",
+      "evidence_id": "0ab106ad35756b6095a91f0935e8b332882d1f84eed80a9854b12ba535da5572",
+      "command": "python -m pytest testing/logging -q"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": true,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level_undos_handler_level"
+        ],
+        "failure": []
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "testing/logging/test_fixture.py::test_change_level",
+          "testing/logging/test_fixture.py::test_with_statement",
+          "testing/logging/test_fixture.py::test_log_access",
+          "testing/logging/test_fixture.py::test_messages",
+          "testing/logging/test_fixture.py::test_record_tuples",
+          "testing/logging/test_fixture.py::test_unicode",
+          "testing/logging/test_fixture.py::test_clear",
+          "testing/logging/test_fixture.py::test_caplog_captures_for_all_stages",
+          "testing/logging/test_fixture.py::test_fixture_help",
+          "testing/logging/test_fixture.py::test_change_level_undo",
+          "testing/logging/test_fixture.py::test_ini_controls_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_can_override_global_log_level",
+          "testing/logging/test_fixture.py::test_caplog_captures_despite_exception",
+          "testing/logging/test_fixture.py::test_log_report_captures_according_to_config_option_upon_failure"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false,
+  "original_passed": true
+}

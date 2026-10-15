@@ -1,0 +1,53 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index fe22ff4..b151f12 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -21,7 +21,6 @@ from urllib3.exceptions import ConnectTimeoutError
+ from urllib3.exceptions import HTTPError as _HTTPError
+ from urllib3.exceptions import InvalidHeader as _InvalidHeader
+ from urllib3.exceptions import MaxRetryError
+-from urllib3.exceptions import NewConnectionError
+ from urllib3.exceptions import ProxyError as _ProxyError
+ from urllib3.exceptions import ProtocolError
+ from urllib3.exceptions import ReadTimeoutError
+@@ -502,9 +501,7 @@ class HTTPAdapter(BaseAdapter):
+ 
+         except MaxRetryError as e:
+             if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
++                raise ConnectTimeout(e, request=request)
+ 
+             if isinstance(e.reason, ResponseError):
+                 raise RetryError(e, request=request)
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d..d863881 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -403,7 +403,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+                 raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++        elif host.startswith((u'*', u'.')):
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 463e8bf..61dfdec 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -2496,6 +2496,12 @@ class TestPreparingURLs(object):
+         with pytest.raises(requests.exceptions.InvalidURL):
+             r.prepare()
+ 
++    def test_preparing_url_with_empty_label(self):
++        r = requests.Request('GET', url='http://.example.com')
++        with pytest.raises(requests.exceptions.InvalidURL) as exc_info:
++            r.prepare()
++        assert str(exc_info.value) == 'URL has an invalid label.'
++
+     @pytest.mark.parametrize(
+         'url, exception',
+         (

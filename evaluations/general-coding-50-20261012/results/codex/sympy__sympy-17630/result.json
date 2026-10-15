@@ -1,0 +1,81 @@
+{
+  "job": "codex-sympy__sympy-17630",
+  "agent": "codex",
+  "task": "sympy__sympy-17630",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 250.161,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": true,
+  "patch_bytes": 2367,
+  "patch_sha256": "497c6b587099182a5b4eb66916ea130d2ca4bd63a0ec9f2c9796166e6f6d05fd",
+  "requests": 8,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 179609,
+  "output_tokens": 2909,
+  "cached_tokens": 152576,
+  "total_tokens": 182518,
+  "final": "Implemented the fix in [blockmatrix.py](/testbed/sympy/matrices/expressions/blockmatrix.py:164).\n\nScalar zero results from block multiplication are now converted back into correctly sized `ZeroMatrix` blocks, preserving block structure across repeated multiplication. Added regression coverage for direct and collapsed triple multiplication.\n\nValidation:\n\n- Focused block matrix tests: 16 passed\n- Matrix expressions suite: 191 passed, 4 expected failures\n- `git diff --check`: passed",
+  "phase": null,
+  "stop_reason": null,
+  "source": "SWE-bench Verified",
+  "language": "Python",
+  "exposure": "old20",
+  "difficulty": "1-4 hours",
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": true,
+    "resolved": false,
+    "infra_failure": false,
+    "tests_status": {
+      "FAIL_TO_PASS": {
+        "success": [
+          "test_issue_17624"
+        ],
+        "failure": [
+          "test_zero_matrix_add"
+        ]
+      },
+      "PASS_TO_PASS": {
+        "success": [
+          "test_bc_matmul",
+          "test_bc_matadd",
+          "test_bc_transpose",
+          "test_bc_dist_diag",
+          "test_block_plus_ident",
+          "test_BlockMatrix",
+          "test_block_collapse_explicit_matrices",
+          "test_BlockMatrix_trace",
+          "test_BlockMatrix_Determinant",
+          "test_squareBlockMatrix",
+          "test_BlockDiagMatrix",
+          "test_blockcut",
+          "test_reblock_2x2",
+          "test_deblock",
+          "test_sort_key",
+          "test_matadd_sympify",
+          "test_matadd_of_matrices",
+          "test_doit_args",
+          "test_generic_identity"
+        ],
+        "failure": []
+      },
+      "FAIL_TO_FAIL": {
+        "success": [],
+        "failure": []
+      },
+      "PASS_TO_FAIL": {
+        "success": [],
+        "failure": []
+      }
+    }
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "normal_delivery_and_passed": false,
+  "provider_fault_observed": false
+}

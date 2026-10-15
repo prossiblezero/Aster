@@ -1,0 +1,104 @@
+diff --git a/requests/models.py b/requests/models.py
+index 9c624d3..3ddc1e9 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -81,7 +81,7 @@ class RequestEncodingMixin(object):
+         """
+ 
+         if isinstance(data, (str, bytes)):
+-            return to_native_string(data)
++            return data
+         elif hasattr(data, 'read'):
+             return data
+         elif hasattr(data, '__iter__'):
+@@ -386,6 +386,8 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 fragment = fragment.encode('utf-8')
+ 
+         enc_params = self._encode_params(params)
++        if isinstance(enc_params, bytes):
++            enc_params = to_native_string(enc_params)
+         if enc_params:
+             if query:
+                 query = '%s&%s' % (query, enc_params)
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..cd4ee60 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -12,6 +12,7 @@ import collections
+ import contextlib
+ 
+ import io
++import socket
+ import requests
+ import pytest
+ from requests.adapters import HTTPAdapter
+@@ -29,6 +30,7 @@ from requests.structures import CaseInsensitiveDict
+ from requests.sessions import SessionRedirectMixin
+ from requests.models import urlencode
+ from requests.hooks import default_hooks
++import requests.packages.urllib3.util.connection as urllib3_connection
+ 
+ try:
+     import StringIO
+@@ -70,10 +72,18 @@ def httpsbin_url(httpbin_secure):
+     return inner
+ 
+ 
+-# Requests to this URL should always fail with a connection timeout (nothing
+-# listening on that port)
+ TARPIT = "http://10.255.255.1"
+ 
++
++@pytest.fixture
++def tarpit(monkeypatch):
++    """Provide a deterministic socket timeout for connect-timeout tests."""
++    def create_connection(*args, **kwargs):
++        raise socket.timeout()
++
++    monkeypatch.setattr(urllib3_connection, 'create_connection', create_connection)
++    return TARPIT
++
+ class TestRequests(object):
+ 
+     _multiprocess_can_split_ = True
+@@ -1560,17 +1570,17 @@ class TestTimeout:
+         except ReadTimeout:
+             pass
+ 
+-    def test_connect_timeout(self):
++    def test_connect_timeout(self, tarpit):
+         try:
+-            requests.get(TARPIT, timeout=(0.1, None))
++            requests.get(tarpit, timeout=(0.1, None))
+             assert False, "The connect() request should time out."
+         except ConnectTimeout as e:
+             assert isinstance(e, ConnectionError)
+             assert isinstance(e, Timeout)
+ 
+-    def test_total_timeout_connect(self):
++    def test_total_timeout_connect(self, tarpit):
+         try:
+-            requests.get(TARPIT, timeout=(0.1, 0.1))
++            requests.get(tarpit, timeout=(0.1, 0.1))
+             assert False, "The connect() request should time out."
+         except ConnectTimeout:
+             pass
+@@ -1666,6 +1676,18 @@ def test_data_argument_accepts_tuples(list_of_tuples):
+         assert p.body == urlencode(data)
+ 
+ 
++def test_data_argument_accepts_bytes():
++    data = u('ööö').encode('utf-8')
++    p = PreparedRequest()
++    p.prepare(
++        method='PUT',
++        url='http://www.example.com',
++        data=data,
++        hooks=default_hooks()
++    )
++    assert p.body == data
++
++
+ def assert_copy(p, p_copy):
+     for attr in ('method', 'url', 'headers', '_cookies', 'body', 'hooks'):
+         assert getattr(p, attr) == getattr(p_copy, attr)

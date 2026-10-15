@@ -1,0 +1,60 @@
+diff --git a/requests/adapters.py b/requests/adapters.py
+index fe22ff4..23974e9 100644
+--- a/requests/adapters.py
++++ b/requests/adapters.py
+@@ -502,9 +502,7 @@ class HTTPAdapter(BaseAdapter):
+ 
+         except MaxRetryError as e:
+             if isinstance(e.reason, ConnectTimeoutError):
+-                # TODO: Remove this in 3.0.0: see #2811
+-                if not isinstance(e.reason, NewConnectionError):
+-                    raise ConnectTimeout(e, request=request)
++                raise ConnectTimeout(e, request=request)
+ 
+             if isinstance(e.reason, ResponseError):
+                 raise RetryError(e, request=request)
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d..1533925 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -397,13 +397,14 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+         # In general, we want to try IDNA encoding the hostname if the string contains
+         # non-ASCII characters. This allows users to automatically get the correct IDNA
+         # behaviour. For strings containing only ASCII characters, we need to also verify
+-        # it doesn't start with a wildcard (*), before allowing the unencoded hostname.
++        # it doesn't start with a wildcard (*) or a dot (.), before allowing the
++        # unencoded hostname.
+         if not unicode_is_ascii(host):
+             try:
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+                 raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++        elif host.startswith((u'*', u'.')):
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 463e8bf..0e030d0 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -2488,6 +2488,7 @@ class TestPreparingURLs(object):
+             b"http://*",
+             u"http://*.google.com",
+             u"http://*",
++            u"http://.example.com",
+             u"http://☃.net/"
+         )
+     )
+@@ -2496,6 +2497,11 @@ class TestPreparingURLs(object):
+         with pytest.raises(requests.exceptions.InvalidURL):
+             r.prepare()
+ 
++    def test_preparing_url_with_empty_label(self):
++        r = requests.Request('GET', url='http://.example.com')
++        with pytest.raises(requests.exceptions.InvalidURL, match='URL has an invalid label.'):
++            r.prepare()
++
+     @pytest.mark.parametrize(
+         'url, exception',
+         (

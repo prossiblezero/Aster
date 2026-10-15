@@ -1,0 +1,37 @@
+diff --git a/lib/matplotlib/contour.py b/lib/matplotlib/contour.py
+index 3f84250..95868ff 100644
+--- a/lib/matplotlib/contour.py
++++ b/lib/matplotlib/contour.py
+@@ -977,6 +977,10 @@ class ContourSet(ContourLabeler, mcoll.Collection):
+                 self.axes.add_collection(col)
+         return self._old_style_split_collections
+ 
++    def set_paths(self, paths):
++        self._paths = paths
++        self.stale = True
++
+     def get_transform(self):
+         """Return the `.Transform` instance used by this ContourSet."""
+         if self._transform is None:
+diff --git a/lib/matplotlib/tests/test_contour.py b/lib/matplotlib/tests/test_contour.py
+index b6ddb28..568db2b 100644
+--- a/lib/matplotlib/tests/test_contour.py
++++ b/lib/matplotlib/tests/test_contour.py
+@@ -772,6 +772,17 @@ def test_contour_remove():
+     assert ax.get_children() == orig_children
+ 
+ 
++def test_contour_set_paths():
++    cs = plt.contour(np.arange(16).reshape((4, 4)))
++    paths = cs.get_paths()[::-1]
++    cs.stale = False
++
++    cs.set_paths(paths)
++
++    assert cs.get_paths() is paths
++    assert cs.stale
++
++
+ def test_contour_no_args():
+     fig, ax = plt.subplots()
+     data = [[0, 1], [1, 0]]

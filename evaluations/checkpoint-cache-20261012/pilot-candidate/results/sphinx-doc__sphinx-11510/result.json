@@ -1,0 +1,47 @@
+{
+  "job": "aster-sphinx-doc__sphinx-11510",
+  "agent": "aster",
+  "task": "sphinx-doc__sphinx-11510",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 381.655,
+  "timed_out": false,
+  "kind": "repository",
+  "previously_used": false,
+  "patch_bytes": 4078,
+  "patch_sha256": "49cd6fa43a64fe02270a352a9dcf67c52b4934357139393f01f187ab61c7ca75",
+  "requests": 35,
+  "missing_usage": 1,
+  "request_errors": 1,
+  "input_tokens": 1120167,
+  "output_tokens": 8011,
+  "cached_tokens": 737280,
+  "total_tokens": 1128178,
+  "final": "Implemented the `source-read` handling for included files.\n\nChanges:\n- Updated [sphinx/directives/other.py](/testbed/sphinx/directives/other.py:365) so included source passes through the `source-read` event before docutils applies include options or inserts the content.\n- Added a regression fixture under [tests/roots/test-source-read-include](/testbed/tests/roots/test-source-read-include).\n- Added coverage in [tests/test_directive_other.py](/testbed/tests/test_directive_other.py:153).\n\nVerification:\n- `pytest tests/test_directive_other.py tests/test_build.py`\n- Result: **18 passed**\n- Python compilation check passed for the modified source and test files.\n- The original reproduction now produces two `REPLACED` occurrences and no remaining `REPLACE_ME` text.",
+  "phase": "completed",
+  "stop_reason": "verified",
+  "runtime": {
+    "turn": 34,
+    "step": 46,
+    "final_revisions": 0,
+    "verification": {
+      "state": "passed",
+      "workspace_hash": "71002c4ae0f85416e59ade36aba1a80899ab2d1a4d6d77591961917fe676df6f",
+      "evidence_id": "fe872cb9c310f549e4fba6aad2bf428f443f0aec3b8b949280863075cb788b2b",
+      "command": "pytest tests/test_directive_other.py tests/test_build.py"
+    },
+    "verification_failures": {}
+  },
+  "grade": {
+    "patch_is_None": false,
+    "patch_exists": true,
+    "patch_successfully_applied": false,
+    "resolved": false,
+    "infra_failure": false,
+    "infra_failure_reason": "no_tests_collected"
+  },
+  "graded": true,
+  "passed": false,
+  "grading_error": false,
+  "original_passed": false
+}

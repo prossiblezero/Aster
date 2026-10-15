@@ -1,0 +1,41 @@
+{
+  "job": "pi-terminal-cancel-async-tasks",
+  "agent": "pi",
+  "task": "terminal-cancel-async-tasks",
+  "smoke": false,
+  "exit_code": 0,
+  "seconds": 44.445,
+  "timed_out": false,
+  "kind": "terminal",
+  "previously_used": true,
+  "grade": {
+    "passed": true,
+    "exit_code": 0,
+    "tests": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "mode": "unchanged_upstream_assertions_python312_in_native_task_image",
+    "expected_tests": 6
+  },
+  "requests": 6,
+  "missing_usage": 0,
+  "request_errors": 0,
+  "input_tokens": 40813,
+  "output_tokens": 2035,
+  "cached_tokens": 33792,
+  "total_tokens": 42848,
+  "source": "Terminal-Bench archive",
+  "difficulty": "hard",
+  "final": "Implemented [`/app/run.py`](/app/run.py).\n\n`run_tasks`:\n\n- Runs jobs with at most `max_concurrent` active at once.\n- Propagates task failures.\n- Cancels active jobs when the runner is cancelled.\n- Waits for cancellation cleanup, including `finally` blocks, before propagating `CancelledError`.\n- Validates that `max_concurrent` is a positive integer.\n\nVerified with Python 3.12.14 using concurrency-limit, completion, cancellation-cleanup, validation, import, and compilation checks.",
+  "phase": null,
+  "stop_reason": null,
+  "completion_claim": {
+    "label": "success",
+    "reason": "States run_tasks implemented with concurrency control, cancellation cleanup, failure propagation and validation, and reports successful checks.",
+    "labelled_before_reading_grade": true
+  },
+  "graded": true,
+  "passed": true,
+  "grading_error": false
+}

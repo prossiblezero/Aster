@@ -1,0 +1,69 @@
+diff --git a/requests/models.py b/requests/models.py
+index e7d292d..d863881 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -403,7 +403,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
+                 host = self._get_idna_encoded_host(host)
+             except UnicodeError:
+                 raise InvalidURL('URL has an invalid label.')
+-        elif host.startswith(u'*'):
++        elif host.startswith((u'*', u'.')):
+             raise InvalidURL('URL has an invalid label.')
+ 
+         # Carefully reconstruct the network location
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 463e8bf..ad1a7e6 100644
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -10,6 +10,7 @@ import collections
+ import contextlib
+ import warnings
+ import re
++import socket
+ 
+ import io
+ import requests
+@@ -2191,6 +2192,17 @@ class TestMorselToCookieMaxAge:
+ 
+ class TestTimeout:
+ 
++    @pytest.fixture
++    def tarpitting_socket(self, monkeypatch):
++        original_connect = socket.socket.connect
++
++        def connect(sock, address):
++            if address[0] == '10.255.255.1':
++                raise socket.timeout()
++            return original_connect(sock, address)
++
++        monkeypatch.setattr(socket.socket, 'connect', connect)
++
+     def test_stream_timeout(self, httpbin):
+         try:
+             requests.get(httpbin('delay/10'), timeout=2.0)
+@@ -2241,7 +2253,7 @@ class TestTimeout:
+             (0.1, None),
+             Urllib3Timeout(connect=0.1, read=None)
+         ))
+-    def test_connect_timeout(self, timeout):
++    def test_connect_timeout(self, timeout, tarpitting_socket):
+         try:
+             requests.get(TARPIT, timeout=timeout)
+             pytest.fail('The connect() request should time out.')
+@@ -2254,7 +2266,7 @@ class TestTimeout:
+             (0.1, 0.1),
+             Urllib3Timeout(connect=0.1, read=0.1)
+         ))
+-    def test_total_timeout_connect(self, timeout):
++    def test_total_timeout_connect(self, timeout, tarpitting_socket):
+         try:
+             requests.get(TARPIT, timeout=timeout)
+             pytest.fail('The connect() request should time out.')
+@@ -2488,6 +2500,7 @@ class TestPreparingURLs(object):
+             b"http://*",
+             u"http://*.google.com",
+             u"http://*",
++            u"http://.example.com",
+             u"http://☃.net/"
+         )
+     )

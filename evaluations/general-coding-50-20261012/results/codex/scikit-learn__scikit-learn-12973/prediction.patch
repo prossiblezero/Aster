@@ -1,0 +1,74 @@
+diff --git a/sklearn/linear_model/least_angle.py b/sklearn/linear_model/least_angle.py
+index 03b34a0..7932f1c 100644
+--- a/sklearn/linear_model/least_angle.py
++++ b/sklearn/linear_model/least_angle.py
+@@ -1479,7 +1479,7 @@ class LassoLarsIC(LassoLars):
+         self.eps = eps
+         self.fit_path = True
+ 
+-    def fit(self, X, y, copy_X=True):
++    def fit(self, X, y, copy_X=None):
+         """Fit the model using X, y as training data.
+ 
+         Parameters
+@@ -1490,8 +1490,10 @@ class LassoLarsIC(LassoLars):
+         y : array-like, shape (n_samples,)
+             target values. Will be cast to X's dtype if necessary
+ 
+-        copy_X : boolean, optional, default True
+-            If ``True``, X will be copied; else, it may be overwritten.
++        copy_X : boolean, optional, default None
++            If ``True``, X will be copied; else, it may be overwritten. If
++            ``None``, the value of the ``copy_X`` parameter passed to the
++            constructor is used.
+ 
+         Returns
+         -------
+@@ -1504,6 +1506,9 @@ class LassoLarsIC(LassoLars):
+             X, y, self.fit_intercept, self.normalize, self.copy_X)
+         max_iter = self.max_iter
+ 
++        if copy_X is None:
++            copy_X = self.copy_X
++
+         Gram = self.precompute
+ 
+         alphas_, active_, coef_path_, self.n_iter_ = lars_path(
+diff --git a/sklearn/linear_model/tests/test_least_angle.py b/sklearn/linear_model/tests/test_least_angle.py
+index 21496ef..d62156e 100644
+--- a/sklearn/linear_model/tests/test_least_angle.py
++++ b/sklearn/linear_model/tests/test_least_angle.py
+@@ -18,6 +18,7 @@ from sklearn.utils.testing import assert_warns
+ from sklearn.utils.testing import TempMemmap
+ from sklearn.exceptions import ConvergenceWarning
+ from sklearn import linear_model, datasets
++import sklearn.linear_model.least_angle as least_angle
+ from sklearn.linear_model.least_angle import _lars_path_residues
+ 
+ diabetes = datasets.load_diabetes()
+@@ -469,6 +470,25 @@ def test_lasso_lars_ic():
+     assert_raises(ValueError, lars_broken.fit, X, y)
+ 
+ 
++def test_lasso_lars_ic_copy_X(monkeypatch):
++    copy_X_values = []
++    original_lars_path = least_angle.lars_path
++
++    def lars_path(*args, **kwargs):
++        copy_X_values.append(kwargs['copy_X'])
++        return original_lars_path(*args, **kwargs)
++
++    monkeypatch.setattr(least_angle, 'lars_path', lars_path)
++
++    X = np.array([[-1., 1.], [0., 0.], [1., 1.]])
++    y = np.array([-1., 0., 1.])
++    lars = linear_model.LassoLarsIC(copy_X=False)
++    lars.fit(X, y)
++    lars.fit(X, y, copy_X=True)
++
++    assert copy_X_values == [False, True]
++
++
+ def test_lars_path_readonly_data():
+     # When using automated memory mapping on large input, the
+     # fold data is in read-only mode

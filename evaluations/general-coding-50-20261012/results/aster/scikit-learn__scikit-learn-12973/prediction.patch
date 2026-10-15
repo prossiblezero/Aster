@@ -1,0 +1,72 @@
+diff --git a/sklearn/linear_model/least_angle.py b/sklearn/linear_model/least_angle.py
+index 03b34a0..338023d 100644
+--- a/sklearn/linear_model/least_angle.py
++++ b/sklearn/linear_model/least_angle.py
+@@ -1479,7 +1479,7 @@ class LassoLarsIC(LassoLars):
+         self.eps = eps
+         self.fit_path = True
+ 
+-    def fit(self, X, y, copy_X=True):
++    def fit(self, X, y, copy_X=None):
+         """Fit the model using X, y as training data.
+ 
+         Parameters
+@@ -1490,18 +1490,22 @@ class LassoLarsIC(LassoLars):
+         y : array-like, shape (n_samples,)
+             target values. Will be cast to X's dtype if necessary
+ 
+-        copy_X : boolean, optional, default True
+-            If ``True``, X will be copied; else, it may be overwritten.
++        copy_X : boolean, optional, default None
++            If ``True``, X will be copied; else, it may be overwritten. If
++            ``None``, the value passed to the constructor is used.
+ 
+         Returns
+         -------
+         self : object
+             returns an instance of self.
+         """
++        if copy_X is None:
++            copy_X = self.copy_X
++
+         X, y = check_X_y(X, y, y_numeric=True)
+ 
+         X, y, Xmean, ymean, Xstd = LinearModel._preprocess_data(
+-            X, y, self.fit_intercept, self.normalize, self.copy_X)
++            X, y, self.fit_intercept, self.normalize, copy_X)
+         max_iter = self.max_iter
+ 
+         Gram = self.precompute
+diff --git a/sklearn/linear_model/tests/test_least_angle.py b/sklearn/linear_model/tests/test_least_angle.py
+index 21496ef..adc3171 100644
+--- a/sklearn/linear_model/tests/test_least_angle.py
++++ b/sklearn/linear_model/tests/test_least_angle.py
+@@ -469,6 +469,28 @@ def test_lasso_lars_ic():
+     assert_raises(ValueError, lars_broken.fit, X, y)
+ 
+ 
++def test_lasso_lars_ic_copy_X(monkeypatch):
++    copy_X_values = []
++
++    def fake_lars_path(X, y, **kwargs):
++        copy_X_values.append(kwargs['copy_X'])
++        return (np.array([1., 0.]), np.array([], dtype=int),
++                np.zeros((X.shape[1], 2)), 0)
++
++    monkeypatch.setattr('sklearn.linear_model.least_angle.lars_path',
++                        fake_lars_path)
++    y = np.ones(3)
++    X = np.ones((3, 2))
++    linear_model.LassoLarsIC(copy_X=False).fit(X, y)
++
++    X = np.arange(6., dtype=float).reshape(3, 2)
++    X_original = X.copy()
++    linear_model.LassoLarsIC(copy_X=True).fit(X, y, copy_X=False)
++
++    assert copy_X_values == [False, False]
++    assert not np.array_equal(X, X_original)
++
++
+ def test_lars_path_readonly_data():
+     # When using automated memory mapping on large input, the
+     # fold data is in read-only mode
