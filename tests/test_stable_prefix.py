@@ -8,6 +8,7 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBuilder
+from aster.context.prompt import CONTEXT_NOTE_PREFIX
 from aster.core.runtime import Runtime
 from aster.messages import history_groups
 from aster.providers.codec import request_payload
@@ -50,7 +51,6 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
         task,
         memory="Earlier memory.",
         skills="Earlier catalog.",
-        working_memory="Earlier working memory.",
         structured_history=history,
         tools=tools,
         protocol=protocol,
@@ -68,7 +68,6 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
         task,
         memory="Updated memory.",
         skills="Updated catalog.",
-        working_memory="Updated working memory.",
         skill_bodies={"conventions": "Check public interfaces."},
         structured_history=history,
         tools=tools,
@@ -77,12 +76,14 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
     )
 
     assert first[1] == second[1] == {"role": "user", "content": task}
-    assert first[:-1] == second[:-1]
-    assert first[2:-1] == second[2:-1] == original_history == history
+    assert first == second[:len(first)]
+    assert first[2:2 + len(original_history)] == original_history
+    assert second[2:] == history
     assert "Current runtime mode:" not in second[0]["content"]
     assert second[-1]["role"] == "user"
-    dynamic = second[-1]["content"]
-    assert '"mode": "plan"' in dynamic and '"remaining_steps": 38' in dynamic
+    assert second[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
+    dynamic = "\n".join(item["content"] for item in second[len(first):])
+    assert '"mode": "plan"' in dynamic and '"remaining_steps"' not in dynamic
     for text in (
         state.plan,
         "todo-1",
@@ -90,7 +91,6 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
         '"state": "passed"',
         "Updated memory.",
         "Updated catalog.",
-        "Updated working memory.",
         "Check public interfaces.",
     ):
         assert text in dynamic and text not in second[0]["content"]
@@ -99,8 +99,8 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
     )
     assert "TASK-END-MARKER" in shared and "OBSERVATION-ONE-END" in shared
     assert not first_report.compacted and not second_report.compacted
-    assert second_report.policy_version == "deterministic-v7"
-    assert second_report.sections["history"] == builder.count(original_history)
+    assert second_report.policy_version == "deterministic-v10"
+    assert second_report.sections["history"] == builder.count(second[2:])
 
 
 @pytest.mark.parametrize("protocol", ["responses", "chat", "anthropic"])
@@ -122,8 +122,9 @@ def test_appended_exchange_preserves_existing_history_in_wire_prefix(protocol, h
         state, state.task.prompt, structured_history=history, tools=tools, protocol=protocol
     )
 
-    assert second[2 : 2 + len(confirmed)] == confirmed == first[2:-1]
-    assert second[2:-1] == history
+    assert second[:len(first)] == first
+    assert second[2 : 2 + len(confirmed)] == confirmed == first[2:]
+    assert second[2:] == history
     shared = commonprefix(
         [payload_text(first, tools, protocol), payload_text(second, tools, protocol)]
     )
@@ -147,23 +148,23 @@ def test_trailing_context_still_respects_budget_and_preserves_latest_evidence(pr
         state,
         state.task.prompt,
         memory="reconstructible memory " * 2000,
-        working_memory="reconstructible working state " * 2000,
         structured_history=history,
         tools=tools,
         protocol=protocol,
         model="fixed-model",
     )
     payload = request_payload(
-        prompt, tools, protocol=protocol, model="fixed-model", output_tokens=256
+        prompt, tools, protocol=protocol, model="fixed-model", output_tokens=256,
+        prompt_cache_key=state.session_id,
     )
 
     assert report.compacted and report.removed_messages > 0
     assert report.estimated_tokens == builder.count(payload) <= report.budget
     assert prompt[1] == {"role": "user", "content": state.task.prompt}
     assert prompt[-2] == correction
-    assert prompt[-1]["content"].startswith("Context sections (untrusted observations")
+    assert prompt[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
     assert sum(item.get("call_id") == "11" for item in history) == 2
-    assert prompt[2:-1] == history
+    assert prompt[2:] == history
     history_groups(payload.get("input", payload.get("messages")))
 
 

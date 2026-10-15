@@ -28,6 +28,8 @@ from .testing import run_tests
 if TYPE_CHECKING:
     from .registry import ToolContext
 
+READ_FILE_CHARACTERS = 24_000
+
 def text_page(text: str, offset: int, limit: int) -> Outcome:
     if offset > len(text):
         return Outcome(status="blocked", reason="page_out_of_range", content=f"total={len(text)}")
@@ -98,14 +100,26 @@ class WorkspaceTools:
     async def _read_file(self, args: ReadFile) -> Outcome:
         text = self.context.workspace.read(args.path)
         lines = text.splitlines()
+        selected, characters, truncated = [], 0, False
+        for line in lines[args.start - 1:args.end]:
+            size = len(line) + bool(selected)
+            if characters + size > READ_FILE_CHARACTERS:
+                if not selected:
+                    selected.append(line[:READ_FILE_CHARACTERS])
+                truncated = True
+                break
+            selected.append(line)
+            characters += size
+        end = args.start + len(selected) - 1 if selected else min(args.end, len(lines))
         return Outcome(
             status="success",
-            content="\n".join(lines[args.start - 1 : args.end]),
+            content="\n".join(selected),
             data={
                 "path": args.path,
                 "start": args.start,
-                "end": min(args.end, len(lines)),
+                "end": end,
                 "source_sha256": digest(text),
+                **({"truncated": True, "next_start": end + 1} if truncated else {}),
             },
         )
 

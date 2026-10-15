@@ -184,7 +184,6 @@ def preview(runtime, budget):
         runtime.state.model_copy(deep=True),
         runtime.state.task.prompt,
         structured_history=copy.deepcopy(runtime._structured_history),
-        working_memory=runtime.memory.working_section(runtime.state.working_memory),
         tools=runtime.tool_definitions(),
         protocol=settings.protocol,
         model=settings.model,

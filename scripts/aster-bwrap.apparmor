@@ -1,0 +1,8 @@
+# Ubuntu 24.04+: allow bubblewrap to create its private user/mount namespaces.
+# This does not disable the system-wide restriction for other executables.
+abi <abi/4.0>,
+include <tunables/global>
+
+profile aster-bwrap /usr/bin/bwrap flags=(unconfined) {
+    userns,
+}

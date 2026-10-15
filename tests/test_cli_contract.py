@@ -86,7 +86,7 @@ def test_cli_stream_previews_before_completion_without_polluting_stdout(
     captured = []
 
     class StreamingModel(ModelClient):
-        async def complete(self, _messages, _tools, *, on_event=None):
+        async def complete(self, _messages, _tools, *, on_event=None, prompt_cache_key=None):
             on_event({"type": "begin", "attempt": 1})
             on_event({"type": "text_delta", "text": "Incomplete attempt\n"})
             on_event({"type": "error", "attempt": 1})

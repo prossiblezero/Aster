@@ -6,6 +6,7 @@ from copy import deepcopy
 import pytest
 
 from aster.config import Settings
+from aster.context.prompt import is_context_note
 from aster.core.runtime import Runtime
 from aster.messages import ContextHistoryError, history_groups
 from aster.providers.client import ModelClient
@@ -254,9 +255,12 @@ async def test_repeated_model_call_ids_are_rejected_before_effects(tmp_path, pre
 @pytest.mark.parametrize("source", ["direct", "model"])
 async def test_blank_call_id_is_rejected_before_write_or_checkpoint(source, tmp_path):
     call = ToolCall(name="write_file", call_id=" \t", arguments={"path": "new.txt", "content": "x"})
+    sent_history = []
 
     class BlankIdModel:
-        async def complete(self, *_):
+        async def complete(self, prompt, _tools):
+            sent_history.extend(deepcopy(prompt[2:]))
+            assert len(sent_history) == 1 and is_context_note(sent_history[0])
             return ModelReply(calls=[call])
 
     runtime = Runtime(tmp_path, Settings(approval="auto"), model=BlankIdModel())
@@ -266,5 +270,5 @@ async def test_blank_call_id_is_rejected_before_write_or_checkpoint(source, tmp_
     else:
         assert (await runtime.turn()).stop_reason == "context_history_invalid"
     assert not (tmp_path / "new.txt").exists()
-    assert runtime._structured_history == []
+    assert runtime._structured_history == sent_history
     runtime.checkpoint()

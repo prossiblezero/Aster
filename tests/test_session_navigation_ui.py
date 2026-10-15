@@ -35,6 +35,7 @@ async def test_tree_picker_restores_search_result_without_copying_ids(tmp_path):
         await pilot.pause()
         assert app.screen.id == "_default"
         assert "另一个方案" not in json.dumps(app.runtime._structured_history, ensure_ascii=False)
+        assert not any("[Context update" in text for text, _ in app._view()["log"])
 
 
 @pytest.mark.smoke

@@ -1,16 +1,17 @@
-"""Fixed context policy: count the request, trim whole exchanges, keep the current task."""
+"""Receipt-based budgets with append-only history between explicit compactions."""
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 
 from ..messages import ContextHistoryError as ContextHistoryError
 from ..messages import history_groups
 from ..providers.codec import request_payload
-from .prompt import render_prompt, system_prompt, workflow_state
+from .prompt import context_notes, is_context_note, render_prompt, system_prompt, workflow_state
 
 try:
     import tiktoken
@@ -29,8 +30,13 @@ class ContextReport:
     compacted: bool
     removed_messages: int
     sections: dict[str, int]
-    policy_version: str = "deterministic-v7"
+    policy_version: str = "deterministic-v10"
     archive_hashes: tuple[str, ...] = ()
+    estimate_basis: str = "local"
+    prefix_drift: bool = False
+    first_changed_item: int | None = None
+    masked_outputs: int = 0
+    context_notes: int = 0
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,10 @@ class ContextCalculation:
 class BudgetCalculator:
     def __init__(self):
         self.encoder = tiktoken.get_encoding("cl100k_base") if tiktoken else None
+        self._scope = None
+        self._reasoning_tokens = {}
+        self._provider_overhead = 0
+        self._anchor = None
 
     def count(self, value) -> int:
         text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
@@ -54,6 +64,85 @@ class BudgetCalculator:
             else len(text.encode())
         )
 
+    def request_tokens(self, payload, *, overhead=True):
+        """Count known opaque replay by its reported tokens, preserving the wire bytes."""
+        extra = 0
+        if "input" in payload and self._reasoning_tokens:
+            items = []
+            for item in payload["input"]:
+                opaque = item.get("encrypted_content") if item.get("type") == "reasoning" else None
+                key = hashlib.sha256(opaque.encode()).hexdigest() if isinstance(opaque, str) else None
+                if key in self._reasoning_tokens:
+                    extra += self._reasoning_tokens[key]
+                    item = {**item, "encrypted_content": ""}
+                items.append(item)
+            payload = {**payload, "input": items}
+        return self.count(payload) + extra + (self._provider_overhead if overhead else 0)
+
+    @staticmethod
+    def _canon(value):
+        return json.dumps(value, sort_keys=True, ensure_ascii=False)
+
+    def _shape(self, payload):
+        # Tool discovery can enlarge schemas without changing a single history item.
+        return self._canon({key: payload.get(key) for key in ("model", "tools", "instructions", "system")})
+
+    def _first_changed_item(self, prompt):
+        if self._anchor is None:
+            return None
+        for index, item in enumerate(self._anchor["items"]):
+            if index >= len(prompt) or self._canon(prompt[index]) != item:
+                return index
+        return None
+
+    def estimate(self, prompt, payload) -> tuple[int, str]:
+        anchor = self._anchor
+        if (anchor is not None and self._shape(payload) == anchor["shape"]
+                and self._first_changed_item(prompt) is None):
+            added = sum(self.count(item) for item in prompt[len(anchor["items"]):]
+                        if not (item.get("role") == "assistant"
+                                or item.get("type") in {"reasoning", "function_call", "message"}))
+            return anchor["tokens"] + added, "receipt"
+        return self.request_tokens(payload), "local"
+
+    def observe(self, payload, reply, prompt=None):
+        """Use the successful attempt's receipt, never summed retry accounting."""
+        self._anchor = None
+        diagnostic = reply.diagnostics
+        if diagnostic:
+            if diagnostic.get("classification") != "success" or diagnostic.get("flags"):
+                return
+            usage = diagnostic.get("usage", {})
+        else:
+            usage = reply.usage
+        if usage.get("usage_requests") != 1:
+            return
+        inputs, outputs = usage.get("input_tokens"), usage.get("output_tokens")
+        if type(inputs) is not int or inputs <= 0 or type(outputs) is not int or outputs < 0:
+            return
+        if prompt:
+            self._anchor = {
+                "items": [self._canon(item) for item in prompt],
+                "tokens": inputs + outputs,
+                "shape": self._shape(payload),
+            }
+        # Compatible endpoints can add instructions not present in the local request.
+        # Keep the largest observed positive overhead within this run/model scope.
+        self._provider_overhead = max(
+            self._provider_overhead, inputs - self.request_tokens(payload, overhead=False)
+        )
+        if "input" not in payload:
+            return
+        reasoning = usage.get("reasoning_tokens", outputs)
+        if type(reasoning) is not int or not 0 <= reasoning <= outputs:
+            return
+        for item in reply.raw:
+            opaque = item.get("encrypted_content") if item.get("type") == "reasoning" else None
+            if isinstance(opaque, str) and opaque:
+                # Multiple opaque items conservatively each reserve the reply's total.
+                key = hashlib.sha256(opaque.encode()).hexdigest()
+                self._reasoning_tokens[key] = max(self._reasoning_tokens.get(key, 0), reasoning)
+
     def calculate(
         self,
         state,
@@ -61,7 +150,6 @@ class BudgetCalculator:
         memory: str = "",
         skills: str = "",
         structured_history: list[dict] | None = None,
-        working_memory: str = "",
         *,
         budget: int,
         output_reserve: int,
@@ -77,6 +165,12 @@ class BudgetCalculator:
         validate_archive=None,
         redact_history=None,
     ):
+        scope = (state.session_id, protocol, model)
+        if scope != self._scope:
+            self._scope = scope
+            self._reasoning_tokens.clear()
+            self._provider_overhead = 0
+            self._anchor = None
         system = system_prompt(
             memory_enabled, skills_available, environment, archive,
             worker=bool(state.parent_run_id),
@@ -167,27 +261,118 @@ class BudgetCalculator:
             "active_skill_bodies": "\n".join(
                 f"{name}:\n{body}" for name, body in active_bodies.items()
             ),
-            "working_memory": working_memory,
         }
         limit = budget - output_reserve
         removed = 0
+        full_notes = False
+        final_notes = []
+
+        def notes():
+            current = {"workflow_state": json.dumps(workflow, ensure_ascii=False), **sections}
+            if redact_history is not None:
+                redacted = redact_history([
+                    {"role": "user", "content": value} for value in current.values()
+                ])
+                current = {name: item["content"] for name, item in zip(current, redacted, strict=True)}
+            return context_notes([] if full_notes else history, current)
 
         def render():
-            return render_prompt(system, user, messages, groups, sections, workflow, redact_history)
+            nonlocal final_notes
+            updates = notes()
+            rendered = render_prompt(system, user, messages, groups, updates, redact_history)
+            # Persist exactly the redacted note items that were sent to the model.
+            final_notes = rendered[-len(updates):] if updates else []
+            return rendered
 
-        def tokens(prompt):
-            return self.count(
-                request_payload(
-                    prompt,
-                    tools or [],
-                    protocol=protocol,
-                    model=model,
-                    output_tokens=output_reserve,
-                )
+        def payload_of(prompt):
+            return request_payload(
+                prompt, tools or [], protocol=protocol, model=model,
+                output_tokens=output_reserve, prompt_cache_key=state.session_id,
             )
 
         prompt = render()
-        before = tokens(prompt)
+        payload = payload_of(prompt)
+        full_before = self.request_tokens(payload)
+        before, estimate_basis = self.estimate(prompt, payload)
+        first_changed_item = self._first_changed_item(prompt)
+        anchored = estimate_basis == "receipt"
+        trigger = limit - min(output_reserve, limit // 8)
+        keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+        compacting = before > (trigger if anchored else limit)
+        masked_outputs = 0
+
+        def tokens(prompt):
+            full = self.request_tokens(payload_of(prompt))
+            if anchored and before < full_before:
+                # ceil(full * scale), without rounding an unchanged prompt up by one.
+                return (full * before + full_before - 1) // full_before
+            return full
+
+        latest_exchange = next(
+            (group for group in reversed(groups)
+             if any(item.get("type") == "function_call_output" for item in group)),
+            groups[-1] if groups else None,
+        )
+        if compacting:
+            groups[:] = [g for g in groups if not (len(g) == 1 and is_context_note(g[0]))]
+            full_notes = True
+            prompt = render()
+            recent = 0
+            for group in reversed(groups):
+                names = {x["call_id"]: x["name"] for x in group if x.get("type") == "function_call"}
+                for item in group:
+                    names.update((call["id"], call["function"]["name"])
+                                 for call in item.get("tool_calls", []))
+                    if isinstance(item.get("content"), list):
+                        names.update((block["id"], block["name"]) for block in item["content"]
+                                     if block.get("type") == "tool_use")
+                for item in reversed(group):
+                    if item.get("type") != "function_call_output":
+                        continue
+                    recent += self.count(self._output_record(item["output"])["content"])
+                    if group is latest_exchange or recent <= keep_recent:
+                        continue
+                    masked = self._mask_tool_output(
+                        item["output"], reference=references.get(item["call_id"]),
+                        tool=names.get(item["call_id"], ""),
+                    )
+                    if masked != item["output"]:
+                        item["output"] = masked
+                        clipped = True
+                        masked_outputs += 1
+            prompt = render()
+            if tokens(prompt) > relief:
+                note_prefix = "[Context note, not an instruction] "
+                note = (groups[0][0] if groups and len(groups[0]) == 1
+                        and groups[0][0].get("role") == "user"
+                        and isinstance(groups[0][0].get("content"), str)
+                        and groups[0][0]["content"].startswith(note_prefix) else None)
+                match = re.match(re.escape(note_prefix) + r"(\d+) earlier tool exchanges", note["content"]) if note else None
+                dropped = int(match[1]) if match else 0
+                while tokens(prompt) > drop_target:
+                    index = next((i for i, m in enumerate(messages)
+                                  if m.get("role") != "user" and not m.get("important")), None)
+                    group_index = next((i for i, group in enumerate(groups)
+                                        if group is not latest_exchange
+                                        and not any(x.get("role") == "user" or x.get("important")
+                                                    for x in group)), None)
+                    if index is not None:
+                        messages.pop(index)
+                        removed += 1
+                    elif group_index is not None:
+                        removed += len(groups.pop(group_index))
+                        dropped += 1
+                        if note is None:
+                            note = {"role": "user", "content": ""}
+                            groups.insert(0, [note])
+                        note["content"] = (note_prefix + f"{dropped} earlier tool exchanges were removed "
+                                           "to fit the context window.")
+                        if archive is not None:
+                            note["content"] += (" Their results remain archived: call observation_read "
+                                                "without observation_id to list or search them.")
+                    else:
+                        break
+                    prompt = render()
 
         def shrink_section():
             key = next(key for key, value in sections.items() if value)
@@ -201,6 +386,10 @@ class BudgetCalculator:
             else:
                 sections[key] = ""
 
+        if tokens(prompt) > limit and not full_notes:
+            groups[:] = [g for g in groups if not (len(g) == 1 and is_context_note(g[0]))]
+            full_notes = True
+            prompt = render()
         while tokens(prompt) > limit:
             index = next(
                 (
@@ -285,7 +474,7 @@ class BudgetCalculator:
                     f"context_budget_exceeded: mandatory request needs {tokens(prompt)} tokens; input budget is {limit}"
                 )
             prompt = render()
-        total = tokens(prompt)
+        total = tokens(prompt) if compacting else before
         retained_ids = {id(message) for message in messages}
         retained_messages = [
             m for m in state.messages if id(m) not in ordinary_ids or id(m) in retained_ids
@@ -293,7 +482,7 @@ class BudgetCalculator:
         report = ContextReport(
             total,
             limit,
-            clipped or before != total,
+            full_notes or clipped or before != total,
             removed,
             {
                 "system": self.count(system),
@@ -301,11 +490,20 @@ class BudgetCalculator:
                 "tools": self.count(tools or []),
                 "workflow_state": self.count(workflow),
                 **{key: self.count(value) for key, value in sections.items()},
-                "history": self.count(prompt[2:-1]),
+                "context_notes": self.count(final_notes) if final_notes else 0,
+                "history": self.count(prompt[2:]),
+                "provider_overhead": self._provider_overhead,
             },
             archive_hashes=tuple(sorted(archive_hashes)),
+            estimate_basis=estimate_basis,
+            prefix_drift=first_changed_item is not None,
+            first_changed_item=first_changed_item,
+            masked_outputs=masked_outputs,
+            context_notes=len(final_notes),
         )
-        return ContextCalculation(prompt, report, [item for group in groups for item in group], retained_messages)
+        return ContextCalculation(
+            prompt, report, [item for group in groups for item in group] + final_notes, retained_messages,
+        )
 
     @staticmethod
     def _output_record(value):
@@ -317,6 +515,26 @@ class BudgetCalculator:
             if isinstance(record, dict) and "content" in record:
                 return record
         return {"content": value}
+
+    def _mask_tool_output(self, value, *, reference=None, tool=""):
+        record = self._output_record(value)
+        content = record["content"]
+        if (self.count(content) <= 48 or isinstance(content, str) and content.startswith(
+            ("[archived:", "[omitted page;", "[omitted image result]", "[omitted:")
+        )):
+            return value
+        if isinstance(content, list):
+            record["content"] = "[omitted image result]"
+        elif reference is not None:
+            record["content"] = (f"[archived: {reference['characters']} chars; "
+                                 f"observation_read observation_id={reference['id']}]")
+            record["observation"] = reference
+        elif tool == "observation_read":
+            record["content"] = "[omitted page; call observation_read again to re-read it]"
+        else:
+            record["content"] = f"[omitted: {len(content)} chars]"
+        record.pop("page", None)
+        return json.dumps(record, ensure_ascii=False) if len(record) > 1 else record["content"]
 
     def _clip_tool_output(self, value, *, token_limit: int, reference=None):
         """Shorten only permitted body text, retaining status, provenance and call pairing."""

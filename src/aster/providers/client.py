@@ -28,19 +28,23 @@ class ModelClient:
         self.circuit = CircuitBreaker(settings.circuit_failures, settings.circuit_cooldown)
 
     async def complete(
-        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
+        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None,
+        prompt_cache_key: str | None = None,
     ) -> ModelReply:
         try:
             with self.circuit.guard(lambda exc: isinstance(exc, ProviderError) and
                                     exc.details["category"] in {"transport", "transient_http", "transient_provider"}):
-                return await self._complete(messages, tools, on_event=on_event)
+                return await self._complete(
+                    messages, tools, on_event=on_event, prompt_cache_key=prompt_cache_key
+                )
         except CircuitOpen as exc:
             self.last_usage, self.last_diagnostics = {}, {"retry_after": exc.retry_after}
             raise ProviderError(str(exc), category="circuit_open", attempts=0,
                                 diagnostics=self.last_diagnostics) from None
 
     async def _complete(
-        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None
+        self, messages: list[dict[str, Any]], tools: list[dict], *, on_event=None,
+        prompt_cache_key: str | None = None,
     ) -> ModelReply:
         accounting = RequestAccounting(self.settings, self.redaction_secrets)
         try:
@@ -53,6 +57,7 @@ class ModelClient:
                 protocol=protocol,
                 model=self.settings.model,
                 output_tokens=self.settings.effective_output_tokens,
+                prompt_cache_key=prompt_cache_key,
             )
             suffix = {"responses": "/responses", "chat": "/chat/completions", "anthropic": "/messages"}[
                 protocol

@@ -64,13 +64,17 @@ def test_latest_parallel_batch_fits_one_budget_with_all_results(tmp_path, protoc
     calls = deepcopy(runtime._structured_history[:4])
     prompt, tools, report = runtime.prepare_request()
     payload = request_payload(
-        prompt, tools, protocol=protocol, model=runtime.settings.model, output_tokens=512
+        prompt, tools, protocol=protocol, model=runtime.settings.model, output_tokens=512,
+        prompt_cache_key=runtime.state.session_id,
     )
     assert runtime.context.count(payload) == report.estimated_tokens <= 3584
     assert report.compacted and report.removed_messages == 0
     assert runtime._structured_history[:4] == calls
-    assert len(history_groups(runtime._structured_history)) == 1
-    outputs = runtime._structured_history[4:]
+    from aster.context.prompt import is_context_note
+
+    groups = history_groups(runtime._structured_history)
+    assert len(groups) == 2 and len(groups[-1]) == 1 and is_context_note(groups[-1][0])
+    outputs = groups[0][4:]
     assert {item["call_id"] for item in outputs} == {f"call-{i}" for i in range(4)}
     assert "observation_read" not in {tool["name"] for tool in tools}
     catalog = next(tool for tool in tools if tool["name"] == "tool_load")
@@ -221,7 +225,9 @@ def test_legacy_observations_are_recoverable_without_inventing_calls(tmp_path):
     ] + [{"role": "tool", "native": False, "content": f"legacy-{i} " * 1000} for i in range(12)]
     prompt, tools, report = runtime.prepare_request()
     assert report.removed_messages > 0
-    assert not runtime._structured_history
+    from aster.context.prompt import is_context_note
+
+    assert len(runtime._structured_history) == 1 and is_context_note(runtime._structured_history[0])
     assert witness not in str(prompt)
     assert "observation_read" not in {tool["name"] for tool in tools}
     catalog = next(tool for tool in tools if tool["name"] == "tool_load")

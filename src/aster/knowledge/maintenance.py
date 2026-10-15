@@ -245,11 +245,13 @@ class MemoryMaintenance:
         memories = [{key: item.get(key) for key in ("id", "text", "kind", "when", "tags")}
                     for item in existing]
         messages = [{"role": "system", "content": INSTRUCTION}, {"role": "user", "content": ""}]
+        job_id = uuid4().hex
         while True:
             messages[1]["content"] = json.dumps({"evidence": visible, "memories": memories},
                                                 ensure_ascii=False, separators=(",", ":"))
             estimate = rt.context.count(request_payload(messages, [tool], protocol=rt.settings.protocol,
-                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS))
+                                                       model=rt.settings.model, output_tokens=OUTPUT_TOKENS,
+                                                       prompt_cache_key="memory-" + job_id))
             if estimate <= min(INPUT_TOKENS, rt.settings.effective_context_tokens - OUTPUT_TOKENS):
                 break
             longest = max(visible.values(), key=lambda item: len(item["text"]))
@@ -261,7 +263,7 @@ class MemoryMaintenance:
                 memories.pop()
             else:
                 return None
-        return {"id": uuid4().hex,
+        return {"id": job_id,
                 "pending": pending, "sources": sources, "revision": revision,
                 "fingerprints": fingerprints,
                 "memory_ids": [item["id"] for item in memories], "messages": messages,
@@ -325,7 +327,8 @@ class MemoryMaintenance:
         usage = {}
         try:
             if isinstance(model, ModelClient):
-                reply = await model.complete(job["messages"], job["tools"], on_event=lambda event:
+                reply = await model.complete(job["messages"], job["tools"],
+                    prompt_cache_key="memory-" + job["id"], on_event=lambda event:
                     rt.evidence.emit(owner.run_id, "memory_provider", job_id=job["id"], **event))
             else:
                 reply = await model.complete(job["messages"], job["tools"])

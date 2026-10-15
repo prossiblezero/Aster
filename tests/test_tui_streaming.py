@@ -19,7 +19,7 @@ class PausedStream(ModelClient):
         self.release = asyncio.Event()
         self.retry = retry
 
-    async def complete(self, messages, tools, *, on_event=None):
+    async def complete(self, messages, tools, *, on_event=None, prompt_cache_key=None):
         on_event({"type": "begin", "attempt": 1, "elapsed_seconds": 0})
         if self.retry:
             on_event(

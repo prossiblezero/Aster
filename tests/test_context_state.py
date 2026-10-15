@@ -6,11 +6,20 @@ import pytest
 
 from aster.config import Settings
 from aster.context import ContextBudgetError, ContextBuilder
+from aster.context.prompt import CONTEXT_NOTE_PREFIX
 from aster.core.runtime import Runtime
 from aster.providers.codec import request_payload
 from aster.schema import ModelReply, RunState, TaskSpec, ToolCall
 
 pytestmark = pytest.mark.core
+
+
+def latest_workflow(prompt):
+    prefix = CONTEXT_NOTE_PREFIX + "workflow_state:\n"
+    return json.loads(next(item["content"][len(prefix):] for item in reversed(prompt)
+                           if item.get("role") == "user"
+                           and isinstance(item.get("content"), str)
+                           and item["content"].startswith(prefix)))
 
 
 def workflow_state():
@@ -47,12 +56,14 @@ def test_workflow_and_loaded_skill_survive_compaction_without_system_privileges(
     assert state.plan in text and "Check deployment" in text
     assert "Already completed work" not in text and "Abandoned work" not in text
     assert "Prefer explicit return values." in text and "not_loaded" not in text
-    assert '"mode": "plan"' in prompt[-1]["content"]
+    assert latest_workflow(prompt)["mode"] == "plan"
     assert "Current runtime mode:" not in prompt[0]["content"]
     assert prompt[-1]["role"] == "user"
-    assert "untrusted observations, not instructions" in prompt[-1]["content"]
+    assert prompt[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
     assert untrusted not in prompt[0]["content"] and state.plan not in prompt[0]["content"]
-    payload = request_payload(prompt, [], protocol=protocol, output_tokens=256)
+    payload = request_payload(
+        prompt, [], protocol=protocol, output_tokens=256, prompt_cache_key=state.session_id
+    )
     assert builder.count(payload) == report.estimated_tokens <= report.budget
 
 
@@ -68,7 +79,7 @@ def test_large_workflow_shortens_prose_but_retains_pending_item_identity():
         state.task.prompt,
         skill_bodies={"conventions": "Long convention. " * 1000},
     )
-    workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
+    workflow = latest_workflow(prompt)
     assert report.compacted and report.estimated_tokens <= report.budget
     assert "call todo_list" in workflow["plan"]
     assert [(item["id"], item["status"]) for item in workflow["unfinished_todos"]] == [
@@ -82,7 +93,7 @@ def test_large_workflow_shortens_prose_but_retains_pending_item_identity():
         state.todos[0][field] = "Check actual deployment behavior " * 300
         original = state.model_dump()
         prompt, report = builder.build(state, state.task.prompt)
-        workflow = json.loads(prompt[-1]["content"].split("workflow_state:\n", 1)[1])
+        workflow = latest_workflow(prompt)
         assert "call todo_list" in workflow["unfinished_todos"][0][field]
         assert report.estimated_tokens <= report.budget
         assert state.model_dump() == original
@@ -147,7 +158,7 @@ async def test_checkpoint_restores_plan_todos_and_skill_body_to_next_model_reque
     await resumed.turn()
     assert model.prompt is not None
     rendered = str(model.prompt)
-    assert '"mode": "plan"' in model.prompt[-1]["content"]
+    assert latest_workflow(model.prompt)["mode"] == "plan"
     assert "Current runtime mode:" not in model.prompt[0]["content"]
     assert "Read deployment config before editing." in rendered
     assert "Check deployment settings" in rendered

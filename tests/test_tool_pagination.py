@@ -18,9 +18,25 @@ async def test_search_pages_all_1200_matches_in_one_file(tmp_path):
             ToolCall(name="search", arguments={"pattern": "needle", "offset": offset})
         )
         assert result.status == "success"
-        lines = result.content.splitlines()
+        content = result.content
+        if "observation" in result.data:
+            # The page keeps its original record cursor; recover its archived body
+            # before advancing, as the search tool contract requires for previews.
+            chunks, character_offset = [], 0
+            while character_offset is not None:
+                recovered = await runtime.workflow_tool("observation_read", {
+                    "observation_id": result.data["observation"]["id"],
+                    "offset": character_offset, "limit": 1000, "query": "",
+                })
+                assert recovered.status == "success"
+                page = json.loads(recovered.content)
+                chunks.append(page["content"])
+                character_offset = page["next_offset"]
+            content = "".join(chunks)
+            assert result.content.startswith(content[:8192]) and "observation_read" in result.content
+        lines = content.splitlines()
         assert len(lines) == expected_count
-        assert result.data == {
+        assert {key: value for key, value in result.data.items() if key != "observation"} == {
             "offset": offset,
             "count": expected_count,
             "truncated": next_offset is not None,

@@ -7,6 +7,7 @@ from copy import deepcopy
 import pytest
 
 from aster.config import ModelProfile, Settings
+from aster.context.prompt import CONTEXT_NOTE_PREFIX
 from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
@@ -27,6 +28,13 @@ async def load(runtime, **arguments):
 
 def version(body):
     return hashlib.sha256(body.encode()).hexdigest()
+
+
+def latest_section(prompt, name):
+    prefix = CONTEXT_NOTE_PREFIX + name + ":\n"
+    return next(item["content"][len(prefix):] for item in reversed(prompt)
+                if item.get("role") == "user" and isinstance(item.get("content"), str)
+                and item["content"].startswith(prefix))
 
 
 async def test_selected_pages_and_model_body_do_not_reread_changed_source(tmp_path, monkeypatch):
@@ -55,7 +63,9 @@ async def test_selected_pages_and_model_body_do_not_reread_changed_source(tmp_pa
     prompt, _, _ = runtime.prepare_request()
     assert body in prompt[-1]["content"]
     assert "SECOND VERSION" not in prompt[-1]["content"]
-    assert version(body) in prompt[-1]["content"]
+    assert json.loads(latest_section(prompt, "workflow_state"))["active_skill_versions"] == {
+        "guide": version(body)
+    }
 
 
 async def test_refresh_notifies_version_and_failure_keeps_selected_body(tmp_path):
@@ -186,8 +196,10 @@ async def test_redacted_snapshot_hash_survives_new_credentials_and_restore(
             self.called = True
             actual = json.dumps(messages)
             assert old_secret not in actual and new_secret not in actual
-            assert expected in messages[-1]["content"]
-            assert version(expected) in messages[-1]["content"]
+            assert latest_section(messages, "active_skill_bodies") == "guide:\n" + expected
+            assert json.loads(latest_section(messages, "workflow_state"))["active_skill_versions"] == {
+                "guide": version(expected)
+            }
             return ModelReply(text="Inspected.")
 
     runtime.model = InspectModel()

@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from copy import deepcopy
 
 import pytest
 
@@ -160,10 +161,11 @@ async def test_stopped_model_response_cannot_add_actions_even_if_provider_ignore
     runtime.start(TaskSpec(prompt="demo"))
     pending = asyncio.create_task(runtime.turn())
     await entered.wait()
+    sent_history = deepcopy(runtime._structured_history)
     runtime.abort()
     await pending
     assert runtime.state.step == 0 and runtime.state.stop_reason == "user_abort"
-    assert runtime._structured_history == [] and not (tmp_path / "late.txt").exists()
+    assert runtime._structured_history == sent_history and not (tmp_path / "late.txt").exists()
 
 
 def test_resume_rejects_active_state_and_invalid_checkpoint_without_replacing_state(tmp_path):

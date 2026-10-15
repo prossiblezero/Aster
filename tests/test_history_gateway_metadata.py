@@ -79,7 +79,9 @@ def test_observed_trace_tags_allow_idle_same_protocol_model_switch_and_keep_nati
     session = runtime.state.session_id
     runtime.switch_model("next")
     assert runtime.state.session_id == session and runtime.settings.model == "next-model"
-    assert runtime._structured_history[-1]["phase"] == "final_answer"
+    assistant = next(item for item in reversed(runtime._structured_history)
+                     if item.get("role") == "assistant")
+    assert assistant["phase"] == "final_answer"
     wire = request_payload(
         runtime._structured_history, [], protocol="responses", model="next-model"
     )

@@ -134,7 +134,10 @@ async def test_responses_reasoning_message_parallel_calls_survive_next_turn(tmp_
             if self.turn == 1:
                 return ModelReply(text="Inspecting both files.", calls=calls, raw=raw)
             start = next(i for i, item in enumerate(prompt) if item.get("type") == "reasoning")
-            exchanges = history_groups(prompt[start:-1])
+            from aster.context.prompt import is_context_note
+
+            exchanges = [group for group in history_groups(prompt[start:])
+                         if not (len(group) == 1 and is_context_note(group[0]))]
             assert len(exchanges) == 1 and len(exchanges[0]) == 6
             assert exchanges[0][0]["encrypted_content"] == "opaque"
             return ModelReply(text="done", raw=[{"role": "assistant", "content": "done"}])

@@ -118,6 +118,7 @@ def test_runtime_request_tracks_the_current_model_and_output_reserve(tmp_path):
                 protocol=settings.protocol,
                 model=settings.model,
                 output_tokens=1024,
+                prompt_cache_key=runtime.state.session_id,
             )
         )
         == report.estimated_tokens

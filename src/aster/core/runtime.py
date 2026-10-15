@@ -550,7 +550,6 @@ class Runtime:
         self.context.output_reserve = self.settings.effective_output_tokens
         self._refresh_observations()
         memory_text = self._memory_text(state.task.prompt)
-        working_memory = self.memory.working_section(state.working_memory)
         catalog = self.skills.catalog()
         skills = (
             self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
@@ -576,7 +575,6 @@ class Runtime:
             memory_text,
             skills,
             self._structured_history,
-            working_memory,
             tools=tool_defs,
             protocol=self.settings.protocol,
             model=self.settings.model,
@@ -617,6 +615,7 @@ class Runtime:
             protocol=self.settings.protocol,
             model=self.settings.model,
             output_tokens=self.settings.effective_output_tokens,
+            prompt_cache_key=state.session_id,
         )
         # Keep the actual model observation apart from the full execution trace.
         request_hash = self._request_hash(payload)
@@ -634,6 +633,11 @@ class Runtime:
             archive_hashes=report.archive_hashes,
             request_artifact="/".join(artifact),
             request_sha256=request_hash,
+            estimate_basis=report.estimate_basis,
+            prefix_drift=report.prefix_drift,
+            first_changed_item=report.first_changed_item,
+            masked_outputs=report.masked_outputs,
+            context_notes=report.context_notes,
         )
         return prompt, tool_defs, report
 
@@ -670,15 +674,15 @@ class Runtime:
             self.finish(reason)
             return state
         self._team.parent.checkpoint()
-        request_hash = self._request_hash(
-            request_payload(
-                prompt,
-                tool_defs,
-                protocol=self.settings.protocol,
-                model=self.settings.model,
-                output_tokens=self.settings.effective_output_tokens,
-            )
+        payload = request_payload(
+            prompt,
+            tool_defs,
+            protocol=self.settings.protocol,
+            model=self.settings.model,
+            output_tokens=self.settings.effective_output_tokens,
+            prompt_cache_key=state.session_id,
         )
+        request_hash = self._request_hash(payload)
         request_usage = {}
         try:
             request_messages = prompt
@@ -686,6 +690,7 @@ class Runtime:
                 reply = await self.model.complete(
                     request_messages,
                     tool_defs,
+                    prompt_cache_key=state.session_id,
                     on_event=lambda event: self.evidence.emit(
                         state.run_id,
                         "provider_attempt" if event.get("type") == "diagnostic" else (
@@ -718,6 +723,7 @@ class Runtime:
             self._team.parent.checkpoint()
         for name, value in reply.usage.items():
             state.usage[name] = state.usage.get(name, 0) + value
+        self.context.calculator.observe(payload, reply, prompt)
         if state.terminal:
             return state
         ids = [call.call_id for call in reply.calls]
@@ -863,6 +869,7 @@ class Runtime:
                 ) if key in outcome.data},
                 **(
                     {key: outcome.data[key] for key in ("path", "start", "end", "source_sha256")}
+                    | {key: outcome.data[key] for key in ("truncated", "next_start") if key in outcome.data}
                     if call.name == "read_file" and outcome.status == "success"
                     else {}
                 ),
@@ -1401,7 +1408,9 @@ class Runtime:
         if call.name == "mcp_list" or call.name in self.mcp.tools:
             outcome.content = self.evidence.redactor.text(outcome.content)
         if (call.name in self.mcp.tools
-                or (call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data)):
+                or (call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data)
+                or (call.name not in {"read_file", "observation_read", "todo_list", "skill_load"}
+                    and isinstance(outcome.content, str) and len(outcome.content) > 8192)):
             outcome.content = self.evidence.redactor.text(outcome.content)
             ref = None
             try:

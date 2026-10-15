@@ -568,7 +568,10 @@ def test_resume_model_change_preserves_native_evidence_before_next_checkpoint(tm
         "protocol": "responses",
         "model": old.settings.model,
     }
-    assert restored._structured_history == [{"role": "assistant", "content": "Still working"}]
+    from aster.context.prompt import is_context_note
+
+    assert restored._structured_history[:-1] == [{"role": "assistant", "content": "Still working"}]
+    assert is_context_note(restored._structured_history[-1])
     again = Runtime(tmp_path, restored.settings)
     again.resume(restored.state.run_id)
     assert again._history_origins == restored._history_origins

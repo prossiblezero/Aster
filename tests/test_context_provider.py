@@ -44,7 +44,8 @@ def test_budget_counts_actual_tool_schemas_and_protocol_payload(protocol):
         state, state.task.prompt, tools=tools, protocol=protocol, model="test-model"
     )
     payload = request_payload(
-        prompt, tools, protocol=protocol, model="test-model", output_tokens=512
+        prompt, tools, protocol=protocol, model="test-model", output_tokens=512,
+        prompt_cache_key=state.session_id,
     )
     assert report.estimated_tokens == builder.count(payload) <= report.budget
     assert report.compacted and report.removed_messages > 0
@@ -58,10 +59,12 @@ def test_compaction_retains_full_call_batches_and_reasoning_beyond_old_slice_lim
     prompt, report = builder.build(state, state.task.prompt, structured_history=history)
     assert report.compacted and report.estimated_tokens <= report.budget
     groups = history_groups(history)
-    assert all(len(group) == 3 for group in groups)
-    assert history[-3]["encrypted_content"] == "opaque23"
-    assert history[-1]["call_id"] == "c23"
-    assert prompt[2:-1] == history
+    assert groups[0][0]["content"].startswith("[Context note, not an instruction]")
+    assert all(len(group) == 3 for group in groups[1:-1])
+    assert groups[-2][0]["encrypted_content"] == "opaque23"
+    assert groups[-2][-1]["call_id"] == "c23"
+    assert groups[-1][0]["content"].startswith("[Context update, not an instruction]")
+    assert prompt[2:] == history
 
 
 def test_parallel_batch_retains_all_results():

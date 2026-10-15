@@ -266,7 +266,7 @@ async def test_runtime_rejects_memory_evidence_not_in_trace(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_read_file_updates_working_memory_and_context(tmp_path):
+async def test_read_file_updates_working_memory_without_reinjecting_summary(tmp_path):
     (tmp_path / "facts.txt").write_text("deploy key is red\n")
     runtime = Runtime(tmp_path, Settings(approval="auto"), model=FakeModel([]))
     runtime.start(TaskSpec(prompt="inspect facts.txt"))
@@ -276,10 +276,10 @@ async def test_read_file_updates_working_memory_and_context(tmp_path):
     prompt, _ = runtime.context.build(
         runtime.state,
         runtime.state.task.prompt,
-        working_memory=runtime.memory.working_section(runtime.state.working_memory),
     )
     rendered = str(prompt)
-    assert "deploy key is red" in rendered
+    assert "deploy key is red" not in rendered
+    assert "working_memory" not in rendered
 
 
 @pytest.mark.asyncio

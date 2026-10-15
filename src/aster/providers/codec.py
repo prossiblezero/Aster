@@ -143,7 +143,10 @@ def _anthropic_messages(messages):
     return "\n\n".join(system), result
 
 
-def request_payload(messages, tools, *, protocol="responses", model="", output_tokens=2048):
+def request_payload(
+    messages, tools, *, protocol="responses", model="", output_tokens=2048,
+    prompt_cache_key: str | None = None,
+):
     """Shared by ContextBuilder and the transport, so budgeting sees the actual request shape."""
     history_groups(messages)
     if protocol in {"chat", "anthropic"} and any(
@@ -190,6 +193,8 @@ def request_payload(messages, tools, *, protocol="responses", model="", output_t
             "max_output_tokens": output_tokens,
             "store": False,
         }
+        if prompt_cache_key is not None:
+            payload["prompt_cache_key"] = prompt_cache_key
     history_groups(payload.get("input", payload.get("messages", [])))
     return payload
 

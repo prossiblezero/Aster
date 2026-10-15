@@ -19,7 +19,6 @@ class ContextBuilder:
         memory: str = "",
         skills: str = "",
         structured_history: list[dict] | None = None,
-        working_memory: str = "",
         *,
         tools: list[dict] | None = None,
         protocol: str = "responses",
@@ -34,7 +33,7 @@ class ContextBuilder:
         redact_history=None,
     ):
         result = self.calculator.calculate(
-            state, user, memory, skills, structured_history, working_memory,
+            state, user, memory, skills, structured_history,
             budget=self.budget, output_reserve=self.output_reserve,
             tools=tools, protocol=protocol, model=model, skill_bodies=skill_bodies,
             memory_enabled=memory_enabled, skills_available=skills_available,

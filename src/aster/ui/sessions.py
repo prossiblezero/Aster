@@ -9,6 +9,7 @@ from rich.text import Text
 from textual.widgets import Button, Input, OptionList, RichLog, Static
 from textual.widgets.option_list import Option
 
+from ..context.prompt import is_context_note
 from ..core.runtime import Runtime
 from ..providers.client import ModelClient
 from .session_widgets import SessionPicker, render_log, session_status
@@ -278,6 +279,8 @@ class SessionViews:
                 self._write("\n› 你\n" + prompt, style="#c0ddc7")
             elif kind == "message":
                 message = payload["message"]
+                if is_context_note(message):
+                    continue
                 content = message.get("content", "")
                 if isinstance(content, list):
                     content = "\n".join(block.get("text", "") for block in content if isinstance(block, dict))

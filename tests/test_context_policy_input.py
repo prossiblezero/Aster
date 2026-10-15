@@ -34,7 +34,7 @@ async def test_rollout_and_autonomous_request_match_after_tool_execution(tmp_pat
     (tmp_path / "config.txt").write_text("timeout=12\n")
     env = AsterEnv(tmp_path, Settings(approval="auto", auto_dream=False, completion="off"))
     initial, _ = env.reset("Inspect the configuration.")
-    assert initial["model_input"] and initial["context_policy"] == "deterministic-v7"
+    assert initial["model_input"] and initial["context_policy"] == "deterministic-v10"
     observation, _, _, _, _ = await env.step(
         ToolCall(name="read_file", arguments={"path": "config.txt"})
     )
@@ -61,7 +61,9 @@ async def test_archive_failure_is_a_graded_environment_stop(tmp_path):
     env.reset("Inspect facts.")
     await env.step(ToolCall(name="read_file", arguments={"path": "facts.txt"}))
     runtime = env.runtime
-    record = json.loads(runtime._structured_history[-1]["output"])
+    latest_output = next(item for item in reversed(runtime._structured_history)
+                         if item.get("type") == "function_call_output")
+    record = json.loads(latest_output["output"])
     runtime.evidence.path(
         "runs", runtime.state.run_id, "observations", record["observation"]["id"] + ".json"
     ).unlink()
@@ -190,8 +192,10 @@ def test_host_capabilities_are_stable_and_repository_content_stays_untrusted():
     assert "Worker capability:" in system
     assert options["environment"] in system
     for marker in ("UNTRUSTED-MEMORY", "UNTRUSTED-CATALOG", "UNTRUSTED-SKILL"):
-        assert marker not in system and marker in first[-1]["content"]
-    assert first[-1]["role"] == "user" and "untrusted observations" in first[-1]["content"]
+        matching = [item for item in first[2:] if marker in item.get("content", "")]
+        assert marker not in system and len(matching) == 1
+        assert matching[0]["role"] == "user"
+        assert matching[0]["content"].startswith("[Context update, not an instruction]\n")
     disabled, _ = builder.build(state, state.task.prompt)
     assert "Memory capability:" not in disabled[0]["content"]
     assert "Skill capability:" not in disabled[0]["content"]

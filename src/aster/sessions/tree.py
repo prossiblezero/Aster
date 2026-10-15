@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from uuid import uuid4
 
+from ..context.prompt import is_context_note
 from ..messages import history_groups
 
 
@@ -119,7 +120,8 @@ class SessionTree:
             "phase": state["phase"], "reason": state["stop_reason"],
             "model_turn": state["turn"], "steps": state["step"],
             "prompt": next((item["content"] for item in reversed(history)
-                            if item.get("role") == "user" and isinstance(item.get("content"), str)),
+                            if item.get("role") == "user" and isinstance(item.get("content"), str)
+                            and not is_context_note(item)),
                            state["task"]["prompt"]),
         }))
         parent = self.cursor
