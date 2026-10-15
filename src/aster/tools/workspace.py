@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import re
 from collections.abc import Iterable
 from itertools import islice
 from pathlib import Path
@@ -146,6 +147,10 @@ class WorkspaceTools:
 
     async def _search(self, args: Search) -> Outcome:
         pattern = args.pattern.casefold()
+        try:
+            regex = re.compile(args.pattern, re.IGNORECASE) if args.regex else None
+        except re.error as exc:
+            return Outcome(status="blocked", reason="invalid_regex", content=str(exc))
 
         def matches():
             for path in self.context.workspace.files(args.path):
@@ -156,7 +161,8 @@ class WorkspaceTools:
                     for line_no, line in enumerate(
                         path.read_text(encoding="utf-8").splitlines(), 1
                     ):
-                        if pattern in line.casefold():
+                        if (regex.search(line[:2000]) if regex is not None
+                                else pattern in line.casefold()):
                             yield f"{relative}:{line_no}:{line[:300]}"
                 except UnicodeError:
                     continue

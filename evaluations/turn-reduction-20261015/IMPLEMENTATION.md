@@ -21,3 +21,11 @@
 - 既有断言仅修改 `test_batch_matches_original_and_preserves_bom_and_mixed_newlines` 的“自身编辑后凭证消失、再次编辑被拦截”两项，改为凭证保留、再次编辑成功，并检查最终原始字节；其他已列出的既有外部变化断言未改。
 - 回滚：`git revert v11-stage1`；或 `git switch -c rollback/turn-stage1 v10-baseline`。
 - 全量：ruff 通过，core 484 passed，noncore 821 passed / 6 个基线失败 / 4 skipped；相对基线新增通过 5 项，新增失败 0。详见 `stage1-checks.json`。
+
+## Stage 2
+
+- `Search` 增加默认关闭的 `regex`，pattern 上限 300；`_search` 复用原分页，正则按 `IGNORECASE` 匹配每行前 2000 字符，编译错误返回 `invalid_regex`；字面匹配与 300 字符预览保持原行为。
+- 定向测试 14 passed；已有分页断言全部未改，新增交替匹配、默认字面量、行截断和非法模式验证。
+- 回滚：`git revert v11-stage2`；或 `git switch -c rollback/turn-stage2 v11-stage1`。
+- 初版沿用冗长的搜索说明，新增 3 个 4096 上下文测试失败。改为方案指定的精简工具描述，分页语义仍由参数定义和返回字段表达；定向复核已恢复到基线失败集合。记录见 `stage2-before-trim-checks.json`，未修改测试断言或上下文策略。
+- 最终全量：ruff 通过，core 484 passed，noncore 822 passed / 6 个基线失败 / 4 skipped；相对基线新增通过 6 项，新增失败 0。详见 `stage2-checks.json`。

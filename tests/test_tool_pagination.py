@@ -140,3 +140,28 @@ async def test_offset_past_end_returns_empty_terminal_page(tmp_path, name):
     assert result.status == "success" and result.content == ""
     assert result.data["count"] == 0 and not result.data["truncated"]
     assert result.data["next_offset"] is None
+
+
+async def test_regex_search_alternation_literal_default_and_limits(tmp_path):
+    (tmp_path / "names.txt").write_text("FOO\nbar\nfoo|bar\n" + "x" * 2000 + "foo\n")
+    runtime = Runtime(tmp_path, Settings())
+    runtime.start(TaskSpec(prompt="inspect"))
+    regex = await runtime.step(ToolCall(name="search", arguments={
+        "pattern": "foo|bar", "regex": True,
+    }))
+    assert regex.status == "success"
+    assert regex.content.splitlines() == ["names.txt:1:FOO", "names.txt:2:bar", "names.txt:3:foo|bar"]
+    for option in ({}, {"regex": False}):
+        literal = await runtime.step(ToolCall(name="search", arguments={
+            "pattern": "foo|bar", **option,
+        }))
+        assert literal.content == "names.txt:3:foo|bar"
+    beyond = await runtime.step(ToolCall(name="search", arguments={"pattern": "foo"}))
+    assert beyond.data["count"] == 3  # Literal search still examines the full line.
+    invalid = await runtime.step(ToolCall(name="search", arguments={
+        "pattern": "[", "regex": True,
+    }))
+    assert (invalid.status, invalid.reason) == ("blocked", "invalid_regex")
+    assert invalid.content
+    oversized = await runtime.step(ToolCall(name="search", arguments={"pattern": "x" * 301}))
+    assert oversized.reason == "invalid_arguments"
