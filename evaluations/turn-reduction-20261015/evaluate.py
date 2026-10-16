@@ -110,6 +110,7 @@ def prepare(round_no):
     selected.sort(key=lambda t: hashlib.sha256(('schedule:' + t['id']).encode()).hexdigest())
     save(root / 'tasks.json', selected)
     files = [*HERE.glob('*.py'), HERE / 'PROTOCOL.md', HERE / 'baseline-turns.json',
+             *([HERE / 'round2-authorization.json'] if round_no == 2 else []),
              REPO / 'docs/turn-reduction-plan.md', BASE_HERE / 'manifest.json',
              BASE_HERE / 'results.json', HERE.parent / 'context-state-20261014/results.json',
              HERE.parent / 'context-state-20261014/metrics.json',
@@ -191,7 +192,11 @@ def _run(round_no, attempt, task_names):
 
     manifest = verify(round_no)
     if round_no == 2:
-        assert load(HERE / 'audit-round1.json')['all_gates_passed'], 'Round 1 must pass first'
+        first_audit = load(HERE / 'audit-round1.json')
+        waived = load(HERE / 'round2-authorization.json')['waived_round1_gates']
+        failed_gates = {g['metric'] for g in first_audit['gates'] if not g['passed']}
+        assert first_audit['quality_passed'], 'Round 1 quality must pass first'
+        assert failed_gates <= set(waived), f'Round 1 gates not waived by the user: {sorted(failed_gates - set(waived))}'
     names = selection(manifest, attempt, task_names)
     if attempt > 1:
         first = load(paths(round_no, 1)[0] / 'results.json')

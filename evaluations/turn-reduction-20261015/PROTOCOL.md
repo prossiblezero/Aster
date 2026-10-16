@@ -42,6 +42,21 @@
 
 第一轮未通过就停止；不运行第二轮。是否 revert Stage 1/2、回到 v10-baseline，由用户决定。
 
+### 修订（2026-10-16，第一轮结束后、第二轮开始前）
+
+第一轮质量门槛全部通过，只有 `reread_only_turns` 未达标：实测 8，要求 ≤ 5。用户在看过第一轮报告后，授权豁免这一项并运行第二轮，授权记录在 `round2-authorization.json`。豁免理由：
+
+- 该门槛防范的机制已经修好：`fresh_read_blocked` 从 11 降到 0，`reread_after_own_edit` 从 39 降到 18。
+- 剩下 8 轮是模型自己选择的回读，没有门禁强制。≤ 5 这个阈值定得过紧。
+
+修订规则：
+
+- `audit-round1.json` 和 `REPORT-round1.md` 保持原样，第一轮仍记为“未全部达标”。
+- `evaluate.py` 的第二轮前置检查改为：第一轮 `quality_passed` 为真，并且所有未通过的门槛都列在 `round2-authorization.json` 的 `waived_round1_gates` 中。
+- 第二轮的门槛表不变。`reread_only_turns` 在第二轮只报告，原本也不是第二轮门槛。
+- 第二轮按修订后的脚本重新冻结。修订前的冻结（`manifest-round2.json` 与 `artifacts/private/turn-reduction-20261015/round2/`）当时未用于任何运行，改名为 `*-superseded-20261016` 保留。
+- 修订改变了 `evaluate.py` 和本文件的哈希，`verify --round 1` 将不再通过。复核第一轮请在提交 `9d53c7f` 的工作树中运行，例如 `git worktree add /tmp/v11-round1 9d53c7f`。
+
 ## 第二轮门槛（Stage 1 + 2 + 3）
 
 第一轮通过，且用户再次确认后，才运行第二轮的 32 次任务尝试。
