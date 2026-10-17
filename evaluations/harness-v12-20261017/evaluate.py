@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import threading
 import time
 from pathlib import Path
 
@@ -203,6 +204,26 @@ def run(name):
 
 
 TARPIT_NETWORK = 'aster-grade-tarpit'
+# Grading threads run concurrently with episode threads: patch container creation once and
+# select the tarpit network per thread, instead of swapping a process-global method.
+_TARPIT = threading.local()
+_TARPIT_LOCK = threading.Lock()
+
+
+def install_tarpit_hook(containers):
+    with _TARPIT_LOCK:
+        collection = containers.ContainerCollection
+        if getattr(collection.create, '_aster_tarpit', False):
+            return
+        original = collection.create
+
+        def create(self, *args, **kwargs):
+            if getattr(_TARPIT, 'active', False):
+                kwargs.setdefault('network', TARPIT_NETWORK)
+            return original(self, *args, **kwargs)
+
+        create._aster_tarpit = True
+        collection.create = create
 
 
 def tarpit_grade(task, agent, patch, run_id, skip_patch=False):
@@ -218,25 +239,23 @@ def tarpit_grade(task, agent, patch, run_id, skip_patch=False):
 
     client = docker.from_env()
     try:
-        client.networks.get(TARPIT_NETWORK)
-    except docker.errors.NotFound:
-        # Containers take addresses from .128/25, so .1 is never a container (not even the grader).
-        pool = docker.types.IPAMPool(subnet='10.255.255.0/24', iprange='10.255.255.128/25',
-                                     gateway='10.255.255.254')
-        client.networks.create(TARPIT_NETWORK, driver='bridge', ipam=docker.types.IPAMConfig(pool_configs=[pool]))
+        with _TARPIT_LOCK:
+            try:
+                client.networks.get(TARPIT_NETWORK)
+            except docker.errors.NotFound:
+                # Containers take addresses from .128/25, so .1 is never a container (not even the grader).
+                pool = docker.types.IPAMPool(subnet='10.255.255.0/24', iprange='10.255.255.128/25',
+                                             gateway='10.255.255.254')
+                client.networks.create(TARPIT_NETWORK, driver='bridge',
+                                       ipam=docker.types.IPAMConfig(pool_configs=[pool]))
     finally:
         client.close()
-    original = containers.ContainerCollection.create
-
-    def create(self, *args, **kwargs):
-        kwargs.setdefault('network', TARPIT_NETWORK)
-        return original(self, *args, **kwargs)
-
-    containers.ContainerCollection.create = create
+    install_tarpit_hook(containers)
+    _TARPIT.active = True
     try:
         return engine.repository_grade(task, agent, patch, run_id, skip_patch=skip_patch)
     finally:
-        containers.ContainerCollection.create = original
+        _TARPIT.active = False
 
 
 def regrade(name, sources, only=None):

@@ -4,7 +4,6 @@ Rule (outcome-independent of agents): keep the composition; a broken task (refer
 pass) is replaced by the next candidate in the same seeded ranking that passes preflight.
 """
 import ast
-import json
 import sys
 from pathlib import Path
 
