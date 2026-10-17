@@ -38,6 +38,7 @@ from ..sessions.checkpoint import (
     load_checkpoint,
     redact_skill_snapshots,
     safety_identity,
+    save_baseline,
     save_checkpoint,
 )
 from ..sessions.lifecycle import (
@@ -109,6 +110,8 @@ class Runtime:
         self.state: RunState | None = None
         self._initial_text: dict[str, str] = {}
         self._initial_modes: dict[str, int] = {}
+        # (baseline text dict, baseline mode dict, run id, stored digest); immutable per run.
+        self._baseline: tuple[dict, dict, str, str] | None = None
         self._in_turn = False
         self._pending_messages: list[dict] = []
         self._structured_history: list[dict] = []
@@ -375,11 +378,17 @@ class Runtime:
         self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
         workspace = self.workspace.snapshot()
+        if (self._baseline is None or self._baseline[0] is not self._initial_text
+                or self._baseline[1] is not self._initial_modes or self._baseline[2] != self.state.run_id):
+            # Holding the dicts (not their ids) makes identity comparison safe.
+            self._baseline = (self._initial_text, self._initial_modes, self.state.run_id,
+                              save_baseline(self.evidence, self.state.run_id,
+                                            self._initial_text, self._initial_modes))
         save_checkpoint(
-            self.evidence, self.state, workspace_hash=self.workspace.fingerprint(),
+            self.evidence, self.state, workspace_hash=self.workspace.fingerprint(workspace),
             workspace_snapshot=workspace, runtime_identity=self.settings.identity(),
-            structured_history=self._structured_history, initial_text=self._initial_text,
-            initial_modes=self._initial_modes, recovery_used=self._recovery_used,
+            structured_history=self._structured_history, baseline=self._baseline[3],
+            recovery_used=self._recovery_used,
             stall_items=self.stall.items, archive_sources=self._archive_sources,
             history_origins=self._history_origins, continued_from=self._continued_from,
             commit=self._commit_session,

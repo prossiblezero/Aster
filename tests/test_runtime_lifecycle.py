@@ -178,7 +178,7 @@ def test_resume_rejects_active_state_and_invalid_checkpoint_without_replacing_st
     checkpoint = runtime.evidence.path("runs", current.run_id, "checkpoint.json")
     data = json.loads(checkpoint.read_text())
     data["state"]["phase"] = "running"
-    del data["initial_text"]
+    del data["baseline"]
     checkpoint.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="legacy_checkpoint_missing_diff_baseline"):
         runtime.resume(current.run_id)

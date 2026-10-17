@@ -9,10 +9,13 @@ import os
 import stat
 import subprocess
 import tempfile
+import time
 from contextlib import nullcontext
 from pathlib import Path
 
 CONTROL = {".aster", ".git", ".agents", ".codex", ".claude"}
+# Files touched this recently are rehashed on every snapshot (coarse timestamp tolerance).
+RACY_WINDOW_NS = 3_000_000_000
 IGNORED = {"__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "node_modules", ".tmp"}
 
 
@@ -39,6 +42,7 @@ class Workspace:
     def __init__(self, root: Path):
         root.mkdir(parents=True, exist_ok=True)
         self.root = root.resolve(strict=True)
+        self._digests: dict[str, tuple[tuple[int, ...], str]] = {}
         if not self.root.is_dir():
             raise ValueError("workspace must be a directory")
         self._git_repository = False
@@ -134,52 +138,83 @@ class Workspace:
             )
             ignored = {self.root / os.fsdecode(p) for p in result.stdout.split(b"\0") if p}
 
-        def excluded(path):
-            return (
-                path not in tracked
-                and path not in tracked_directories
-                and any(parent in ignored for parent in (path, *path.parents))
-            )
-
-        if excluded(start):
+        ignored_names = {os.path.normpath(str(p)) for p in ignored}
+        tracked_names = {os.path.normpath(str(p)) for p in tracked}
+        tracked_directory_names = {os.path.normpath(str(p)) for p in tracked_directories}
+        start_name = os.path.normpath(str(start))
+        # An ignored ancestor marks every descendant; tracked paths stay visible.
+        inherited = any(os.path.normpath(str(p)) in ignored_names for p in (start, *start.parents))
+        if inherited and start_name not in tracked_names and start_name not in tracked_directory_names:
             return []
         result = []
-        for directory, dirs, files in os.walk(start, followlinks=False):
-            dirs[:] = sorted(
-                d
-                for d in dirs
-                if d not in CONTROL | IGNORED
-                and not sensitive(Path(d))
-                and not (Path(directory) / d).is_symlink()
-                and not excluded(Path(directory) / d)
-            )
-            for name in sorted(files):
-                path = Path(directory) / name
+
+        def walk(directory: str, marked: bool):
+            try:
+                entries = sorted(os.scandir(directory), key=lambda entry: entry.name)
+            except OSError:
+                return
+            directories = []
+            for entry in entries:
+                if entry.is_symlink():
+                    continue
+                if entry.is_dir(follow_symlinks=False):
+                    directories.append(entry)
+                    continue
+                name, full = entry.name, entry.path
                 if (
                     name in CONTROL
-                    or path.is_symlink()
                     or sensitive(Path(name))
                     or name.endswith(".pyc")
-                    or excluded(path)
+                    or (full not in tracked_names and (marked or full in ignored_names))
                 ):
                     continue
-                if not path.is_file():
+                if not entry.is_file(follow_symlinks=False):
                     raise BoundaryError("special_file")
-                result.append(path)
+                result.append(Path(full))
                 if len(result) > 10000:
                     raise BoundaryError("workspace exceeds 10000 files; narrow --cwd")
+            for entry in directories:
+                name, full = entry.name, entry.path
+                hidden = marked or full in ignored_names
+                if (
+                    name in CONTROL | IGNORED
+                    or sensitive(Path(name))
+                    or (hidden and full not in tracked_names and full not in tracked_directory_names)
+                ):
+                    continue
+                walk(full, hidden)
+
+        walk(start_name, inherited)
         return result
 
     def snapshot(self) -> dict[str, str]:
-        """File identity includes permission bits; read evidence separately hashes text."""
-        result = {}
+        """File identity includes permission bits; read evidence separately hashes text.
+
+        Digests are reused while a file's stat identity is unchanged, as git's index does.
+        A file whose mtime or ctime falls inside the racy window is always rehashed, so a
+        second write within one timestamp tick cannot hide behind a cached digest.
+        """
+        result, cache = {}, {}
+        racy_after = time.time_ns() - RACY_WINDOW_NS
+        root = str(self.root) + os.sep
         for path in self.files():
-            h = hashlib.sha256()
-            h.update(f"{stat.S_IMODE(path.stat().st_mode):04o}\0".encode())
-            with path.open("rb") as stream:
-                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                    h.update(chunk)
-            result[str(path.relative_to(self.root))] = h.hexdigest()
+            name = str(path)[len(root):]
+            info = path.stat()
+            key = (info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_ino, info.st_dev)
+            cached = self._digests.get(name)
+            if cached is not None and cached[0] == key:
+                digest_value = cached[1]
+            else:
+                h = hashlib.sha256()
+                h.update(f"{stat.S_IMODE(info.st_mode):04o}\0".encode())
+                with path.open("rb") as stream:
+                    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                        h.update(chunk)
+                digest_value = h.hexdigest()
+            if max(info.st_mtime_ns, info.st_ctime_ns) < racy_after:
+                cache[name] = (key, digest_value)
+            result[name] = digest_value
+        self._digests = cache
         return result
 
     def mode_snapshot(self) -> dict[str, int]:
@@ -188,8 +223,8 @@ class Workspace:
             for path in self.files()
         }
 
-    def fingerprint(self) -> str:
-        return digest(json.dumps(self.snapshot(), sort_keys=True))
+    def fingerprint(self, snapshot: dict[str, str] | None = None) -> str:
+        return digest(json.dumps(self.snapshot() if snapshot is None else snapshot, sort_keys=True))
 
     def text_snapshot(self) -> dict[str, str]:
         """Text baseline for a human-readable diff; hashes remain drift evidence."""

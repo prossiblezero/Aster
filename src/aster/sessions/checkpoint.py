@@ -65,7 +65,7 @@ def load_checkpoint(
     """Validate persisted identity, history and archive ownership before runtime mutation."""
     if data is None:
         data = json.loads(evidence.path("runs", run_id, "checkpoint.json").read_text())
-    if data.get("checkpoint_version", 1) not in {1, 2}:
+    if data.get("checkpoint_version", 1) not in {1, 2, 3}:
         raise ValueError("unsupported_checkpoint_version: use the Aster version that saved this run")
     assert_settled_tools(evidence, run_id, data)
     # Opt-in workers share the workspace. Adopting edits cannot erase a child's
@@ -108,8 +108,9 @@ def load_checkpoint(
     state = RunState.model_validate(data["state"])
     redact_skill_snapshots(state, evidence.redactor)
     state.messages = evidence.redactor.value(state.messages, mask_fields=False)
-    if not state.terminal and "initial_text" not in data:
+    if not state.terminal and "initial_text" not in data and "baseline" not in data:
         raise ValueError("legacy_checkpoint_missing_diff_baseline")
+    load_baseline(evidence, data)
     history_groups(data.get("structured_history", []))
     evidence.validate_native_history(data.get("structured_history", []))
     history = evidence.redact_history(data.get("structured_history", []))
@@ -154,18 +155,46 @@ def assert_settled_tools(evidence: EvidenceStore, run_id: str, data: dict) -> No
         )
 
 
+def _baseline_digest(data) -> str:
+    return hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def save_baseline(evidence, run_id, initial_text, initial_modes) -> str:
+    """Store a run's immutable diff baseline once, content-addressed, instead of in every checkpoint.
+
+    It lives in the run directory so that copying runs/<run_id> stays a complete portable unit.
+    """
+    data = evidence.redactor.value(
+        {"initial_text": initial_text, "initial_modes": initial_modes}, mask_fields=False
+    )
+    digest = _baseline_digest(data)
+    if not evidence.path("runs", run_id, f"baseline-{digest}.json").exists():
+        evidence.save(("runs", run_id, f"baseline-{digest}.json"), data)
+    return digest
+
+
+def load_baseline(evidence, data) -> None:
+    """Resolve a version-3 baseline reference in place; version 1/2 data carries it inline."""
+    if "initial_text" in data or "baseline" not in data:
+        return
+    run_id = data["state"]["run_id"]
+    stored = json.loads(evidence.path("runs", run_id, f"baseline-{data['baseline']}.json").read_text())
+    if _baseline_digest(stored) != data["baseline"]:
+        raise ValueError("checkpoint_baseline_digest_mismatch")
+    data["initial_text"], data["initial_modes"] = stored["initial_text"], stored["initial_modes"]
+
+
 def save_checkpoint(evidence, state, *, workspace_hash, workspace_snapshot, runtime_identity,
-                    structured_history, initial_text, initial_modes, recovery_used, stall_items,
+                    structured_history, baseline, recovery_used, stall_items,
                     archive_sources, history_origins, continued_from, commit=None):
     data = {
-            "checkpoint_version": 2,
+            "checkpoint_version": 3,
             "state": state.model_dump(mode="json"),
             "workspace_hash": workspace_hash,
             "workspace": workspace_snapshot,
             "runtime_identity": runtime_identity,
             "structured_history": structured_history,
-            "initial_text": initial_text,
-            "initial_modes": initial_modes,
+            "baseline": baseline,
             "recovery_used": recovery_used,
             "stall_items": list(stall_items),
             "archive_sources": archive_sources,
