@@ -50,10 +50,16 @@ def paths(name):
     return HERE / 'runs' / name, PRIVATE / name
 
 
-def select(spec):
-    tasks = load(BASE / 'tasks.json')
-    if spec in (['old20'], ['new30']):
-        chosen = [t for t in tasks if t['exposure'] == spec[0]]
+def pool_dir(name):
+    return REPO / 'artifacts/private' / name
+
+
+def select(spec, pool=BASE):
+    tasks = load(pool / 'tasks.json')
+    if spec == ['fresh30']:
+        chosen = [t for t in tasks if t.get('pool') == 'fresh30']
+    elif spec in (['old20'], ['new30']):
+        chosen = [t for t in tasks if t['exposure'] == spec[0] and 'pool' not in t]
     else:
         by_id = {t['id']: t for t in tasks}
         assert set(spec) <= set(by_id), sorted(set(spec) - set(by_id))
@@ -62,11 +68,12 @@ def select(spec):
     return chosen
 
 
-def prepare(name, ref, spec):
+def prepare(name, ref, spec, pool=BASE.name, agent='aster'):
+    base = pool_dir(pool)
     public, root = paths(name)
     assert not root.exists(), 'Run directory exists; choose a new name'
     commit = subprocess.check_output(['git', 'rev-parse', ref + '^{commit}'], cwd=REPO, text=True).strip()
-    shutil.copytree(BASE / 'runtime', root / 'runtime', ignore=shutil.ignore_patterns('aster', '__pycache__'))
+    shutil.copytree(base / 'runtime', root / 'runtime', ignore=shutil.ignore_patterns('aster', '__pycache__'))
     archive = subprocess.check_output(['git', 'archive', commit, 'src/aster'], cwd=REPO)
     with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
         for item in bundle:
@@ -74,15 +81,17 @@ def prepare(name, ref, spec):
                 target = root / 'runtime/aster' / Path(item.name).relative_to('src/aster')
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(bundle.extractfile(item).read())
+    patch_service_launcher(root / 'runtime' / 'execution_environment.py')
     for link in ('sources', 'preflight', 'task-python', 'pi', 'node-v22.22.0-linux-x64'):
-        (root / link).symlink_to((BASE / link).resolve(), target_is_directory=True)
-    shutil.copy2(BASE / 'repository-dataset.json', root / 'repository-dataset.json')
-    tasks = select(spec)
+        (root / link).symlink_to((base / link).resolve(), target_is_directory=True)
+    shutil.copy2(base / 'repository-dataset.json', root / 'repository-dataset.json')
+    tasks = select(spec, base)
     save(root / 'tasks.json', tasks)
     (root / 'relay').mkdir()
     public.mkdir(parents=True, exist_ok=True)
     save(public / 'manifest.json', {
         'name': name, 'ref': ref, 'aster_commit': commit, 'tasks': [t['id'] for t in tasks],
+        'pool': pool, 'agent': agent,
         'model': 'gpt-5.6-luna', 'protocol': 'responses', 'reasoning': 'medium', 'seconds_per_task': 900,
         'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
         'cpu': 4, 'memory_gib': 8, 'concurrency': 6,
@@ -91,7 +100,28 @@ def prepare(name, ref, spec):
                           [HERE / 'evaluate.py', BASE_HERE / 'evaluate.py', TURN_HERE / 'metrics.py',
                            TURN_HERE / 'turn_metrics.py']},
     })
-    print(f'Prepared {name} at {commit[:12]} with {len(tasks)} tasks; no model requests made.')
+    print(f'Prepared {name} ({agent}) at {commit[:12]} with {len(tasks)} tasks from {pool}; no model requests made.')
+
+
+SERVICE_PATCH = """
+    original_spawn = getattr(SandboxRunner, '_spawn', None)
+    if original_spawn is not None:
+        def spawn(self, argv, cwd, log):
+            # Long-running services use the same evaluation launcher as commands.
+            if len(argv) > 2 and Path(argv[2]).name == 'linux.py':
+                argv = [argv[0], argv[1], str(launcher), *argv[3:]]
+            return original_spawn(self, argv, cwd, log)
+        SandboxRunner._spawn = spawn
+"""
+
+
+def patch_service_launcher(path):
+    """Evaluation glue rewrote only command launches; give service launches the same launcher."""
+    text = path.read_text()
+    marker = '    SandboxRunner.environment = staticmethod(environment)'
+    if 'original_spawn' not in text:
+        assert text.count(marker) == 1, 'unexpected execution_environment layout'
+        path.write_text(text.replace(marker, SERVICE_PATCH.rstrip() + '\n' + marker))
 
 
 def verify(name):
@@ -113,11 +143,12 @@ def configure(name):
 def run(name):
     import docker
 
-    verify(name)
+    manifest = verify(name)
+    agent = manifest.get('agent', 'aster')
     public, root = configure(name)
     drv = engine.driver()
     tasks = [t for t in load(root / 'tasks.json')
-             if not (root / 'runs' / ('aster-' + t['id']) / 'launch.json').exists()]
+             if not (root / 'runs' / (agent + '-' + t['id']) / 'launch.json').exists()]
     if not tasks:
         print('All tasks already ran; no model requests made.')
         return
@@ -147,10 +178,10 @@ def run(name):
                      str(Path(PYTHON).parent.parent): {'bind': str(Path(PYTHON).parent.parent), 'mode': 'ro'}})
 
         def one(task):
-            row = drv.episode('aster', task)
+            row = drv.episode(agent, task)
             if task['kind'] == 'repository':
                 patch = (root / 'runs' / row['job'] / 'prediction.patch').read_text()
-                tarpit_grade(task, 'aster', patch, f'{HERE.name}-{name}', skip_patch=not patch)
+                tarpit_grade(task, agent, patch, f'{HERE.name}-{name}', skip_patch=not patch)
             return row
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
@@ -249,20 +280,20 @@ def weighted(row):
 
 
 def results(name):
-    verify(name)
+    agent = verify(name).get('agent', 'aster')
     public, root = configure(name)
     helpers = imported('harness_v12_summary', HERE.parent / 'general-coding-20261010/summarize.py')
     rows = []
     for task in load(root / 'tasks.json'):
-        out = root / 'runs' / ('aster-' + task['id'])
+        out = root / 'runs' / (agent + '-' + task['id'])
         if not (out / 'result.json').exists():
             continue
         row = load(out / 'result.json')
         usage, _ = helpers.usage(out)
-        final, phase, stop = helpers.final_text(out, 'aster')
+        final, phase, stop = helpers.final_text(out, agent)
         row.update(usage, final=final, phase=phase, stop_reason=stop, exposure=task['exposure'], kind=task['kind'])
         if task['kind'] == 'repository':
-            path = root / 'logs/evaluation' / f'{HERE.name}-{name}' / 'aster' / task['id'] / 'report.json'
+            path = root / 'logs/evaluation' / f'{HERE.name}-{name}' / agent / task['id'] / 'report.json'
             regraded = root / 'logs/evaluation' / f'{HERE.name}-{name}-tarpit' / name / task['id'] / 'report.json'
             if regraded.exists():  # runs graded before tarpit_grade existed were regraded on it
                 path = regraded
@@ -297,10 +328,12 @@ def main():
     parser.add_argument('--sources', nargs='+', default=['run'], help='regrade: run, reference, pi, codex')
     parser.add_argument('name')
     parser.add_argument('--ref', help='git ref to export (prepare)')
-    parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, or task ids (prepare)')
+    parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, fresh30, or task ids (prepare)')
+    parser.add_argument('--pool', default='general-coding-50-20261012', help='private task pool directory (prepare)')
+    parser.add_argument('--agent', default='aster', choices=['aster', 'pi', 'codex'], help='agent to run (prepare)')
     args = parser.parse_args()
     if args.mode == 'prepare':
-        prepare(args.name, args.ref, args.tasks)
+        prepare(args.name, args.ref, args.tasks, args.pool, args.agent)
     elif args.mode == 'verify':
         verify(args.name)
         print('Frozen source verified; no model requests made.')
