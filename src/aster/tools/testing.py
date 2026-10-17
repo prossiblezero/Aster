@@ -147,7 +147,8 @@ async def run_tests(
     result = await _run_tests(workspace, sandbox, command, timeout, runner=runner, code=code)
     signatures = result.data.get("failure_signatures", {})
     failing = {key for key, status in result.data.get("test_results", {}).items() if status == "failed"}
-    if baseline is None or code or not failing:
+    # Exit-code failures owe no rerun (see Verifier.observe), so need no original-file evidence.
+    if baseline is None or code or not failing or result.data.get("test_evidence_source") == "exit_code":
         return result
     known = dict(known or {})
     unchecked = failing - known.keys()

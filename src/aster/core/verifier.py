@@ -19,7 +19,12 @@ class Verifier:
                 state="missing", workspace_hash=self.workspace.fingerprint()
             )
         if outcome.data.get("is_verification"):
+            exit_code = outcome.data.get("test_evidence_source") == "exit_code"
             for test, status in outcome.data.get("test_results", {}).items():
+                if status == "failed" and exit_code:
+                    # A command judged by exit code names no test: a mis-invoked command fails the
+                    # same way, and no rerun can clear it. It fails verification, owing nothing.
+                    continue
                 if status == "failed":
                     state.verification_failures[test] = outcome.data.get("command", "")
                     state.environment_failures.pop(test, None)

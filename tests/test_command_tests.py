@@ -48,12 +48,15 @@ async def test_inline_code_still_requires_a_python_framework(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_a_different_passing_command_does_not_clear_an_exit_code_failure(tmp_path):
-    (tmp_path / "Makefile").write_text("test:\n\t@test -f ok.txt\ncheck:\n\t@true\n")
+async def test_exit_code_failures_fail_verification_without_a_sticky_obligation(tmp_path):
+    (tmp_path / "Makefile").write_text("test:\n\t@test -f ok.txt\ncheck:\n\t@test -f ok.txt\n")
     runtime = runtime_for(tmp_path)
     await run(runtime, "make test")
+    assert runtime.state.verification.state == "failed" and runtime.state.verification_failures == {}
+    assert not runtime.verifier.final(runtime.state).passed
+    (tmp_path / "ok.txt").write_text("x")
     passed = await run(runtime, "make check")
-    assert passed.status == "success" and list(runtime.state.verification_failures) == ["command: make test"]
+    assert passed.status == "success" and runtime.state.verification.state == "passed"
 
 
 @pytest.mark.asyncio
