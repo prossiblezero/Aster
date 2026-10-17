@@ -76,6 +76,9 @@ class EvidenceStore:
         self.redactor = redactor
         self._lock = threading.RLock()
         self.listeners = []
+        # run_id -> (file size after our last append, last seq, last hash). A size mismatch
+        # means another writer appended, so the tail is reread instead of trusted.
+        self._trace_tails: dict[str, tuple[int, int, str]] = {}
 
     def path(self, *parts: str) -> Path:
         path = self.root.joinpath(*parts)
@@ -289,14 +292,19 @@ class EvidenceStore:
         with self._lock:
             path = self.path("runs", run_id, "trace.jsonl")
             path.parent.mkdir(parents=True, exist_ok=True)
-            rows = self.events(run_id)
+            size = path.stat().st_size if path.exists() else 0
+            tail = self._trace_tails.get(run_id)
+            if tail is None or tail[0] != size:
+                # Rereading the whole trace on every event made streaming O(n^2).
+                rows = self.events(run_id)
+                tail = (size, len(rows), rows[-1]["hash"] if rows else "")
             row = self.redactor.value(
                 {
-                    "seq": len(rows) + 1,
+                    "seq": tail[1] + 1,
                     "time": datetime.now(UTC).isoformat(),
                     "run_id": run_id,
                     "event": event,
-                    "previous": rows[-1]["hash"] if rows else "",
+                    "previous": tail[2],
                     **payload,
                 }
             )
@@ -304,6 +312,7 @@ class EvidenceStore:
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
                 stream.flush()
+                self._trace_tails[run_id] = (stream.tell(), row["seq"], row["hash"])
             for listener in tuple(self.listeners):
                 try:
                     listener(deepcopy(row))
