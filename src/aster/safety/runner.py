@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import re
 import shlex
 import shutil
 import signal
@@ -21,6 +22,14 @@ from ..schema import Outcome
 from ..storage.workspace import CONTROL, BoundaryError, Workspace, sensitive
 
 OUTPUT_LIMIT = 4 * 1024 * 1024
+
+
+def map_root(text: str, source: Path, target: Path) -> str:
+    """Rewrite source as a whole path component; '/app' never matches '/apps' or '/x/app'."""
+    if str(source) in {"/", ""} or str(source) == str(target):
+        return text
+    pattern = r"(?<![\w./~-])" + re.escape(str(source)) + r"(?![\w.-])"
+    return re.sub(pattern, lambda _match: str(target), text)
 DEPENDENCY_DIRECTORIES = {".venv", "node_modules"}
 
 
@@ -250,8 +259,10 @@ class SandboxRunner:
             launcher = Path(__file__).with_name("linux.py")
             if persistent:
                 self._generation += 1
+            # The command runs in this copy; absolute paths into the real workspace would be
+            # denied by Landlock, so they address the copy instead, and outputs map back.
             result = await self._run_command(
-                command,
+                map_root(command, workspace.root, root),
                 root,
                 timeout,
                 [
@@ -263,6 +274,7 @@ class SandboxRunner:
                 ],
                 [str(path) for path in borrowed.values()],
             )
+            result.content = map_root(result.content, root, workspace.root)
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
                 if self.settings.sandbox == "best_effort" and not constrained:
                     if conflict := self._check_expected(workspace, expected_files):

@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from ..safety.policy import local_python_paths
-from ..safety.runner import SandboxRunner
+from ..safety.runner import SandboxRunner, map_root
 from ..schema import Outcome
 from ..storage.workspace import Workspace
 
@@ -87,6 +87,8 @@ async def run_tests(
     code: str = "",
 ) -> Outcome:
     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
+    # Tests run in a copy, so absolute paths into the real workspace become relative ones.
+    command = map_root(command, workspace.root, Path("."))
     argv = shlex.split(command)
     verification_command = shlex.join(argv)
     python_paths = []
