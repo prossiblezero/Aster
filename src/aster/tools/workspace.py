@@ -1,11 +1,14 @@
 """Workspace tools and bounded result paging."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import difflib
 import json
 import mimetypes
+import os
 import re
+import tempfile
 from collections.abc import Iterable
 from itertools import islice
 from pathlib import Path
@@ -13,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from ..safety.runner import SandboxRunner
 from ..schema import Outcome, Record, ToolCall
-from ..storage.workspace import digest
+from ..storage.workspace import Workspace, digest
 from .schemas import (
     ImageRead,
     ListFiles,
@@ -23,6 +26,8 @@ from .schemas import (
     RunShell,
     RunTests,
     Search,
+    ServiceName,
+    ServiceStart,
     WriteFile,
 )
 from .testing import run_tests
@@ -31,6 +36,8 @@ if TYPE_CHECKING:
     from .registry import ToolContext
 
 READ_FILE_CHARACTERS = 24_000
+SERVICE_STARTUP_SECONDS = 2.0
+
 
 def text_page(text: str, offset: int, limit: int) -> Outcome:
     if offset > len(text):
@@ -336,6 +343,57 @@ class WorkspaceTools:
             args.timeout,
             readonly=self.context.readonly,
         )
+
+    @staticmethod
+    def _tail(path: Path, limit: int = 2000) -> str:
+        try:
+            data = path.read_bytes()
+        except OSError:
+            return ""
+        return data[-limit:].decode("utf-8", errors="replace")
+
+    async def _service_start(self, args: ServiceStart) -> Outcome:
+        sandbox, workspace = self.context.sandbox, self.context.workspace
+        current = sandbox.services.get(args.name)
+        if current and current["process"].poll() is None:
+            return Outcome(status="blocked", reason="service_running",
+                           content=f"{args.name} is already running; stop it first or use another name.")
+        directory = Path(tempfile.gettempdir()) / f"aster-services-{os.getuid()}"
+        directory.mkdir(mode=0o700, exist_ok=True)
+        log = directory / f"{self.context.run_id}-{args.name}.log"
+        log.write_bytes(b"")
+        before = workspace.snapshot()
+        process = sandbox.start_service(workspace, args.command, log)
+        sandbox.services[args.name] = {"process": process, "command": args.command, "log": log,
+                                       "keep": args.keep_running}
+        await asyncio.sleep(SERVICE_STARTUP_SECONDS)  # long enough to bind a port or fail fast
+        code = process.poll()
+        changed = Workspace.changes(before, workspace.snapshot())
+        state = f"running (pid {process.pid})" if code is None else f"exited with code {code}"
+        return Outcome(status="success" if code is None else "error",
+                       reason="" if code is None else "service_exited", changed_paths=changed,
+                       content=f"{args.name}: {state}\n{self._tail(log)}",
+                       data={"service": args.name, "running": code is None, "keep_running": args.keep_running})
+
+    async def _service_status(self, args: ServiceName) -> Outcome:
+        services = self.context.sandbox.services
+        names = [args.name] if args.name else sorted(services)
+        if args.name and args.name not in services:
+            return Outcome(status="blocked", reason="service_unknown", content=", ".join(sorted(services)) or "none")
+        lines = []
+        for name in names:
+            service = services[name]
+            code = service["process"].poll()
+            lines.append(f"{name}: {'running' if code is None else f'exited with code {code}'}"
+                         f"{' (kept after the task)' if service['keep'] else ''} — {service['command']}"
+                         + ("\n" + self._tail(service["log"]) if args.name else ""))
+        return Outcome(status="success", content="\n".join(lines) or "No services.")
+
+    async def _service_stop(self, args: ServiceName) -> Outcome:
+        if args.name not in self.context.sandbox.services:
+            return Outcome(status="blocked", reason="service_unknown")
+        code = await asyncio.to_thread(self.context.sandbox.stop_service, args.name)
+        return Outcome(status="success", content=f"{args.name} stopped (exit code {code}).")
 
     async def _run_tests(self, args: RunTests) -> Outcome:
         return await run_tests(

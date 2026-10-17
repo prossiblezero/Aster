@@ -147,6 +147,17 @@ class SkillLoad(TextPage):
     )
 
 
+class ServiceStart(Record):
+    name: str = Field(pattern=r"^[A-Za-z0-9_.-]{1,40}$")
+    command: str = Field(min_length=1)
+    keep_running: bool = Field(
+        default=False, description="Leave it running after the task ends, when the task requires a running service.")
+
+
+class ServiceName(Record):
+    name: str = Field(default="", pattern=r"^[A-Za-z0-9_.-]{0,40}$", description="Omit to list all services.")
+
+
 class ToolLoad(Record):
     names: list[str] = Field(min_length=1)
 
@@ -240,7 +251,7 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; use service_start for servers. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
@@ -274,6 +285,14 @@ SCHEMAS = {
         "state",
     ),
     "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
+    "service_start": (
+        ServiceStart,
+        "Start a long-running process (server, database, watcher) in the sandbox; it survives later "
+        "tool calls. Returns its first output. It is stopped when the task ends unless keep_running.",
+        "process",
+    ),
+    "service_status": (ServiceName, "Show whether services are running, with their recent output.", "read"),
+    "service_stop": (ServiceName, "Stop a service started with service_start.", "state"),
     "ask_user": (AskUser, "Ask the human for missing task information.", "state"),
     "worker_start": (
         WorkerStart,

@@ -1621,6 +1621,9 @@ class Runtime:
                 f"- {item['content']}: {item.get('resolution', '')}"
                 for item in state.cancelled_requirements
             )
+        kept = self._end_services()
+        if kept:
+            answer += "\n\nServices left running: " + "; ".join(kept)
         answer = self._memory_confirmation(answer)
         state.final = self.evidence.redactor.text(answer)
         state.phase = "completed"
@@ -1656,12 +1659,22 @@ class Runtime:
             if not self._operation_task.cancelling():
                 self._operation_task.cancel()
         self._settle_workers()
+        self._end_services()
         self.state.phase = "failed" if failed else "stopped"
         self.state.stop_reason = reason
         self._stop_hook()
         self.evidence.emit(self.state.run_id, "run_stopped", reason=reason, failed=failed)
         self._auto_dream()
         self.report(VerifierResult(passed=False, reason=reason))
+
+    def _end_services(self) -> list[str]:
+        """Stop services at the end of a task, except ones the agent kept running on purpose."""
+        self.sandbox.stop_services(keep_requested=True)
+        kept = [f"{name} (pid {service['process'].pid}): {service['command']}"
+                for name, service in self.sandbox.services.items() if service["process"].poll() is None]
+        if self.state and self.sandbox.services:
+            self.evidence.emit(self.state.run_id, "services_ended", kept=kept)
+        return kept
 
     def _settle_workers(self):
         """Freeze children and account for their edits even without a status poll."""

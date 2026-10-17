@@ -57,8 +57,55 @@ class SandboxRunner:
         self._environment_workspace: Path | None = None
         self._generation = 0
         self._busy = False
+        # name -> {"process", "command", "log", "keep"}; long-running services outlive commands.
+        self.services: dict[str, dict] = environment.services if environment is not None else {}
         # phase -> [seconds, count]; shared with a source runner so test copies are counted too.
         self.timings: dict[str, list[float]] = environment.timings if environment is not None else {}
+
+    def start_service(self, workspace: Workspace, command: str, log: Path) -> subprocess.Popen:
+        """Launch under the same Landlock/seccomp launcher, in its own session, without waiting.
+
+        Unlike commands it runs in the workspace itself (a server must see later edits), so its
+        writes appear as external changes and invalidate stale reads like any other writer.
+        """
+        launcher = Path(__file__).with_name("linux.py")
+        argv = [sys.executable, "-I", str(launcher), str(workspace.root),
+                "on" if self.settings.network else "off", command]
+        return self._spawn(argv, workspace.root, log)
+
+    def _spawn(self, argv: list[str], cwd: Path, log: Path) -> subprocess.Popen:
+        with log.open("ab") as stream:
+            return subprocess.Popen(argv, cwd=cwd, env=self.environment(cwd, reuse=False),
+                                    stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT,
+                                    start_new_session=True)
+
+    def stop_service(self, name: str) -> int | None:
+        service = self.services.get(name)
+        if service is None:
+            return None
+        process = service["process"]
+        if process.poll() is None:
+            for sig, wait in ((signal.SIGTERM, 3), (signal.SIGKILL, 3)):
+                try:
+                    os.killpg(process.pid, sig)
+                except ProcessLookupError:
+                    break
+                try:
+                    process.wait(wait)
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
+        return process.poll()
+
+    def stop_services(self, *, keep_requested: bool) -> list[str]:
+        """Stop services; with keep_requested, ones started with keep_running stay up."""
+        stopped = []
+        for name, service in list(self.services.items()):
+            if keep_requested and service["keep"] and service["process"].poll() is None:
+                continue
+            self.stop_service(name)
+            stopped.append(name)
+        return stopped
 
     def _time(self, name: str, started: float) -> None:
         seconds, count = self.timings.get(name, (0.0, 0))

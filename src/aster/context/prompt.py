@@ -163,6 +163,17 @@ def workflow_state(state):
         "changed_path_count": len(state.changed_paths),
         "verification": state.verification.model_dump(),
     }
+    # Say what final delivery still needs before the agent writes it, instead of
+    # rejecting a finished answer afterwards (each rejection costs a model turn).
+    pending = []
+    if state.task.require_verification and state.changed_paths:
+        if state.verification_failures:
+            pending.append(f"{len(state.verification_failures)} failing test(s) from run_tests must pass "
+                           "or be shown to fail identically on the original files")
+        elif state.verification.state != "passed":
+            pending.append("a passing run_tests on the final code (run_shell checks do not count)")
+    if pending:
+        workflow["before_final_answer"] = pending
     turns_left = max(0, state.task.max_turns - state.turn)
     steps_left = max(0, state.task.max_steps - state.step)
     fractions = [turns_left / state.task.max_turns, steps_left / state.task.max_steps]

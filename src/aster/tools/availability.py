@@ -24,6 +24,13 @@ def unavailable_reason(
         )
     ):
         return "isolation_required_for_scope"
+    if name == "service_start":
+        if settings.sandbox == "off":
+            return "isolation_required_for_scope"
+        if settings.read_only or (state and state.mode == "plan"):
+            return "read_only" if settings.read_only else "plan_mode"
+        if settings.write_scope is not None:
+            return "write_scope"  # a service writes the workspace directly; scope is unenforceable
     if name in {"write_file", "patch_file"}:
         if settings.read_only:
             return "read_only"
@@ -47,7 +54,7 @@ def unavailable_reason(
     )
     if no_approval and (
         name in {"write_file", "patch_file", "plan_exit"}
-        or (name in {"run_shell", "run_tests"} and not _has_allowed_command(name, settings, state))
+        or (name in {"run_shell", "run_tests", "service_start"} and not _has_allowed_command(name, settings, state))
     ):
         return "approval_unavailable"
     return ""
