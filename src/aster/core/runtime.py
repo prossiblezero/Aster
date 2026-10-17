@@ -72,6 +72,8 @@ from .workers import WorkerManager
 
 # Model-visible evidence references; memory_store and workers resolve unique prefixes.
 EVIDENCE_REF_CHARS = 12
+# Longest window of checkpoint progress a power loss may drop (process crashes lose none).
+CHECKPOINT_SYNC_SECONDS = 5.0
 
 class Runtime:
     def __init__(
@@ -113,6 +115,7 @@ class Runtime:
         self.state: RunState | None = None
         self._initial_text: dict[str, str] = {}
         self._initial_modes: dict[str, int] = {}
+        self._last_durable_checkpoint = float("-inf")
         # run_id -> phase -> [seconds, count]; written to runs/<run_id>/timings.json.
         self._timings: dict[str, dict[str, list[float]]] = {}
         # (baseline text dict, baseline mode dict, run id, stored digest); immutable per run.
@@ -397,9 +400,14 @@ class Runtime:
             self._checkpoint()
 
     def _checkpoint(self):
+        # Group commit: every checkpoint is written atomically (safe across process crashes),
+        # but fsync happens at most every CHECKPOINT_SYNC_SECONDS and at terminal states, so a
+        # power loss can drop only the last few seconds. Each fsync cost ~125-225 ms in containers.
+        durable = (self.state.terminal
+                   or time.monotonic() - self._last_durable_checkpoint >= CHECKPOINT_SYNC_SECONDS)
         timings = self._timings.setdefault(self.state.run_id, {})
         timings.update({"sandbox:" + key: list(value) for key, value in self.sandbox.timings.items()})
-        atomic_json(self.evidence.path("runs", self.state.run_id, "timings.json"), timings)
+        atomic_json(self.evidence.path("runs", self.state.run_id, "timings.json"), timings, durable=False)
         self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
         workspace = self.workspace.snapshot()
@@ -416,8 +424,10 @@ class Runtime:
             recovery_used=self._recovery_used,
             stall_items=self.stall.items, archive_sources=self._archive_sources,
             history_origins=self._history_origins, continued_from=self._continued_from,
-            commit=self._commit_session,
+            commit=self._commit_session, durable=durable,
         )
+        if durable:
+            self._last_durable_checkpoint = time.monotonic()
         self._checkpoint_workspace = workspace
 
     def _commit_session(self, data):
@@ -670,7 +680,7 @@ class Runtime:
         artifact = ("runs", state.run_id, "requests", f"{state.turn + 1:04d}-{request_hash}.json")
         self.evidence.save(
             artifact, {"policy_version": report.policy_version, "payload": payload},
-            native_history_paths=(("payload", "input"),),
+            native_history_paths=(("payload", "input"),), durable=False,
         )
         self.evidence.emit(
             state.run_id,

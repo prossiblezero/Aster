@@ -134,3 +134,30 @@ async def test_phase_timings_are_written_outside_run_state(tmp_path):
     timings = json.loads(runtime.evidence.path("runs", state.run_id, "timings.json").read_text())
     assert timings["tool:read_file"][1] == 1 and timings["checkpoint"][1] >= 1
     assert "timings" not in state.model_dump()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("window", [0.0, 3600.0])
+async def test_checkpoints_group_fsync_but_sync_terminal_state(tmp_path, monkeypatch, window):
+    import aster.core.runtime as runtime_module
+    import aster.storage.evidence as evidence_module
+
+    synced = []
+    real_fsync = evidence_module.os.fsync
+    monkeypatch.setattr(evidence_module.os, "fsync", lambda fd: synced.append(fd) or real_fsync(fd))
+    monkeypatch.setattr(runtime_module, "CHECKPOINT_SYNC_SECONDS", window)
+    (tmp_path / "a.txt").write_text("alpha\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    state = runtime.start(TaskSpec(prompt="inspect a.txt"))
+    assert synced  # the first checkpoint of a run is durable
+    before = len(synced)
+    for _ in range(3):
+        await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    checkpoint = runtime.evidence.path("runs", state.run_id, "checkpoint.json")
+    assert json.loads(checkpoint.read_text())["state"]["step"] == 3  # always written
+    during = len(synced) - before
+    # The in-flight marker before each tool stays durable (one fsync per step); within the
+    # window checkpoints add none, while window 0 restores an fsync per checkpoint.
+    assert during == 3 if window else during > 3
+    runtime.finish("done")
+    assert len(synced) > before + during  # terminal state is always synced

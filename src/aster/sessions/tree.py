@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import sqlite3
+import threading
 import time
 import zlib
 from contextlib import contextmanager
@@ -26,6 +27,9 @@ def encode(value):
 class SessionTree:
     def __init__(self, evidence):
         self.evidence = evidence
+        self._lock = threading.RLock()
+        self._db = None
+        self._db_identity = None
         self.cursor = None
         self.expected_head = None
         self.turn_id = None
@@ -39,10 +43,27 @@ class SessionTree:
         # Recheck all SQLite paths, including sidecars, at every access.
         for name in ("sessions.sqlite3", "sessions.sqlite3-wal", "sessions.sqlite3-shm"):
             self.evidence.path(name)
-        db = sqlite3.connect(self.evidence.path("sessions.sqlite3"), timeout=5)
+        path = self.evidence.path("sessions.sqlite3")
+        identity = (path.stat().st_dev, path.stat().st_ino) if path.exists() else None
+        with self._lock:
+            # One long-lived connection: reopening ran the schema transaction and a WAL
+            # checkpoint at close every time, each an fsync (~125 ms on container overlayfs).
+            if self._db is None or identity != self._db_identity:
+                if self._db is not None:
+                    self._db.close()
+                self._db = self._open(path)
+                self._db_identity = (path.stat().st_dev, path.stat().st_ino)
+            with self._db:
+                yield self._db
+
+    def _open(self, path):
+        db = sqlite3.connect(path, timeout=5, check_same_thread=False)
         db.row_factory = sqlite3.Row
         try:
             db.execute("PRAGMA journal_mode=WAL")
+            # WAL + NORMAL: commits survive process crashes; only a power loss can drop
+            # the newest transactions, and the database stays consistent.
+            db.execute("PRAGMA synchronous=NORMAL")
             db.execute("PRAGMA foreign_keys=ON")
             if db.execute("PRAGMA user_version").fetchone()[0] not in {0, 1}:
                 raise ValueError("unsupported_session_database_version")
@@ -63,10 +84,16 @@ class SessionTree:
                 );
                 PRAGMA user_version=1;
             """)
-            with db:
-                yield db
-        finally:
+        except BaseException:
             db.close()
+            raise
+        return db
+
+    def close(self):
+        with self._lock:
+            if self._db is not None:
+                self._db.close()
+                self._db = None
 
     def reset(self):
         self.cursor = self.expected_head = self.turn_id = None

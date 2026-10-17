@@ -186,7 +186,7 @@ def load_baseline(evidence, data) -> None:
 
 def save_checkpoint(evidence, state, *, workspace_hash, workspace_snapshot, runtime_identity,
                     structured_history, baseline, recovery_used, stall_items,
-                    archive_sources, history_origins, continued_from, commit=None):
+                    archive_sources, history_origins, continued_from, commit=None, durable=True):
     data = {
             "checkpoint_version": 3,
             "state": state.model_dump(mode="json"),
@@ -203,5 +203,6 @@ def save_checkpoint(evidence, state, *, workspace_hash, workspace_snapshot, runt
         }
     if commit is not None:
         data = commit(data)
-    evidence.save(("runs", state.run_id, "checkpoint.json"), data, preserve_native_history=True)
+    evidence.save(("runs", state.run_id, "checkpoint.json"), data, preserve_native_history=True,
+                  durable=durable)
     return data

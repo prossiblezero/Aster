@@ -17,14 +17,18 @@ from ..safety.redaction import Redactor
 from .workspace import BoundaryError, digest
 
 
-def atomic_json(path: Path, data: Any) -> None:
+def atomic_json(path: Path, data: Any, *, durable: bool = True) -> None:
+    """Replace path atomically. durable=False skips fsync: the rename still makes the write
+    all-or-nothing for process crashes, but a power loss may drop it. Container overlay
+    filesystems made each fsync ~125 ms, so reconstructible artifacts opt out."""
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".write-")
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
-            os.fsync(f.fileno())
+            if durable:
+                os.fsync(f.fileno())
         os.replace(temporary, path)
     finally:
         Path(temporary).unlink(missing_ok=True)
@@ -116,13 +120,13 @@ class EvidenceStore:
 
     def save(
         self, parts: tuple[str, ...], data: Any, *, preserve_native_history: bool = False,
-        native_history_paths: tuple[tuple[str, ...], ...] = (),
+        native_history_paths: tuple[tuple[str, ...], ...] = (), durable: bool = True,
     ) -> None:
         with self._lock:
             redacted = self.redact(data, native_history_paths=native_history_paths)
             if preserve_native_history:
                 redacted["structured_history"] = self.redact_history(data.get("structured_history", []))
-            atomic_json(self.path(*parts), redacted)
+            atomic_json(self.path(*parts), redacted, durable=durable)
 
     def redact(self, data: Any, *, native_history_paths: tuple[tuple[str, ...], ...] = ()):
         """Use the same redacted bytes for artifact storage and provenance hashes."""
