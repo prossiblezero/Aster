@@ -61,3 +61,12 @@
 - 全部 32 次尝试共 573 次请求、13,034,745 token；含后台记忆的加权已观测费用 5.1897425（非账单）。4 次请求缺用量，全部保留异常且不估填。
 - 已保存 [完整报告](REPORT-round1.md)、[冻结审计](audit-round1.json)、[费用与历史对比](comparison-round1.json)、[执行与清理记录](execution-round1.json)，逐次统计位于 `round1/attempt{1,2,3}/`。只重跑 Aster；pi、Codex 使用相同 old20 的历史结果。
 - 按协议第一轮未通过即停止，未启动第二轮、未自动回滚 Stage 1/2；是否回到 `v10-baseline` 由用户决定。Stage 5 未达到整体验收条件，未打完成标签。生产代码、冻结协议、执行器、指标定义和私有原始档案均未改写。
+
+## Stage 3 撤销
+
+- 2026-10-17 按用户指定的 `docs/v11-closeout-plan.md` 收尾。第二轮 34 次独立评分及 7 项人工核对原样保存于提交 `753bcfada7aae9e633d388784a491f0616496da3`。
+- 撤销提交：`30bd0b3`。仅撤销 `8290388` 的源码和测试，保留本实施记录、`stage3-checks.json` 及全部评测证据；原实现仍保存在 `v11-stage3`。
+- 撤销原因：第二轮首次 20 题有 46 次请求异常，4 题以 `provider_error` 提前停止；剔除这 4 题后轮数 252 → 230、请求数 279 → 281，未证明降本。Requests-2931 带失败轮数从第一轮 3 增至 9；pytest-10356 的任务相关测试被运行时接受为 pre-existing，用户人工核对明确不予豁免。基线失败不能单独证明任务无关。
+- 第二轮质量门槛通过，但 Requests 带失败轮数、声明相关性、归档证据一致性三项未通过；本次根据收尾方案主动撤销 Stage 3，不改写历史验收结论。
+- Stage A 验收：`git diff v11-stage2 HEAD -- src tests` 无输出；Ruff 通过，core 484 passed，noncore 822 passed / 6 个原有失败 / 4 skipped，失败 ID 集合与 `stage2-noncore.log` 完全一致。日志为 `closeout-stageA-{ruff,core,noncore}.log`，按仓库规则忽略。
+- 验收标签 `v11-final` 标记保留 Stage 1、2 的版本。需要恢复 Stage 3 时可 `git revert 30bd0b3`，或从 `v11-stage3` 新建分支；不改写现有提交和标签。
