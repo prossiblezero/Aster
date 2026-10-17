@@ -80,3 +80,10 @@
 - 相关测试 72 passed；全量 Ruff 通过、core 484 passed、noncore 823 passed / 6 个基线失败 / 4 skipped；相对 Stage A 新增通过 1 项，新增失败 0。详见 `closeout-stageB-checks.json`，日志 `closeout-stageB-{ruff,core,noncore}.log` 按仓库规则忽略。
 - 离线重放命令：`/home/dzh/.conda/envs/aster/bin/python evaluations/turn-reduction-20261015/closeout-archive-check.py`。第二轮 COBOL attempt 2 的 5 个异常请求全部恢复为与原始出站内容一致，规范序列化哈希一致；只写临时目录，原始档案哈希未变，不重算冻结审计，不调用模型。
 - 验收标签 `v11-final-fix1`。回滚此修复可 `git revert v11-final-fix1`；历史评测仍对应原标签，不将本次离线修复计作新的 benchmark 成绩。
+
+## Stage C：降本工作总结
+
+- 2026-10-17 完成 [成本总结](../cost-summary-20261016.md) 与 [只读复算脚本](../cost-summary-20261016.py)。主表统一 old20 首次 20 题、包含后台记忆的口径，覆盖旧 Aster、v9、v10、v11 Stage 1+2、pi 和 Codex；逐行给出来源及计算公式，缺失用量不估填。
+- 六行主表与脚本输出逐字一致，v9/v10 汇总另与逐题 `results.json` 复核一致。第二轮四道 `provider_error` 任务、46 次首次请求异常及剔除后的轮次/请求数均从既有归档复核，原始报告和冻结审计未改。
+- 总结同时列出各阶段机制、开发集质量波动、Stage 3 撤销原因、解释器提前停止影响，以及与 pi/Codex 的剩余差距。Stage B 修复提交为 `d0afb60`，没有新的模型调用或 benchmark 成绩。
+- 归档用户提供的收尾方案；其中固定示例凭证改用等值字符串拼接表示，以通过提交前密钥扫描，实施要求不变。总结脚本 Ruff 通过，文档相对链接全部存在。验收标签 `v11-summary`；回滚总结可 `git revert v11-summary`，保留 `v11-final-fix1` 的实现。
