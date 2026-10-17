@@ -69,7 +69,7 @@ def select(spec, pool=BASE):
     return chosen
 
 
-def prepare(name, ref, spec, pool=BASE.name, agent='aster'):
+def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6):
     base = pool_dir(pool)
     public, root = paths(name)
     assert not root.exists(), 'Run directory exists; choose a new name'
@@ -95,7 +95,7 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster'):
         'pool': pool, 'agent': agent,
         'model': 'gpt-5.6-luna', 'protocol': 'responses', 'reasoning': 'medium', 'seconds_per_task': 900,
         'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
-        'cpu': 4, 'memory_gib': 8, 'concurrency': 6,
+        'cpu': 4, 'memory_gib': 8, 'concurrency': concurrency,
         'product_hashes': hashes(root / 'runtime/aster'), 'runtime_hashes': hashes(root / 'runtime'),
         'runner_hashes': {str(p.relative_to(REPO)): sha(p) for p in
                           [HERE / 'evaluate.py', BASE_HERE / 'evaluate.py', TURN_HERE / 'metrics.py',
@@ -187,7 +187,7 @@ def run(name):
                 tarpit_grade(task, agent, patch, f'{HERE.name}-{name}', skip_patch=not patch)
             return row
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=manifest.get('concurrency', 6)) as pool:
             for future in concurrent.futures.as_completed([pool.submit(one, t) for t in tasks]):
                 row = future.result()
                 print('finished', row['task'], flush=True)
@@ -354,9 +354,11 @@ def main():
     parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, fresh30, or task ids (prepare)')
     parser.add_argument('--pool', default='general-coding-50-20261012', help='private task pool directory (prepare)')
     parser.add_argument('--agent', default='aster', choices=['aster', 'pi', 'codex'], help='agent to run (prepare)')
+    parser.add_argument('--concurrency', type=int, default=6,
+                        help='episodes at once (prepare); keep the host total at 6 so timings stay comparable')
     args = parser.parse_args()
     if args.mode == 'prepare':
-        prepare(args.name, args.ref, args.tasks, args.pool, args.agent)
+        prepare(args.name, args.ref, args.tasks, args.pool, args.agent, args.concurrency)
     elif args.mode == 'verify':
         verify(args.name)
         print('Frozen source verified; no model requests made.')
