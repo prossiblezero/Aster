@@ -150,7 +150,7 @@ def run(name):
             row = drv.episode('aster', task)
             if task['kind'] == 'repository':
                 patch = (root / 'runs' / row['job'] / 'prediction.patch').read_text()
-                engine.repository_grade(task, 'aster', patch, f'{HERE.name}-{name}', skip_patch=not patch)
+                tarpit_grade(task, 'aster', patch, f'{HERE.name}-{name}', skip_patch=not patch)
             return row
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
@@ -167,6 +167,72 @@ def run(name):
         socket.unlink(missing_ok=True)
         network.remove()
         client.close()
+
+
+TARPIT_NETWORK = 'aster-grade-tarpit'
+
+
+def tarpit_grade(task, agent, patch, run_id, skip_patch=False):
+    """Grade on a bridge whose subnet holds 10.255.255.1 with no host behind it.
+
+    requests' TestTimeout cases connect to 10.255.255.1 and need it to blackhole. On the
+    default bridge that depends on the host network (on 2026-10-17 the campus network
+    answered it). An on-link address with no host never answers ARP, so connects time out
+    regardless of the host, while outbound access stays as on the default bridge.
+    """
+    import docker
+    import docker.models.containers as containers
+
+    client = docker.from_env()
+    try:
+        client.networks.get(TARPIT_NETWORK)
+    except docker.errors.NotFound:
+        # Containers take addresses from .128/25, so .1 is never a container (not even the grader).
+        pool = docker.types.IPAMPool(subnet='10.255.255.0/24', iprange='10.255.255.128/25',
+                                     gateway='10.255.255.254')
+        client.networks.create(TARPIT_NETWORK, driver='bridge', ipam=docker.types.IPAMConfig(pool_configs=[pool]))
+    finally:
+        client.close()
+    original = containers.ContainerCollection.create
+
+    def create(self, *args, **kwargs):
+        kwargs.setdefault('network', TARPIT_NETWORK)
+        return original(self, *args, **kwargs)
+
+    containers.ContainerCollection.create = create
+    try:
+        return engine.repository_grade(task, agent, patch, run_id, skip_patch=skip_patch)
+    finally:
+        containers.ContainerCollection.create = original
+
+
+def regrade(name, sources, only=None):
+    """Regrade saved patches on the tarpit network; sources: run name or 'reference', 'pi', 'codex'."""
+    public, root = configure(name)
+    os.chdir(root)
+    rows = {r['instance_id']: r for r in load(root / 'repository-dataset.json')}
+    tasks = [t for t in load(root / 'tasks.json') if t['kind'] == 'repository' and (not only or t['id'] in only)]
+    previous = public / 'tarpit-regrade.json'
+    out = load(previous) if previous.exists() else {}
+    for source in sources:
+        for task in tasks:
+            if source == 'reference':
+                patch = rows[task['id']]['patch']
+            elif source in ('pi', 'codex', 'aster-c6b651d'):
+                agent = source.split('-')[0]
+                path = BASE / 'runs' / f"{agent}-{task['id']}" / 'prediction.patch'
+                if not path.exists():
+                    continue
+                patch = path.read_text()
+            else:
+                patch = (root / 'runs' / ('aster-' + task['id']) / 'prediction.patch').read_text()
+            run_id = f'{HERE.name}-{name}-tarpit'
+            tarpit_grade(task, source, patch, run_id, skip_patch=not patch)
+            report = root / 'logs/evaluation' / run_id / source / task['id'] / 'report.json'
+            grade = load(report).get(task['id']) if report.exists() else None
+            out.setdefault(source, {})[task['id']] = bool(grade and grade.get('resolved'))
+            print(source, task['id'], out[source][task['id']], flush=True)
+    save(public / 'tarpit-regrade.json', out)
 
 
 def model_seconds(out):
@@ -197,6 +263,10 @@ def results(name):
         row.update(usage, final=final, phase=phase, stop_reason=stop, exposure=task['exposure'], kind=task['kind'])
         if task['kind'] == 'repository':
             path = root / 'logs/evaluation' / f'{HERE.name}-{name}' / 'aster' / task['id'] / 'report.json'
+            regraded = root / 'logs/evaluation' / f'{HERE.name}-{name}-tarpit' / name / task['id'] / 'report.json'
+            if regraded.exists():  # runs graded before tarpit_grade existed were regraded on it
+                path = regraded
+                row['grading_network'] = TARPIT_NETWORK
             grade = load(path).get(task['id']) if path.exists() else None
             row.update(grade=grade, graded=grade is not None, passed=bool(grade and grade.get('resolved')))
         else:
@@ -223,7 +293,8 @@ def results(name):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['prepare', 'verify', 'run', 'gateway', 'results'])
+    parser.add_argument('mode', choices=['prepare', 'verify', 'run', 'gateway', 'results', 'regrade'])
+    parser.add_argument('--sources', nargs='+', default=['run'], help='regrade: run, reference, pi, codex')
     parser.add_argument('name')
     parser.add_argument('--ref', help='git ref to export (prepare)')
     parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, or task ids (prepare)')
@@ -239,6 +310,9 @@ def main():
         engine.gateway()
     elif args.mode == 'run':
         run(args.name)
+    elif args.mode == 'regrade':
+        only = None if args.tasks in (['old20'], ['new30']) else args.tasks
+        regrade(args.name, [args.name if source == 'run' else source for source in args.sources], only)
     else:
         results(args.name)
 
