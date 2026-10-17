@@ -192,10 +192,44 @@ async def run_tests(
 
 # Commands that are recognizably a project's tests or build-and-test step; anything else
 # belongs in run_shell. Judged by exit code when no framework report is available.
-TEST_LIKE = re.compile(
-    r"(?i)\b(tests?|testing|check|spec|ctest|pytest|jest|mocha|vitest|tox|nox|bats|cargo|make|cmake|"
-    r"ninja|gradle|mvn|npm|yarn|pnpm|dotnet|rspec|phpunit|runtests)\b"
-)
+TEST_TOOLS = {
+    "make", "cmake", "ctest", "ninja", "meson", "cargo", "go", "npm", "npx", "yarn", "pnpm", "gradle",
+    "./gradlew", "mvn", "dotnet", "tox", "nox", "bats", "rspec", "phpunit", "mocha", "vitest", "pytest",
+    "jest", "bundle", "rake", "mix", "swift", "zig", "stack", "cabal", "dune",
+}
+COMPILERS = {"gcc", "g++", "cc", "c++", "clang", "clang++", "javac", "rustc"}
+
+
+def project_test_command(command: str) -> bool:
+    """A project's own build/test chain, judged by exit code; ad-hoc shell checks are not.
+
+    Every step is a plain command (no pipes, `||`, `;`, loops or redirected input, which would hide
+    or replace the test's exit code); at least one runs a known test tool or a test executable."""
+    if re.search(r"\||;|<|`|\$\(|\n", command):
+        return False
+    tests = False
+    for step in command.split("&&"):
+        try:
+            words = shlex.split(step)
+        except ValueError:
+            return False
+        while words and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", words[0]):
+            words = words[1:]
+        if not words or words[0] in {"cd", "mkdir", "true"}:
+            continue
+        program = words[0]
+        if program in {"for", "while", "until", "if", "case", "do", "then", "{", "(", "!"}:
+            return False
+        name = Path(program).name
+        if program in TEST_TOOLS or (name in {"bash", "sh"} and len(words) > 1
+                                     and re.search(r"(?i)test", Path(words[1]).name)) or (
+                re.fullmatch(r"python[0-9.]*", name) and words[1:2] == ["-m"] and words[2:3] in (["pytest"], ["unittest"])):
+            tests = True
+        elif re.search(r"(?i)test", name) and program not in {"test", "["}:
+            tests = True
+        elif program not in COMPILERS and name not in COMPILERS:
+            return False
+    return tests
 
 
 async def _run_command_tests(
@@ -203,7 +237,7 @@ async def _run_command_tests(
     runner: type[SandboxRunner] = SandboxRunner, code: str = "",
 ) -> Outcome:
     """Run a project's own test command in a disposable copy; the exit code is the evidence."""
-    if code or not TEST_LIKE.search(command):
+    if code or not project_test_command(command):
         return Outcome(status="blocked", reason="test_command_not_supported",
                        content="Use a recognizable test command; other commands belong in run_shell.")
     if sandbox.settings.sandbox == "off":
@@ -223,7 +257,9 @@ async def _run_command_tests(
     result.changed_paths, result.partial_success = [], False
     result.data.update(test_evidence_source="exit_code", tested_workspace_hash=tested_fingerprint,
                        tested_environment_generation=tested_environment)
-    if result.status not in {"success", "error"} or result.exit_code is None:
+    # This copy is discarded, so files it refuses to publish do not void the exit code.
+    discarded = result.reason == "sandbox_protected_output" and result.exit_code is not None
+    if (result.status not in {"success", "error"} and not discarded) or result.exit_code is None:
         result.reason = result.reason or f"test_{result.status}"
         result.data["test_results"] = {}
         return result
@@ -273,7 +309,7 @@ async def _run_tests(
     ) or any(
         c in command for c in ";|&><$`\n"
     ):
-        if not code and TEST_LIKE.search(command):
+        if not code and project_test_command(command):
             return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner)
         return Outcome(
             status="blocked",
@@ -281,8 +317,8 @@ async def _run_tests(
             content=(
                 "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, jest, or go test without a .venv/bin/ "
                 "path for per-test results, or a project test/build-and-test command (make test, ctest, cmake --build, cargo test, npm test, ...), "
-                "which is judged by its exit code. "
-                "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
+                "judged by exit code (no pipes or loops). "
+                "Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
                 "With reuse_environment enabled, installed "
                 "project .venv dependencies are exposed automatically; keep them installed until "
                 "verification finishes. Other commands belong in run_shell, which does not "
@@ -544,21 +580,26 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         report_text = staged_root = None
 
         class ReportRunner(runner):
-            def _publish(self, workspace, staged, before, after, result):
+            def _collected(self, staged):
                 nonlocal report_text, staged_root
                 staged_root = Path(staged)
                 try:
                     report_text = Workspace(staged).read(report)
                 except (OSError, ValueError, UnicodeError):
                     pass
-                return super()._publish(workspace, staged, before, after, result)
 
         # Only a report may leave the execution copy, into this disposable copy.
         # Tests cannot publish any change to the actual repository, including in plan mode.
-        # Capture it before publication can reject an unrelated test-created file.
+        # Capture it before validation can reject an unrelated test-created file.
         result = await ReportRunner(settings, environment=sandbox).run(
             Workspace(target), shlex.join(command), timeout
         )
+        if result.reason == "sandbox_protected_output" and report_text is not None:
+            # Nothing from this copy reaches the repository, so the report remains valid evidence.
+            rejected = ", ".join(result.data.get("rejected_paths", [])[:5])
+            result.status = "success" if result.exit_code == 0 else "error"
+            result.reason = ""
+            result.content = f"[Aster discarded test-created files it does not publish: {rejected}]\n" + result.content
         cases = None
         if native:
             result.data["test_evidence_source"] = "native_framework"

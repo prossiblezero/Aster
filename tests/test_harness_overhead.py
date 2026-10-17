@@ -122,7 +122,7 @@ def test_trace_tail_cache_keeps_the_hash_chain_and_notices_other_writers(tmp_pat
     first.emit("run", "tick", n=3)
     rows = first.events("run")
     assert [row["seq"] for row in rows] == [1, 2, 3, 4, 5]
-    assert all(b["previous"] == a["hash"] for a, b in zip(rows, rows[1:]))
+    assert all(b["previous"] == a["hash"] for a, b in zip(rows, rows[1:], strict=False))
 
 
 @pytest.mark.asyncio

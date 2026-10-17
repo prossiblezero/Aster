@@ -69,7 +69,6 @@ from .recovery import StallDetector, completion_feedback
 from .verifier import Verifier
 from .workers import WorkerManager
 
-
 # Model-visible evidence references; memory_store and workers resolve unique prefixes.
 EVIDENCE_REF_CHARS = 12
 # Longest window of checkpoint progress a power loss may drop (process crashes lose none).

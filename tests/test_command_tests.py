@@ -45,3 +45,41 @@ async def test_inline_code_still_requires_a_python_framework(tmp_path):
     runtime = runtime_for(tmp_path)
     result = await runtime.step(ToolCall(name="run_tests", arguments={"command": "make test", "code": "def test_a(): pass"}))
     assert result.reason == "test_command_not_supported"
+
+
+@pytest.mark.asyncio
+async def test_a_different_passing_command_does_not_clear_an_exit_code_failure(tmp_path):
+    (tmp_path / "Makefile").write_text("test:\n\t@test -f ok.txt\ncheck:\n\t@true\n")
+    runtime = runtime_for(tmp_path)
+    await run(runtime, "make test")
+    passed = await run(runtime, "make check")
+    assert passed.status == "success" and list(runtime.state.verification_failures) == ["command: make test"]
+
+
+@pytest.mark.asyncio
+async def test_files_the_copy_refuses_to_publish_do_not_void_test_evidence(tmp_path):
+    (tmp_path / "test_a.py").write_text(
+        "import os\n\ndef test_a():\n    os.makedirs('.git', exist_ok=True)\n"
+        "    open('.git/index', 'w').write('x')\n")
+    runtime = runtime_for(tmp_path)
+    result = await run(runtime, "python -m pytest test_a.py")
+    assert result.status == "success" and "discarded test-created files" in result.content, result.content
+    assert runtime.state.verification.state == "passed" and not (tmp_path / ".git").exists()
+
+
+@pytest.mark.parametrize("command,accepted", [
+    ("make all && make test", True),
+    ("cmake -S . -B build && cmake --build build && ctest --test-dir build", True),
+    ("g++ -I. a.cpp a_test.cpp -o .tmp/a_tests && .tmp/a_tests", True),
+    ("CI=1 npm test", True),
+    ("./run_tests.sh", True),
+    ("ctest | tail -20", False),
+    ("make test || true", False),
+    ("make test; true", False),
+    ("for f in test/*.scm; do python3 interp.py $f; done", False),
+    ("python3 interp.py test/a.scm", False),
+    ("test -f ok.txt", False),
+])
+def test_only_plain_build_and_test_chains_count_by_exit_code(command, accepted):
+    from aster.tools.testing import project_test_command
+    assert project_test_command(command) is accepted

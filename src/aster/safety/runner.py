@@ -362,6 +362,7 @@ class SandboxRunner:
                 for name, target in borrowed.items():
                     if not (root / name).is_symlink() or (root / name).resolve() != target:
                         raise BoundaryError("dependency_mount_changed")
+                self._collected(root)
                 # Validate entries before opening them: FIFO reads have no process timeout.
                 violations = [
                     str(p.relative_to(root))
@@ -421,6 +422,9 @@ class SandboxRunner:
                 content=f"Read {name} again: it changed while the edit was pending.",
             )
         return None
+
+    def _collected(self, staged: Path) -> None:
+        """Hook: the command finished in this staged copy, before any output is validated."""
 
     def _publish(
         self,

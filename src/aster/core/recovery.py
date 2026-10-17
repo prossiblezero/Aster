@@ -69,8 +69,8 @@ def completion_feedback(state: RunState, accepted: dict[str, str] | None = None)
             missing.append(
                 "decide about tests that fail with the same error on the original files: "
                 + "; ".join(identical[:3])
-                + ". If the task requires one of them, fix it; otherwise finish again and list them "
-                "as pre-existing and unverified" + ("" if state.changed_paths else " after making the requested change")
+                + ". If the task requires one of them, fix it; otherwise rerun them if you edited since, "
+                "then finish again and list them as pre-existing and unverified" + ("" if state.changed_paths else " after making the requested change")
             )
     elif task.require_verification and state.verification.state != "passed" and not accepted:
         missing.append(
