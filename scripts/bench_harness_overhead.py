@@ -63,7 +63,7 @@ def steps(count):
         path = f"pkg{k % 40}/module_{k}.py"
         kind = k % 4
         if kind == 0:
-            plan.append(("read_file", {"path": path, "start": 1, "end": 120}))
+            plan.append(("read_file", {"path": path, "start": 1, "end": 200}))
         elif kind == 1:
             plan.append(("search", {"pattern": f"function_{k}_3(", "path": f"pkg{k % 40}"}))
         elif kind == 2:
@@ -122,7 +122,7 @@ def main():
                           "seconds_per_model_turn": round(seconds / max(1, state.turn), 3),
                           "aster_dir_mib": round(stored / 2**20, 1)}))
         if profiler:
-            pstats.Stats(profiler).sort_stats("cumulative").print_stats(35)
+            pstats.Stats(profiler).sort_stats("cumulative").print_stats(120)
     finally:
         if args.keep:
             shutil.copytree(root / ".aster", args.keep, dirs_exist_ok=True)
