@@ -200,6 +200,23 @@ TEST_TOOLS = {
 COMPILERS = {"gcc", "g++", "cc", "c++", "clang", "clang++", "javac", "rustc"}
 
 
+TEST_DEFINITION = re.compile(r"^\s*(?:async\s+)?def\s+test|^\s*class\s+Test|TestCase\s*\)", re.M)
+
+
+def inline_script_as_test(script: str) -> str:
+    """A plain assertion script runs as one test instead of being reported as collecting none."""
+    return (
+        "import os\nimport runpy\nimport unittest as _aster_unittest\n\n\n"
+        "class InlineScript(_aster_unittest.TestCase):\n"
+        "    def test_script(self):\n"
+        "        try:\n"
+        f"            runpy.run_path(os.path.join(os.path.dirname(__file__), {script!r}), run_name='__main__')\n"
+        "        except SystemExit as exit:\n"
+        "            if exit.code not in (None, 0):\n"
+        "                raise AssertionError(f'script exited with {exit.code!r}') from None\n"
+    )
+
+
 def project_test_command(command: str) -> bool:
     """A project's own build/test chain, judged by exit code; ad-hoc shell checks are not.
 
@@ -367,7 +384,14 @@ async def _run_tests(
         if code:
             # Temporary tests share the existing sandbox/report path, never the user's files.
             inline_name = "__aster_inline_" + target.name.replace("-", "_") + ".py"
-            (target / inline_name).write_text(code, encoding="utf-8")
+            # Only scripts that assert something; printing "passed" is not evidence.
+            script = not TEST_DEFINITION.search(code) and re.search(r"^\s*assert\b", code, re.M) is not None
+            if script:
+                # Tracebacks then point at the agent's own lines in a file of their own.
+                script_name = "__aster_script_" + target.name.replace("-", "_") + ".py"
+                (target / script_name).write_text(code, encoding="utf-8")
+            (target / inline_name).write_text(inline_script_as_test(script_name) if script else code,
+                                              encoding="utf-8")
             options.append(inline_name)
         report = "__aster_result_" + target.name + (".json" if jest else ".xml")
         if jest:
@@ -594,6 +618,9 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         result = await ReportRunner(settings, environment=sandbox).run(
             Workspace(target), shlex.join(command), timeout
         )
+        if code and script:
+            result.content = ("[Aster: the code defines no tests, so it ran as one test, "
+                              "InlineScript::test_script.]\n" + result.content)
         if result.reason == "sandbox_protected_output" and report_text is not None:
             # Nothing from this copy reaches the repository, so the report remains valid evidence.
             rejected = ", ".join(result.data.get("rejected_paths", [])[:5])

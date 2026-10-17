@@ -90,3 +90,20 @@ async def test_inline_failure_requires_the_same_case_to_pass_after_repair(tmp_pa
     assert repaired.status == "success"
     assert runtime.verifier.final(runtime.state).passed
     runtime.sandbox.close()
+
+
+@pytest.mark.core
+@pytest.mark.parametrize("command", ["pytest -q", "python -m unittest -q"])
+@pytest.mark.parametrize("expected,status", [(42, "success"), (43, "error")])
+async def test_plain_assertion_script_runs_as_one_test(tmp_path, command, expected, status):
+    (tmp_path / "subject.py").write_text("def answer(): return 42\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    runtime.start(TaskSpec(prompt="Check subject.py", require_verification=True))
+    code = f"from subject import answer\nvalue = answer()\nassert value == {expected}, value\nraise SystemExit(0)\n"
+    outcome = await runtime.step(ToolCall(name="run_tests", arguments={"command": command, "code": code}))
+    assert outcome.status == status, outcome.content
+    assert "ran as one test" in outcome.content
+    assert list(outcome.data["test_results"]) == ["pytest: __aster_inline__.InlineScript::test_script"] or command != "pytest -q"
+    if status == "error":
+        assert "FAILED" in outcome.content
+    runtime.sandbox.close()
