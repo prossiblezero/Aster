@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-
 from ..schema import Outcome, RunState, Verification, VerifierResult
 from ..storage.workspace import Workspace
 
@@ -21,40 +19,14 @@ class Verifier:
                 state="missing", workspace_hash=self.workspace.fingerprint()
             )
         if outcome.data.get("is_verification"):
-            state.baseline_results.update(outcome.data.get("baseline_results", {}))
-            # The tool preview may have clipped the appended baseline explanation.
-            note = outcome.data.get("baseline_feedback", "")
-            if note and note not in outcome.content:
-                outcome.content += "\n" + note
-            accepted, rejected = [], []
-            for test in dict.fromkeys(outcome.data.get("preexisting", [])):
-                if state.baseline_results.get(test) == "failed":
-                    command = state.verification_failures.pop(test, outcome.data.get("command", ""))
-                    state.preexisting_failures[test] = command
-                    accepted.append(test)
-                else:
-                    rejected.append(test)
-            if accepted or rejected:
-                outcome.data.update(accepted_preexisting=accepted, rejected_preexisting=rejected)
-                outcome.content += (
-                    f"\nAccepted as pre-existing: {json.dumps(accepted)}. "
-                    f"Not accepted (no baseline failure on record): {json.dumps(rejected)}"
-                )
             for test, status in outcome.data.get("test_results", {}).items():
-                if status == "failed" and test not in state.preexisting_failures:
+                if status == "failed":
                     state.verification_failures[test] = outcome.data.get("command", "")
                 elif status == "passed":
                     state.verification_failures.pop(test, None)
-                    state.preexisting_failures.pop(test, None)
-        declared_only = (
-            outcome.status == "error" and outcome.reason == "tests_failed"
-            and bool(outcome.data.get("test_results"))
-            and all(status == "passed" or test in state.preexisting_failures
-                    for test, status in outcome.data["test_results"].items())
-        )
         if (
             outcome.data.get("is_verification")
-            and (outcome.status == "success" or declared_only)
+            and outcome.status == "success"
             and outcome.reason != "no_tests_collected"
         ):
             state.verification = Verification(
@@ -101,8 +73,7 @@ class Verifier:
         return VerifierResult(
             passed=True,
             reason="requirements_satisfied",
-            details={"changed_paths": state.changed_paths,
-                     "preexisting_failures": dict(state.preexisting_failures)},
+            details={"changed_paths": state.changed_paths},
         )
 
     @staticmethod

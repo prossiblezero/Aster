@@ -262,16 +262,14 @@ class WorkspaceTools:
         )
 
     async def _run_tests(self, args: RunTests) -> Outcome:
-        result = await run_tests(
+        return await run_tests(
             self.context.workspace,
             self.context.sandbox,
             args.command,
             args.timeout,
             runner=SandboxRunner,
-            code=args.code, baseline=self.context.baseline, checked=self.context.checked_baseline,
+            code=args.code,
         )
-        result.data["preexisting"] = args.preexisting
-        return result
 
     @staticmethod
     def _write_command(path: str, content: str) -> str:

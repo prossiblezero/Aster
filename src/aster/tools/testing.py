@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import shlex
 import shutil
 import tempfile
@@ -52,68 +51,6 @@ def parse_junit(text: str) -> list[dict[str, str]]:
 
 
 async def run_tests(
-    workspace: Workspace,
-    sandbox: SandboxRunner,
-    command: str,
-    timeout: int,
-    *,
-    runner: type[SandboxRunner] = SandboxRunner,
-    code: str = "",
-    baseline: dict[str, str] | None = None,
-    checked: set[str],
-) -> Outcome:
-    result = await _run_tests(workspace, sandbox, command, timeout, runner=runner, code=code)
-    failing = {name for name, status in result.data.get("test_results", {}).items()
-               if status == "failed"} - checked
-    if not code and baseline is not None and failing:
-        try:
-            with tempfile.TemporaryDirectory(prefix="aster-baseline-") as directory:
-                target = Workspace(Path(directory))
-                for source in workspace.files():
-                    copied = target.path(str(source.relative_to(workspace.root)), write=True)
-                    copied.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(source, copied)
-                current = target.text_snapshot()
-                for name in current.keys() - baseline.keys():
-                    target.path(name, write=True).unlink()
-                for name, text in baseline.items():
-                    if current.get(name) != text:
-                        path = target.path(name, write=True)
-                        path.parent.mkdir(parents=True, exist_ok=True)
-                        path.write_text(text, encoding="utf-8")
-                original = await _run_tests(target, sandbox, command, timeout, runner=runner)
-            if original.status != "success" and original.reason not in {"tests_failed", "no_tests_collected", "no_tests_executed"}:
-                note = f"Baseline check unavailable: {original.reason or original.status}"
-            else:
-                recorded = {name: original.data.get("test_results", {}).get(name, "missing")
-                            for name in sorted(failing)}
-                result.data["baseline_results"] = recorded
-                result.data["baseline_check"] = {
-                    "command": command, "timeout": timeout,
-                    "workspace_hash": original.data.get("tested_workspace_hash", ""),
-                    "status": original.status, "reason": original.reason, "test_results": recorded,
-                }
-                same = [name for name, status in recorded.items() if status == "failed"]
-                note = (
-                    "Baseline check (same command on the unmodified task files): "
-                    f"{len(same)} of {len(recorded)} failing tests also fail there: {json.dumps(same[:10])}. "
-                    "If the task does not require them to pass, declare them with run_tests "
-                    "preexisting=[...]; they will be reported as pre-existing, not as fixed."
-                    if same else "Baseline check: none of the failing tests fail on the unmodified task files."
-                )
-        except (OSError, ValueError) as exc:
-            note = f"Baseline check unavailable: {type(exc).__name__}: {exc}"
-        result.data["baseline_feedback"] = note
-        result.content += "\n" + note
-    if result.status == "error" and result.reason == "tests_failed" and result.data.get("tested_workspace_hash") and (
-        workspace.fingerprint() != result.data["tested_workspace_hash"]
-        or sandbox.environment_generation != result.data["tested_environment_generation"]
-    ):
-        result.status, result.reason = "blocked", "workspace_changed_during_verification"
-    return result
-
-
-async def _run_tests(
     workspace: Workspace,
     sandbox: SandboxRunner,
     command: str,
