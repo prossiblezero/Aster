@@ -144,8 +144,12 @@ def configure(name):
 def run(name):
     import docker
 
+    global RUN_SUFFIX
     manifest = verify(name)
     agent = manifest.get('agent', 'aster')
+    RUN_SUFFIX = name
+    from docker.models import containers
+    install_tarpit_hook(containers)
     public, root = configure(name)
     drv = engine.driver()
     tasks = [t for t in load(root / 'tasks.json')
@@ -208,6 +212,7 @@ TARPIT_NETWORK = 'aster-grade-tarpit'
 # select the tarpit network per thread, instead of swapping a process-global method.
 _TARPIT = threading.local()
 _TARPIT_LOCK = threading.Lock()
+RUN_SUFFIX = ''
 
 
 def install_tarpit_hook(containers):
@@ -220,6 +225,9 @@ def install_tarpit_hook(containers):
         def create(self, *args, **kwargs):
             if getattr(_TARPIT, 'active', False):
                 kwargs.setdefault('network', TARPIT_NETWORK)
+            # Episode containers are named per job; two runs of one agent share job names.
+            if RUN_SUFFIX and str(kwargs.get('name', '')).startswith('aster-general-'):
+                kwargs['name'] += '-' + RUN_SUFFIX
             return original(self, *args, **kwargs)
 
         create._aster_tarpit = True
