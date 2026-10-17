@@ -217,7 +217,7 @@ def opaque_history(kind, value, *, thinking="Check the repository before answeri
 
 
 @pytest.mark.parametrize("kind", ["responses", "thinking", "redacted_thinking"])
-async def test_checkpoint_resume_preserves_opaque_wire_state_but_redacts_audit_copies(
+async def test_checkpoint_resume_preserves_opaque_wire_state_and_protocol_archive_policy(
     tmp_path, monkeypatch, kind
 ):
     # Base64-like provider state can accidentally match a credential-shaped substring.
@@ -274,7 +274,10 @@ async def test_checkpoint_resume_preserves_opaque_wire_state_but_redacts_audit_c
         if row["event"] == "context_built"
     )
     audit_path = restored.evidence.path(*built["request_artifact"].split("/"))
-    assert opaque not in audit_path.read_text() and "[REDACTED]" in audit_path.read_text()
+    if protocol == "responses":
+        assert json.loads(audit_path.read_text())["payload"] == requests[0]
+    else:
+        assert opaque not in audit_path.read_text() and "[REDACTED]" in audit_path.read_text()
     event = restored.evidence.emit(restored.state.run_id, "sample", structured_history=history)
     assert opaque not in json.dumps(event) and "[REDACTED]" in json.dumps(event)
 

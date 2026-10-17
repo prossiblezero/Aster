@@ -112,14 +112,29 @@ class EvidenceStore:
                     )
 
     def save(
-        self, parts: tuple[str, ...], data: Any, *, preserve_native_history: bool = False
+        self, parts: tuple[str, ...], data: Any, *, preserve_native_history: bool = False,
+        native_history_paths: tuple[tuple[str, ...], ...] = (),
     ) -> None:
         with self._lock:
-            # Checkpoint mappings use file paths as keys; keep their value types intact.
-            redacted = self.redactor.value(data, mask_fields=False)
+            redacted = self.redact(data, native_history_paths=native_history_paths)
             if preserve_native_history:
                 redacted["structured_history"] = self.redact_history(data.get("structured_history", []))
             atomic_json(self.path(*parts), redacted)
+
+    def redact(self, data: Any, *, native_history_paths: tuple[tuple[str, ...], ...] = ()):
+        """Use the same redacted bytes for artifact storage and provenance hashes."""
+        # Checkpoint mappings use file paths as keys; keep their value types intact.
+        redacted = self.redactor.value(data, mask_fields=False)
+        for path in native_history_paths:
+            original, saved = data, redacted
+            for key in path[:-1]:
+                if not isinstance(original, dict) or key not in original:
+                    break
+                original, saved = original[key], saved[key]
+            else:
+                if isinstance(original, dict) and isinstance(original.get(path[-1]), list):
+                    saved[path[-1]] = self.redact_history(original[path[-1]])
+        return redacted
 
     def redact_history(self, history):
         """Redact visible content while keeping validated native opaque fields exact."""

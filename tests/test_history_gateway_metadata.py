@@ -1,8 +1,10 @@
 """Observed Responses trace tags must not block an idle same-protocol model switch."""
 
+import hashlib
 import json
 from copy import deepcopy
 
+import httpx
 import pytest
 
 from aster.config import ModelProfile, Settings
@@ -127,3 +129,42 @@ def test_trace_fields_on_non_responses_or_user_messages_are_not_silently_discard
     ]:
         with pytest.raises(ContextHistoryError):
             canonicalize([item], protocol=protocol)
+
+
+async def test_request_archive_preserves_ciphertext_and_matches_wire_hash(tmp_path, monkeypatch):
+    opaque = "prefix/sk-" + "abcdefghijklmnop"
+    secret = "sk-" + "visiblecredential123456"
+    runtime = Runtime(tmp_path, Settings(auth="none", memory_enabled=False, completion="off"))
+    runtime.start(TaskSpec(prompt="Explain " + secret))
+    runtime._structured_history = native_history()
+    runtime._structured_history[1]["encrypted_content"] = opaque
+    runtime._structured_history[3]["output"] = secret
+    requests = []
+
+    def handler(request):
+        requests.append(request.content)
+        return httpx.Response(200, json={"status": "completed", "output": [
+            {"type": "reasoning", "id": "r2", "summary": [], "encrypted_content": opaque},
+            {"type": "message", "role": "assistant",
+             "content": [{"type": "output_text", "text": "Reviewed."}]},
+        ]})
+
+    original = httpx.AsyncClient
+    monkeypatch.setattr("aster.providers.client.httpx.AsyncClient",
+                        lambda **kwargs: original(transport=httpx.MockTransport(handler), **kwargs))
+    await runtime.turn()
+    assert len(requests) == 1
+    events = runtime.evidence.events(runtime.state.run_id)
+    built = next(event for event in events if event["event"] == "context_built")
+    reply = next(event for event in events if event["event"] == "model_reply")
+    archived = json.loads((runtime.evidence.root / built["request_artifact"]).read_text())["payload"]
+    assert httpx.Request("POST", "https://unused", json=archived).content == requests[0]
+    assert next(item for item in archived["input"] if item.get("type") == "reasoning")["encrypted_content"] == opaque
+    assert "[REDACTED]" in archived["input"][1]["content"]
+    assert next(item for item in archived["input"] if item.get("type") == "function_call_output")["output"] == "[REDACTED]"
+    assert secret not in json.dumps(archived)
+    request_hash = hashlib.sha256(json.dumps(archived, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    assert built["request_sha256"] == reply["request_sha256"] == request_hash
+    assert reply["diagnostics"]["payload_sha256"] == hashlib.sha256(requests[0]).hexdigest()
+    assert reply["diagnostics"]["output_structure"][0]["encrypted_content_length"] == len(opaque)
+    assert opaque not in json.dumps(events)

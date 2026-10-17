@@ -70,3 +70,13 @@
 - 第二轮质量门槛通过，但 Requests 带失败轮数、声明相关性、归档证据一致性三项未通过；本次根据收尾方案主动撤销 Stage 3，不改写历史验收结论。
 - Stage A 验收：`git diff v11-stage2 HEAD -- src tests` 无输出；Ruff 通过，core 484 passed，noncore 822 passed / 6 个原有失败 / 4 skipped，失败 ID 集合与 `stage2-noncore.log` 完全一致。日志为 `closeout-stageA-{ruff,core,noncore}.log`，按仓库规则忽略。
 - 验收标签 `v11-final` 标记保留 Stage 1、2 的版本。需要恢复 Stage 3 时可 `git revert 30bd0b3`，或从 `v11-stage3` 新建分支；不改写现有提交和标签。
+
+## Stage B：请求存档保留协议密文
+
+- 2026-10-17 完成收尾方案的存档修复。`EvidenceStore.save` 增加 `native_history_paths`，仅指定路径下的历史列表使用现有 `redact_history` 校验并保留原生密文；原 `preserve_native_history=True` 检查点行为保留。
+- `Runtime.prepare_request` 对 `payload.input` 启用该路径；`_request_hash` 复用同一脱敏逻辑，确保存档内容、请求快照哈希和 `model_reply.request_sha256` 一致。Chat / Anthropic 无 `input` 的请求跳过，未改动其原有存档策略。普通消息和工具输出仍脱敏，`Redactor` 匹配规则未改。
+- 已检查事件调用链：`model_reply` 不保存 `reply.raw`，供应商诊断只保存输出结构和 `encrypted_content_length`，流事件只转发文本/推理摘要；不存在需要豁免的原生密文事件字段，`emit` 无改动。
+- 新回归测试在旧 `v11-final` 的独立工作树上因存档与出站字节不一致而失败，修复后通过；同时验证普通消息、工具输出密钥脱敏及哈希关联。原检查点/恢复断言保留，仅更新同一既有测试里“Responses 请求快照必须损坏密文”的旧存档断言，Chat / Anthropic 断言不变。
+- 相关测试 72 passed；全量 Ruff 通过、core 484 passed、noncore 823 passed / 6 个基线失败 / 4 skipped；相对 Stage A 新增通过 1 项，新增失败 0。详见 `closeout-stageB-checks.json`，日志 `closeout-stageB-{ruff,core,noncore}.log` 按仓库规则忽略。
+- 离线重放命令：`/home/dzh/.conda/envs/aster/bin/python evaluations/turn-reduction-20261015/closeout-archive-check.py`。第二轮 COBOL attempt 2 的 5 个异常请求全部恢复为与原始出站内容一致，规范序列化哈希一致；只写临时目录，原始档案哈希未变，不重算冻结审计，不调用模型。
+- 验收标签 `v11-final-fix1`。回滚此修复可 `git revert v11-final-fix1`；历史评测仍对应原标签，不将本次离线修复计作新的 benchmark 成绩。

@@ -1,0 +1,147 @@
+{
+  "ruff": {
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "ruff",
+      "check",
+      "src",
+      "tests"
+    ],
+    "exit_code": 0,
+    "seconds": 0.026,
+    "log": "evaluations/turn-reduction-20261015/closeout-stageB-ruff.log",
+    "tail": [
+      "All checks passed!"
+    ]
+  },
+  "core": {
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "core"
+    ],
+    "exit_code": 0,
+    "seconds": 79.617,
+    "log": "evaluations/turn-reduction-20261015/closeout-stageB-core.log",
+    "tail": [
+      "........................................................................ [ 14%]",
+      "........................................................................ [ 29%]",
+      "........................................................................ [ 44%]",
+      "........................................................................ [ 59%]",
+      "........................................................................ [ 74%]",
+      "........................................................................ [ 89%]",
+      "....................................................                     [100%]",
+      "484 passed, 833 deselected in 78.91s (0:01:18)"
+    ]
+  },
+  "noncore": {
+    "command": [
+      "/home/dzh/.conda/envs/aster/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-m",
+      "not core"
+    ],
+    "exit_code": 1,
+    "seconds": 85.853,
+    "log": "evaluations/turn-reduction-20261015/closeout-stageB-noncore.log",
+    "tail": [
+      "src/aster/context/budget.py:473: ContextBudgetError",
+      "=========================== short test summary info ============================",
+      "FAILED tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]",
+      "FAILED tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]",
+      "FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]",
+      "FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]",
+      "FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]",
+      "FAILED tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]",
+      "6 failed, 823 passed, 4 skipped, 484 deselected in 85.44s (0:01:25)"
+    ]
+  },
+  "baseline": {
+    "tag": "v11-final",
+    "commit": "f771afa3bc06940e5a28c7ac7cb4730b325a3be5",
+    "core_passed": 484,
+    "noncore_passed": 822,
+    "noncore_failed": [
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]",
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]"
+    ],
+    "noncore_skipped": 4
+  },
+  "current": {
+    "core_passed": 484,
+    "noncore_passed": 823,
+    "noncore_failed": [
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[chat]",
+      "tests/test_context_archives.py::test_latest_parallel_batch_fits_one_budget_with_all_results[responses]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[chat-True-True-1024]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-False-512]",
+      "tests/test_context_policy_input.py::test_opted_in_worker_fits_small_context[responses-True-True-1024]"
+    ],
+    "noncore_skipped": 4,
+    "new_failures": []
+  },
+  "regression": {
+    "old_v11_final": "failed at archive-vs-wire byte equality",
+    "fixed_related_suite": "72 passed in 3.57s"
+  },
+  "historical_replay": {
+    "checked": [
+      {
+        "request_id": "bd75a801da0540838c697bfd1165b029",
+        "context_seq": 1207,
+        "payload_and_hash_match": true,
+        "canonical_payload_sha256": "1d62d525926558b4abc101f9ce32bed0cca23f0757b493391810ce30324e9979"
+      },
+      {
+        "request_id": "386a6c7bc00e42cdba48521bb82791ba",
+        "context_seq": 1286,
+        "payload_and_hash_match": true,
+        "canonical_payload_sha256": "0b90782485fee13db7a9d850ffbf0da975dc75c095de455989ee44c9584acfb8"
+      },
+      {
+        "request_id": "aecc1f7a785a46bea4e225e4e65611c9",
+        "context_seq": 1501,
+        "payload_and_hash_match": true,
+        "canonical_payload_sha256": "8edc659d50eadef65dd75702c9c69814833ca103406ea50550b3db5564ad1387"
+      },
+      {
+        "request_id": "a0fd3b4c03a64e05b1ad356d5925ce72",
+        "context_seq": 1871,
+        "payload_and_hash_match": true,
+        "canonical_payload_sha256": "dd7f48c3621edab4d0843723c91ccfb79cbfe23a0c1c4b196a8d9d12fed493cc"
+      },
+      {
+        "request_id": "1bcc2aba145e4f77ac92945204cd9c2c",
+        "context_seq": 2351,
+        "payload_and_hash_match": true,
+        "canonical_payload_sha256": "26d6f3642cb04dad46452a66d1e764a816b5d9abc77473c7e0a4900deb367f52"
+      }
+    ],
+    "historical_evidence_unchanged": true,
+    "model_requests_made": 0
+  },
+  "event_review": {
+    "model_reply": "text, tool calls and diagnostics only; no raw reply history",
+    "provider_attempt": "numeric structure summary, including encrypted_content_length; no ciphertext",
+    "model_stream": "text/reasoning-summary deltas, no encrypted content",
+    "emit_changed": false
+  },
+  "scope": {
+    "stage1_stage2_unchanged": true,
+    "policy_version": "deterministic-v10",
+    "redaction_patterns_unchanged": true,
+    "historical_scores_unchanged": true,
+    "model_requests_made": 0
+  }
+}

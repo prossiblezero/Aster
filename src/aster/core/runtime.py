@@ -620,7 +620,10 @@ class Runtime:
         # Keep the actual model observation apart from the full execution trace.
         request_hash = self._request_hash(payload)
         artifact = ("runs", state.run_id, "requests", f"{state.turn + 1:04d}-{request_hash}.json")
-        self.evidence.save(artifact, {"policy_version": report.policy_version, "payload": payload})
+        self.evidence.save(
+            artifact, {"policy_version": report.policy_version, "payload": payload},
+            native_history_paths=(("payload", "input"),),
+        )
         self.evidence.emit(
             state.run_id,
             "context_built",
@@ -658,7 +661,7 @@ class Runtime:
     def _request_hash(self, payload):
         return hashlib.sha256(
             json.dumps(
-                self.evidence.redactor.value(payload, mask_fields=False),
+                self.evidence.redact(payload, native_history_paths=(("input",),)),
                 sort_keys=True,
                 ensure_ascii=False,
             ).encode()
