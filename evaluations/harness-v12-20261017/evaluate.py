@@ -171,8 +171,10 @@ def run(name):
             assert process.poll() is None, 'Gateway exited'
             time.sleep(.1)
         assert socket.exists()
+        # Unique container name per run, same DNS alias, so runs can share the host.
         relay = client.containers.run(tasks[0]['image_id'], [PYTHON, '/relay.py'], detach=True,
-            name='aster-bench-gateway', network=engine.NETWORK,
+            name='aster-bench-gateway-' + name, network=engine.NETWORK,
+            networking_config={engine.NETWORK: client.api.create_endpoint_config(aliases=['aster-bench-gateway'])},
             volumes={str(root / 'relay'): {'bind': '/relay', 'mode': 'rw'},
                      str(engine.baseline.ORIGINAL / 'relay.py'): {'bind': '/relay.py', 'mode': 'ro'},
                      str(Path(PYTHON).parent.parent): {'bind': str(Path(PYTHON).parent.parent), 'mode': 'ro'}})
@@ -302,7 +304,9 @@ def results(name):
             row.update(grade=grade, graded=grade is not None, passed=bool(grade and grade.get('resolved')))
         else:
             row.update(graded='grade' in row, passed=bool(row.get('grade', {}).get('passed')))
-        row['normal_delivery_and_passed'] = bool(row['passed'] and row['exit_code'] == 0 and final and phase == 'completed')
+        # Same definition as general-50: phase only exists for Aster.
+        row['normal_delivery_and_passed'] = bool(row['passed'] and row['exit_code'] == 0 and final
+                                                 and (agent != 'aster' or phase == 'completed'))
         row['model_seconds'] = round(model_seconds(out), 3)
         row['weighted_cost'] = round(weighted(row), 6)
         rows.append(row)
