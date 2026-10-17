@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import shlex
 import shutil
@@ -43,6 +44,43 @@ def network_unavailable(detail: str) -> bool:
     return bool(_NETWORK_ERROR.search(detail) and _SOCKET_FRAME.search(detail)) or bool(
         _SOCKET_DENIED.search(detail)
     )
+
+
+def jest_entry(argv: list[str]) -> int | None:
+    """Length of a Jest entry point (jest, npx jest, node <...>/jest/bin/jest.js), else None."""
+    if argv[:1] == ["jest"]:
+        return 1
+    if argv[:2] == ["npx", "jest"]:
+        return 2
+    if (len(argv) > 1 and Path(argv[0]).name == "node"
+            and Path(argv[1]).name in {"jest", "jest.js"} and "jest" in Path(argv[1]).parts[:-1]):
+        return 2
+    return None
+
+
+def parse_jest(text: str, root: Path | None = None) -> list[dict[str, str]]:
+    """Convert Jest's built-in --json report into the shared case records."""
+    data = json.loads(text)
+    if not isinstance(data, dict) or not isinstance(data.get("testResults"), list):
+        raise ValueError("invalid_jest_report")
+    cases = []
+    for suite in data["testResults"]:
+        name = Path(suite.get("name", ""))
+        try:
+            name = name.relative_to(root) if root is not None else name
+        except ValueError:
+            pass
+        assertions = suite.get("assertionResults") or []
+        if not assertions and suite.get("status") == "failed":
+            # The file failed before declaring tests (syntax error, missing module).
+            cases.append({"name": str(name), "classname": str(name), "status": "error",
+                          "detail": (suite.get("message") or "")[-20000:]})
+        for case in assertions:
+            status = {"passed": "passed", "failed": "failed"}.get(case.get("status"), "skipped")
+            title = case.get("fullName") or " ".join([*case.get("ancestorTitles", []), case.get("title", "")])
+            cases.append({"name": title.strip(), "classname": str(name), "status": status,
+                          "detail": "\n".join(case.get("failureMessages") or [])[-20000:]})
+    return cases
 
 
 def parse_junit(text: str) -> list[dict[str, str]]:
@@ -89,13 +127,17 @@ async def run_tests(
     """Run tests in a disposable copy; publish only structured, version-bound evidence."""
     # Tests run in a copy, so absolute paths into the real workspace become relative ones.
     command = map_root(command, workspace.root, Path("."))
+    # Tests already start in the workspace copy, so a leading `cd <workspace> &&` is a no-op.
+    if leading := re.match(r"\s*cd\s+\.?/?\s*&&\s*(.+)$", command, re.S):
+        command = leading.group(1)
     argv = shlex.split(command)
+    jest = jest_entry(argv)
     verification_command = shlex.join(argv)
     python_paths = []
     if len(argv) > 1 and argv[1] == "python" and (paths := local_python_paths(argv[0])):
         python_paths, argv = paths, argv[1:]
     native = len(argv) > 1 and argv[0] == "python" and not argv[1].startswith("-")
-    if not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES) or (
+    if (jest is None and not any(argv[: len(p)] == p for p in TEST_COMMAND_PREFIXES)) or (
         argv[0] == "python" and not native
         and argv[1:3] not in [["-m", "pytest"], ["-m", "unittest"]]
     ) or any(
@@ -105,7 +147,7 @@ async def run_tests(
             status="blocked",
             reason="test_command_not_supported",
             content=(
-                "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, or go test without a .venv/bin/ "
+                "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, jest, or go test without a .venv/bin/ "
                 "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
                 "With reuse_environment enabled, installed "
                 "project .venv dependencies are exposed automatically; keep them installed until "
@@ -124,14 +166,20 @@ async def run_tests(
     unittest = argv[:3] == ["python", "-m", "unittest"]
     node = argv[:2] == ["node", "--test"]
     go = argv[:2] == ["go", "test"]
-    options = argv[2:] if native or node or go else argv[3:] if argv[0] == "python" else argv[1:]
-    if code and (native or node or go or (unittest and "discover" in options)):
+    options = (argv[jest:] if jest else argv[2:] if native or node or go
+               else argv[3:] if argv[0] == "python" else argv[1:])
+    if code and (jest or native or node or go or (unittest and "discover" in options)):
         return Outcome(status="blocked", reason="inline_test_command_not_supported",
                        content="With code, use pytest, python -m pytest, or python -m unittest without discover.")
     if node and any(option.startswith("--test-reporter") for option in options):
         return Outcome(
             status="blocked", reason="test_reporter_reserved",
             content="Remove --test-reporter and --test-reporter-destination; run_tests supplies its own structured reporter. Retry with node --test and your test paths.",
+        )
+    if jest and any(option.split("=")[0] in {"--json", "--outputFile", "--reporters"} for option in options):
+        return Outcome(
+            status="blocked", reason="test_reporter_reserved",
+            content="Remove --json, --outputFile and --reporters; run_tests captures Jest's structured results automatically.",
         )
     if go and any(option == "-json" or option.startswith("-json=") for option in options):
         return Outcome(
@@ -151,8 +199,10 @@ async def run_tests(
             inline_name = "__aster_inline_" + target.name.replace("-", "_") + ".py"
             (target / inline_name).write_text(code, encoding="utf-8")
             options.append(inline_name)
-        report = "__aster_result_" + target.name + ".xml"
-        if node:
+        report = "__aster_result_" + target.name + (".json" if jest else ".xml")
+        if jest:
+            command = [*argv[:jest], *options, "--json", f"--outputFile={report}"]
+        elif node:
             command = [
                 "node",
                 "--test",
@@ -338,11 +388,11 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             boundary = options.index("--") if "--" in options else len(options)
             options[boundary:boundary] = [f"--junitxml={report}", "-p", "no:cacheprovider"]
             command = ["python", "-I", "-c", program, *options]
-        if not node and not go and python_paths:
+        if not node and not go and not jest and python_paths:
             marker = "sys.path.insert(0, os.getcwd())"
             program = program.replace(marker, marker + f"\nsys.path[:0] = {python_paths!r}")
             command[3] = program
-        if not node and not go and sandbox.settings.reuse_environment:
+        if not node and not go and not jest and sandbox.settings.reuse_environment:
             # -I intentionally ignores PYTHONPATH. Import the trusted test runner
             # first, then expose only this sandbox's controlled dependency target.
             marker = "sys.path.insert(0, os.getcwd())"
@@ -357,11 +407,12 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             )
             command[3] = program
         settings = sandbox.settings.model_copy(update={"read_only": False, "write_scope": [report]})
-        report_text = None
+        report_text = staged_root = None
 
         class ReportRunner(runner):
             def _publish(self, workspace, staged, before, after, result):
-                nonlocal report_text
+                nonlocal report_text, staged_root
+                staged_root = Path(staged)
                 try:
                     report_text = Workspace(staged).read(report)
                 except (OSError, ValueError, UnicodeError):
@@ -384,7 +435,8 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                     "its extra hash-randomization subprocess is disabled.]\n" + result.content
                 )
         try:
-            cases = parse_junit(report_text if report_text is not None else Workspace(target).read(report))
+            text = report_text if report_text is not None else Workspace(target).read(report)
+            cases = parse_jest(text, staged_root) if jest else parse_junit(text)
             if node:
                 # Node treats an empty test file itself as a passing case. Require
                 # declared node:test cases; a file's failed startup remains a failure.
@@ -432,15 +484,15 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.status = "blocked"
             result.reason = "no_tests_executed" if cases else "no_tests_collected"
     elif result.status == "error":
-        if not native and not unittest and not node and not go and result.exit_code == 5:
+        if not native and not unittest and not node and not go and not jest and result.exit_code == 5:
             result.reason = "no_tests_collected"
-        elif not native and not unittest and not node and not go and result.exit_code == 2:
+        elif not native and not unittest and not node and not go and not jest and result.exit_code == 2:
             result.reason = (
                 "test_collection_failed"
                 if any(case["status"] == "error" for case in cases or [])
                 else "test_interrupted"
             )
-        elif not native and not unittest and not node and not go and result.exit_code in {3, 4}:
+        elif not native and not unittest and not node and not go and not jest and result.exit_code in {3, 4}:
             result.reason = "test_runner_error"
         elif result.exit_code == 127:
             result.reason = "test_runner_unavailable"
@@ -458,7 +510,8 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         elif result.status == "success":
             test_results[key] = "passed"
     else:
-        scope = argv[1] if native else "go" if go else "unittest" if unittest else "pytest"
+        scope = (argv[1] if native else "go" if go else "jest" if jest
+                 else "unittest" if unittest else "pytest")
         for case in cases or []:
             status = case["status"]
             if status == "error" and unittest and case["classname"] != "unittest.loader._FailedTest":
