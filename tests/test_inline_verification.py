@@ -106,4 +106,6 @@ async def test_plain_assertion_script_runs_as_one_test(tmp_path, command, expect
     assert list(outcome.data["test_results"]) == ["pytest: __aster_inline__.InlineScript::test_script"] or command != "pytest -q"
     if status == "error":
         assert "FAILED" in outcome.content
+        # No test identity: the failure fails verification but is not a sticky obligation.
+        assert runtime.state.verification.state == "failed" and runtime.state.verification_failures == {}
     runtime.sandbox.close()

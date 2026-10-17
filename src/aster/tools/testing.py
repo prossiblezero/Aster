@@ -620,6 +620,8 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             Workspace(target), shlex.join(command), timeout
         )
         if code and script:
+            # One fixed id for every script is no test identity; like an exit code it sets state only.
+            result.data["test_evidence_source"] = "inline_script"
             result.content = ("[Aster: the code defines no tests, so it ran as one test, "
                               "InlineScript::test_script.]\n" + result.content)
         if result.reason == "sandbox_protected_output" and report_text is not None:
