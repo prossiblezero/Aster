@@ -58,6 +58,7 @@ async def test_leading_cd_to_the_workspace_is_dropped(tmp_path):
     result = await runtime.step(ToolCall(name="run_tests", arguments={
         "command": f"cd {root} && python -m pytest -q test_ok.py"}))
     assert result.status == "success", result
-    blocked = await runtime.step(ToolCall(name="run_tests", arguments={
+    other = await runtime.step(ToolCall(name="run_tests", arguments={
         "command": "cd elsewhere && python -m pytest -q"}))
-    assert blocked.reason == "test_command_not_supported"
+    # Not a plain framework call: it runs as a project command judged by exit code.
+    assert other.data["test_evidence_source"] == "exit_code" and other.reason == "tests_failed"

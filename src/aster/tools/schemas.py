@@ -245,7 +245,7 @@ SCHEMAS = {
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, jest, or go test. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
+        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, jest, or go test for per-test results; other test commands (make test, ctest, cargo test) count by exit code. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
         "process",
     ),
     "observation_read": (

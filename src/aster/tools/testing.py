@@ -190,6 +190,56 @@ async def run_tests(
     return result
 
 
+# Commands that are recognizably a project's tests or build-and-test step; anything else
+# belongs in run_shell. Judged by exit code when no framework report is available.
+TEST_LIKE = re.compile(
+    r"(?i)\b(tests?|testing|check|spec|ctest|pytest|jest|mocha|vitest|tox|nox|bats|cargo|make|cmake|"
+    r"ninja|gradle|mvn|npm|yarn|pnpm|dotnet|rspec|phpunit|runtests)\b"
+)
+
+
+async def _run_command_tests(
+    workspace: Workspace, sandbox: SandboxRunner, command: str, timeout: int, *,
+    runner: type[SandboxRunner] = SandboxRunner, code: str = "",
+) -> Outcome:
+    """Run a project's own test command in a disposable copy; the exit code is the evidence."""
+    if code or not TEST_LIKE.search(command):
+        return Outcome(status="blocked", reason="test_command_not_supported",
+                       content="Use a recognizable test command; other commands belong in run_shell.")
+    if sandbox.settings.sandbox == "off":
+        return Outcome(status="blocked", reason="isolation_required_for_scope")
+    tested_fingerprint = workspace.fingerprint()
+    tested_environment = sandbox.environment_generation
+    with tempfile.TemporaryDirectory(prefix="aster-tests-") as directory:
+        target = Path(directory)
+        for source in workspace.files():
+            copied = target / source.relative_to(workspace.root)
+            copied.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, copied)
+        # Build products and caches may be written; they land in this discarded copy only.
+        settings = sandbox.settings.model_copy(update={"read_only": False, "write_scope": None})
+        result = await runner(settings, environment=sandbox).run(Workspace(target), command, timeout)
+    key = "command: " + command
+    result.changed_paths, result.partial_success = [], False
+    result.data.update(test_evidence_source="exit_code", tested_workspace_hash=tested_fingerprint,
+                       tested_environment_generation=tested_environment)
+    if result.status not in {"success", "error"} or result.exit_code is None:
+        result.reason = result.reason or f"test_{result.status}"
+        result.data["test_results"] = {}
+        return result
+    passed = result.exit_code == 0
+    result.status, result.reason = ("success", "") if passed else ("error", "tests_failed")
+    result.data["passed_tests"] = int(passed)
+    result.data["test_results"] = {key: "passed" if passed else "failed"}
+    result.data["failure_signatures"] = {} if passed else {key: failure_signature(result.content[-4000:])}
+    result.content = ("[Aster: no per-test report for this command; verification uses its exit code "
+                      f"({result.exit_code}).]\n" + result.content)
+    if passed and (workspace.fingerprint() != tested_fingerprint
+                   or sandbox.environment_generation != tested_environment):
+        result.status, result.reason = "blocked", "workspace_changed_during_verification"
+    return result
+
+
 async def _run_tests(
     workspace: Workspace,
     sandbox: SandboxRunner,
@@ -205,7 +255,12 @@ async def _run_tests(
     # Tests already start in the workspace copy, so a leading `cd <workspace> &&` is a no-op.
     if leading := re.match(r"\s*cd\s+\.?/?\s*&&\s*(.+)$", command, re.S):
         command = leading.group(1)
-    argv = shlex.split(command)
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        argv = []
+    if not argv:
+        return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner, code=code)
     jest = jest_entry(argv)
     verification_command = shlex.join(argv)
     python_paths = []
@@ -218,11 +273,15 @@ async def _run_tests(
     ) or any(
         c in command for c in ";|&><$`\n"
     ):
+        if not code and TEST_LIKE.search(command):
+            return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner)
         return Outcome(
             status="blocked",
             reason="test_command_not_supported",
             content=(
                 "Use pytest, python -m pytest/unittest, python <workspace test script>, node --test, jest, or go test without a .venv/bin/ "
+                "path for per-test results, or a project test/build-and-test command (make test, ctest, cmake --build, cargo test, npm test, ...), "
+                "which is judged by its exit code. "
                 "path. Python accepts a PYTHONPATH prefix containing only workspace-relative directories. "
                 "With reuse_environment enabled, installed "
                 "project .venv dependencies are exposed automatically; keep them installed until "

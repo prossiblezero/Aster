@@ -1,0 +1,47 @@
+"""Projects whose tests are not a supported framework still get formal, exit-code verification."""
+
+import pytest
+
+from aster.config import Settings
+from aster.core.runtime import Runtime
+from aster.schema import TaskSpec, ToolCall
+
+pytestmark = pytest.mark.core
+
+
+def runtime_for(root):
+    runtime = Runtime(root, Settings(approval="auto", memory_enabled=False, sandbox="required"),
+                      approval_callback=lambda *_: True)
+    runtime.start(TaskSpec(prompt="verify", require_verification=True))
+    return runtime
+
+
+async def run(runtime, command):
+    return await runtime.step(ToolCall(name="run_tests", arguments={"command": command}))
+
+
+@pytest.mark.asyncio
+async def test_build_and_test_command_is_judged_by_exit_code_in_a_copy(tmp_path):
+    (tmp_path / "Makefile").write_text("test:\n\t@mkdir -p build && test -f ok.txt\n")
+    runtime = runtime_for(tmp_path)
+    failed = await run(runtime, "make test")
+    assert failed.reason == "tests_failed" and failed.data["test_results"] == {"command: make test": "failed"}
+    assert "exit code" in failed.content and not (tmp_path / "build").exists()  # writes stay in the copy
+    (tmp_path / "ok.txt").write_text("x")
+    passed = await run(runtime, "make test")
+    assert passed.status == "success" and runtime.state.verification.state == "passed"
+    assert runtime.state.verification_failures == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["echo ok && true", "true", "ls"])
+async def test_commands_that_are_not_tests_stay_in_run_shell(tmp_path, command):
+    result = await run(runtime_for(tmp_path), command)
+    assert result.reason == "test_command_not_supported"
+
+
+@pytest.mark.asyncio
+async def test_inline_code_still_requires_a_python_framework(tmp_path):
+    runtime = runtime_for(tmp_path)
+    result = await runtime.step(ToolCall(name="run_tests", arguments={"command": "make test", "code": "def test_a(): pass"}))
+    assert result.reason == "test_command_not_supported"
