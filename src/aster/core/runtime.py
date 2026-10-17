@@ -49,7 +49,7 @@ from ..sessions.lifecycle import (
     preview_context,
 )
 from ..sessions.tree import SessionTree
-from ..storage.evidence import EvidenceStore
+from ..storage.evidence import EvidenceStore, atomic_json
 from ..storage.operations import OperationJournal
 from ..storage.workspace import Workspace
 from ..tools import (
@@ -113,6 +113,8 @@ class Runtime:
         self.state: RunState | None = None
         self._initial_text: dict[str, str] = {}
         self._initial_modes: dict[str, int] = {}
+        # run_id -> phase -> [seconds, count]; written to runs/<run_id>/timings.json.
+        self._timings: dict[str, dict[str, list[float]]] = {}
         # (baseline text dict, baseline mode dict, run id, stored digest); immutable per run.
         self._baseline: tuple[dict, dict, str, str] | None = None
         self._in_turn = False
@@ -138,6 +140,19 @@ class Runtime:
     @property
     def _team(self):
         return self._worker_owner or self.workers
+
+    @contextmanager
+    def _timed(self, name: str):
+        """Accumulate wall time per runtime phase into the run state for later analysis."""
+        started = time.perf_counter()
+        try:
+            yield
+        finally:
+            if self.state is not None:
+                # Diagnostics live outside RunState so failed operations still leave it unchanged.
+                timings = self._timings.setdefault(self.state.run_id, {})
+                seconds, count = timings.get(name, (0.0, 0))
+                timings[name] = [round(seconds + time.perf_counter() - started, 4), count + 1]
 
     @contextmanager
     def _operation(self):
@@ -378,6 +393,13 @@ class Runtime:
     def checkpoint(self):
         if not self.state or self._in_turn or self._snapshot_sources is not None:
             return
+        with self._timed("checkpoint"):
+            self._checkpoint()
+
+    def _checkpoint(self):
+        timings = self._timings.setdefault(self.state.run_id, {})
+        timings.update({"sandbox:" + key: list(value) for key, value in self.sandbox.timings.items()})
+        atomic_json(self.evidence.path("runs", self.state.run_id, "timings.json"), timings)
         self._redact_skill_snapshots(self.state)
         history_groups(self._structured_history)
         workspace = self.workspace.snapshot()
@@ -551,6 +573,10 @@ class Runtime:
 
     def prepare_request(self):
         """One budgeted policy observation for autonomous calls and external rollouts."""
+        with self._timed("prepare_request"):
+            return self._prepare_request()
+
+    def _prepare_request(self):
         state = self.state
         assert state is not None
         self._deliver_user_messages()
@@ -560,8 +586,10 @@ class Runtime:
         # Settings are mutable; the counted request must use the provider's current model limits.
         self.context.budget = self.settings.effective_context_tokens
         self.context.output_reserve = self.settings.effective_output_tokens
-        self._refresh_observations()
-        memory_text = self._memory_text(state.task.prompt)
+        with self._timed("refresh_observations"):
+            self._refresh_observations()
+        with self._timed("memory_recall"):
+            memory_text = self._memory_text(state.task.prompt)
         catalog = self.skills.catalog()
         skills = (
             self.evidence.redactor.text(json.dumps(catalog, ensure_ascii=False)) if catalog else ""
@@ -581,7 +609,13 @@ class Runtime:
                 self._archive_sources.get(ref["id"], state.run_id), ref["id"], limit=1
             )
 
-        prompt, report = self.context.build(
+        with self._timed("context_build"):
+            prompt, report = self._build_context(
+                state, memory_text, skills, tool_defs, skill_bodies, catalog, validate_archive)
+        return self._finish_prepare(state, prompt, report, tool_defs)
+
+    def _build_context(self, state, memory_text, skills, tool_defs, skill_bodies, catalog, validate_archive):
+        return self.context.build(
             state,
             state.task.prompt,
             memory_text,
@@ -601,6 +635,8 @@ class Runtime:
             validate_archive=validate_archive,
             redact_history=self.evidence.redact_history,
         )
+
+    def _finish_prepare(self, state, prompt, report, tool_defs):
         self._request_estimate = report.estimated_tokens + self.settings.effective_output_tokens
         team = self._team
         token_limit = team.parent.state.task.max_tokens
@@ -679,6 +715,20 @@ class Runtime:
             ).encode()
         ).hexdigest()
 
+    async def _complete_with_events(self, request_messages, tool_defs, state):
+        return await self.model.complete(
+            request_messages,
+            tool_defs,
+            prompt_cache_key=state.session_id,
+            on_event=lambda event: self.evidence.emit(
+                state.run_id,
+                "provider_attempt" if event.get("type") == "diagnostic" else (
+                    "model_stream" if self.settings.stream else "model_provider"
+                ),
+                **event,
+            ),
+        )
+
     async def _model_turn(self, prompt, tool_defs):
         state = self.state
         assert state is not None
@@ -702,20 +752,11 @@ class Runtime:
         try:
             request_messages = prompt
             if isinstance(self.model, ModelClient):
-                reply = await self.model.complete(
-                    request_messages,
-                    tool_defs,
-                    prompt_cache_key=state.session_id,
-                    on_event=lambda event: self.evidence.emit(
-                        state.run_id,
-                        "provider_attempt" if event.get("type") == "diagnostic" else (
-                            "model_stream" if self.settings.stream else "model_provider"
-                        ),
-                        **event,
-                    ),
-                )
+                with self._timed("model_call"):
+                    reply = await self._complete_with_events(request_messages, tool_defs, state)
             else:
-                reply = await self.model.complete(request_messages, tool_defs)
+                with self._timed("model_call"):
+                    reply = await self.model.complete(request_messages, tool_defs)
             request_usage = reply.usage
         except asyncio.CancelledError:
             if isinstance(self.model, ModelClient):
@@ -1052,6 +1093,20 @@ class Runtime:
         await self.mcp.restore([call.name for call in calls])
         arguments = {call.call_id: validate_arguments(call, schemas=self.mcp.schemas) for call in calls}
         invalid = {key: value for key, value in arguments.items() if isinstance(value, Outcome)}
+        if invalid and all(self.mcp.effect(call.name) == "read" for call in calls
+                           if call.call_id not in invalid):
+            # Read-only siblings have no effect to keep atomic; run them so one malformed
+            # call does not cost the whole turn. Effectful batches stay all-or-nothing.
+            outcomes = []
+            for call in calls:
+                if call.call_id in invalid:
+                    blocked = self._take_step()
+                    outcome = blocked or self._collect_step(call, invalid[call.call_id], self.state.step)
+                else:
+                    outcome = (await self._step(call, arguments[call.call_id])
+                               if self._in_turn else await self.step(call))
+                outcomes.append(record(call, outcome))
+            return outcomes
         if invalid:
             state = self.state
             outcomes = []
@@ -1312,6 +1367,10 @@ class Runtime:
             )
 
     async def _execute(self, call: ToolCall, arguments=None) -> Outcome:
+        with self._timed("tool:" + call.name):
+            return await self._execute_tool(call, arguments)
+
+    async def _execute_tool(self, call: ToolCall, arguments=None) -> Outcome:
         await self.mcp.restore([call.name])
         # Earlier tools in a batch may refresh and withdraw or change MCP schemas.
         if arguments is None or call.name.startswith("mcp__"):

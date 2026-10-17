@@ -108,3 +108,29 @@ def test_version_two_checkpoint_with_inline_baseline_still_resumes(tmp_path):
     resumed = Runtime(tmp_path, Settings(approval="auto"))
     resumed.resume(state.run_id)
     assert resumed._initial_text == {"facts.txt": "original\n"}
+
+
+def test_trace_tail_cache_keeps_the_hash_chain_and_notices_other_writers(tmp_path):
+    from aster.safety.redaction import Redactor
+    from aster.storage.evidence import EvidenceStore
+
+    first = EvidenceStore(tmp_path, Redactor())
+    other = EvidenceStore(tmp_path, Redactor())
+    for n in range(3):
+        first.emit("run", "tick", n=n)
+    other.emit("run", "external")  # a second writer appends behind the first one's cache
+    first.emit("run", "tick", n=3)
+    rows = first.events("run")
+    assert [row["seq"] for row in rows] == [1, 2, 3, 4, 5]
+    assert all(b["previous"] == a["hash"] for a, b in zip(rows, rows[1:]))
+
+
+@pytest.mark.asyncio
+async def test_phase_timings_are_written_outside_run_state(tmp_path):
+    (tmp_path / "a.txt").write_text("alpha\n")
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False))
+    state = runtime.start(TaskSpec(prompt="inspect a.txt"))
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "a.txt"}))
+    timings = json.loads(runtime.evidence.path("runs", state.run_id, "timings.json").read_text())
+    assert timings["tool:read_file"][1] == 1 and timings["checkpoint"][1] >= 1
+    assert "timings" not in state.model_dump()

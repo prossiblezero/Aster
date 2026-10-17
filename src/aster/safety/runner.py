@@ -57,6 +57,12 @@ class SandboxRunner:
         self._environment_workspace: Path | None = None
         self._generation = 0
         self._busy = False
+        # phase -> [seconds, count]; shared with a source runner so test copies are counted too.
+        self.timings: dict[str, list[float]] = environment.timings if environment is not None else {}
+
+    def _time(self, name: str, started: float) -> None:
+        seconds, count = self.timings.get(name, (0.0, 0))
+        self.timings[name] = [round(seconds + time.perf_counter() - started, 4), count + 1]
 
     def capabilities(self) -> str:
         """Small host-authored contract, using the same PATH as command execution."""
@@ -246,6 +252,7 @@ class SandboxRunner:
             result.data["isolation"] = "off"
             return result
         with self._execution_directory(workspace, constrained) as (root, borrowed, persistent, lease):
+            started = time.perf_counter()
             before = workspace.snapshot()
             for path in workspace.files():
                 if self.settings.reuse_environment and path.relative_to(workspace.root).parts[0] in DEPENDENCY_DIRECTORIES:
@@ -253,6 +260,7 @@ class SandboxRunner:
                 target = root / path.relative_to(workspace.root)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
+            self._time("stage_copy", started)
             if conflict := self._check_expected(Workspace(root), expected_files):
                 return conflict
             (root / ".tmp").mkdir(exist_ok=True)
@@ -334,7 +342,9 @@ class SandboxRunner:
                         content=result.content,
                         data=result.data,
                     )
+                started = time.perf_counter()
                 result = self._publish(workspace, root, before, after, result)
+                self._time("publish", started)
                 lease["retain"] = result.status == "success"
                 return result
             except BoundaryError as exc:

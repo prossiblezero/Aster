@@ -630,10 +630,11 @@ async def test_worker_budget_delivers_one_tool_free_partial_handoff(tmp_path, bo
     outputs = [json.loads(item["output"]) for item in worker.runtime._structured_history
                if item.get("type") == "function_call_output"]
     assert len(outputs) == len(calls)
+    # A malformed read no longer cancels its read-only siblings; it still spends a step.
     assert sum(item["status"] == "success" for item in outputs) == (
-        0 if boundary == "invalid_batch" else min(len(calls), 2)
+        1 if boundary == "invalid_batch" else min(len(calls), 2)
     )
-    assert bool(result.read_evidence) == (boundary != "invalid_batch")
+    assert bool(result.read_evidence)
     saved = json.loads(worker.runtime.evidence.path("runs", result.run_id, "handoff.json").read_text())
     assert saved["answer"] == delivered["answer"] and saved["delivery"] == "partial"
     await parent.workers.close()

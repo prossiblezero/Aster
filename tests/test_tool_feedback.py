@@ -76,3 +76,26 @@ def test_closest_lines_tolerates_indentation_and_reports_nothing_when_unrelated(
 
 def test_archive_pages_are_large_enough_for_one_preview():
     assert TextPage().limit == 4000 and TextPage(limit=12000).limit == 12000
+
+
+@pytest.mark.asyncio
+async def test_one_malformed_read_does_not_cancel_valid_read_only_siblings(tmp_path):
+    runtime = await runtime_with(tmp_path)
+    results = await runtime._execute_batch([
+        ToolCall(name="read_file", arguments={"path": "m.py", "start": 1, "end": 2}),
+        ToolCall(name="search", arguments={"path": ".", "regex=false,": "limit"}),
+        ToolCall(name="search", arguments={"pattern": "return"}),
+    ])
+    assert [r.status for r in results] == ["success", "blocked", "success"]
+    assert results[1].reason == "invalid_arguments"
+
+
+@pytest.mark.asyncio
+async def test_malformed_call_still_blocks_a_batch_with_valid_writes(tmp_path):
+    runtime = await runtime_with(tmp_path)
+    results = await runtime._execute_batch([
+        ToolCall(name="write_file", arguments={"path": "new.txt", "content": "x"}),
+        ToolCall(name="search", arguments={"path": "."}),
+    ])
+    assert [r.reason for r in results] == ["batch_validation_failed", "invalid_arguments"]
+    assert not (tmp_path / "new.txt").exists()
