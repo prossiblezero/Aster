@@ -1,0 +1,247 @@
+"""Run a git ref of Aster on chosen general-50 tasks with the frozen runner, gateway and graders.
+
+prepare/verify/results never call a model; run does. Each named run exports src/aster from one
+git ref into its own private runtime, so results map to an exact commit.
+"""
+import argparse
+import concurrent.futures
+import hashlib
+import importlib.util
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tarfile
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[1]
+PRIVATE = REPO / 'artifacts/private' / HERE.name
+BASE_HERE = HERE.parent / 'general-coding-50-20261012'
+BASE = REPO / 'artifacts/private' / BASE_HERE.name
+TURN_HERE = HERE.parent / 'turn-reduction-20261015'
+PYTHON = '/home/dzh/.conda/envs/aster/bin/python'
+
+sys.path.insert(0, str(TURN_HERE))
+from metrics import measure  # noqa: E402
+from turn_metrics import measure as measure_turns  # noqa: E402
+
+
+def imported(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+sys.path.insert(0, str(BASE_HERE))
+engine = imported('harness_v12_general50', BASE_HERE / 'evaluate.py')
+load, save, hashes = engine.load, engine.save, engine.hashes
+
+
+def sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def paths(name):
+    return HERE / 'runs' / name, PRIVATE / name
+
+
+def select(spec):
+    tasks = load(BASE / 'tasks.json')
+    if spec in (['old20'], ['new30']):
+        chosen = [t for t in tasks if t['exposure'] == spec[0]]
+    else:
+        by_id = {t['id']: t for t in tasks}
+        assert set(spec) <= set(by_id), sorted(set(spec) - set(by_id))
+        chosen = [by_id[name] for name in spec]
+    chosen.sort(key=lambda t: hashlib.sha256(('schedule:' + t['id']).encode()).hexdigest())
+    return chosen
+
+
+def prepare(name, ref, spec):
+    public, root = paths(name)
+    assert not root.exists(), 'Run directory exists; choose a new name'
+    commit = subprocess.check_output(['git', 'rev-parse', ref + '^{commit}'], cwd=REPO, text=True).strip()
+    shutil.copytree(BASE / 'runtime', root / 'runtime', ignore=shutil.ignore_patterns('aster', '__pycache__'))
+    archive = subprocess.check_output(['git', 'archive', commit, 'src/aster'], cwd=REPO)
+    with tarfile.open(fileobj=io.BytesIO(archive)) as bundle:
+        for item in bundle:
+            if item.isfile():
+                target = root / 'runtime/aster' / Path(item.name).relative_to('src/aster')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(bundle.extractfile(item).read())
+    for link in ('sources', 'preflight', 'task-python', 'pi', 'node-v22.22.0-linux-x64'):
+        (root / link).symlink_to((BASE / link).resolve(), target_is_directory=True)
+    shutil.copy2(BASE / 'repository-dataset.json', root / 'repository-dataset.json')
+    tasks = select(spec)
+    save(root / 'tasks.json', tasks)
+    (root / 'relay').mkdir()
+    public.mkdir(parents=True, exist_ok=True)
+    save(public / 'manifest.json', {
+        'name': name, 'ref': ref, 'aster_commit': commit, 'tasks': [t['id'] for t in tasks],
+        'model': 'gpt-5.6-luna', 'protocol': 'responses', 'reasoning': 'medium', 'seconds_per_task': 900,
+        'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
+        'cpu': 4, 'memory_gib': 8, 'concurrency': 6,
+        'product_hashes': hashes(root / 'runtime/aster'), 'runtime_hashes': hashes(root / 'runtime'),
+        'runner_hashes': {str(p.relative_to(REPO)): sha(p) for p in
+                          [HERE / 'evaluate.py', BASE_HERE / 'evaluate.py', TURN_HERE / 'metrics.py',
+                           TURN_HERE / 'turn_metrics.py']},
+    })
+    print(f'Prepared {name} at {commit[:12]} with {len(tasks)} tasks; no model requests made.')
+
+
+def verify(name):
+    public, root = paths(name)
+    manifest = load(public / 'manifest.json')
+    assert hashes(root / 'runtime/aster') == manifest['product_hashes'], 'Frozen source changed'
+    assert hashes(root / 'runtime') == manifest['runtime_hashes'], 'Frozen runtime changed'
+    return manifest
+
+
+def configure(name):
+    public, root = paths(name)
+    engine.HERE, engine.PRIVATE = HERE, root
+    engine.NETWORK = 'aster-v12-' + name
+    engine.verify_frozen = lambda: verify(name)
+    return public, root
+
+
+def run(name):
+    import docker
+
+    verify(name)
+    public, root = configure(name)
+    drv = engine.driver()
+    tasks = [t for t in load(root / 'tasks.json')
+             if not (root / 'runs' / ('aster-' + t['id']) / 'launch.json').exists()]
+    if not tasks:
+        print('All tasks already ran; no model requests made.')
+        return
+    os.chdir(root)  # SWE-bench writes logs relative to the controller's working directory.
+    client = docker.from_env()
+    for task in tasks:
+        client.images.get(task['image_id'])
+    socket = root / 'relay/model.sock'
+    assert not socket.exists(), 'Stale gateway socket; inspect before running'
+    network = client.networks.create(engine.NETWORK, internal=True)
+    process = relay = None
+    try:
+        with (root / 'gateway.log').open('ab') as log:
+            process = subprocess.Popen([PYTHON, str(HERE / 'evaluate.py'), 'gateway', name], cwd=root,
+                                       env={**os.environ, 'PYTHONPATH': str(root / 'runtime')},
+                                       stdout=log, stderr=log)
+        for _ in range(100):
+            if socket.exists():
+                break
+            assert process.poll() is None, 'Gateway exited'
+            time.sleep(.1)
+        assert socket.exists()
+        relay = client.containers.run(tasks[0]['image_id'], [PYTHON, '/relay.py'], detach=True,
+            name='aster-bench-gateway', network=engine.NETWORK,
+            volumes={str(root / 'relay'): {'bind': '/relay', 'mode': 'rw'},
+                     str(engine.baseline.ORIGINAL / 'relay.py'): {'bind': '/relay.py', 'mode': 'ro'},
+                     str(Path(PYTHON).parent.parent): {'bind': str(Path(PYTHON).parent.parent), 'mode': 'ro'}})
+
+        def one(task):
+            row = drv.episode('aster', task)
+            if task['kind'] == 'repository':
+                patch = (root / 'runs' / row['job'] / 'prediction.patch').read_text()
+                engine.repository_grade(task, 'aster', patch, f'{HERE.name}-{name}', skip_patch=not patch)
+            return row
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            for future in concurrent.futures.as_completed([pool.submit(one, t) for t in tasks]):
+                row = future.result()
+                print('finished', row['task'], flush=True)
+        verify(name)
+    finally:
+        if relay is not None:
+            relay.remove(force=True)
+        if process is not None:
+            process.terminate()
+            process.wait(timeout=10)
+        socket.unlink(missing_ok=True)
+        network.remove()
+        client.close()
+
+
+def model_seconds(out):
+    total = 0.0
+    for path in (out / 'provider').glob('*.json'):
+        if not path.name.endswith('.request.json'):
+            total += load(path).get('seconds', 0)
+    return total
+
+
+def weighted(row):
+    cached = row['cached_tokens']
+    return ((row['input_tokens'] - cached) * 1.25 + cached * 0.125 + row['output_tokens'] * 10) / 1e6
+
+
+def results(name):
+    verify(name)
+    public, root = configure(name)
+    helpers = imported('harness_v12_summary', HERE.parent / 'general-coding-20261010/summarize.py')
+    rows = []
+    for task in load(root / 'tasks.json'):
+        out = root / 'runs' / ('aster-' + task['id'])
+        if not (out / 'result.json').exists():
+            continue
+        row = load(out / 'result.json')
+        usage, _ = helpers.usage(out)
+        final, phase, stop = helpers.final_text(out, 'aster')
+        row.update(usage, final=final, phase=phase, stop_reason=stop, exposure=task['exposure'], kind=task['kind'])
+        if task['kind'] == 'repository':
+            path = root / 'logs/evaluation' / f'{HERE.name}-{name}' / 'aster' / task['id'] / 'report.json'
+            grade = load(path).get(task['id']) if path.exists() else None
+            row.update(grade=grade, graded=grade is not None, passed=bool(grade and grade.get('resolved')))
+        else:
+            row.update(graded='grade' in row, passed=bool(row.get('grade', {}).get('passed')))
+        row['normal_delivery_and_passed'] = bool(row['passed'] and row['exit_code'] == 0 and final and phase == 'completed')
+        row['model_seconds'] = round(model_seconds(out), 3)
+        row['weighted_cost'] = round(weighted(row), 6)
+        rows.append(row)
+    save(public / 'results.json', rows)
+    save(public / 'metrics.json', measure(root / 'runs'))
+    try:
+        turns = measure_turns(root / 'runs')
+    except ValueError as exc:
+        turns = {'unavailable': str(exc)}
+    save(public / 'turns.json', turns)
+    total = {k: sum(r[k] for r in rows) for k in ('requests', 'input_tokens', 'cached_tokens', 'output_tokens',
+                                                    'seconds', 'model_seconds', 'weighted_cost', 'passed',
+                                                    'normal_delivery_and_passed', 'missing_usage')}
+    total['harness_seconds'] = round(total['seconds'] - total['model_seconds'], 1)
+    total['finished'], total['graded'] = len(rows), sum(r['graded'] for r in rows)
+    save(public / 'summary.json', total)
+    print(json.dumps(total))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('mode', choices=['prepare', 'verify', 'run', 'gateway', 'results'])
+    parser.add_argument('name')
+    parser.add_argument('--ref', help='git ref to export (prepare)')
+    parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, or task ids (prepare)')
+    args = parser.parse_args()
+    if args.mode == 'prepare':
+        prepare(args.name, args.ref, args.tasks)
+    elif args.mode == 'verify':
+        verify(args.name)
+        print('Frozen source verified; no model requests made.')
+    elif args.mode == 'gateway':
+        verify(args.name)
+        configure(args.name)
+        engine.gateway()
+    elif args.mode == 'run':
+        run(args.name)
+    else:
+        results(args.name)
+
+
+if __name__ == '__main__':
+    main()
