@@ -70,6 +70,9 @@ from .verifier import Verifier
 from .workers import WorkerManager
 
 
+# Model-visible evidence references; memory_store and workers resolve unique prefixes.
+EVIDENCE_REF_CHARS = 12
+
 class Runtime:
     def __init__(
         self,
@@ -872,15 +875,16 @@ class Runtime:
         output = json.dumps(
             {
                 "status": outcome.status,
-                "reason": outcome.reason,
-                "evidence_id": outcome.evidence_id,
-                "changed_paths": outcome.changed_paths,
+                # Empty fields and full hashes are bookkeeping, resent on every later request.
+                **({"reason": outcome.reason} if outcome.reason else {}),
+                "evidence_id": outcome.evidence_id[:EVIDENCE_REF_CHARS],
+                **({"changed_paths": outcome.changed_paths} if outcome.changed_paths else {}),
                 "content": content,
                 **{key: outcome.data[key] for key in (
                     "idempotency_replayed", "original_status", "uncertain", "mcp_endpoint", "failover",
                 ) if key in outcome.data},
                 **(
-                    {key: outcome.data[key] for key in ("path", "start", "end", "source_sha256")}
+                    {key: outcome.data[key] for key in ("path", "start", "end")}
                     | {key: outcome.data[key] for key in ("truncated", "next_start") if key in outcome.data}
                     if call.name == "read_file" and outcome.status == "success"
                     else {}
@@ -907,6 +911,7 @@ class Runtime:
                         if key in outcome.data
                     }
                     if call.name in {"run_shell", "run_tests"}
+                    and (outcome.data.get("output_truncated") or "observation" in outcome.data)
                     else {}
                 ),
                 **(

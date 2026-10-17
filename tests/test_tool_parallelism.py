@@ -153,7 +153,7 @@ async def test_partial_step_budget_keeps_accepted_results_and_pairs_the_rest(tmp
     await runtime.turn()
     observed = results(runtime)
     assert [row["status"] for row in observed] == ["success", "success", "blocked", "blocked"]
-    assert [row["reason"] for row in observed][2:] == ["step_limit", "run_terminal"]
+    assert [row.get("reason", "") for row in observed][2:] == ["step_limit", "run_terminal"]
     assert runtime.state.step == 2 and runtime.state.stop_reason == "step_limit"
 
 

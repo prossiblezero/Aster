@@ -833,7 +833,7 @@ async def test_read_file_history_includes_line_metadata_without_changing_file_co
     payload = json.loads(output["output"])
     assert payload["content"] == "2: answer = 42"
     assert payload["start"] == payload["end"] == 2
-    assert payload["evidence_id"] == result.evidence_id and "source_ref" not in payload
+    assert payload["evidence_id"] == result.evidence_id[:12] and "source_ref" not in payload
     assert (tmp_path / "module.py").read_text() == "first = 1\nanswer = 42\n"
 
 

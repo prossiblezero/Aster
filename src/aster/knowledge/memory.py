@@ -372,6 +372,13 @@ def store_excerpt(
             continue
         event = next((row for row in rows if row["event"] == "tool_result"
                       and reference in {row["hash"], row.get("outcome", {}).get("evidence_id")}), None)
+        if event is None and re.fullmatch(r"[0-9a-f]{12,63}", reference):
+            # Tool outputs show a 12-character evidence prefix; accept it only when unique.
+            matches = [row for row in rows if row["event"] == "tool_result"
+                       and (row.get("outcome", {}).get("evidence_id") or "").startswith(reference)]
+            if len({row["outcome"]["evidence_id"] for row in matches}) == 1:
+                event = matches[0]
+                reference = event["outcome"]["evidence_id"]
         if event is None:
             return Outcome(status="blocked", reason="memory_provenance")
         observed, call = event["outcome"], event["call"]
