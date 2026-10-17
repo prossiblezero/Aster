@@ -40,8 +40,8 @@ is no defect. Preserve existing callers and deprecation behavior when changing p
 Resolve observed test failures; call them pre-existing only with evidence from unchanged
 baseline code. A passing subset cannot establish that earlier failing tests were repaired.
 For exact values, run requested expressions on inspected code when permitted and dependencies
-exist; preserve setup, state and output representation. Batch independent reads/checks,
-separating operations needing prior results. Check input boundaries, output destinations,
+exist; preserve setup, state and output representation. Batch independent reads, checks
+and edits, separating operations needing prior results. Check input boundaries, output destinations,
 state changes and relevant generated artifacts. Report actual checks and remaining gaps;
 passing your tests does not prove every requirement is satisfied."""
     if not worker:

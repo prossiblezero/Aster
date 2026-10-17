@@ -193,7 +193,7 @@ class EvidenceStore:
             type(offset) is not int
             or offset < 0
             or type(limit) is not int
-            or not 1 <= limit <= 1000
+            or not 1 <= limit <= 12000
             or not isinstance(query, str)
             or len(query) > 1000
         ):

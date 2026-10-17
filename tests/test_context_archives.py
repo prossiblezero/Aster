@@ -247,7 +247,7 @@ async def test_observation_tool_preserves_private_run_boundaries(tmp_path, scena
         "path": {"observation_id": "../../other/checkpoint.json"},
         "other_run": {"observation_id": other["id"]},
         "extra_run": {"run_id": "other", "observation_id": other["id"]},
-        "oversized_page": {"limit": 1001},
+        "oversized_page": {"limit": 12001},
     }[scenario]
     outcome = await runtime.step(ToolCall(name="observation_read", arguments=arguments))
     assert outcome.status == "blocked" and "PRIVATE-CONTENT" not in outcome.content

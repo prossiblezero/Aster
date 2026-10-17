@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import difflib
 import json
 import mimetypes
 import re
@@ -58,6 +59,51 @@ def record_page(
     if total is not None:
         metadata["total"] = total
     return Outcome(status="success", content="\n".join(page), data=metadata)
+
+
+def _numbered(lines: list[str], low: int, high: int) -> list[str]:
+    return [f"{n + 1}: {lines[n]}" for n in range(max(0, low), min(len(lines), high))]
+
+
+def edit_preview(text: str, regions: list[tuple[int, int]], limit: int = 80) -> str:
+    """Edited lines with two lines of context, so the model need not reread its own edit."""
+    lines, shown, blocks = text.split("\n"), 0, []
+    for start, end in regions:
+        first = text.count("\n", 0, start)
+        last = text.count("\n", 0, max(start, end - 1))
+        low, high = first - 2, last + 3
+        if blocks and low <= blocks[-1][1]:
+            blocks[-1][1] = max(blocks[-1][1], high)
+        else:
+            blocks.append([low, high])
+    out = []
+    for low, high in blocks:
+        chunk = _numbered(lines, low, high)
+        if shown + len(chunk) > limit:
+            out.append(f"[{len(blocks)} edited regions; preview limited to {limit} lines; use read_file for more]")
+            break
+        out.append("\n".join(chunk))
+        shown += len(chunk)
+    return "Edited lines (current file):\n" + "\n--\n".join(out)
+
+
+def closest_lines(text: str, old: str, limit: int = 3) -> str:
+    """Show where an unmatched old_text most likely belongs, with current line numbers."""
+    lines = text.split("\n")
+    wanted = [line.strip() for line in old.split("\n") if line.strip()]
+    if not wanted:
+        return ""
+    stripped = [line.strip() for line in lines]
+    anchors = [n for n, line in enumerate(stripped) if line == wanted[0]][:limit]
+    if not anchors:
+        best = difflib.get_close_matches(wanted[0], stripped, n=limit, cutoff=0.6)
+        anchors = sorted({stripped.index(match) for match in best})
+    if not anchors:
+        return ""
+    span = min(len(old.split("\n")), 12)
+    return "Closest current lines:\n" + "\n--\n".join(
+        "\n".join(_numbered(lines, n - 2, n + span + 2)) for n in anchors
+    )
 
 
 def read_edit_source(path: Path, *, normalize: bool = True) -> tuple[str, str]:
@@ -158,12 +204,20 @@ class WorkspaceTools:
                     if path.stat().st_size > 2 * 1024 * 1024:
                         continue
                     relative = path.relative_to(self.context.workspace.root)
-                    for line_no, line in enumerate(
-                        path.read_text(encoding="utf-8").splitlines(), 1
-                    ):
-                        if (regex.search(line[:2000]) if regex is not None
+                    lines = path.read_text(encoding="utf-8").splitlines()
+                    for index, line in enumerate(lines):
+                        if not (regex.search(line[:2000]) if regex is not None
                                 else pattern in line.casefold()):
-                            yield f"{relative}:{line_no}:{line[:300]}"
+                            continue
+                        if not args.context:
+                            yield f"{relative}:{index + 1}:{line[:300]}"
+                            continue
+                        # One record per match keeps offset counting matches; grep -C notation.
+                        low, high = max(0, index - args.context), min(len(lines), index + args.context + 1)
+                        yield "--\n" + "\n".join(
+                            f"{relative}{':' if n == index else '-'}{n + 1}{':' if n == index else '-'}{lines[n][:300]}"
+                            for n in range(low, high)
+                        )
                 except UnicodeError:
                     continue
 
@@ -212,10 +266,20 @@ class WorkspaceTools:
                 )
             start = (0 if text.startswith(old) else -1) if anchored else text.find(old)
             if start < 0 or (not anchored and text.find(old, start + 1) >= 0):
+                if start < 0:
+                    hint = closest_lines(text, old)
+                else:
+                    found, position = [], start
+                    while position >= 0 and len(found) < 10:
+                        found.append(text.count("\n", 0, position) + 1)
+                        position = text.find(old, position + 1)
+                    hint = ("Occurrences start at lines " + ", ".join(map(str, found))
+                            + "; include more surrounding text to make old_text unique.")
                 return Outcome(
                     status="blocked",
                     reason="patch_nonunique",
-                    content=f"edits[{index}] found {max(2, text.count(old)) if start >= 0 else 0} occurrences; must match exactly once in the original file",
+                    content=f"edits[{index}] found {max(2, text.count(old)) if start >= 0 else 0} occurrences; must match exactly once in the original file"
+                    + ("\n" + hint if hint else ""),
                 )
             spans.append((start, start + len(old), edit.new_text))
         spans.sort()
@@ -251,6 +315,18 @@ class WorkspaceTools:
         )
         if result.status == "success":
             result.data.update(path=args.path, written_sha256=digest(new_text.encode()))
+            pieces, regions, cursor, size = [], [], 0, 0
+            for start, end, replacement in spans:
+                replacement = replacement.replace("\r\n", "\n").replace("\r", "\n")
+                pieces.append(text[cursor:start])
+                size += start - cursor
+                regions.append((size, size + len(replacement)))
+                pieces.append(replacement)
+                size += len(replacement)
+                cursor = end
+            pieces.append(text[cursor:])
+            preview = edit_preview("".join(pieces), regions)
+            result.content = (result.content + "\n" if result.content else "") + preview
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:

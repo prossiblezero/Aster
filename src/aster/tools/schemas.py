@@ -29,7 +29,7 @@ class ReadFile(Record):
 class Search(Record):
     pattern: str = Field(
         min_length=1, max_length=300,
-        description="Case-insensitive. With regex=false (default) pattern is a literal substring; with regex=true it is a Python regular expression, e.g. 'def (foo|bar)\\b'.",
+        description="Literal text, or a Python regex if regex=true.",
     )
     regex: bool = False
     path: str = "."
@@ -39,6 +39,7 @@ class Search(Record):
     limit: int = Field(
         default=500, ge=1, le=500, description="Maximum matching lines in this page."
     )
+    context: int = Field(default=0, ge=0, le=5, description="Context lines per match, like grep -C.")
 
 
 class WriteFile(Record):
@@ -127,7 +128,7 @@ class TextPage(Record):
     offset: int = Field(
         default=0, ge=0, description="Character offset; use the previous next_offset."
     )
-    limit: int = Field(default=512, ge=1, le=1000, description="Maximum characters in this page.")
+    limit: int = Field(default=4000, ge=1, le=12000, description="Maximum characters in this page.")
 
 
 class ObservationRead(TextPage):
@@ -218,13 +219,13 @@ class ImageRead(Record):
 SCHEMAS = {
     "list_files": (
         ListFiles,
-        "List workspace files, excluding protected metadata. Offset counts files; follow next_offset until null. If context clips a page, recover its archived content before advancing.",
+        "List workspace files, excluding protected metadata. Offset counts files; follow next_offset until null.",
         "read",
     ),
-    "read_file": (ReadFile, "Read a UTF-8 file with a bounded line range.", "read"),
+    "read_file": (ReadFile, "Read a UTF-8 file line range; prefer one wide read (150-400 lines) to adjacent narrow ones.", "read"),
     "search": (
         Search,
-        "Search workspace files line by line, case-insensitively. Use regex=true for alternation or patterns (one call can cover several names).",
+        "Case-insensitive line search; one regex can cover several names.",
         "read",
     ),
     "write_file": (
@@ -239,12 +240,12 @@ SCHEMAS = {
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Command output is archived up to 4 MiB for observation_read; overflow is explicitly reported. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable is supplied). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; start servers, checks and cleanup in one bounded command. Exit 0 is not proof a service works; inspect stderr. Preserve failures of essential steps in compound commands: chain dependent steps with && or explicitly propagate their exit status; successful cleanup must not mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Each writable shell command invalidates prior tests, so run formal tests last.",
         "process",
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
+        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, or go test. Run tests covering your change first. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other commands and compound checks use run_shell, without formal verification.",
         "process",
     ),
     "observation_read": (

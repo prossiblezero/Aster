@@ -89,7 +89,7 @@ def test_archive_does_not_expose_other_runs_or_private_artifacts(tmp_path):
 
 @pytest.mark.parametrize(
     "arguments",
-    [{"offset": -1}, {"offset": True}, {"limit": 0}, {"limit": 1001}, {"query": "x" * 1001}],
+    [{"offset": -1}, {"offset": True}, {"limit": 0}, {"limit": 12001}, {"query": "x" * 1001}],
 )
 def test_archive_rejects_unbounded_pages(tmp_path, arguments):
     store = EvidenceStore(tmp_path, Redactor())
