@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shlex
 import shutil
 import tempfile
@@ -21,6 +22,27 @@ TEST_COMMAND_PREFIXES = [
     ["node", "--test"],
     ["go", "test"],
 ]
+
+
+# A failure is attributed to missing network access only when the error is an unreachable
+# network or failed name resolution AND the traceback shows a real socket call. Refused
+# connections stay ordinary failures: a local service the task must start may be down.
+_NETWORK_ERROR = re.compile(
+    r"\[Errno (?:101|113|-2|-3|-5)\]|Network is unreachable|No route to host"
+    r"|Temporary failure in name resolution|Name or service not known"
+    r"|nodename nor servname provided|getaddrinfo failed|NameResolutionError"
+)
+_SOCKET_FRAME = re.compile(r"sock\.connect\(|getaddrinfo\(|create_connection\(|/socket\.py:")
+
+
+# Aster's own no-network sandbox rejects socket creation instead of routing.
+_SOCKET_DENIED = re.compile(r"_socket\.socket\.__init__\(.*\n(?:.*\n){0,3}?E\s+PermissionError: \[Errno 1\]")
+
+
+def network_unavailable(detail: str) -> bool:
+    return bool(_NETWORK_ERROR.search(detail) and _SOCKET_FRAME.search(detail)) or bool(
+        _SOCKET_DENIED.search(detail)
+    )
 
 
 def parse_junit(text: str) -> list[dict[str, str]]:
@@ -44,8 +66,13 @@ def parse_junit(text: str) -> list[dict[str, str]]:
             ),
             "passed",
         )
+        detail = ""
+        for child in case:
+            if child.tag in {"failure", "error"}:
+                detail += (child.get("message") or "") + "\n" + (child.text or "")
         cases.append(
-            {"name": case.get("name"), "classname": case.get("classname", ""), "status": status}
+            {"name": case.get("name"), "classname": case.get("classname", ""), "status": status,
+             "detail": detail[-20000:]}
         )
     return cases
 
@@ -444,7 +471,19 @@ raise SystemExit(pytest.main(sys.argv[1:]))
                 classname = classname.replace(Path(inline_name).stem, "__aster_inline__")
                 name = name.replace(Path(inline_name).stem, "__aster_inline__")
             key = f"{scope}: {classname}::{name}"
+            if status == "failed" and network_unavailable(case.get("detail", "")):
+                status = "network_unavailable"
             if test_results.get(key) != "failed":
                 test_results[key] = status
     result.data["test_results"] = test_results
+    unreachable = sorted(key for key, status in test_results.items() if status == "network_unavailable")
+    if unreachable:
+        shown = ", ".join(unreachable[:10]) + (f" (+{len(unreachable) - 10} more)" if len(unreachable) > 10 else "")
+        result.content += (
+            f"\n[Aster: {len(unreachable)} failing test(s) failed only because the network is unreachable "
+            f"from this sandbox: {shown}. They cannot pass here, so they do not block completion; "
+            "do not edit code to work around the missing network. List them as unverified in your final answer.]"
+        )
+        if not any(status == "failed" for status in test_results.values()) and result.reason == "tests_failed":
+            result.data["network_only_failures"] = True
     return result

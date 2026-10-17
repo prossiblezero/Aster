@@ -22,11 +22,17 @@ class Verifier:
             for test, status in outcome.data.get("test_results", {}).items():
                 if status == "failed":
                     state.verification_failures[test] = outcome.data.get("command", "")
+                    state.environment_failures.pop(test, None)
                 elif status == "passed":
                     state.verification_failures.pop(test, None)
+                    state.environment_failures.pop(test, None)
+                elif status == "network_unavailable":
+                    # Cannot pass without network; reported as unverified, never as fixed.
+                    state.verification_failures.pop(test, None)
+                    state.environment_failures[test] = outcome.data.get("command", "")
         if (
             outcome.data.get("is_verification")
-            and outcome.status == "success"
+            and (outcome.status == "success" or outcome.data.get("network_only_failures"))
             and outcome.reason != "no_tests_collected"
         ):
             state.verification = Verification(
@@ -73,7 +79,9 @@ class Verifier:
         return VerifierResult(
             passed=True,
             reason="requirements_satisfied",
-            details={"changed_paths": state.changed_paths},
+            details={"changed_paths": state.changed_paths,
+                     **({"environment_failures": state.environment_failures}
+                        if state.environment_failures else {})},
         )
 
     @staticmethod
