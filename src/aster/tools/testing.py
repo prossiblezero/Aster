@@ -40,6 +40,17 @@ _SOCKET_FRAME = re.compile(r"sock\.connect\(|getaddrinfo\(|create_connection\(|/
 _SOCKET_DENIED = re.compile(r"_socket\.socket\.__init__\(.*\n(?:.*\n){0,3}?E\s+PermissionError: \[Errno 1\]")
 
 
+def failure_signature(detail: str) -> str:
+    """Exception type and message of a failure, with run-specific noise removed."""
+    lines = [line.strip() for line in detail.splitlines() if line.strip()]
+    errors = [line[1:].strip() for line in lines if line.startswith("E ")]
+    candidates = errors or [line for line in lines if re.match(r"[\w.]+(Error|Exception|Failed|Exit)\b", line)]
+    text = (candidates[-1] if candidates else (lines[-1] if lines else ""))[:500]
+    text = re.sub(r"0x[0-9a-fA-F]+", "0x?", text)
+    text = re.sub(r"(/tmp|/var/tmp)/[^\s:'\"]+", "<tmp>", text)
+    return re.sub(r"__aster_[\w-]+", "__aster_?", text)
+
+
 def network_unavailable(detail: str) -> bool:
     return bool(_NETWORK_ERROR.search(detail) and _SOCKET_FRAME.search(detail)) or bool(
         _SOCKET_DENIED.search(detail)
@@ -116,6 +127,70 @@ def parse_junit(text: str) -> list[dict[str, str]]:
 
 
 async def run_tests(
+    workspace: Workspace,
+    sandbox: SandboxRunner,
+    command: str,
+    timeout: int,
+    *,
+    runner: type[SandboxRunner] = SandboxRunner,
+    code: str = "",
+    baseline: dict[str, str] | None = None,
+    known: dict[str, str] | None = None,
+) -> Outcome:
+    """Run tests; failures identical on the task's original files are marked pre-existing.
+
+    The runtime decides from evidence: the same command runs on a copy restored to the
+    original text, and a failure is pre-existing only when it also fails there with the
+    same normalized signature. known maps already-checked ids to their original
+    signature ("" = did not fail there), so each id is rerun at most once.
+    """
+    result = await _run_tests(workspace, sandbox, command, timeout, runner=runner, code=code)
+    signatures = result.data.get("failure_signatures", {})
+    failing = {key for key, status in result.data.get("test_results", {}).items() if status == "failed"}
+    if baseline is None or code or not failing:
+        return result
+    known = dict(known or {})
+    unchecked = failing - known.keys()
+    if unchecked:
+        try:
+            with tempfile.TemporaryDirectory(prefix="aster-baseline-") as directory:
+                target = Workspace(Path(directory))
+                for source in workspace.files():
+                    copied = Path(directory) / source.relative_to(workspace.root)
+                    copied.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, copied)
+                current = target.text_snapshot()
+                for name in current.keys() - baseline.keys():
+                    (Path(directory) / name).unlink()
+                for name, text in baseline.items():
+                    if current.get(name) != text:
+                        path = Path(directory) / name
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_text(text, encoding="utf-8")
+                original = await _run_tests(target, sandbox, command, timeout, runner=runner)
+        except (OSError, ValueError, UnicodeError):
+            original = None
+        if original is not None and (original.status == "success" or original.reason == "tests_failed"):
+            original_results = original.data.get("test_results", {})
+            original_signatures = original.data.get("failure_signatures", {})
+            checked = {key: (original_signatures.get(key, "") if original_results.get(key) == "failed" else "")
+                       for key in unchecked}
+            known.update(checked)
+            result.data["baseline_signatures"] = checked
+    identical = sorted(key for key in failing if known.get(key) and known[key] == signatures.get(key))
+    # Evidence only: the verifier decides at final delivery (see Verifier.final).
+    result.data["baseline_identical"] = identical
+    if identical:
+        result.content += (
+            f"\n[Aster: {len(identical)} failing test(s) fail with the same error on the task's original "
+            f"files, so your changes have not affected them: {', '.join(identical[:10])}. If one covers the "
+            "behavior you were asked to change, your fix is not working yet. Otherwise it is a pre-existing "
+            "failure: do not chase it; report it as unverified in your final answer.]"
+        )
+    return result
+
+
+async def _run_tests(
     workspace: Workspace,
     sandbox: SandboxRunner,
     command: str,
@@ -500,7 +575,7 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             result.reason = failure_reason
     result.data["passed_tests"] = passed if result.status == "success" else 0
     # Preserve case identities for the verifier; these stay out of model tool output.
-    test_results = {}
+    test_results, failure_signatures = {}, {}
     if node or result.data.get("native_sympy_subprocess") is False:
         # ponytail: anonymous reports use the same command as their scope;
         # support narrower reruns when these reporters expose stable case identities.
@@ -528,9 +603,12 @@ raise SystemExit(pytest.main(sys.argv[1:]))
             key = f"{scope}: {classname}::{name}"
             if status == "failed" and network_unavailable(case.get("detail", "")):
                 status = "network_unavailable"
+            if status == "failed":
+                failure_signatures[key] = failure_signature(case.get("detail", ""))
             if test_results.get(key) != "failed":
                 test_results[key] = status
     result.data["test_results"] = test_results
+    result.data["failure_signatures"] = failure_signatures
     unreachable = sorted(key for key, status in test_results.items() if status == "network_unavailable")
     if unreachable:
         shown = ", ".join(unreachable[:10]) + (f" (+{len(unreachable) - 10} more)" if len(unreachable) > 10 else "")

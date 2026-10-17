@@ -41,7 +41,7 @@ class StallDetector:
         return ""
 
 
-def completion_feedback(state: RunState) -> str:
+def completion_feedback(state: RunState, accepted: dict[str, str] | None = None) -> str:
     missing = []
     task = state.task
     if state.pending_requirements:
@@ -52,15 +52,27 @@ def completion_feedback(state: RunState) -> str:
         missing.append("inspect the workspace")
     if task.require_edit and not state.changed_paths:
         missing.append("make the requested edit")
-    if task.require_verification and state.verification_failures:
-        pending = list(state.verification_failures.items())[:3]
-        missing.append(
-            "resolve previously failing tests: "
-            + "; ".join(f"{test} (from {command})" for test, command in pending)
-            + ". Rerun those cases after fixing them; passing a different selection does not "
-            "resolve them. Report remaining failures honestly"
-        )
-    elif task.require_verification and state.verification.state != "passed":
+    accepted = accepted or {}
+    failures = {k: v for k, v in state.verification_failures.items() if k not in accepted}
+    if task.require_verification and failures:
+        unexplained = {k: v for k, v in failures.items() if k not in state.preexisting_failures}
+        identical = [k for k in failures if k in state.preexisting_failures]
+        pending = list(unexplained.items())[:3]
+        if pending:
+            missing.append(
+                "resolve previously failing tests: "
+                + "; ".join(f"{test} (from {command})" for test, command in pending)
+                + ". Rerun those cases after fixing them; passing a different selection does not "
+                "resolve them. Report remaining failures honestly"
+            )
+        if identical:
+            missing.append(
+                "decide about tests that fail with the same error on the original files: "
+                + "; ".join(identical[:3])
+                + ". If the task requires one of them, fix it; otherwise finish again and list them "
+                "as pre-existing and unverified" + ("" if state.changed_paths else " after making the requested change")
+            )
+    elif task.require_verification and state.verification.state != "passed" and not accepted:
         missing.append(
             "run a successful verification command via run_tests "
             "(run_shell checks do not update formal verification)"

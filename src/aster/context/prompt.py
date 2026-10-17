@@ -190,6 +190,8 @@ def workflow_state(state):
         workflow["budget"] = {"level": "low", "remaining_fraction_at_most": 0.25}
     if state.environment_failures:
         workflow["network_unavailable_tests"] = list(state.environment_failures)[:8]
+    if state.preexisting_failures:
+        workflow["preexisting_failing_tests"] = list(state.preexisting_failures)[:8]
     if state.verification_failures:
         workflow["verification_failures"] = dict(list(state.verification_failures.items())[:8])
         workflow["verification_failure_count"] = len(state.verification_failures)

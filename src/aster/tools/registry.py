@@ -37,6 +37,9 @@ class ToolContext:
     readonly: bool = False
     workflow: WorkflowTools | None = None
     mcp: MCPTools | None = None
+    # Original task text and already-checked failure signatures for run_tests.
+    baseline_text: dict[str, str] | None = None
+    baseline_signatures: dict[str, str] | None = None
 
 
 class ToolRegistry:

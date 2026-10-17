@@ -106,6 +106,9 @@ class RunState(Record):
     verification: Verification = Field(default_factory=Verification)
     verification_failures: dict[str, str] = Field(default_factory=dict)
     environment_failures: dict[str, str] = Field(default_factory=dict)
+    preexisting_failures: dict[str, str] = Field(default_factory=dict)
+    # test id -> failure signature on the original files ("" = did not fail there)
+    baseline_signatures: dict[str, str] = Field(default_factory=dict)
     final: str = ""
     feedback: str = ""
     final_revisions: int = 0

@@ -1493,7 +1493,8 @@ class Runtime:
         context = ToolContext(
             self.workspace, self.sandbox, state.run_id, expected_files=expected_files,
             readonly=state.mode == "plan", workflow=None if detached else self._workflow_tools(),
-            mcp=self.mcp,
+            mcp=self.mcp, baseline_text=self._initial_text or None,
+            baseline_signatures=dict(state.baseline_signatures),
         )
         return call, ToolRegistry(context, validated=(call, arguments))
 
@@ -1600,7 +1601,8 @@ class Runtime:
             return state
         self._settle_workers()
         self._refresh_observations()
-        feedback = completion_feedback(state) if self.settings.completion != "off" else ""
+        feedback = (completion_feedback(state, self.verifier.accepted_preexisting(state))
+                    if self.settings.completion != "off" else "")
         if feedback and state.final_revisions < self.settings.max_final_revisions:
             state.final_revisions += 1
             state.feedback = feedback

@@ -345,6 +345,8 @@ class WorkspaceTools:
             args.timeout,
             runner=SandboxRunner,
             code=args.code,
+            baseline=self.context.baseline_text,
+            known=self.context.baseline_signatures,
         )
 
     @staticmethod
