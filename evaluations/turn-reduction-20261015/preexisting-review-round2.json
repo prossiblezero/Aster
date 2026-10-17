@@ -1,0 +1,295 @@
+{
+  "1:psf__requests-2931:2026:pytest: test_requests.TestTimeout::test_connect_timeout": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复非 ASCII 二进制请求体被错误解码的问题。该测试对 http://10.255.255.1 发送无请求体的 GET 并期待 ConnectTimeout；当前记录为 OSError [Errno 101] Network is unreachable，任务环境明确无外网。同一命令在未修改任务文件上也失败。补丁只修改 PreparedRequest.prepare_body 的 bytes 分支并增加二进制请求体回归测试，未修改这两项连接超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定这次网络连接失败与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-2931",
+    "attempt": 1,
+    "test_id": "pytest: test_requests.TestTimeout::test_connect_timeout",
+    "accepted_event_seq": 2026,
+    "declaration_command": "python -m pytest test_requests.py -k 'TestTimeout and (test_connect_timeout or test_total_timeout_connect)' --tb=short",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "a43e2f620b2142f4738c7a91ecd2d254a56c8f1d2cf00c39b7e9862452b46df3",
+      "check": {
+        "command": "python -m pytest test_requests.py -k 'TestTimeout and (test_connect_timeout or test_total_timeout_connect)'",
+        "timeout": 120,
+        "workspace_hash": "c203c756ad6abb45526057607a6a1ad8c20531704955525acce0f0d6836f1aa7",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: test_requests.TestTimeout::test_connect_timeout": "failed",
+          "pytest: test_requests.TestTimeout::test_total_timeout_connect": "failed"
+        }
+      },
+      "seq": 1695
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt1/runs/aster-psf__requests-2931/.aster.tar",
+    "task_image": "sha256:705258c23c73d25bc78ed6fa4b14836078d848a64ab9c3ea3032d1d523d7cca4",
+    "source_review": "只读读取原始任务镜像 /testbed/test_requests.py：两项测试均仅 requests.get(TARPIT, timeout=...)，TARPIT=http://10.255.255.1。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，两项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_b81f1adf3d9a46a9a8486b071e173287",
+      0
+    ]
+  },
+  "1:psf__requests-2931:2026:pytest: test_requests.TestTimeout::test_total_timeout_connect": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复非 ASCII 二进制请求体被错误解码的问题。该测试对 http://10.255.255.1 发送无请求体的 GET 并期待 ConnectTimeout；当前记录为 OSError [Errno 101] Network is unreachable，任务环境明确无外网。同一命令在未修改任务文件上也失败。补丁只修改 PreparedRequest.prepare_body 的 bytes 分支并增加二进制请求体回归测试，未修改这两项连接超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定这次网络连接失败与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-2931",
+    "attempt": 1,
+    "test_id": "pytest: test_requests.TestTimeout::test_total_timeout_connect",
+    "accepted_event_seq": 2026,
+    "declaration_command": "python -m pytest test_requests.py -k 'TestTimeout and (test_connect_timeout or test_total_timeout_connect)' --tb=short",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "a43e2f620b2142f4738c7a91ecd2d254a56c8f1d2cf00c39b7e9862452b46df3",
+      "check": {
+        "command": "python -m pytest test_requests.py -k 'TestTimeout and (test_connect_timeout or test_total_timeout_connect)'",
+        "timeout": 120,
+        "workspace_hash": "c203c756ad6abb45526057607a6a1ad8c20531704955525acce0f0d6836f1aa7",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: test_requests.TestTimeout::test_connect_timeout": "failed",
+          "pytest: test_requests.TestTimeout::test_total_timeout_connect": "failed"
+        }
+      },
+      "seq": 1695
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt1/runs/aster-psf__requests-2931/.aster.tar",
+    "task_image": "sha256:705258c23c73d25bc78ed6fa4b14836078d848a64ab9c3ea3032d1d523d7cca4",
+    "source_review": "只读读取原始任务镜像 /testbed/test_requests.py：两项测试均仅 requests.get(TARPIT, timeout=...)，TARPIT=http://10.255.255.1。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，两项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_b81f1adf3d9a46a9a8486b071e173287",
+      0
+    ]
+  },
+  "1:pytest-dev__pytest-10356:1961:pytest: testing.test_mark.TestFunctional::test_mark_decorator_subclass_does_not_propagate_to_base": {
+    "unrelated": false,
+    "reason": "用户人工确认不予豁免：题目要求修复按 MRO 收集类继承标记；该测试断言子类新增标记不传播到基类及其他子类，与本次 get_unpacked_marks/store_mark 修改的继承语义直接相关。实际错误是 pytester 子会话继承仓库 strict-markers 配置，未注册 a 导致收集失败，随后 KeyError: test_foo；同命令在未修改文件上也失败。但这意味着继承断言未被有效执行，不能据此证明该项与任务无关。新添多继承测试通过不能替代既有继承回归；独立评分仍为 resolved=false，候选还修改了若干既有测试的环境设置。证据不足以给出 unrelated=true。",
+    "suggested_unrelated": false,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "pytest-dev__pytest-10356",
+    "attempt": 1,
+    "test_id": "pytest: testing.test_mark.TestFunctional::test_mark_decorator_subclass_does_not_propagate_to_base",
+    "accepted_event_seq": 1961,
+    "declaration_command": "python -m pytest testing/test_mark.py -q -k 'test_mark_decorator_multiple_inheritance or test_mark_decorator_subclass_does_not_propagate_to_base'",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "d2ff827837dc5f974502e52a08a1b9facea01e6bb07eda559aa18353a0cfc526",
+      "check": {
+        "command": "python -m pytest testing/test_mark.py -q",
+        "timeout": 120,
+        "workspace_hash": "aa189c81e1cfc5dd6c728eb17d58f9a7784f36294863276f61e79f9ad2c41110",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: testing.test_mark.TestFunctional::test_keyword_added_for_session": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_keywords_at_node_level": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_mark_closest": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_mark_decorator_baseclasses_merged": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_mark_decorator_subclass_does_not_propagate_to_base": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_mark_dynamically_in_funcarg": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_mark_should_not_pass_to_siebling_class": "failed",
+          "pytest: testing.test_mark.TestFunctional::test_no_marker_match_on_unmarked_names": "failed",
+          "pytest: testing.test_mark::test_mark_expressions_no_smear": "failed",
+          "pytest: testing.test_mark::test_mark_on_pseudo_function": "failed",
+          "pytest: testing.test_mark::test_mark_option[(((  xyz))  )-expected_passed1]": "failed",
+          "pytest: testing.test_mark::test_mark_option[not not xyz-expected_passed2]": "failed",
+          "pytest: testing.test_mark::test_mark_option[xyz or xyz2-expected_passed5]": "failed",
+          "pytest: testing.test_mark::test_mark_option[xyz-expected_passed0]": "failed",
+          "pytest: testing.test_mark::test_mark_option[xyz2-expected_passed4]": "failed",
+          "pytest: testing.test_mark::test_mark_option_custom[interface-expected_passed0]": "failed",
+          "pytest: testing.test_mark::test_mark_option_custom[not interface-expected_passed1]": "failed",
+          "pytest: testing.test_mark::test_markers_from_parametrize": "failed",
+          "pytest: testing.test_mark::test_parametrized_collect_with_wrong_args": "failed",
+          "pytest: testing.test_mark::test_strict_prohibits_unregistered_markers[--strict]": "failed"
+        }
+      },
+      "seq": 1580
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt1/runs/aster-pytest-dev__pytest-10356/.aster.tar",
+    "assertion_review": "self.assert_markers(items, test_foo=('a', 'b'), test_bar=('a',))",
+    "observed_error": "'a' not found in markers configuration; collected 0 items / 1 error; KeyError: test_foo",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "不豁免，记录 unrelated=false",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_2b0b4475a86d4e18b3e766eb0e949c93",
+      0
+    ]
+  },
+  "3:psf__requests-5414:2311:pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout0]": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复以点开头等非法 URL 标签的校验，使 http://.example.com 抛出 InvalidURL 而非 UnicodeError。该测试对有效 IP http://10.255.255.1 发送无请求体 GET 并期待连接超时，实际为 OSError [Errno 101] Network is unreachable，任务环境明确无外网；未修改任务文件的基线亦失败。候选补丁只增加 URL 主机标签校验及相关回归测试，未修改这四项超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定该网络故障与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-5414",
+    "attempt": 3,
+    "test_id": "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout0]",
+    "accepted_event_seq": 2311,
+    "declaration_command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout1]'",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "1334cdfeb85e99eba3a38460ed513d10e66016f1fad4e78cab328d31f4f01a91",
+      "check": {
+        "command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]'",
+        "timeout": 120,
+        "workspace_hash": "f79bad4d85c40ababbffbe8bb57eab97a68d457b216936ed511f7fcfcdf83e98",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout0]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout1]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout0]": "failed"
+        }
+      },
+      "seq": 2034
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt3/runs/aster-psf__requests-5414/.aster.tar",
+    "observed_error": "OSError: [Errno 101] Network is unreachable; host=10.255.255.1; method=GET; body=None",
+    "patch_review": "requests/models.py 增加非法 URL 主机标签校验，新增 URL 回归测试；未修改连接超时测试。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，四项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_ba1c498ed1d54a8a8d37a48349043065",
+      0
+    ]
+  },
+  "3:psf__requests-5414:2311:pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout1]": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复以点开头等非法 URL 标签的校验，使 http://.example.com 抛出 InvalidURL 而非 UnicodeError。该测试对有效 IP http://10.255.255.1 发送无请求体 GET 并期待连接超时，实际为 OSError [Errno 101] Network is unreachable，任务环境明确无外网；未修改任务文件的基线亦失败。候选补丁只增加 URL 主机标签校验及相关回归测试，未修改这四项超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定该网络故障与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-5414",
+    "attempt": 3,
+    "test_id": "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout1]",
+    "accepted_event_seq": 2311,
+    "declaration_command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout1]'",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "1334cdfeb85e99eba3a38460ed513d10e66016f1fad4e78cab328d31f4f01a91",
+      "check": {
+        "command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]'",
+        "timeout": 120,
+        "workspace_hash": "f79bad4d85c40ababbffbe8bb57eab97a68d457b216936ed511f7fcfcdf83e98",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout0]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout1]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout0]": "failed"
+        }
+      },
+      "seq": 2034
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt3/runs/aster-psf__requests-5414/.aster.tar",
+    "observed_error": "OSError: [Errno 101] Network is unreachable; host=10.255.255.1; method=GET; body=None",
+    "patch_review": "requests/models.py 增加非法 URL 主机标签校验，新增 URL 回归测试；未修改连接超时测试。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，四项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_ba1c498ed1d54a8a8d37a48349043065",
+      0
+    ]
+  },
+  "3:psf__requests-5414:2311:pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout0]": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复以点开头等非法 URL 标签的校验，使 http://.example.com 抛出 InvalidURL 而非 UnicodeError。该测试对有效 IP http://10.255.255.1 发送无请求体 GET 并期待连接超时，实际为 OSError [Errno 101] Network is unreachable，任务环境明确无外网；未修改任务文件的基线亦失败。候选补丁只增加 URL 主机标签校验及相关回归测试，未修改这四项超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定该网络故障与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-5414",
+    "attempt": 3,
+    "test_id": "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout0]",
+    "accepted_event_seq": 2311,
+    "declaration_command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout1]'",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "1334cdfeb85e99eba3a38460ed513d10e66016f1fad4e78cab328d31f4f01a91",
+      "check": {
+        "command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]'",
+        "timeout": 120,
+        "workspace_hash": "f79bad4d85c40ababbffbe8bb57eab97a68d457b216936ed511f7fcfcdf83e98",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout0]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_connect_timeout[timeout1]": "failed",
+          "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout0]": "failed"
+        }
+      },
+      "seq": 2034
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt3/runs/aster-psf__requests-5414/.aster.tar",
+    "observed_error": "OSError: [Errno 101] Network is unreachable; host=10.255.255.1; method=GET; body=None",
+    "patch_review": "requests/models.py 增加非法 URL 主机标签校验，新增 URL 回归测试；未修改连接超时测试。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，四项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_ba1c498ed1d54a8a8d37a48349043065",
+      0
+    ]
+  },
+  "3:psf__requests-5414:2311:pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout1]": {
+    "unrelated": true,
+    "reason": "用户人工确认与任务无关：题目要求修复以点开头等非法 URL 标签的校验，使 http://.example.com 抛出 InvalidURL 而非 UnicodeError。该测试对有效 IP http://10.255.255.1 发送无请求体 GET 并期待连接超时，实际为 OSError [Errno 101] Network is unreachable，任务环境明确无外网；未修改任务文件的基线亦失败。候选补丁只增加 URL 主机标签校验及相关回归测试，未修改这四项超时测试；独立 SWE-bench 评分 resolved=true。经用户确认，认定该网络故障与任务要求无关，但基线失败本身并非豁免理由。",
+    "suggested_unrelated": true,
+    "review_status": "human_reviewed",
+    "evidence_prepared_by": "Codex",
+    "task": "psf__requests-5414",
+    "attempt": 3,
+    "test_id": "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout1]",
+    "accepted_event_seq": 2311,
+    "declaration_command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout1]'",
+    "baseline": {
+      "status": "failed",
+      "evidence_id": "d8e5765d2119e47817ce500e950dd8706bab681a608c824845aff49493dc7e67",
+      "check": {
+        "command": "python -m pytest 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout0]' 'tests/test_requests.py::TestTimeout::test_connect_timeout[timeout1]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout0]' 'tests/test_requests.py::TestTimeout::test_total_timeout_connect[timeout1]'",
+        "timeout": 120,
+        "workspace_hash": "f79bad4d85c40ababbffbe8bb57eab97a68d457b216936ed511f7fcfcdf83e98",
+        "status": "error",
+        "reason": "tests_failed",
+        "test_results": {
+          "pytest: tests.test_requests.TestTimeout::test_total_timeout_connect[timeout1]": "failed"
+        }
+      },
+      "seq": 2311
+    },
+    "raw_trace": "artifacts/private/turn-reduction-20261015/round2/attempt3/runs/aster-psf__requests-5414/.aster.tar",
+    "observed_error": "OSError: [Errno 101] Network is unreachable; host=10.255.255.1; method=GET; body=None",
+    "patch_review": "requests/models.py 增加非法 URL 主机标签校验，新增 URL 回归测试；未修改连接超时测试。",
+    "reviewed_by": "user",
+    "reviewed_at": "2026-10-16T12:12:54.239825+00:00",
+    "human_reply": "确认，四项均与任务无关",
+    "human_review_question_id": [
+      "request_user_input_async",
+      "call_ba1c498ed1d54a8a8d37a48349043065",
+      0
+    ]
+  }
+}
