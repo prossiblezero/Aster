@@ -57,8 +57,8 @@ def pool_dir(name):
 
 def select(spec, pool=BASE):
     tasks = load(pool / 'tasks.json')
-    if spec == ['fresh30']:
-        chosen = [t for t in tasks if t.get('pool') == 'fresh30']
+    if len(spec) == 1 and spec[0] in {t['pool'] for t in tasks if t.get('pool')}:
+        chosen = [t for t in tasks if t.get('pool') == spec[0]]  # fresh30, fresh30b, ...
     elif spec in (['old20'], ['new30']):
         chosen = [t for t in tasks if t['exposure'] == spec[0] and 'pool' not in t]
     else:
@@ -359,7 +359,7 @@ def main():
     parser.add_argument('--sources', nargs='+', default=['run'], help='regrade: run, reference, pi, codex')
     parser.add_argument('name')
     parser.add_argument('--ref', help='git ref to export (prepare)')
-    parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, fresh30, or task ids (prepare)')
+    parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, a pool tag (fresh30, fresh30b), or task ids (prepare)')
     parser.add_argument('--pool', default='general-coding-50-20261012', help='private task pool directory (prepare)')
     parser.add_argument('--agent', default='aster', choices=['aster', 'pi', 'codex'], help='agent to run (prepare)')
     parser.add_argument('--concurrency', type=int, default=6,
