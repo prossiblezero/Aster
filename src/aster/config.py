@@ -178,6 +178,8 @@ class Settings(Record):
     memory_enabled: bool = True
     memory_evolution: bool = True
     auto_dream: bool = True
+    # One-shot runs exit after the answer; 0 leaves memory consolidation for the next session.
+    oneshot_maintenance_seconds: float = Field(default=0, ge=0, le=120)
     tool_profile: Literal["core", "all"] = "core"
     max_workers: int = Field(default=0, ge=0, le=4)
     read_parallelism: int = Field(default=1, ge=1, le=8)

@@ -512,3 +512,30 @@ async def test_same_day_relative_time_is_not_treated_as_unchanged(tmp_path, monk
         await rt.maintenance.drain(2)
         await rt.maintenance.close()
     assert learner.calls == 2
+
+
+def test_one_shot_cli_leaves_consolidation_for_the_next_session(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+
+    from aster import cli
+    from aster.config import Settings
+    from aster.schema import RunState
+
+    maintenance = SimpleNamespace(drain=AsyncMock(), close=AsyncMock())
+
+    class Fake:
+        settings = Settings()
+        evidence = SimpleNamespace(redactor=SimpleNamespace(text=str))
+
+        def __init__(self):
+            self.maintenance = maintenance
+
+        async def run(self, task):
+            return RunState(task=TaskSpec(prompt=task), phase="completed", final="done")
+
+    asyncio.run(cli._run_terminal(Fake(), "task"))
+    maintenance.drain.assert_not_called()
+    Fake.settings = Settings(oneshot_maintenance_seconds=5)
+    asyncio.run(cli._run_terminal(Fake(), "task"))
+    maintenance.drain.assert_awaited_once_with(timeout=5)

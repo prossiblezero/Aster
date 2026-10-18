@@ -29,7 +29,10 @@ async def main():
         await runtime.run(TaskSpec(prompt=Path('/agent-state/prompt.txt').read_text(),
                                    max_steps=500, max_turns=500,
                                    require_edit=True, require_verification=True))
-        await runtime.maintenance.drain(timeout=15)
+        # Same as the product's one-shot CLI: versions without the setting drained 15 s.
+        wait = getattr(runtime.settings, 'oneshot_maintenance_seconds', 15)
+        if wait:
+            await runtime.maintenance.drain(timeout=wait)
     finally:
         await runtime.maintenance.close()
         await runtime.workers.close()

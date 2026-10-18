@@ -198,6 +198,7 @@ def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):
             from unittest.mock import AsyncMock
 
             seen["settings"] = settings
+            self.settings = settings
             self.state = None
             self.evidence = SimpleNamespace(
                 redactor=Redactor([settings.api_key.get_secret_value()]), listeners=[]

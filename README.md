@@ -29,7 +29,7 @@ Aster 关注模型提出动作之后的工程问题：如何组织上下文、�
 
 默认使用单 Agent 和核心工具集，项目记忆、记忆演化与自动 Dream 整理均已开启，普通用户无需配置。模型自主 Worker 委派及依赖复用需显式开启。交互入口默认启用 Responses 流式，单次 CLI 任务默认非流式，均可通过配置覆盖。功能边界与配置项见[配置说明](docs/configuration.md)。
 
-记忆既可保留文件摘录，也可从真实用户请求、文件和执行结果中提炼知识。任务结束后会自动从真实交互中提炼遗漏的约定、纠正和有测试支持的修复经验。后台沿用当前模型，一批至多处理三个任务、提出三项变更；提交成功才显示保存回执。主任务可以继续执行，单次 CLI 先输出答案，再给整理最多 15 秒，未完成的材料留到下次。存储仍为本地 JSON，详见[记忆教程](docs/learning/10-layered-memory.md)、[自进化教程](docs/learning/11-memory-evolution.md)、[前期知识对照](evaluations/memory-knowledge-20261005/REPORT.md)及[自动学习十题](evaluations/memory-sleep-20261005/REPORT.md)。
+记忆既可保留文件摘录，也可从真实用户请求、文件和执行结果中提炼知识。任务结束后会自动从真实交互中提炼遗漏的约定、纠正和有测试支持的修复经验。后台沿用当前模型，一批至多处理三个任务、提出三项变更；提交成功才显示保存回执。主任务可以继续执行；单次 CLI 默认不在任务结束后发起整理请求，材料留到下次交互式会话（`oneshot_maintenance_seconds` 可设置等待时间）。存储仍为本地 JSON，详见[记忆教程](docs/learning/10-layered-memory.md)、[自进化教程](docs/learning/11-memory-evolution.md)、[前期知识对照](evaluations/memory-knowledge-20261005/REPORT.md)及[自动学习十题](evaluations/memory-sleep-20261005/REPORT.md)。
 
 后续[十题降耗对照](evaluations/memory-cost-20261007/REPORT.md)在自动学习开启时，已报告总 token 减少 39.9%，包含学习、后台整理与后续任务。正常完成且通过同为 9/10，但新版有一条 CSV 约定遗漏，修正后单题补查通过；全部失败、未知用量及证据边界见报告。
 

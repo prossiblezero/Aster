@@ -176,7 +176,8 @@ async def _run_terminal(runtime, task=None):
         state = await runtime.run(task)
         if state.final:
             print(runtime.evidence.redactor.text(state.final), flush=True)
-        await runtime.maintenance.drain(timeout=15)
+        if runtime.settings.oneshot_maintenance_seconds:
+            await runtime.maintenance.drain(timeout=runtime.settings.oneshot_maintenance_seconds)
         return state
     finally:
         await runtime.maintenance.close()

@@ -137,6 +137,7 @@ MCP 使用可选依赖与 `[mcp_servers.NAME]` 配置，支持 stdio 和 Streama
 | `memory_enabled` | `true` | 开关跨运行记忆的保存和召回；**不关闭会话内 working memory** |
 | `memory_evolution` | `true` | 开关经验提炼、使用反馈、基于反馈的排序及 Dream；关闭后仍可保存知识，来源失效和安全准入仍生效 |
 | `auto_dream` | `true` | 任务结束登记待整理材料；规则停用失效条目，后台沿用当前模型有界提炼和合并 |
+| `oneshot_maintenance_seconds` | `0` | 单次 CLI 任务输出答案后，等待后台记忆整理的秒数。默认 0：不在单次任务里发起整理请求，待整理材料保留到下次交互式会话 |
 
 以下属于 [TaskSpec](../src/aster/schema.py)，不是全局 Settings：
 
