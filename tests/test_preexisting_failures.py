@@ -125,3 +125,18 @@ async def test_each_failing_test_is_checked_on_the_original_files_once(tmp_path,
     await run(runtime)
     await run(runtime)
     assert len(calls) == 3  # first run + one baseline run + second run (no new failures)
+
+
+@pytest.mark.asyncio
+async def test_original_files_check_sees_the_real_workspace_path(tmp_path):
+    # Editable installs and fixtures address the workspace absolutely; the rerun on the
+    # original files must see that path too, or a pre-existing failure looks new.
+    (tmp_path / "data.json").write_text('{"v": 1}')
+    runtime = setup(tmp_path)
+    (tmp_path / "test_env.py").write_text(
+        f"import json\n\ndef test_env():\n    json.load(open({str(tmp_path / 'data.json')!r}))\n"
+        "    raise RuntimeError('cftime version mismatch')\n")
+    runtime._initial_text = runtime.workspace.text_snapshot()
+    await edit(runtime, "VALUE = 1")
+    result = await run(runtime)
+    assert result.data["baseline_identical"] == ["pytest: test_env::test_env"]

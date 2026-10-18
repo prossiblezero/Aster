@@ -168,7 +168,8 @@ async def run_tests(
                         path = Path(directory) / name
                         path.parent.mkdir(parents=True, exist_ok=True)
                         path.write_text(text, encoding="utf-8")
-                original = await _run_tests(target, sandbox, command, timeout, runner=runner)
+                original = await _run_tests(target, sandbox, command, timeout, runner=runner,
+                                            readable=workspace.root)
         except (OSError, ValueError, UnicodeError):
             original = None
         if original is not None and (original.status == "success" or original.reason == "tests_failed"):
@@ -256,7 +257,7 @@ def project_test_command(command: str) -> bool:
 
 async def _run_command_tests(
     workspace: Workspace, sandbox: SandboxRunner, command: str, timeout: int, *,
-    runner: type[SandboxRunner] = SandboxRunner, code: str = "",
+    runner: type[SandboxRunner] = SandboxRunner, code: str = "", readable: Path | None = None,
 ) -> Outcome:
     """Run a project's own test command in a disposable copy; the exit code is the evidence."""
     if code or not project_test_command(command):
@@ -275,7 +276,7 @@ async def _run_command_tests(
         # Build products and caches may be written; they land in this discarded copy only.
         settings = sandbox.settings.model_copy(update={"read_only": False, "write_scope": None})
         command_runner = runner(settings, environment=sandbox)
-        command_runner.readable_roots = (workspace.root,)
+        command_runner.readable_roots = (readable or workspace.root,)
         result = await command_runner.run(Workspace(target), command, timeout)
     key = "command: " + command
     result.changed_paths, result.partial_success = [], False
@@ -308,8 +309,12 @@ async def _run_tests(
     *,
     runner: type[SandboxRunner] = SandboxRunner,
     code: str = "",
+    readable: Path | None = None,
 ) -> Outcome:
-    """Run tests in a disposable copy; publish only structured, version-bound evidence."""
+    """Run tests in a disposable copy; publish only structured, version-bound evidence.
+
+    readable is the real workspace the copy stands for (editable installs point at it); a
+    copy of the original files must still see that path, or its failures differ."""
     # Tests run in a copy, so absolute paths into the real workspace become relative ones.
     command = map_root(command, workspace.root, Path("."))
     # Tests already start in the workspace copy, so a leading `cd <workspace> &&` is a no-op.
@@ -320,7 +325,8 @@ async def _run_tests(
     except ValueError:
         argv = []
     if not argv:
-        return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner, code=code)
+        return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner, code=code,
+                                        readable=readable)
     jest = jest_entry(argv)
     verification_command = shlex.join(argv)
     python_paths = []
@@ -334,7 +340,8 @@ async def _run_tests(
         c in command for c in ";|&><$`\n"
     ):
         if not code and project_test_command(command):
-            return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner)
+            return await _run_command_tests(workspace, sandbox, command, timeout, runner=runner,
+                                            readable=readable)
         return Outcome(
             status="blocked",
             reason="test_command_not_supported",
@@ -630,7 +637,7 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         # Tests cannot publish any change to the actual repository, including in plan mode.
         # Capture it before validation can reject an unrelated test-created file.
         report_runner = ReportRunner(settings, environment=sandbox)
-        report_runner.readable_roots = (workspace.root,)
+        report_runner.readable_roots = (readable or workspace.root,)
         result = await report_runner.run(Workspace(target), shlex.join(command), timeout)
         if code and script:
             # One fixed id for every script is no test identity; like an exit code it sets state only.
