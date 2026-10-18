@@ -74,7 +74,7 @@ def completion_feedback(state: RunState, accepted: dict[str, str] | None = None)
             )
     elif task.require_verification and state.verification.state != "passed" and not accepted:
         missing.append(
-            "run a successful verification command via run_tests "
-            "(run_shell checks do not update formal verification)"
+            "run the relevant tests on the final code (run_tests, or a test command in run_shell; "
+            "other shell checks are not verification)"
         )
     return "Completion requirements missing: " + ", ".join(missing) if missing else ""

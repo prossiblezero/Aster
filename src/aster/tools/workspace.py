@@ -8,6 +8,7 @@ import json
 import mimetypes
 import os
 import re
+import shlex
 import tempfile
 from collections.abc import Iterable
 from itertools import islice
@@ -30,7 +31,13 @@ from .schemas import (
     ServiceStart,
     WriteFile,
 )
-from .testing import run_tests
+from .testing import project_test_command, run_tests
+
+# Output trimming around a test command changes only what is shown, and hides the exit code.
+SHELL_OUTPUT_TRIM = re.compile(r"\s+2>&1|\s*\|\s*(?:tail|head)(?:\s+-n)?\s+-?\d+\s*$")
+# run_tests reasons meaning "not a test run": the command then runs as an ordinary shell command.
+NOT_TEST_RUNS = {"test_command_not_supported", "inline_test_command_not_supported",
+                 "test_script_not_in_workspace", "isolation_required_for_scope"}
 
 if TYPE_CHECKING:
     from .registry import ToolContext
@@ -337,12 +344,40 @@ class WorkspaceTools:
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:
+        if (verified := await self._shell_tests(args)) is not None:
+            return verified
         return await self.context.sandbox.run(
             self.context.workspace,
             args.command,
             args.timeout,
             readonly=self.context.readonly,
         )
+
+    async def _shell_tests(self, args: RunShell) -> Outcome | None:
+        """A test command sent to run_shell runs as run_tests would, so it is not run twice."""
+        command = SHELL_OUTPUT_TRIM.sub("", args.command).strip()
+        try:
+            argv = shlex.split(command)
+        except ValueError:
+            return None
+        while argv and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", argv[0]):
+            argv = argv[1:]
+        framework = argv[:1] in (["pytest"], ["jest"], ["npx"]) or argv[:3] in (
+            ["python", "-m", "pytest"], ["python", "-m", "unittest"], ["python3", "-m", "pytest"]
+        ) or argv[:2] in (["node", "--test"], ["go", "test"])
+        if not (framework or project_test_command(command)):
+            return None
+        outcome = await run_tests(
+            self.context.workspace, self.context.sandbox, command.replace("python3 -m", "python -m", 1),
+            args.timeout, runner=SandboxRunner,
+            baseline=self.context.baseline_text, known=self.context.baseline_signatures,
+        )
+        if outcome.reason in NOT_TEST_RUNS:
+            return None
+        outcome.data["shell_verification"] = True
+        outcome.content = ("[Aster ran this test command as formal verification in a disposable copy; "
+                           "files the tests write are not kept.]\n" + outcome.content)
+        return outcome
 
     @staticmethod
     def _tail(path: Path, limit: int = 2000) -> str:

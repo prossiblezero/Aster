@@ -1543,7 +1543,7 @@ class Runtime:
         if outcome.data.get("idempotency_replayed"):
             state.used_call_ids.append(call.call_id)
             return outcome
-        if call.name == "run_tests":
+        if call.name == "run_tests" or outcome.data.get("shell_verification"):
             outcome.data["is_verification"] = True
             outcome.data["command"] = call.arguments.get("command", "")
         after = (

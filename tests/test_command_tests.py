@@ -130,3 +130,23 @@ async def test_metadata_changes_to_the_readable_original_are_restored(tmp_path):
     result = await SandboxRunner(Settings()).run(Workspace(tmp_path), command)
     assert result.reason == "sandbox_metadata_change" and result.data["restored_modes"] == ["tool.sh"]
     assert path.stat().st_mode & 0o777 == 0o644
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", ["python -m pytest -q 2>&1 | tail -20", "make test"])
+async def test_test_commands_in_run_shell_are_formal_verification(tmp_path, command):
+    (tmp_path / "test_a.py").write_text("def test_a():\n    assert True\n")
+    (tmp_path / "Makefile").write_text("test:\n\t@python -m pytest -q\n")
+    runtime = runtime_for(tmp_path)
+    result = await runtime.step(ToolCall(name="run_shell", arguments={"command": command}))
+    assert result.status == "success" and "formal verification" in result.content
+    assert runtime.state.verification.state == "passed"
+
+
+@pytest.mark.asyncio
+async def test_ordinary_shell_commands_are_not_rerouted(tmp_path):
+    (tmp_path / "run.py").write_text("print('hello')\n")
+    runtime = runtime_for(tmp_path)
+    result = await runtime.step(ToolCall(name="run_shell", arguments={"command": "python run.py"}))
+    assert result.status == "success" and "hello" in result.content
+    assert runtime.state.verification.state != "passed"
