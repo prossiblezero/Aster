@@ -125,3 +125,15 @@ def test_tolerant_span_keeps_line_boundaries():
     start, end = tolerant_span(text, "b\n")
     assert text[start:end] == "  b  \n"
     assert tolerant_span(text, "zzz") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("arguments", [
+    {"pattern": "return", "regex=false,": ":"},
+    {"pattern": "return", "regex:false,": "garbage}}]"},
+    {"pattern": "return", "context": 8},
+])
+async def test_search_salvages_common_argument_slips(tmp_path, arguments):
+    runtime = await runtime_with(tmp_path)
+    result = await runtime.step(ToolCall(name="search", arguments=arguments))
+    assert result.status == "success" and result.data["count"] == 2

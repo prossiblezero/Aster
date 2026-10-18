@@ -74,6 +74,8 @@ async def test_files_the_copy_refuses_to_publish_do_not_void_test_evidence(tmp_p
     ("make all && make test", True),
     ("cmake -S . -B build && cmake --build build && ctest --test-dir build", True),
     ("g++ -I. a.cpp a_test.cpp -o .tmp/a_tests && .tmp/a_tests", True),
+    ("mkdir -p .tmp && g++ clock_test.cpp clock.cpp -o .tmp/clock && .tmp/clock", True),
+    ("g++ main.cpp -o .tmp/app && .tmp/app", False),
     ("CI=1 npm test", True),
     ("./run_tests.sh", True),
     ("ctest | tail -20", False),
@@ -171,3 +173,14 @@ async def test_passing_verification_summarises_changes(tmp_path):
         "path": "app.py", "old_text": "VALUE = 0", "new_text": "VALUE = 1"}))
     result = await run(runtime, "python -m pytest -q")
     assert result.status == "success" and "[Changes since the task began: app.py +1 -1]" in result.content
+
+
+@pytest.mark.asyncio
+async def test_tests_that_create_files_keep_their_evidence(tmp_path):
+    (tmp_path / "test_out.py").write_text(
+        "from pathlib import Path\n\ndef test_build():\n    Path('_build').mkdir(exist_ok=True)\n"
+        "    Path('_build/index.html').write_text('ok')\n")
+    runtime = runtime_for(tmp_path)
+    result = await run(runtime, "python -m pytest -q test_out.py")
+    assert result.status == "success", result.content
+    assert runtime.state.verification.state == "passed" and not (tmp_path / "_build").exists()

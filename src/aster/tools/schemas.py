@@ -1,6 +1,7 @@
 """Tool parameter contracts, descriptions, effects and model-visible definitions."""
 from __future__ import annotations
 
+import re
 from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
@@ -39,7 +40,24 @@ class Search(Record):
     limit: int = Field(
         default=500, ge=1, le=500, description="Maximum matching lines in this page."
     )
-    context: int = Field(default=0, ge=0, le=5, description="Context lines per match, like grep -C.")
+    context: int = Field(default=0, ge=0, le=10, description="Context lines per match, like grep -C.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def lenient(cls, data):
+        """Read-only, so salvage common slips instead of costing a turn: a value fused into
+        its key ("regex=false,": ...), unknown keys, and context beyond the cap."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        for key in [k for k in data if k not in cls.model_fields]:
+            fused = re.fullmatch(r"\s*(regex|context|limit|offset)\s*[:=]\s*([\w.]*)\W*", key)
+            if fused and fused.group(1) not in data and fused.group(2):
+                data[fused.group(1)] = fused.group(2)
+            data.pop(key)
+        if isinstance(data.get("context"), int) and data["context"] > 10:
+            data["context"] = 10
+        return data
 
 
 class WriteFile(Record):

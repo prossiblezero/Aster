@@ -226,6 +226,7 @@ def project_test_command(command: str) -> bool:
     if re.search(r"\||;|<|`|\$\(|\n", command):
         return False
     tests = False
+    test_builds = set()  # outputs of compiling a test source, which a later step may run
     for step in command.split("&&"):
         try:
             words = shlex.split(step)
@@ -243,10 +244,13 @@ def project_test_command(command: str) -> bool:
                                      and re.search(r"(?i)test", Path(words[1]).name)) or (
                 re.fullmatch(r"python[0-9.]*", name) and words[1:2] == ["-m"] and words[2:3] in (["pytest"], ["unittest"])):
             tests = True
-        elif re.search(r"(?i)test", name) and program not in {"test", "["}:
+        elif (re.search(r"(?i)test", name) and program not in {"test", "["}) or program in test_builds:
             tests = True
         elif program not in COMPILERS and name not in COMPILERS:
             return False
+        elif "-o" in words[:-1] and any(re.search(r"(?i)test", Path(w).name) for w in words[1:]):
+            output = words[words.index("-o") + 1]
+            test_builds |= {output, "./" + output.removeprefix("./")}
     return tests
 
 
@@ -607,6 +611,13 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         report_text = staged_root = None
 
         class ReportRunner(runner):
+            def _publish(self, workspace, staged, before, after, result):
+                # New files (build output, caches) stay in this disposable copy and do not
+                # weaken the evidence; changing or deleting an existing file still does.
+                if not any(name in before for name in Workspace.changes(before, after)):
+                    return result
+                return super()._publish(workspace, staged, before, after, result)
+
             def _collected(self, staged):
                 nonlocal report_text, staged_root
                 staged_root = Path(staged)
