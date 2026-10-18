@@ -180,6 +180,9 @@ class Settings(Record):
     auto_dream: bool = True
     # One-shot runs exit after the answer; 0 leaves memory consolidation for the next session.
     oneshot_maintenance_seconds: float = Field(default=0, ge=0, le=120)
+    # Start memory consolidation (model requests) in the background at session boundaries.
+    # The one-shot CLI turns it off unless oneshot_maintenance_seconds asks it to wait.
+    background_maintenance: bool = True
     # [Context update] notes on workflow state (changed files, verification, budget level).
     workflow_notes: bool = True
     tool_profile: Literal["core", "all"] = "core"
@@ -279,9 +282,11 @@ class Settings(Record):
 
     def identity(self) -> dict:
         """Checkpoints bind to effective boundaries, not credentials."""
-        identity = self.model_dump(mode="json", exclude={"api_key", "base_url"})
-        # Keep default identities compatible with checkpoints made before resilience options.
-        for name, default in (("circuit_failures", 3), ("circuit_cooldown", 30)):
+        # Background-maintenance timing is process lifecycle, not a checkpoint boundary.
+        identity = self.model_dump(mode="json", exclude={
+            "api_key", "base_url", "background_maintenance", "oneshot_maintenance_seconds"})
+        # Keep default identities compatible with checkpoints made before these options.
+        for name, default in (("circuit_failures", 3), ("circuit_cooldown", 30), ("workflow_notes", True)):
             if identity[name] == default:
                 identity.pop(name)
         for server in identity["mcp_servers"].values():

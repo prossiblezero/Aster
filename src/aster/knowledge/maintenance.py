@@ -170,6 +170,7 @@ class MemoryMaintenance:
     def pulse(self, *, owned=False, start=True):
         """Nonblocking safe boundary, called by Runtime or after background completion."""
         rt = self.runtime
+        start = start and rt.settings.background_maintenance
         if not self.enabled or self._closing or rt._snapshot_sources is not None:
             return
         lease = None

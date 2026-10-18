@@ -539,3 +539,16 @@ def test_one_shot_cli_leaves_consolidation_for_the_next_session(tmp_path, monkey
     Fake.settings = Settings(oneshot_maintenance_seconds=5)
     asyncio.run(cli._run_terminal(Fake(), "task"))
     maintenance.drain.assert_awaited_once_with(timeout=5)
+
+
+async def test_one_shot_runtime_never_starts_background_consolidation(tmp_path):
+    learner = Learn()
+    rt = runtime(tmp_path, learner, background_maintenance=False)
+    state = await rt.run(TaskSpec(prompt="Project invoice amounts use Decimal and ROUND_DOWN; acknowledge the convention."))
+    await asyncio.sleep(0.2)
+    assert state.phase == "completed" and learner.calls == 0 and rt.maintenance.task is None
+    await rt.maintenance.close()
+    later = runtime(tmp_path, learner)  # the next session picks the pending material up
+    await later.run(TaskSpec(prompt="Hello."))
+    await later.maintenance.drain(2)
+    assert learner.calls == 1

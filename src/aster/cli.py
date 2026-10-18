@@ -136,6 +136,9 @@ def main(argv=None):
         )
     if not args.prompt and not args.resume:
         parser.error("prompt is required")
+    if not settings.oneshot_maintenance_seconds:
+        # One-shot: no background memory consolidation; pending material waits for a session.
+        settings = settings.model_copy(update={"background_maintenance": False})
     terminal = Terminal(settings)
     runtime = Runtime(
         Path(args.cwd),
