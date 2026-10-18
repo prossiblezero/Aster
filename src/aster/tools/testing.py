@@ -221,6 +221,24 @@ def inline_script_as_test(script: str) -> str:
     )
 
 
+HEREDOC_SCRIPT = re.compile(r"\s*(?:cd\s+\S+\s*&&\s*)?python3?\s+-\s*<<-?\s*['\"]?(\w+)['\"]?\n(.*)\n\1\s*", re.S)
+
+
+def inline_script_command(command: str) -> str:
+    """`python -c '...'` or a `python - <<EOF` heredoc that asserts: the script, else ""."""
+    if match := HEREDOC_SCRIPT.fullmatch(command):
+        script = match.group(2)
+    else:
+        try:
+            argv = shlex.split(command)
+        except ValueError:
+            return ""
+        if len(argv) != 3 or argv[0] not in {"python", "python3"} or argv[1] != "-c":
+            return ""
+        script = argv[2]
+    return script if re.search(r"(?:^|;)\s*assert\b", script, re.M) or TEST_DEFINITION.search(script) else ""
+
+
 def project_test_command(command: str) -> bool:
     """A project's own build/test chain, judged by exit code; ad-hoc shell checks are not.
 
@@ -322,6 +340,8 @@ async def _run_tests(
 
     readable is the real workspace the copy stands for (editable installs point at it); a
     copy of the original files must still see that path, or its failures differ."""
+    if not code and (script := inline_script_command(command)):
+        command, code = "pytest -q", script
     # Tests run in a copy, so absolute paths into the real workspace become relative ones.
     command = map_root(command, workspace.root, Path("."))
     # Tests already start in the workspace copy, so a leading `cd <workspace> &&` is a no-op.
@@ -406,7 +426,7 @@ async def _run_tests(
             # Temporary tests share the existing sandbox/report path, never the user's files.
             inline_name = "__aster_inline_" + target.name.replace("-", "_") + ".py"
             # Only scripts that assert something; printing "passed" is not evidence.
-            script = not TEST_DEFINITION.search(code) and re.search(r"^\s*assert\b", code, re.M) is not None
+            script = not TEST_DEFINITION.search(code) and re.search(r"(?:^|;)\s*assert\b", code, re.M) is not None
             if script:
                 # Tracebacks then point at the agent's own lines in a file of their own.
                 script_name = "__aster_script_" + target.name.replace("-", "_") + ".py"

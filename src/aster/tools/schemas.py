@@ -20,6 +20,18 @@ class ReadFile(Record):
     start: int = Field(default=1, ge=1)
     end: int = Field(default=200, ge=1)
 
+    @model_validator(mode="before")
+    @classmethod
+    def lenient(cls, data):
+        """Read-only: a single `line` means the code around it; other unknown keys are dropped."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        line = data.pop("line", None)
+        if isinstance(line, int) and "start" not in data and "end" not in data:
+            data.update(start=max(1, line - 20), end=line + 60)
+        return {key: value for key, value in data.items() if key in cls.model_fields}
+
     @model_validator(mode="after")
     def valid_range(self):
         if self.end < self.start or self.end - self.start > 2000:

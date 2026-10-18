@@ -191,3 +191,25 @@ async def test_tests_that_create_files_keep_their_evidence(tmp_path):
     result = await run(runtime, "python -m pytest -q test_out.py")
     assert result.status == "success", result.content
     assert runtime.state.verification.state == "passed" and not (tmp_path / "_build").exists()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("command", [
+    "python -c \"from app import VALUE; assert VALUE == 1, VALUE\"",
+    "python - <<'PY'\nfrom app import VALUE\nassert VALUE == 1, VALUE\nPY",
+])
+async def test_assertion_scripts_sent_to_run_tests_run_as_inline_tests(tmp_path, command):
+    (tmp_path / "app.py").write_text("VALUE = 1\n")
+    runtime = runtime_for(tmp_path)
+    result = await run(runtime, command)
+    assert result.status == "success" and "ran as one test" in result.content
+    (tmp_path / "app.py").write_text("VALUE = 2\n")
+    assert (await run(runtime, command)).reason == "tests_failed"
+
+
+@pytest.mark.asyncio
+async def test_read_file_accepts_a_single_line(tmp_path):
+    (tmp_path / "m.py").write_text("".join(f"x{n} = {n}\n" for n in range(1, 200)))
+    runtime = runtime_for(tmp_path)
+    result = await runtime.step(ToolCall(name="read_file", arguments={"path": "m.py", "line": 100}))
+    assert result.status == "success" and "x100 = 100" in result.content and result.data["start"] == 80
