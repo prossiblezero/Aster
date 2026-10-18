@@ -101,6 +101,35 @@ def edit_preview(text: str, regions: list[tuple[int, int]], limit: int = 80) -> 
     return "Edited lines (current file):\n" + "\n--\n".join(out)
 
 
+def tolerant_span(text: str, old: str) -> tuple[int, int] | None:
+    """Locate old_text whose whole lines differ only in surrounding whitespace.
+
+    Mirrors the fallback order of Codex's apply_patch seek_sequence (exact, then trailing,
+    then all surrounding whitespace ignored); only a unique match is accepted.
+    """
+    wanted = old.split("\n")
+    trailing_newline = wanted[-1] == ""
+    if trailing_newline:
+        wanted = wanted[:-1]
+    if not wanted or not any(line.strip() for line in wanted):
+        return None
+    lines = text.split("\n")
+    starts = [0]
+    for line in lines:
+        starts.append(starts[-1] + len(line) + 1)
+    for normalize in (str.rstrip, str.strip):
+        target = [normalize(line) for line in wanted]
+        found = [n for n in range(len(lines) - len(target) + 1)
+                 if [normalize(line) for line in lines[n:n + len(target)]] == target]
+        if len(found) == 1:
+            first, last = found[0], found[0] + len(target) - 1
+            end = starts[last] + len(lines[last]) + (1 if trailing_newline and last + 1 < len(lines) else 0)
+            return starts[first], end
+        if found:
+            return None
+    return None
+
+
 def closest_lines(text: str, old: str, limit: int = 3) -> str:
     """Show where an unmatched old_text most likely belongs, with current line numbers."""
     lines = text.split("\n")
@@ -268,7 +297,7 @@ class WorkspaceTools:
         raw = raw[len(bom) :]
         text = raw.replace("\r\n", "\n").replace("\r", "\n")
         edits = args.edits or [PatchEdit(old_text=args.old_text, new_text=args.new_text)]
-        spans = []
+        spans, notes = [], []
         for index, edit in enumerate(edits):
             old = edit.old_text.replace("\r\n", "\n").replace("\r", "\n")
             anchored = bool(bom and old.startswith(bom))
@@ -279,6 +308,10 @@ class WorkspaceTools:
                     status="blocked", reason="patch_empty", content="Match text beyond the BOM"
                 )
             start = (0 if text.startswith(old) else -1) if anchored else text.find(old)
+            if start < 0 and not anchored and (span := tolerant_span(text, old)):
+                notes.append(f"edits[{index}] matched ignoring whitespace differences")
+                spans.append((*span, edit.new_text))
+                continue
             if start < 0 or (not anchored and text.find(old, start + 1) >= 0):
                 if start < 0:
                     hint = closest_lines(text, old)
@@ -340,7 +373,8 @@ class WorkspaceTools:
                 cursor = end
             pieces.append(text[cursor:])
             preview = edit_preview("".join(pieces), regions)
-            result.content = (result.content + "\n" if result.content else "") + preview
+            result.content = ("\n".join(notes) + "\n" if notes else "") + (
+                result.content + "\n" if result.content else "") + preview
         return result
 
     async def _run_shell(self, args: RunShell) -> Outcome:

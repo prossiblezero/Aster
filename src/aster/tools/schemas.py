@@ -246,12 +246,12 @@ SCHEMAS = {
     ),
     "patch_file": (
         PatchFile,
-        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Call read_file before the first edit. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Preserves BOM and newline style.",
+        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Use parallel calls for several files. Call read_file before the first edit. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Preserves BOM and newline style.",
         "write",
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; use service_start for servers. In compound commands, chain dependent steps with && so cleanup cannot mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Test commands (pytest, unittest, node --test, jest, go test, make test) run as formal verification in a disposable copy.",
+        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; use service_start for servers. In compound commands, chain dependent steps with && so cleanup cannot mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Test commands run as formal verification in a disposable copy.",
         "process",
     ),
     "run_tests": (

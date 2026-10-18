@@ -35,7 +35,7 @@ async def test_successful_patch_returns_numbered_edited_lines(tmp_path):
 async def test_unmatched_patch_points_at_closest_current_lines(tmp_path):
     runtime = await runtime_with(tmp_path)
     result = await runtime.step(ToolCall(name="patch_file", arguments={
-        "path": "m.py", "old_text": "def b():\n  return 2", "new_text": "x"}))
+        "path": "m.py", "old_text": "def b():\n    return 99", "new_text": "x"}))
     assert result.reason == "patch_nonunique"
     assert "Closest current lines:" in result.content and "5: def b():" in result.content
     assert (tmp_path / "m.py").read_text() == SOURCE
@@ -99,3 +99,29 @@ async def test_malformed_call_still_blocks_a_batch_with_valid_writes(tmp_path):
     ])
     assert [r.reason for r in results] == ["batch_validation_failed", "invalid_arguments"]
     assert not (tmp_path / "new.txt").exists()
+
+
+@pytest.mark.asyncio
+async def test_whitespace_only_mismatch_is_matched_when_unique(tmp_path):
+    runtime = await runtime_with(tmp_path)
+    result = await runtime.step(ToolCall(name="patch_file", arguments={
+        "path": "m.py", "old_text": "def b():\n  return 2", "new_text": "def b():\n    return 3"}))
+    assert result.status == "success" and "ignoring whitespace" in result.content
+    assert "def b():\n    return 3\n" in (tmp_path / "m.py").read_text()
+
+
+@pytest.mark.asyncio
+async def test_whitespace_tolerance_never_picks_among_several_matches(tmp_path):
+    runtime = await runtime_with(tmp_path)
+    result = await runtime.step(ToolCall(name="patch_file", arguments={
+        "path": "m.py", "old_text": "  x = 1", "new_text": "y"}))
+    assert result.reason == "patch_nonunique"
+    assert (tmp_path / "m.py").read_text() == SOURCE
+
+
+def test_tolerant_span_keeps_line_boundaries():
+    from aster.tools.workspace import tolerant_span
+    text = "a\n  b  \nc\n"
+    start, end = tolerant_span(text, "b\n")
+    assert text[start:end] == "  b  \n"
+    assert tolerant_span(text, "zzz") is None
