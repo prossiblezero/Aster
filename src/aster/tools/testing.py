@@ -270,7 +270,9 @@ async def _run_command_tests(
             shutil.copy2(source, copied)
         # Build products and caches may be written; they land in this discarded copy only.
         settings = sandbox.settings.model_copy(update={"read_only": False, "write_scope": None})
-        result = await runner(settings, environment=sandbox).run(Workspace(target), command, timeout)
+        command_runner = runner(settings, environment=sandbox)
+        command_runner.readable_roots = (workspace.root,)
+        result = await command_runner.run(Workspace(target), command, timeout)
     key = "command: " + command
     result.changed_paths, result.partial_success = [], False
     result.data.update(test_evidence_source="exit_code", tested_workspace_hash=tested_fingerprint,
@@ -616,9 +618,9 @@ raise SystemExit(pytest.main(sys.argv[1:]))
         # Only a report may leave the execution copy, into this disposable copy.
         # Tests cannot publish any change to the actual repository, including in plan mode.
         # Capture it before validation can reject an unrelated test-created file.
-        result = await ReportRunner(settings, environment=sandbox).run(
-            Workspace(target), shlex.join(command), timeout
-        )
+        report_runner = ReportRunner(settings, environment=sandbox)
+        report_runner.readable_roots = (workspace.root,)
+        result = await report_runner.run(Workspace(target), shlex.join(command), timeout)
         if code and script:
             # One fixed id for every script is no test identity; like an exit code it sets state only.
             result.data["test_evidence_source"] = "inline_script"

@@ -20,7 +20,8 @@ def checked(value: int, operation: str) -> int:
     return value
 
 
-def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] = ()) -> None:
+def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] = (),
+             readable: tuple[Path, ...] = ()) -> None:
     if sys.platform != "linux" or platform.machine() not in {"x86_64", "aarch64"}:
         raise RuntimeError("Linux x86_64/aarch64 required")
     libc = ctypes.CDLL(None, use_errno=True)
@@ -73,7 +74,7 @@ def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] 
             for raw in ("/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf", "/etc/gai.conf"):
                 allow(Path(raw).resolve(), 4)
         allow(Path("/dev/null"), 2 | 4)
-        for path in readonly_dependencies:
+        for path in (*readonly_dependencies, *readable):
             allow(path.resolve(strict=True), 1 | 4 | 8)
         allow(root, handled)
         checked(libc.prctl(38, 1, 0, 0, 0), "no_new_privs")
@@ -166,12 +167,17 @@ def restrict(root: Path, network: bool, readonly_dependencies: tuple[Path, ...] 
 
 def main():
     root, network, command, *dependencies = sys.argv[1:]
+    # Readable roots follow "--readable": read-only like dependencies, but the parent guards
+    # their metadata itself, so chmod stays available inside the copy.
+    readable = dependencies[dependencies.index("--readable") + 1:] if "--readable" in dependencies else []
+    dependencies = dependencies[:dependencies.index("--readable")] if "--readable" in dependencies else dependencies
     try:
         os.chdir(root)
         resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
         resource.setrlimit(resource.RLIMIT_NOFILE, (256, 256))
         resource.setrlimit(resource.RLIMIT_CPU, (120, 120))
-        restrict(Path(root), network == "on", tuple(Path(path) for path in dependencies))
+        restrict(Path(root), network == "on", tuple(Path(path) for path in dependencies),
+                 tuple(Path(path) for path in readable))
     except Exception as exc:
         print(f"ASTER_SANDBOX_UNAVAILABLE:{type(exc).__name__}:{exc}", file=sys.stderr)
         sys.exit(125)

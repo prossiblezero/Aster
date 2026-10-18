@@ -31,6 +31,31 @@ def map_root(text: str, source: Path, target: Path) -> str:
     pattern = r"(?<![\w./~-])" + re.escape(str(source)) + r"(?![\w.-])"
     return re.sub(pattern, lambda _match: str(target), text)
 DEPENDENCY_DIRECTORIES = {".venv", "node_modules"}
+# A remote URL carrying a user or token (https://user:token@host/...).
+CREDENTIAL_URL = re.compile(rb"://[^/\s@]+@")
+
+
+def exposable(root: Path) -> bool:
+    """Whether the real workspace may be readable (never writable) from a sandboxed copy.
+
+    Editable installs (`pip install -e .`) and test fixtures address the workspace by its
+    absolute path, which a copy cannot answer: .pth hooks fail and imports diverge. Reading
+    the original is harmless only if it holds nothing a copy deliberately leaves out, so any
+    sensitive name anywhere (ignored files and .git included) or credentials in .git/config
+    keep it hidden.
+    """
+    try:
+        for directory, names, files in os.walk(root):
+            # Installed packages and object stores hold fixtures and blobs, not user secrets.
+            names[:] = [n for n in names if n not in {"node_modules", ".venv", "__pycache__"}
+                        and not (n == "objects" and Path(directory).name == ".git")]
+            for name in (*names, *files):
+                if sensitive(Path(name)):
+                    return False
+        config = root / ".git" / "config"
+        return not (config.is_file() and CREDENTIAL_URL.search(config.read_bytes()))
+    except OSError:
+        return False
 
 
 @lru_cache(maxsize=8)
@@ -61,6 +86,8 @@ class SandboxRunner:
         self.services: dict[str, dict] = environment.services if environment is not None else {}
         # phase -> [seconds, count]; shared with a source runner so test copies are counted too.
         self.timings: dict[str, list[float]] = environment.timings if environment is not None else {}
+        # Real workspaces a copy stands in for (e.g. the repository behind a test copy).
+        self.readable_roots: tuple[Path, ...] = ()
 
     def start_service(self, workspace: Workspace, command: str, log: Path) -> subprocess.Popen:
         """Launch under the same Landlock/seccomp launcher, in its own session, without waiting.
@@ -311,6 +338,9 @@ class SandboxRunner:
             if conflict := self._check_expected(Workspace(root), expected_files):
                 return conflict
             (root / ".tmp").mkdir(exist_ok=True)
+            guarded = {path: Workspace(path).mode_snapshot()
+                       for path in dict.fromkeys((workspace.root, *self.readable_roots))
+                       if path != root and exposable(path)}
             launcher = Path(__file__).with_name("linux.py")
             if persistent:
                 self._generation += 1
@@ -327,9 +357,14 @@ class SandboxRunner:
                     str(root),
                     "on" if self.settings.network else "off",
                 ],
-                [str(path) for path in borrowed.values()],
+                [str(path) for path in borrowed.values()]
+                + (["--readable", *map(str, guarded)] if guarded else []),
             )
             result.content = map_root(result.content, root, workspace.root)
+            if changed := self._restore_modes(guarded):
+                # Landlock leaves chmod unmediated; the original's modes are put back.
+                result.status, result.reason = "blocked", "sandbox_metadata_change"
+                result.data["restored_modes"] = changed[:20]
             if result.exit_code == 125 and "ASTER_SANDBOX_UNAVAILABLE" in result.content:
                 if self.settings.sandbox == "best_effort" and not constrained:
                     if conflict := self._check_expected(workspace, expected_files):
@@ -351,6 +386,7 @@ class SandboxRunner:
             result.data["isolation"] = "landlock+seccomp"
             result.data["environment_generation"] = self.environment_generation
             result.data["environment_reused"] = persistent or bool(borrowed)
+            self._collected(root)
             temporary = root / ".tmp"
             if temporary.is_symlink() or not temporary.is_dir():
                 temporary.unlink(missing_ok=True)
@@ -362,7 +398,6 @@ class SandboxRunner:
                 for name, target in borrowed.items():
                     if not (root / name).is_symlink() or (root / name).resolve() != target:
                         raise BoundaryError("dependency_mount_changed")
-                self._collected(root)
                 # Validate entries before opening them: FIFO reads have no process timeout.
                 violations = [
                     str(p.relative_to(root))
@@ -423,8 +458,20 @@ class SandboxRunner:
             )
         return None
 
+    @staticmethod
+    def _restore_modes(guarded: dict[Path, dict[str, int]]) -> list[str]:
+        changed = []
+        for path, modes in guarded.items():
+            for name, mode in Workspace(path).mode_snapshot().items():
+                if name in modes and mode != modes[name]:
+                    os.chmod(path / name, modes[name])
+                    changed.append(name)
+        return changed
+
     def _collected(self, staged: Path) -> None:
-        """Hook: the command finished in this staged copy, before any output is validated."""
+        """Hook: the command finished in this staged copy, before .tmp is removed or output validated.
+
+        Nothing here is trusted yet: an override must refuse symlinks and non-regular files."""
 
     def _publish(
         self,

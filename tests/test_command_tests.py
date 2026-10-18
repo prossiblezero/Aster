@@ -86,3 +86,47 @@ async def test_files_the_copy_refuses_to_publish_do_not_void_test_evidence(tmp_p
 def test_only_plain_build_and_test_chains_count_by_exit_code(command, accepted):
     from aster.tools.testing import project_test_command
     assert project_test_command(command) is accepted
+
+
+def test_workspace_is_exposable_only_without_secrets(tmp_path):
+    from aster.safety.runner import exposable
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "m.py").write_text("x = 1\n")
+    (tmp_path / "node_modules" / "dep").mkdir(parents=True)
+    (tmp_path / "node_modules" / "dep" / "fixture.pem").write_text("not a user secret")
+    assert exposable(tmp_path)
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = https://user:tok@example.com/r.git\n')
+    assert not exposable(tmp_path)
+    (tmp_path / ".git" / "config").write_text('[remote "origin"]\n\turl = https://example.com/r.git\n')
+    assert exposable(tmp_path)
+    (tmp_path / "pkg" / ".env.local").write_text("TOKEN=1")
+    assert not exposable(tmp_path)
+
+
+@pytest.mark.asyncio
+async def test_absolute_workspace_paths_resolve_inside_tests(tmp_path):
+    # Editable installs and fixtures name the workspace absolutely; tests in a copy must read it.
+    (tmp_path / "data.json").write_text('{"v": 1}')
+    runtime = runtime_for(tmp_path)
+    code = f"import json\ndef test_reads():\n    assert json.load(open({str(tmp_path / 'data.json')!r}))['v'] == 1\n"
+    result = await runtime.step(ToolCall(name="run_tests", arguments={"command": "pytest -q", "code": code}))
+    assert result.status == "success", result.content
+    (tmp_path / ".env").write_text("SECRET=1")
+    hidden = await runtime.step(ToolCall(name="run_tests", arguments={
+        "command": "pytest -q", "code": f"def test_secret():\n    open({str(tmp_path / '.env')!r}).read()\n"}))
+    assert hidden.status == "error" and "SECRET=1" not in hidden.content
+
+
+@pytest.mark.asyncio
+async def test_metadata_changes_to_the_readable_original_are_restored(tmp_path):
+    from aster.safety.runner import SandboxRunner
+    from aster.storage.workspace import Workspace
+    path = tmp_path / "tool.sh"
+    path.write_text("true\n")
+    path.chmod(0o644)
+    head, tail = str(tmp_path)[:4], str(tmp_path)[4:]  # split so the command text is not remapped
+    command = f"python3 -c \"import os; os.chmod({head!r} + {tail!r} + '/tool.sh', 0o777)\""
+    result = await SandboxRunner(Settings()).run(Workspace(tmp_path), command)
+    assert result.reason == "sandbox_metadata_change" and result.data["restored_modes"] == ["tool.sh"]
+    assert path.stat().st_mode & 0o777 == 0o644
