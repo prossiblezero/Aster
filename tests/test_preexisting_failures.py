@@ -140,3 +140,30 @@ async def test_original_files_check_sees_the_real_workspace_path(tmp_path):
     await edit(runtime, "VALUE = 1")
     result = await run(runtime)
     assert result.data["baseline_identical"] == ["pytest: test_env::test_env"]
+
+
+@pytest.mark.asyncio
+async def test_cleanup_after_passing_tests_is_rechecked_without_a_rejection(tmp_path):
+    runtime = setup(tmp_path)
+    (tmp_path / "test_env.py").unlink()
+    runtime._initial_text = runtime.workspace.text_snapshot()
+    await edit(runtime, "VALUE = 1")
+    assert (await run(runtime, "python -m pytest -q test_value.py")).status == "success"
+    await runtime.step(ToolCall(name="write_file", arguments={"path": "NOTES.md", "content": "VALUE is 1.\n"}))
+    assert runtime.state.verification.state == "missing"
+    await runtime.recheck_preexisting()
+    runtime.finalize("Fixed VALUE.")
+    assert runtime.state.phase == "completed" and runtime.state.final_revisions == 0
+
+
+@pytest.mark.asyncio
+async def test_final_code_recheck_still_blocks_a_real_regression(tmp_path):
+    runtime = setup(tmp_path)
+    (tmp_path / "test_env.py").unlink()
+    runtime._initial_text = runtime.workspace.text_snapshot()
+    await edit(runtime, "VALUE = 1")
+    await run(runtime, "python -m pytest -q test_value.py")
+    await edit(runtime, "VALUE = 2")
+    await runtime.recheck_preexisting()
+    runtime.finalize("Fixed VALUE.")
+    assert runtime.state.phase != "completed"

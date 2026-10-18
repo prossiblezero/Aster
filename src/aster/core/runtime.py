@@ -1553,6 +1553,8 @@ class Runtime:
         if call.name == "run_tests" or outcome.data.get("shell_verification"):
             outcome.data["is_verification"] = True
             outcome.data["command"] = call.arguments.get("command", "")
+            if outcome.status == "success" and not call.arguments.get("code"):
+                state.last_passed_command = SHELL_OUTPUT_TRIM.sub("", outcome.data["command"]).strip()
             if outcome.status == "success" and (summary := self._change_summary()):
                 # Saves a git_diff turn before the final answer.
                 outcome.content += "\n[Changes since the task began: " + summary + "]"
@@ -1603,28 +1605,42 @@ class Runtime:
         return "; ".join(parts) + (f"; {extra} more" if extra > 0 else "")
 
     async def recheck_preexisting(self) -> None:
-        """Once the agent has been told about failures identical on the original files, rerun
-        any whose evidence predates its latest edits on the final code itself, instead of
-        rejecting the answer for a turn spent only rerunning them. They stop blocking only if
-        they still fail identically (Verifier.accepted_preexisting); anything else blocks."""
+        """Before final delivery, rerun on the final code what the agent would otherwise be
+        sent back to rerun, so no turn is spent only on that:
+
+        - once the agent has been told about failures identical on the original files, those
+          whose evidence predates its latest edits (they stop blocking only if they still fail
+          identically, Verifier.accepted_preexisting);
+        - the last passing test command, when only later edits (often cleanup) voided it.
+        """
         state = self.state
         if (not state or state.terminal or self.settings.completion == "off"
-                or state.final_revisions < 1 or not state.changed_paths or self.settings.sandbox == "off"):
+                or not state.changed_paths or self.settings.sandbox == "off"):
             return
-        current = self.workspace.fingerprint()
-        commands = dict.fromkeys(
-            SHELL_OUTPUT_TRIM.sub("", state.verification_failures[test]).strip()
-            for test, tested in state.preexisting_failures.items()
-            if test in state.verification_failures and tested != current
-            and state.verification_failures[test] and "__aster_inline__" not in test)
-        for command in commands:
-            outcome = await run_tests(self.workspace, self.sandbox, command, RECHECK_SECONDS,
-                                      runner=SandboxRunner, baseline=self._initial_text or None,
-                                      known=dict(state.baseline_signatures))
-            outcome.data.update(is_verification=True, command=command)
-            self.verifier.observe(state, outcome)
-            self.evidence.emit(state.run_id, "preexisting_recheck", command=command,
-                               status=outcome.status, reason=outcome.reason)
+        if state.final_revisions >= 1:
+            current = self.workspace.fingerprint()
+            commands = dict.fromkeys(
+                SHELL_OUTPUT_TRIM.sub("", state.verification_failures[test]).strip()
+                for test, tested in state.preexisting_failures.items()
+                if test in state.verification_failures and tested != current
+                and state.verification_failures[test] and "__aster_inline__" not in test)
+            for command in commands:
+                await self._rerun_verification(command, "preexisting_recheck")
+        accepted = self.verifier.accepted_preexisting(state)
+        if (state.task.require_verification and state.verification.state == "missing"
+                and state.last_passed_command
+                and not any(test not in accepted for test in state.verification_failures)):
+            await self._rerun_verification(state.last_passed_command, "final_code_recheck")
+
+    async def _rerun_verification(self, command: str, event: str) -> None:
+        state = self.state
+        outcome = await run_tests(self.workspace, self.sandbox, command, RECHECK_SECONDS,
+                                  runner=SandboxRunner, baseline=self._initial_text or None,
+                                  known=dict(state.baseline_signatures))
+        outcome.data.update(is_verification=True, command=command)
+        self.verifier.observe(state, outcome)
+        self.evidence.emit(state.run_id, event, command=command,
+                           status=outcome.status, reason=outcome.reason)
 
     def finalize(self, answer: str) -> RunState:
         state = self.state

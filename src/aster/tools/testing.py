@@ -199,6 +199,8 @@ TEST_TOOLS = {
     "./gradlew", "mvn", "dotnet", "tox", "nox", "bats", "rspec", "phpunit", "mocha", "vitest", "pytest",
     "jest", "bundle", "rake", "mix", "swift", "zig", "stack", "cabal", "dune",
 }
+PACKAGE_RUNNERS = {"npm", "npx", "yarn", "pnpm"}
+NOT_TESTS = re.compile(r"(?i)^(?:.*[:/-])?(?:lint|eslint|prettier|format|fmt|typecheck|mypy|flake8|ruff|tsc|clippy|vet)$")
 COMPILERS = {"gcc", "g++", "cc", "c++", "clang", "clang++", "javac", "rustc"}
 
 
@@ -235,12 +237,17 @@ def project_test_command(command: str) -> bool:
             return False
         while words and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", words[0]):
             words = words[1:]
-        if not words or words[0] in {"cd", "mkdir", "true"}:
-            continue
+        if not words or words[0] in {"cd", "mkdir", "true", "rm", "cp", "touch"}:
+            continue  # setup in a disposable copy
         program = words[0]
         if program in {"for", "while", "until", "if", "case", "do", "then", "{", "(", "!"}:
             return False
         name = Path(program).name
+        if any(NOT_TESTS.search(word) for word in words):
+            continue  # linters, formatters and type checkers may run but do not verify behaviour
+        if program in PACKAGE_RUNNERS:
+            tests = tests or any(re.search(r"(?i)test|jest|vitest|mocha", word) for word in words[1:])
+            continue  # install/build scripts are setup
         if program in TEST_TOOLS or (name in {"bash", "sh"} and len(words) > 1
                                      and re.search(r"(?i)test", Path(words[1]).name)) or (
                 re.fullmatch(r"python[0-9.]*", name) and words[1:2] == ["-m"] and words[2:3] in (["pytest"], ["unittest"])):
