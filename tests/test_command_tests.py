@@ -150,3 +150,24 @@ async def test_ordinary_shell_commands_are_not_rerouted(tmp_path):
     result = await runtime.step(ToolCall(name="run_shell", arguments={"command": "python run.py"}))
     assert result.status == "success" and "hello" in result.content
     assert runtime.state.verification.state != "passed"
+
+
+@pytest.mark.asyncio
+async def test_home_dotfiles_are_not_task_changes(tmp_path):
+    runtime = runtime_for(tmp_path)
+    result = await runtime.step(ToolCall(name="run_shell", arguments={
+        "command": "mkdir -p ~/.npm/_logs && echo x > ~/.npm/_logs/debug.log && echo ok"}))
+    assert result.status == "success" and result.changed_paths == []
+    assert not (tmp_path / ".npm").exists()
+
+
+@pytest.mark.asyncio
+async def test_passing_verification_summarises_changes(tmp_path):
+    (tmp_path / "app.py").write_text("VALUE = 0\n")
+    (tmp_path / "test_app.py").write_text("from app import VALUE\n\ndef test_v():\n    assert VALUE == 1\n")
+    runtime = runtime_for(tmp_path)
+    await runtime.step(ToolCall(name="read_file", arguments={"path": "app.py"}))
+    await runtime.step(ToolCall(name="patch_file", arguments={
+        "path": "app.py", "old_text": "VALUE = 0", "new_text": "VALUE = 1"}))
+    result = await run(runtime, "python -m pytest -q")
+    assert result.status == "success" and "[Changes since the task began: app.py +1 -1]" in result.content

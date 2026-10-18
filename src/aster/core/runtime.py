@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import difflib
 import fcntl
 import hashlib
 import inspect
@@ -1551,6 +1552,9 @@ class Runtime:
         if call.name == "run_tests" or outcome.data.get("shell_verification"):
             outcome.data["is_verification"] = True
             outcome.data["command"] = call.arguments.get("command", "")
+            if outcome.status == "success" and (summary := self._change_summary()):
+                # Saves a git_diff turn before the final answer.
+                outcome.content += "\n[Changes since the task began: " + summary + "]"
         after = (
             self.hooks.after_tool(state, call, outcome)
             if outcome.status == "success"
@@ -1576,6 +1580,26 @@ class Runtime:
     async def workflow_tool(self, name: str, args: dict) -> Outcome:
         """Compatibility entry for existing direct workflow callers."""
         return await self._workflow_tools().execute(name, args)
+
+    def _change_summary(self, limit: int = 10) -> str:
+        parts = []
+        for name in self.state.changed_paths[:limit]:
+            before = self._initial_text.get(name)
+            try:
+                after = self.workspace.path(name).read_text()
+            except (OSError, ValueError, UnicodeError):
+                after = None
+            if before is None and after is None:
+                continue
+            if after is None:
+                parts.append(f"{name} (deleted)")
+                continue
+            lines = list(difflib.unified_diff((before or "").splitlines(), after.splitlines(), lineterm="", n=0))
+            added = sum(line.startswith("+") and not line.startswith("+++") for line in lines)
+            removed = sum(line.startswith("-") and not line.startswith("---") for line in lines)
+            parts.append(f"{name}{' (new)' if before is None else ''} +{added} -{removed}")
+        extra = len(self.state.changed_paths) - limit
+        return "; ".join(parts) + (f"; {extra} more" if extra > 0 else "")
 
     async def recheck_preexisting(self) -> None:
         """Once the agent has been told about failures identical on the original files, rerun

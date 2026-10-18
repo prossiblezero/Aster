@@ -243,7 +243,9 @@ class SandboxRunner:
     def environment(root: Path, *, reuse: bool = False) -> dict[str, str]:
         env = {
             "PATH": f"{sys.prefix}/bin:/usr/bin:/bin",
-            "HOME": str(root),
+            # Tools write dotfiles and caches under HOME (~/.npm, ~/.cache); keep them out of
+            # the workspace copy so they are never published as task changes.
+            "HOME": str(root / ".tmp" / "home"),
             "TMPDIR": str(root / ".tmp"),
             "XDG_CACHE_HOME": str(root / ".tmp" / "cache"),
             "PIP_CACHE_DIR": str(root / ".tmp" / "cache"),
@@ -337,7 +339,7 @@ class SandboxRunner:
             self._time("stage_copy", started)
             if conflict := self._check_expected(Workspace(root), expected_files):
                 return conflict
-            (root / ".tmp").mkdir(exist_ok=True)
+            (root / ".tmp" / "home").mkdir(parents=True, exist_ok=True)
             guarded = {path: Workspace(path).mode_snapshot()
                        for path in dict.fromkeys((workspace.root, *self.readable_roots))
                        if path != root and exposable(path)}
