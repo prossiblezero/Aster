@@ -648,6 +648,7 @@ class Runtime:
             ),
             validate_archive=validate_archive,
             redact_history=self.evidence.redact_history,
+            workflow_notes=self.settings.workflow_notes,
         )
 
     def _finish_prepare(self, state, prompt, report, tool_defs):

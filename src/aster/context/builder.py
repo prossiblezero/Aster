@@ -31,6 +31,7 @@ class ContextBuilder:
         archive=None,
         validate_archive=None,
         redact_history=None,
+        workflow_notes: bool = True,
     ):
         result = self.calculator.calculate(
             state, user, memory, skills, structured_history,
@@ -39,7 +40,7 @@ class ContextBuilder:
             memory_enabled=memory_enabled, skills_available=skills_available,
             workers_available=workers_available,
             environment=environment, archive=archive, validate_archive=validate_archive,
-            redact_history=redact_history,
+            redact_history=redact_history, workflow_notes=workflow_notes,
         )
         # Preserve the public build mutation boundary; failed calculation installs nothing.
         if structured_history is not None:

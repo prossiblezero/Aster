@@ -12,7 +12,7 @@ from pathlib import Path
 from ..config import Settings
 from ..context import ContextBudgetError, ContextHistoryError
 from ..core.runtime import Runtime
-from ..schema import ACTION, Action, Final, TaskSpec, VerifierResult
+from ..schema import ACTION, Action, Final, TaskSpec, ToolCall, VerifierResult
 from ..storage.workspace import Workspace
 
 
@@ -75,15 +75,27 @@ class AsterEnv:
         self.runtime = None
 
     async def step(self, action: Action | dict):
+        return await self._guarded(action)
+
+    async def step_turn(self, text: str, calls: list[ToolCall]):
+        """One policy decision with visible text and several tool calls: one turn, many steps."""
+        return await self._guarded(None, text=text, calls=calls)
+
+    async def step_invalid(self, raw: str, error: str):
+        """An unparseable decision consumes a turn; the error is the next observation."""
+        return await self._guarded(None, invalid=(raw, error))
+
+    async def _guarded(self, action, **decision):
         if self._stepping:
             raise RuntimeError("episode_busy")
         self._stepping = True
         try:
-            return await self._step(action)
+            return await self._step(action, **decision)
         finally:
             self._stepping = False
 
-    async def _step(self, action: Action | dict):
+    async def _step(self, action: Action | dict | None, *, text: str = "",
+                    calls: list[ToolCall] | None = None, invalid: tuple[str, str] | None = None):
         if not self.runtime or not self.runtime.state:
             raise RuntimeError("reset() must be called first")
         state = self.runtime.state
@@ -91,7 +103,23 @@ class AsterEnv:
             raise RuntimeError("episode_finished: reset() before another step")
         action = ACTION.validate_python(action) if isinstance(action, dict) else action
         state.turn += 1  # An external policy decision consumes one turn, including Final.
-        if isinstance(action, Final):
+        history = self.runtime._structured_history
+        if invalid is not None:
+            raw, error = invalid
+            history.append({"role": "assistant", "content": raw})
+            self.runtime.add_message("user", f"Your last reply could not be executed: {error}. "
+                                     "Reply with valid tool calls or a final answer.", important=True)
+            outcome, reward = None, -0.5
+        elif calls is not None:
+            if text:
+                history.append({"role": "assistant", "content": text})
+            outcome, reward = None, 0.0
+            for call in calls:
+                outcome = await self.runtime.step(call)
+                reward += -0.05 if outcome.status == "success" else -0.5
+                if state.terminal:
+                    break
+        elif isinstance(action, Final):
             # Do not freeze an owned worker when Final is only a request for review.
             self.runtime.workers.deliver()
             if not any(item.get("delivery") == "running" for item in state.pending_requirements):
@@ -138,7 +166,9 @@ class AsterEnv:
         self.runtime.evidence.emit(
             state.run_id,
             "rl_transition",
-            action=action.model_dump(),
+            action=action.model_dump() if action is not None else {
+                "text": text, "calls": [call.model_dump() for call in calls or []],
+                "invalid": invalid[1] if invalid else None},
             reward=reward,
             terminated=terminated,
             truncated=truncated,
@@ -188,6 +218,8 @@ class AsterEnv:
             "model_input": copy.deepcopy(prompt),
             "context_policy": report.policy_version if report else "deterministic-v10",
             "context_tokens": report.estimated_tokens if report else 0,
+            # Earlier history was rewritten for this request (masking, removal): a new segment.
+            "context_compacted": bool(report and (report.compacted or report.prefix_drift)),
             "task": state.task.model_dump(),
             "phase": state.phase,
             "turn": state.turn,

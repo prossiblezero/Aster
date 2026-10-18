@@ -164,6 +164,7 @@ class BudgetCalculator:
         archive=None,
         validate_archive=None,
         redact_history=None,
+        workflow_notes: bool = True,
     ):
         scope = (state.session_id, protocol, model)
         if scope != self._scope:
@@ -268,7 +269,9 @@ class BudgetCalculator:
         final_notes = []
 
         def notes():
-            current = {"workflow_state": json.dumps(workflow, ensure_ascii=False), **sections}
+            # Training can omit the harness's state notes so trajectories read as a plain dialogue.
+            current = {"workflow_state": json.dumps(workflow, ensure_ascii=False) if workflow_notes else "",
+                       **sections}
             if redact_history is not None:
                 redacted = redact_history([
                     {"role": "user", "content": value} for value in current.values()
