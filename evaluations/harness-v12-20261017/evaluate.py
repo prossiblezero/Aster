@@ -83,6 +83,7 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(bundle.extractfile(item).read())
     patch_service_launcher(root / 'runtime' / 'execution_environment.py')
+    patch_one_shot_driver(root / 'runtime' / 'aster_episode.py')
     for link in ('sources', 'preflight', 'task-python', 'pi', 'node-v22.22.0-linux-x64'):
         (root / link).symlink_to((base / link).resolve(), target_is_directory=True)
     shutil.copy2(base / 'repository-dataset.json', root / 'repository-dataset.json')
@@ -123,6 +124,24 @@ def patch_service_launcher(path):
     if 'original_spawn' not in text:
         assert text.count(marker) == 1, 'unexpected execution_environment layout'
         path.write_text(text.replace(marker, SERVICE_PATCH.rstrip() + '\n' + marker))
+
+
+def patch_one_shot_driver(path):
+    """The frozen driver drained memory consolidation for 15 s after every episode, which
+    started background model requests. Run each version as its own one-shot CLI does:
+    versions with background_maintenance turn it off; older ones keep their 15 s drain."""
+    text = path.read_text()
+    if 'background_maintenance' in text:
+        return
+    settings_end = "completion='strict', max_workers=0)"
+    drain = '        await runtime.maintenance.drain(timeout=15)'
+    assert text.count(settings_end) == 1 and text.count(drain) == 1, 'unexpected aster_episode layout'
+    text = text.replace(settings_end, "completion='strict', max_workers=0,\n"
+                        "                        **({'background_maintenance': False}\n"
+                        "                           if 'background_maintenance' in Settings.model_fields else {}))")
+    text = text.replace(drain, "        if getattr(runtime.settings, 'background_maintenance', True):\n"
+                        "            await runtime.maintenance.drain(timeout=15)")
+    path.write_text(text)
 
 
 def verify(name):

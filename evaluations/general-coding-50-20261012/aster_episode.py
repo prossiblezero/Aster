@@ -23,19 +23,13 @@ async def main():
     settings = Settings(model='gpt-5.6-luna', base_url=os.environ['BENCH_BASE_URL'],
                         api_key='benchm' 'ark', stream=True, context_tokens=64000,
                         output_tokens=8192, request_timeout=120, approval='auto',
-                        sandbox='required', network=True, completion='strict', max_workers=0,
-                        # Same as the product's one-shot CLI where the version has the setting.
-                        **({'background_maintenance': False}
-                           if 'background_maintenance' in Settings.model_fields else {}))
+                        sandbox='required', network=True, completion='strict', max_workers=0)
     runtime = Runtime(workspace, settings, approval_callback=lambda _call, _decision: True)
     try:
         await runtime.run(TaskSpec(prompt=Path('/agent-state/prompt.txt').read_text(),
                                    max_steps=500, max_turns=500,
                                    require_edit=True, require_verification=True))
-        # Same as the product's one-shot CLI: versions without the setting drained 15 s.
-        wait = getattr(runtime.settings, 'oneshot_maintenance_seconds', 15)
-        if wait:
-            await runtime.maintenance.drain(timeout=wait)
+        await runtime.maintenance.drain(timeout=15)
     finally:
         await runtime.maintenance.close()
         await runtime.workers.close()
