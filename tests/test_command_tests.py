@@ -178,7 +178,8 @@ async def test_passing_verification_summarises_changes(tmp_path):
     await runtime.step(ToolCall(name="patch_file", arguments={
         "path": "app.py", "old_text": "VALUE = 0", "new_text": "VALUE = 1"}))
     result = await run(runtime, "python -m pytest -q")
-    assert result.status == "success" and "[Changes since the task began: app.py +1 -1]" in result.content
+    assert result.status == "success" and "[Your changes since the task began:]" in result.content
+    assert "-VALUE = 0\n+VALUE = 1" in result.content
 
 
 @pytest.mark.asyncio

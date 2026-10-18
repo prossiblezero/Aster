@@ -259,7 +259,7 @@ SCHEMAS = {
     ),
     "write_file": (
         WriteFile,
-        "Create or replace a workspace file. Before editing an existing file, call read_file. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Combine multiple changes in one write or patch when possible.",
+        "Create or replace a workspace file. Before editing an existing file, call read_file. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file.",
         "write",
     ),
     "patch_file": (
@@ -274,7 +274,7 @@ SCHEMAS = {
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, jest, or go test for per-test results; plain build-and-test chains (make test, ctest, cargo test; no pipes) count by exit code. Use code for temporary Python tests; .tmp files do not survive calls. Save lasting tests to the project. Assert real behavior and boundaries; reports do not prove coverage. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other ad-hoc checks in run_shell are not verification.",
+        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, jest, or go test for per-test results; plain build-and-test chains (make test, ctest, cargo test; no pipes) count by exit code. Use code for temporary Python tests; .tmp files do not survive calls. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other ad-hoc checks in run_shell are not verification.",
         "process",
     ),
     "observation_read": (

@@ -1557,7 +1557,7 @@ class Runtime:
                 state.last_passed_command = SHELL_OUTPUT_TRIM.sub("", outcome.data["command"]).strip()
             if outcome.status == "success" and (summary := self._change_summary()):
                 # Saves a git_diff turn before the final answer.
-                outcome.content += "\n[Changes since the task began: " + summary + "]"
+                outcome.content += "\n" + summary
         after = (
             self.hooks.after_tool(state, call, outcome)
             if outcome.status == "success"
@@ -1584,9 +1584,10 @@ class Runtime:
         """Compatibility entry for existing direct workflow callers."""
         return await self._workflow_tools().execute(name, args)
 
-    def _change_summary(self, limit: int = 10) -> str:
-        parts = []
-        for name in self.state.changed_paths[:limit]:
+    def _change_summary(self, limit: int = 10, diff_lines: int = 80) -> str:
+        """The task's diff when it is short, otherwise per-file +/- counts."""
+        parts, hunks = [], []
+        for name in self.state.changed_paths:
             before = self._initial_text.get(name)
             try:
                 after = self.workspace.path(name).read_text()
@@ -1597,12 +1598,19 @@ class Runtime:
             if after is None:
                 parts.append(f"{name} (deleted)")
                 continue
-            lines = list(difflib.unified_diff((before or "").splitlines(), after.splitlines(), lineterm="", n=0))
+            lines = list(difflib.unified_diff((before or "").splitlines(), after.splitlines(),
+                                              f"a/{name}", f"b/{name}", lineterm="", n=1))
             added = sum(line.startswith("+") and not line.startswith("+++") for line in lines)
             removed = sum(line.startswith("-") and not line.startswith("---") for line in lines)
             parts.append(f"{name}{' (new)' if before is None else ''} +{added} -{removed}")
-        extra = len(self.state.changed_paths) - limit
-        return "; ".join(parts) + (f"; {extra} more" if extra > 0 else "")
+            hunks.extend(lines)
+        if not parts:
+            return ""
+        if len(hunks) <= diff_lines:
+            return "[Your changes since the task began:]\n" + "\n".join(hunks)
+        extra = len(parts) - limit
+        return ("[Changes since the task began: " + "; ".join(parts[:limit])
+                + (f"; {extra} more" if extra > 0 else "") + "]")
 
     async def recheck_preexisting(self) -> None:
         """Before final delivery, rerun on the final code what the agent would otherwise be
