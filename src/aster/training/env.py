@@ -96,6 +96,7 @@ class AsterEnv:
             self.runtime.workers.deliver()
             if not any(item.get("delivery") == "running" for item in state.pending_requirements):
                 await self.runtime.workers.close()
+            await self.runtime.recheck_preexisting()
             self.runtime.finalize(action.answer)
             outcome = None
             reward = -0.5

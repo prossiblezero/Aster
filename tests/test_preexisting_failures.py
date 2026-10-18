@@ -76,6 +76,31 @@ async def test_a_changed_failure_is_an_ordinary_failure(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_stale_evidence_is_rechecked_on_the_final_code_without_a_turn(tmp_path):
+    runtime = setup(tmp_path)
+    await edit(runtime, "VALUE = 1")
+    await run(runtime)
+    runtime.finalize("Fixed.")  # one rejection naming the pre-existing failure
+    await edit(runtime, "VALUE = 1  # comment")
+    await runtime.recheck_preexisting()
+    runtime.finalize("Fixed; test_env fails as on the original files (unverified).")
+    assert runtime.state.phase == "completed"
+
+
+@pytest.mark.asyncio
+async def test_recheck_blocks_when_the_final_code_breaks_the_target_again(tmp_path):
+    runtime = setup(tmp_path)
+    await edit(runtime, "VALUE = 1")
+    await run(runtime)
+    runtime.finalize("Fixed.")
+    await edit(runtime, "VALUE = 2")
+    await runtime.recheck_preexisting()
+    runtime.finalize("Fixed again.")
+    assert runtime.state.phase != "completed"
+    assert "pytest: test_value::test_value" in runtime.state.verification_failures
+
+
+@pytest.mark.asyncio
 async def test_an_edit_after_the_evidence_voids_it_until_rerun(tmp_path):
     runtime = setup(tmp_path)
     await edit(runtime, "VALUE = 1")

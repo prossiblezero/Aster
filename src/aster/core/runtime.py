@@ -62,13 +62,17 @@ from ..tools import (
 from ..tools.availability import unavailable_reason
 from ..tools.mcp import MCPTools
 from ..tools.registry import validate_arguments
+from ..tools.testing import run_tests
 from ..tools.workflow import WorkflowTools
+from ..tools.workspace import SHELL_OUTPUT_TRIM
 from .execution import execute_reads
 from .hooks import Hooks
 from .recovery import StallDetector, completion_feedback
 from .verifier import Verifier
 from .workers import WorkerManager
 
+# Bound on rerunning pre-existing failures on the final code before delivery.
+RECHECK_SECONDS = 300
 # Model-visible evidence references; memory_store and workers resolve unique prefixes.
 EVIDENCE_REF_CHARS = 12
 # Longest window of checkpoint progress a power loss may drop (process crashes lose none).
@@ -857,6 +861,7 @@ class Runtime:
                         state.final += "\n\n任务未全部完成：预算不足，以上仅为已完成的工作与检查。"
                     self.finish(self._handoff_reason)
                     return state
+                await self.recheck_preexisting()
                 return self.finalize(reply.text)
             state.feedback = "Model returned neither text nor a tool call."
             self.finish("empty_model_reply", failed=True)
@@ -1571,6 +1576,30 @@ class Runtime:
     async def workflow_tool(self, name: str, args: dict) -> Outcome:
         """Compatibility entry for existing direct workflow callers."""
         return await self._workflow_tools().execute(name, args)
+
+    async def recheck_preexisting(self) -> None:
+        """Once the agent has been told about failures identical on the original files, rerun
+        any whose evidence predates its latest edits on the final code itself, instead of
+        rejecting the answer for a turn spent only rerunning them. They stop blocking only if
+        they still fail identically (Verifier.accepted_preexisting); anything else blocks."""
+        state = self.state
+        if (not state or state.terminal or self.settings.completion == "off"
+                or state.final_revisions < 1 or not state.changed_paths or self.settings.sandbox == "off"):
+            return
+        current = self.workspace.fingerprint()
+        commands = dict.fromkeys(
+            SHELL_OUTPUT_TRIM.sub("", state.verification_failures[test]).strip()
+            for test, tested in state.preexisting_failures.items()
+            if test in state.verification_failures and tested != current
+            and state.verification_failures[test] and "__aster_inline__" not in test)
+        for command in commands:
+            outcome = await run_tests(self.workspace, self.sandbox, command, RECHECK_SECONDS,
+                                      runner=SandboxRunner, baseline=self._initial_text or None,
+                                      known=dict(state.baseline_signatures))
+            outcome.data.update(is_verification=True, command=command)
+            self.verifier.observe(state, outcome)
+            self.evidence.emit(state.run_id, "preexisting_recheck", command=command,
+                               status=outcome.status, reason=outcome.reason)
 
     def finalize(self, answer: str) -> RunState:
         state = self.state
