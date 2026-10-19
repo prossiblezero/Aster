@@ -72,6 +72,11 @@ from .recovery import StallDetector, completion_feedback
 from .verifier import Verifier
 from .workers import WorkerManager
 
+# A reply cut off at the output limit is retried with this note, at most this often per run.
+OUTPUT_LIMIT_CODES = {"chat:length", "responses:max_output_tokens", "anthropic:max_tokens"}
+OUTPUT_LIMIT_RECOVERIES = 2
+OUTPUT_LIMIT_NOTE = ("Your previous reply reached the output token limit before it finished, so nothing ran. "
+                     "Reason briefly and reply with one concrete next action.")
 # Bound on rerunning pre-existing failures on the final code before delivery.
 RECHECK_SECONDS = 300
 # Model-visible evidence references; memory_store and workers resolve unique prefixes.
@@ -781,9 +786,18 @@ class Runtime:
             raise
         except ProviderError as exc:
             request_usage = exc.details.get("usage", {})
-            state.feedback = self.evidence.redactor.text(str(exc))
             for name, value in exc.details.get("usage", {}).items():
                 state.usage[name] = state.usage.get(name, 0) + value
+            if (exc.details.get("code") in OUTPUT_LIMIT_CODES
+                    and state.output_limit_recoveries < OUTPUT_LIMIT_RECOVERIES):
+                # The model spent its output budget (often all on reasoning) before acting. Nothing
+                # ran and nothing joins the history; say so and let it try again, costing a turn.
+                state.output_limit_recoveries += 1
+                self.evidence.emit(state.run_id, "output_limit_recovered", code=exc.details.get("code"),
+                                   recoveries=state.output_limit_recoveries)
+                self.add_message("user", OUTPUT_LIMIT_NOTE, important=True)
+                return state
+            state.feedback = self.evidence.redactor.text(str(exc))
             self.evidence.emit(
                 state.run_id, "provider_error", error=str(exc), **getattr(exc, "details", {})
             )

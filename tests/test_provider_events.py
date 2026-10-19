@@ -81,15 +81,20 @@ async def test_truncated_generation_is_not_finalized_or_retried(
     assert caught.value.details["usage"]["total_tokens"] == 30
     assert len(requests) == 1
 
+    from aster.core.runtime import OUTPUT_LIMIT_RECOVERIES
+
     runtime = Runtime(tmp_path, settings, model=client)
     state = await runtime.run(TaskSpec(prompt="Answer"))
+    # The partial text is never delivered; the run retries with a note a bounded number of
+    # times (each costing a turn), then stops, accounting every attempt's usage.
+    attempts = 1 + OUTPUT_LIMIT_RECOVERIES
     assert state.phase == "failed" and state.stop_reason == "provider_error" and not state.final
-    assert state.usage["total_tokens"] == 30
+    assert state.usage["total_tokens"] == 30 * attempts and state.output_limit_recoveries == OUTPUT_LIMIT_RECOVERIES
     event = next(
         row for row in runtime.evidence.events(state.run_id) if row["event"] == "provider_error"
     )
     assert event["usage"]["total_tokens"] == 30
-    assert len(requests) == 2
+    assert len(requests) == 1 + attempts
 
 
 async def test_provider_cancellation_is_not_retried(monkeypatch):
@@ -733,3 +738,35 @@ async def test_cancellation_after_billed_empty_attempt_retains_usage_once(monkey
     assert [row["classification"] for row in diagnostics] == ["empty_response", "cancelled"]
     assert diagnostics[0]["usage"]["total_tokens"] == 12
     assert diagnostics[1]["usage"] == {} and diagnostics[1]["usage_observed"] is False
+
+
+@pytest.mark.asyncio
+async def test_a_reply_cut_off_at_the_output_limit_is_recovered_a_bounded_number_of_times(tmp_path):
+    from aster.config import Settings
+    from aster.core.runtime import OUTPUT_LIMIT_NOTE, OUTPUT_LIMIT_RECOVERIES, Runtime
+    from aster.providers.errors import ProviderError
+    from aster.schema import ModelReply, TaskSpec
+
+    class Truncating:
+        def __init__(self, failures):
+            self.failures, self.calls = failures, 0
+
+        async def complete(self, messages, tools):
+            self.calls += 1
+            if self.calls <= self.failures:
+                raise ProviderError("Provider stopped before a complete model response",
+                                    category="incomplete_response", code="chat:length")
+            assert OUTPUT_LIMIT_NOTE in str(messages)
+            return ModelReply(text="Done.")
+
+    model = Truncating(OUTPUT_LIMIT_RECOVERIES)
+    runtime = Runtime(tmp_path, Settings(memory_enabled=False, completion="off"), model=model)
+    state = await runtime.run(TaskSpec(prompt="Say done."))
+    assert state.phase == "completed" and state.output_limit_recoveries == OUTPUT_LIMIT_RECOVERIES
+    assert state.turn == OUTPUT_LIMIT_RECOVERIES + 1  # each recovery costs a turn
+
+    stubborn = Truncating(OUTPUT_LIMIT_RECOVERIES + 1)
+    runtime = Runtime(tmp_path / "again", Settings(memory_enabled=False, completion="off"), model=stubborn)
+    (tmp_path / "again").mkdir(exist_ok=True)
+    state = await runtime.run(TaskSpec(prompt="Say done."))
+    assert state.stop_reason == "provider_error"

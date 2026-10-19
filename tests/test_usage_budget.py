@@ -181,11 +181,15 @@ async def test_effective_budget_reaches_wire_and_truncated_tool_never_executes(
     )
     runtime = Runtime(tmp_path, Settings(api_key="fake-key", approval="auto", auto_dream=False))
     state = await runtime.run(TaskSpec(prompt="Write bad.txt."))
+    from aster.core.runtime import OUTPUT_LIMIT_RECOVERIES
+
     assert requests[0]["max_output_tokens"] == 32768
+    # Every attempt is cut off: the partial tool call never runs, recoveries are bounded.
     assert state.stop_reason == "provider_error" and state.step == 0
     assert "responses:max_output_tokens" in state.feedback
     assert not (tmp_path / "bad.txt").exists()
-    assert state.usage["output_tokens"] == 32768
+    assert len(requests) == 1 + OUTPUT_LIMIT_RECOVERIES
+    assert state.usage["output_tokens"] == 32768 * len(requests)
 
 
 def test_cli_overrides_budget_and_one_shot_caps(tmp_path, monkeypatch, capsys):

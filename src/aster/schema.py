@@ -106,6 +106,8 @@ class RunState(Record):
     verification: Verification = Field(default_factory=Verification)
     # Latest test command that passed; the runtime reruns it if only later edits voided it.
     last_passed_command: str = ""
+    # Replies cut off at the output limit that the run recovered from (bounded per run).
+    output_limit_recoveries: int = 0
     verification_failures: dict[str, str] = Field(default_factory=dict)
     environment_failures: dict[str, str] = Field(default_factory=dict)
     preexisting_failures: dict[str, str] = Field(default_factory=dict)
