@@ -12,6 +12,7 @@ from ..messages import ContextHistoryError as ContextHistoryError
 from ..messages import history_groups
 from ..providers.codec import request_payload
 from .prompt import context_notes, is_context_note, render_prompt, system_prompt, workflow_state
+from .view import render_workflow
 
 try:
     import tiktoken
@@ -270,8 +271,7 @@ class BudgetCalculator:
 
         def notes():
             # Training can omit the harness's state notes so trajectories read as a plain dialogue.
-            current = {"workflow_state": json.dumps(workflow, ensure_ascii=False) if workflow_notes else "",
-                       **sections}
+            current = {"workflow_state": render_workflow(workflow) if workflow_notes else "", **sections}
             if redact_history is not None:
                 redacted = redact_history([
                     {"role": "user", "content": value} for value in current.values()
@@ -282,7 +282,8 @@ class BudgetCalculator:
         def render():
             nonlocal final_notes
             updates = notes()
-            rendered = render_prompt(system, user, messages, groups, updates, redact_history)
+            rendered = render_prompt(system, user, messages, groups, updates, redact_history,
+                                     references=memory_enabled)
             # Persist exactly the redacted note items that were sent to the model.
             final_notes = rendered[-len(updates):] if updates else []
             return rendered

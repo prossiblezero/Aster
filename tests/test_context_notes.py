@@ -168,7 +168,7 @@ def test_resume_preserves_entire_last_request_prefix(tmp_path):
     restored = Runtime(tmp_path, settings)
     restored.resume(runtime.state.run_id)
     restored._structured_history.extend(exchange("c2", "new evidence"))
-    restored.state.verification = Verification(state="passed", command="pytest")
+    restored.state.changed_paths = ["source.py"]
     after, next_tools, report = restored.prepare_request()
     assert next_tools == tools and not report.compacted
     assert after[:len(before)] == before

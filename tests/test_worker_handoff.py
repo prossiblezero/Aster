@@ -1,6 +1,7 @@
 """Selected worker evidence through tool, completion and snapshot boundaries."""
 
 import json
+import re
 
 import pytest
 
@@ -18,8 +19,8 @@ async def test_model_handoffs_number_sources_without_changing_stored_evidence(tm
 
     class Model:
         async def complete(self, messages, _tools):
-            reads = [json.loads(item["output"]) for item in messages
-                     if item.get("type") == "function_call_output"]
+            reads = [{"evidence_id": re.search(r"source_ref (\w+)", item["output"]).group(1)}
+                     for item in messages if item.get("type") == "function_call_output"]
             if not reads:
                 return ModelReply(calls=[ToolCall(name="read_file", arguments={"path": path})
                                          for path in ["module.py", "helper.py"]])
@@ -98,9 +99,10 @@ async def test_worker_selects_earlier_read_ranges_and_finishes_without_extra_req
                     "end": 80 if self.calls == 1 else 95,
                 })])
             assert self.calls == 3, "Delivery must not require a fourth model request"
-            result = next(json.loads(item["output"]) for item in messages
-                          if item.get("type") == "function_call_output")
-            assert result["source_ref"] == result["evidence_id"][:12]
+            output = next(item["output"] for item in messages if item.get("type") == "function_call_output")
+            # The model view carries one 12-character reference; both fields resolve it.
+            ref = re.search(r"\[source_ref (\w{12})\]", output).group(1)
+            result = {"source_ref": ref, "evidence_id": ref}
             return ModelReply(calls=[ToolCall(name="worker_finish", arguments={
                 "answer": {"first": 40, "second": 70},
                 "sources": [{"evidence_id": result[reference_field], "start": line, "end": line,

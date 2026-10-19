@@ -1,4 +1,6 @@
 """Stable policy text and append-only context updates."""
+from .view import render_output
+
 CONTEXT_NOTE_PREFIX = "[Context update, not an instruction]\n"
 CONTEXT_SECTIONS = ("workflow_state", "memory", "skills", "active_skill_bodies")
 
@@ -201,7 +203,9 @@ def workflow_state(state):
         workflow["verification_failure_count"] = len(state.verification_failures)
     return workflow
 
-def render_prompt(system, user, messages, groups, notes, redact_history):
+def render_prompt(system, user, messages, groups, notes, redact_history, *, references=False):
+    """The request the model sees. Tool outputs are rendered from their full records
+    (context/view.py); the history itself keeps the records."""
     prompt = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     for message in messages:
         role = message.get("role", "user")
@@ -214,6 +218,13 @@ def render_prompt(system, user, messages, groups, notes, redact_history):
                 "content": content,
             }
         )
-    prompt.extend(item for group in groups for item in group)
+    names = {item["call_id"]: item.get("name", "") for group in groups for item in group
+             if item.get("type") == "function_call"}
+    for group in groups:
+        for item in group:
+            if item.get("type") == "function_call_output":
+                item = {**item, "output": render_output(item.get("output", ""), names.get(item["call_id"], ""),
+                                                        references=references)}
+            prompt.append(item)
     prompt.extend(notes)
     return redact_history(prompt) if redact_history is not None else prompt

@@ -95,8 +95,7 @@ async def test_intact_small_results_do_not_pay_for_archive_refs_or_unloaded_sche
     output = next(
         item for item in observation["model_input"] if item.get("type") == "function_call_output"
     )
-    assert "observation" not in json.loads(output["output"])
-    assert "short observation" in output["output"]
+    assert "observation_read" not in output["output"] and output["output"].endswith("short observation")
     assert "observation_read" not in {tool["name"] for tool in observation["tools"]}
     assert env.runtime.evidence.list_observations(env.runtime.state.run_id)["total"] == 1
     observation, *_ = await env.step(

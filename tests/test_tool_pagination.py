@@ -123,13 +123,10 @@ async def test_tool_page_metadata_reaches_model_request(tmp_path, name):
     messages, tools, _ = runtime.prepare_request()
     payload = request_payload(messages, tools, protocol="responses", model="test", output_tokens=2048)
     record = next(item for item in payload["input"] if item.get("type") == "function_call_output")
-    output = json.loads(record["output"])
-    assert output["content"] == result.content
-    for field in ["offset", "count", "truncated", "next_offset"]:
-        assert output[field] == result.data[field]
-    assert output["next_offset"] == 2 and output["truncated"]
-    if name == "list_files":
-        assert output["total"] == 3
+    # Plain text: the page, then a footer with the cursor the model needs to continue.
+    shown = "2 of 3 shown; " if name == "list_files" else ""
+    assert record["output"] == result.content + f"\n[{shown}next_offset=2]"
+    assert result.data["next_offset"] == 2 and result.data["truncated"]
 
 
 @pytest.mark.parametrize("name", ["list_files", "search"])

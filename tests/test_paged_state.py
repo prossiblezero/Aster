@@ -48,12 +48,15 @@ def test_native_envelope_stays_valid_json_while_only_its_body_is_clipped():
     prompt, report = context.build(
         RunState(task=TaskSpec(prompt="Continue")), "Continue", structured_history=history
     )
-    received = json.loads(prompt[-2]["output"])
-    assert context.count(received["content"]) < context.count(record["content"])
-    assert "tool output clipped" in received["content"]
-    assert {key: value for key, value in received.items() if key != "content"} == {
+    # The stored record stays a valid envelope; only its body is clipped.
+    stored = json.loads(history[-2]["output"] if history[-1].get("role") == "user" else history[-1]["output"])
+    assert context.count(stored["content"]) < context.count(record["content"])
+    assert "tool output clipped" in stored["content"]
+    assert {key: value for key, value in stored.items() if key != "content"} == {
         key: value for key, value in record.items() if key != "content"
     }
+    # The model sees the same facts as text: status line, then the clipped body.
+    assert prompt[-2]["output"] == "[error: tests_failed; changed: secret_parser.py]\n" + stored["content"]
     assert report.estimated_tokens <= report.budget
 
 
@@ -92,9 +95,10 @@ async def test_model_can_read_the_last_chinese_workflow_or_skill_page(tmp_path, 
             if not outputs:
                 assert source not in str(prompt)
             if outputs:
-                envelope = json.loads(outputs[-1]["output"])
-                assert envelope["status"] == "success"
-                header, fragment = envelope["content"].split("\n", 1)
+                text = outputs[-1]["output"]
+                assert not text.startswith("[error") and not text.startswith("[blocked")
+                header, fragment = text.split("\n", 1)
+                fragment = fragment.split("\n[full output: observation_read", 1)[0]
                 metadata = json.loads(header)
                 self.pieces.append(fragment)
                 offset = metadata["next_offset"]

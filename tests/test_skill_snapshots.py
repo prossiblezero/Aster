@@ -63,9 +63,7 @@ async def test_selected_pages_and_model_body_do_not_reread_changed_source(tmp_pa
     prompt, _, _ = runtime.prepare_request()
     assert body in prompt[-1]["content"]
     assert "SECOND VERSION" not in prompt[-1]["content"]
-    assert json.loads(latest_section(prompt, "workflow_state"))["active_skill_versions"] == {
-        "guide": version(body)
-    }
+    assert f"active skills: guide@{version(body)[:12]}" in latest_section(prompt, "workflow_state")
 
 
 async def test_refresh_notifies_version_and_failure_keeps_selected_body(tmp_path):
@@ -197,9 +195,7 @@ async def test_redacted_snapshot_hash_survives_new_credentials_and_restore(
             actual = json.dumps(messages)
             assert old_secret not in actual and new_secret not in actual
             assert latest_section(messages, "active_skill_bodies") == "guide:\n" + expected
-            assert json.loads(latest_section(messages, "workflow_state"))["active_skill_versions"] == {
-                "guide": version(expected)
-            }
+            assert f"active skills: guide@{version(expected)[:12]}" in latest_section(messages, "workflow_state")
             return ModelReply(text="Inspected.")
 
     runtime.model = InspectModel()

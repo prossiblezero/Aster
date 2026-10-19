@@ -83,12 +83,12 @@ def test_dynamic_state_changes_only_after_task_and_confirmed_history(protocol):
     assert second[-1]["role"] == "user"
     assert second[-1]["content"].startswith(CONTEXT_NOTE_PREFIX)
     dynamic = "\n".join(item["content"] for item in second[len(first):])
-    assert '"mode": "plan"' in dynamic and '"remaining_steps"' not in dynamic
+    assert "mode: plan" in dynamic and "tool steps left" not in dynamic
     for text in (
         state.plan,
         "todo-1",
         "config.txt",
-        '"state": "passed"',
+        "verification: passed (pytest)",
         "Updated memory.",
         "Updated catalog.",
         "Check public interfaces.",
