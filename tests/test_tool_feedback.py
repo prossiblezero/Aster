@@ -1,5 +1,7 @@
 """Tool results answer the model's next question so it does not spend a turn asking it."""
 
+import json
+
 import pytest
 
 from aster.config import Settings
@@ -139,3 +141,25 @@ async def test_search_salvages_common_argument_slips(tmp_path, arguments):
     runtime = await runtime_with(tmp_path)
     result = await runtime.step(ToolCall(name="search", arguments=arguments))
     assert result.status == "success" and result.data["count"] == 2
+
+
+def test_empty_results_say_what_they_mean():
+    from aster.context.view import render_output
+    def record(**extra):
+        return json.dumps({"status": "success", "evidence_id": "e" * 64, "content": "", **extra})
+
+    assert render_output(record(count=0, total=0, offset=0, truncated=False), "list_files") == "[no files]"
+    assert render_output(record(count=0, offset=0, truncated=False), "search") == "[no matches]"
+    assert render_output(record(count=0), "") == "[no results]"
+    assert render_output(record(), "write_file") == "[done]"
+    assert render_output(json.dumps({"status": "error", "reason": "x", "content": ""}), "run_shell") == "[error: x]"
+
+
+def test_chat_transcripts_resolve_tool_names_for_rendering():
+    from aster.context.prompt import render_prompt
+    record = json.dumps({"status": "success", "evidence_id": "e" * 64, "changed_paths": ["a.py"], "content": ""})
+    groups = [[{"role": "assistant", "content": "", "tool_calls": [
+        {"id": "c1", "type": "function", "function": {"name": "write_file", "arguments": "{}"}}]},
+        {"type": "function_call_output", "call_id": "c1", "output": record}]]
+    prompt = render_prompt("system", "task", [], groups, [], None)
+    assert prompt[-1]["output"] == "[done]"  # write_file reports its own change; no [changed: ...] line

@@ -218,8 +218,16 @@ def render_prompt(system, user, messages, groups, notes, redact_history, *, refe
                 "content": content,
             }
         )
-    names = {item["call_id"]: item.get("name", "") for group in groups for item in group
-             if item.get("type") == "function_call"}
+    names = {}
+    for group in groups:
+        for item in group:  # Responses, Chat Completions and Anthropic transcripts name calls differently
+            if item.get("type") == "function_call":
+                names[item["call_id"]] = item.get("name", "")
+            for call in item.get("tool_calls") or []:
+                names[call.get("id")] = (call.get("function") or {}).get("name", "")
+            if isinstance(item.get("content"), list):
+                names.update((block.get("id"), block.get("name", "")) for block in item["content"]
+                             if isinstance(block, dict) and block.get("type") == "tool_use")
     for group in groups:
         for item in group:
             if item.get("type") == "function_call_output":

@@ -22,6 +22,8 @@ CITABLE = {"read_file", "run_shell", "run_tests"}
 # Their own result already shows what changed.
 SELF_DESCRIBING_CHANGES = {"write_file", "patch_file"}
 PASSTHROUGH_KEYS = ("idempotency_replayed", "original_status", "uncertain", "mcp_endpoint", "failover")
+EMPTY = {"list_files": "[no files]", "search": "[no matches]", "git_diff": "[no changes]",
+         "read_file": "[empty file]", "run_shell": "[no output]", "run_tests": "[no output]"}
 
 
 def output_record(value) -> dict:
@@ -68,6 +70,10 @@ def render_output(value, tool: str = "", *, references: bool = False):
     observation = record.get("observation")
     if observation and not content.startswith("[archived:"):
         tail.append(f"full output: observation_read observation_id={observation['id']}")
+    if not content and status in (None, "success"):
+        # An empty success must still say what it means: "[done]" after a search reads like
+        # success, not like "nothing matched".
+        content = EMPTY.get(tool) or ("[no results]" if record.get("count") == 0 else "[done]")
     parts = (["[" + "; ".join(head) + "]"] if head else []) + ([content] if content else []) + (
         ["[" + "; ".join(tail) + "]"] if tail else [])
     return "\n".join(parts) if parts else "[done]"
