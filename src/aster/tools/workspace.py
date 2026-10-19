@@ -75,6 +75,32 @@ def record_page(
     return Outcome(status="success", content="\n".join(page), data=metadata)
 
 
+def grouped_matches(page: list[tuple[str, int, list[tuple[int, str]]]]) -> str:
+    """Search hits under one heading per file, like ripgrep --heading.
+
+    `12:` marks a matching line and `11-` a context line; overlapping context is printed once
+    and `--` marks a gap. Repeating the path on every line, grep -C style, made search results
+    the largest observations Aster carried (36% of resent tool output on fresh30b).
+    """
+    files: dict[str, dict[int, tuple[str, bool]]] = {}
+    for path, index, window in page:
+        lines = files.setdefault(path, {})
+        for number, text in window:
+            lines[number] = (text, lines.get(number, ("", False))[1] or number == index)
+    gaps = any(len(window) > 1 for _, _, window in page)  # plain matches need no separators
+    out = []
+    for path, lines in files.items():
+        out.append(f"{path}:")
+        last = None
+        for number in sorted(lines):
+            if gaps and last is not None and number > last + 1:
+                out.append("--")
+            text, match = lines[number]
+            out.append(f"{number + 1}{':' if match else '-'} {text}")
+            last = number
+    return "\n".join(out)
+
+
 def _numbered(lines: list[str], low: int, high: int) -> list[str]:
     return [f"{n + 1}: {lines[n]}" for n in range(max(0, low), min(len(lines), high))]
 
@@ -252,19 +278,18 @@ class WorkspaceTools:
                         if not (regex.search(line[:2000]) if regex is not None
                                 else pattern in line.casefold()):
                             continue
-                        if not args.context:
-                            yield f"{relative}:{index + 1}:{line[:300]}"
-                            continue
-                        # One record per match keeps offset counting matches; grep -C notation.
+                        # One record per match keeps offset counting matches.
                         low, high = max(0, index - args.context), min(len(lines), index + args.context + 1)
-                        yield "--\n" + "\n".join(
-                            f"{relative}{':' if n == index else '-'}{n + 1}{':' if n == index else '-'}{lines[n][:300]}"
-                            for n in range(low, high)
-                        )
+                        yield str(relative), index, [(n, lines[n][:300]) for n in range(low, high)]
                 except UnicodeError:
                     continue
 
-        return record_page(matches(), args.offset, args.limit)
+        page = list(islice(matches(), args.offset, args.offset + args.limit + 1))
+        truncated = len(page) > args.limit
+        page = page[:args.limit]
+        return Outcome(status="success", content=grouped_matches(page), data={
+            "offset": args.offset, "count": len(page), "truncated": truncated,
+            "next_offset": args.offset + len(page) if truncated else None})
 
     async def _write_file(self, args: WriteFile) -> Outcome:
         path = self.context.workspace.path(args.path, write=True)

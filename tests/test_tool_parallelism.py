@@ -145,7 +145,7 @@ async def test_all_three_read_tools_use_detached_execution(tmp_path, monkeypatch
     monkeypatch.setattr(ToolRegistry, "execute", execute)
     await runtime.turn()
     assert [row["status"] for row in results(runtime)] == ["success"] * 3
-    assert "0.txt:1:value 0" in results(runtime)[1]["content"]
+    assert "0.txt:\n1: value 0" in results(runtime)[1]["content"]
 
 
 async def test_partial_step_budget_keeps_accepted_results_and_pairs_the_rest(tmp_path):

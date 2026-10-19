@@ -35,6 +35,8 @@ async def test_search_pages_all_1200_matches_in_one_file(tmp_path):
             content = "".join(chunks)
             assert result.content.startswith(content[:8192]) and "observation_read" in result.content
         lines = content.splitlines()
+        assert lines[0] == "matches.txt:"  # one heading per file
+        lines = lines[1:]
         assert len(lines) == expected_count
         assert {key: value for key, value in result.data.items() if key != "observation"} == {
             "offset": offset,
@@ -44,7 +46,7 @@ async def test_search_pages_all_1200_matches_in_one_file(tmp_path):
         }
         found.extend(lines)
         offset = next_offset
-    assert found == [f"matches.txt:{number + 1}:needle {number}" for number in range(1200)]
+    assert found == [f"{number + 1}: needle {number}" for number in range(1200)]
     assert runtime.state.read_evidence == {}
 
 
@@ -89,12 +91,12 @@ async def test_search_keeps_literal_matching_scope_and_bounded_line_previews(tmp
         ToolCall(name="search", arguments={"pattern": "a|b", "path": "source", "limit": 1})
     )
     assert first.status == "success"
-    assert first.content == "source/a.txt:1:" + ("A|B " + "x" * 4000)[:300]
+    assert first.content == "source/a.txt:\n1: " + ("A|B " + "x" * 4000)[:300]
     assert first.data["count"] == 1 and first.data["next_offset"] == 1
     last = await runtime.step(
         ToolCall(name="search", arguments={"pattern": "a|b", "path": "source", "offset": 1, "limit": 1})
     )
-    assert last.content == "source/a.txt:3:a|b last"
+    assert last.content == "source/a.txt:\n3: a|b last"
     assert last.data["count"] == 1 and not last.data["truncated"]
     assert last.data["next_offset"] is None
 
@@ -150,12 +152,12 @@ async def test_regex_search_alternation_literal_default_and_limits(tmp_path):
         "pattern": "foo|bar", "regex": True,
     }))
     assert regex.status == "success"
-    assert regex.content.splitlines() == ["names.txt:1:FOO", "names.txt:2:bar", "names.txt:3:foo|bar"]
+    assert regex.content.splitlines() == ["names.txt:", "1: FOO", "2: bar", "3: foo|bar"]
     for option in ({}, {"regex": False}):
         literal = await runtime.step(ToolCall(name="search", arguments={
             "pattern": "foo|bar", **option,
         }))
-        assert literal.content == "names.txt:3:foo|bar"
+        assert literal.content == "names.txt:\n3: foo|bar"
     beyond = await runtime.step(ToolCall(name="search", arguments={"pattern": "foo"}))
     assert beyond.data["count"] == 3  # Literal search still examines the full line.
     invalid = await runtime.step(ToolCall(name="search", arguments={

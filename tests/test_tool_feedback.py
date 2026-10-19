@@ -54,9 +54,11 @@ async def test_search_context_keeps_offsets_per_match(tmp_path):
     runtime = await runtime_with(tmp_path)
     result = await runtime.step(ToolCall(name="search", arguments={"pattern": "return", "context": 1}))
     assert result.data["count"] == 2
-    assert "m.py-1-def a():\nm.py:2:    return 1\nm.py-3-" in result.content
+    assert result.content.startswith("m.py:\n1- def a():\n2:     return 1\n3- \n--\n5- def b():")
     plain = await runtime.step(ToolCall(name="search", arguments={"pattern": "return"}))
-    assert plain.content == "m.py:2:    return 1\nm.py:6:    return 2"
+    assert plain.content == "m.py:\n2:     return 1\n6:     return 2"
+    overlap = await runtime.step(ToolCall(name="search", arguments={"pattern": "x = 1", "context": 1}))
+    assert overlap.content == "m.py:\n7- \n8: x = 1\n9: x = 1"  # shared context printed once, both matches marked
 
 
 def test_preview_merges_nearby_regions_and_bounds_size():
