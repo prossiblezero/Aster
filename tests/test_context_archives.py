@@ -280,3 +280,23 @@ async def test_archive_read_cannot_authorize_editing_a_file_changed_since_observ
     )
     assert edited.status == "blocked" and edited.reason == "fresh_read_required"
     assert path.read_text() == "VALUE = 2\n"
+
+
+async def test_shortened_archive_ids_shown_to_the_model_resolve(tmp_path):
+    import re
+
+    runtime = Runtime(tmp_path, Settings(approval="auto", memory_enabled=False, context_tokens=64000,
+                                         output_tokens=2048))
+    runtime.start(TaskSpec(prompt="Find the cause using the evidence and report it."))
+    witness = "masked witness: 4417-QUARTZ" + " detail" * 900
+    ref = runtime.evidence.archive_observation(runtime.state.run_id, "early", "run_shell", witness)
+    masked = runtime.context.calculator._mask_tool_output(
+        exchange("early", witness)[1]["output"], reference={"id": ref["id"], "characters": ref["characters"]})
+    runtime._structured_history = [exchange("early", witness)[0],
+                                   {"type": "function_call_output", "call_id": "early", "output": masked}]
+    prompt, _tools, _report = runtime.prepare_request()
+    shown = re.findall(r"observation_id=([0-9a-f]+)", json.dumps(prompt))
+    assert shown == [ref["id"][:16]]
+    page = await runtime.step(ToolCall(name="observation_read", arguments={"observation_id": shown[0], "limit": 60}))
+    assert page.status == "success", page
+    assert json.loads(page.content)["content"].startswith("masked witness")

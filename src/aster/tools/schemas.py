@@ -162,7 +162,7 @@ class TextPage(Record):
 
 
 class ObservationRead(TextPage):
-    observation_id: str = Field(default="", description="Archive id; omit to list observations.")
+    observation_id: str = Field(default="", description="Archive id as shown; omit to list observations.")
     query: str = Field(default="", max_length=200, description="Optional literal text to find.")
 
 

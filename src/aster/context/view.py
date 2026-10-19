@@ -16,12 +16,18 @@ text passes through unchanged.
 from __future__ import annotations
 
 import json
+import re
 
 # Results the model may cite as evidence (memory_store), so they keep a short reference.
 CITABLE = {"read_file", "run_shell", "run_tests"}
 # Their own result already shows what changed.
 SELF_DESCRIBING_CHANGES = {"write_file", "patch_file"}
 PASSTHROUGH_KEYS = ("idempotency_replayed", "original_status", "uncertain", "mcp_endpoint", "failover")
+# Archive ids are shown shortened; observation_read resolves unique prefixes (storage/evidence.py).
+SHOWN_ID = 16
+ARCHIVE_ID = re.compile(r"(observation_id=|observation_read id=)([0-9a-f]{64})\b")
+LISTED_ID = re.compile(r'("id": ")([0-9a-f]{64})(?=")')
+EXCERPT_MARKER = "[excerpt; observation_read for archived content]"
 EMPTY = {"list_files": "[no files]", "search": "[no matches]", "git_diff": "[no changes]",
          "read_file": "[empty file]", "run_shell": "[no output]", "run_tests": "[no output]"}
 
@@ -68,8 +74,12 @@ def render_output(value, tool: str = "", *, references: bool = False):
     if record.get("output_truncated"):
         tail.append(f"output truncated: kept {record.get('captured_bytes')} of {record.get('output_bytes')} bytes")
     observation = record.get("observation")
-    if observation and not content.startswith("[archived:"):
-        tail.append(f"full output: observation_read observation_id={observation['id']}")
+    if observation and EXCERPT_MARKER in content:
+        # Only a body clipped to fit the context needs the way back; a complete one does not.
+        tail.append(f"full output: observation_read observation_id={observation['id'][:SHOWN_ID]}")
+    content = ARCHIVE_ID.sub(lambda m: m.group(1) + m.group(2)[:SHOWN_ID], content)
+    if tool == "observation_read":
+        content = LISTED_ID.sub(lambda m: m.group(1) + m.group(2)[:SHOWN_ID], content)
     if not content and status in (None, "success"):
         # An empty success must still say what it means: "[done]" after a search reads like
         # success, not like "nothing matched".

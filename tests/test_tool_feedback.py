@@ -163,3 +163,32 @@ def test_chat_transcripts_resolve_tool_names_for_rendering():
         {"type": "function_call_output", "call_id": "c1", "output": record}]]
     prompt = render_prompt("system", "task", [], groups, [], None)
     assert prompt[-1]["output"] == "[done]"  # write_file reports its own change; no [changed: ...] line
+
+
+def test_complete_outputs_carry_no_archive_footer_and_ids_are_shortened():
+    from aster.context.view import render_output
+    full = "a" * 64
+    record = {"status": "success", "evidence_id": "e" * 12, "content": "ok", "observation": {"id": full, "characters": 2}}
+    assert render_output(json.dumps(record), "run_shell") == "ok"
+    clipped = {**record, "content": "part\n[excerpt; observation_read for archived content]"}
+    assert render_output(json.dumps(clipped), "run_shell").endswith(f"[full output: observation_read observation_id={full[:16]}]")
+    masked = {**record, "content": f"[archived: 900 chars; observation_read observation_id={full}]"}
+    assert render_output(json.dumps(masked), "run_shell") == f"[archived: 900 chars; observation_read observation_id={full[:16]}]"
+    listing = {"status": "success", "content": json.dumps({"observations": [{"id": full, "tool": "run_shell"}]})}
+    assert f'"id": "{full[:16]}"' in render_output(json.dumps(listing), "observation_read")
+    # Other 64-hex text (a digest a command printed) is data and stays intact.
+    printed = {**record, "content": f"sha256 {full}"}
+    assert render_output(json.dumps(printed), "run_shell") == f"sha256 {full}"
+
+
+def test_observation_read_resolves_unique_prefixes(tmp_path):
+    from aster.safety.redaction import Redactor
+    from aster.storage.evidence import EvidenceStore
+    from aster.storage.workspace import BoundaryError
+    store = EvidenceStore(tmp_path, Redactor([]))
+    ref = store.archive_observation("run1", "c1", "run_shell", "first output")
+    assert store.read_observation("run1", ref["id"][:16])["content"] == "first output"
+    with pytest.raises(BoundaryError):
+        store.read_observation("run1", ref["id"][:8])  # below the minimum prefix
+    with pytest.raises(BoundaryError):
+        store.read_observation("run1", "f" * 16)  # no such archive

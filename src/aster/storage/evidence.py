@@ -71,6 +71,10 @@ def _native_control_fields(history):
                     yield record[key]
 
 
+# Archive ids may be cited by a unique prefix of at least this many hex characters.
+OBSERVATION_PREFIX = 12
+
+
 class EvidenceStore:
     def __init__(self, workspace: Path, redactor: Redactor):
         self.root = workspace / ".aster"
@@ -182,6 +186,24 @@ class EvidenceStore:
             "characters": len(record["content"]),
         }
 
+    def resolve_observation(self, run_id: str, observation_id: str) -> str:
+        """A full archive id from an id or a unique prefix of at least OBSERVATION_PREFIX chars.
+
+        The model sees ids shortened to a prefix (context/view.py); 64 hex characters cost
+        about 30 tokens per reference and are easy to mistype."""
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", run_id):
+            raise BoundaryError("invalid_observation_run")
+        if not re.fullmatch(rf"[a-f0-9]{{{OBSERVATION_PREFIX},64}}", observation_id):
+            raise BoundaryError("invalid_observation_id")
+        if len(observation_id) == 64:
+            return observation_id
+        with self._lock:
+            matches = [path.stem for path in self.path("runs", run_id, "observations").glob(observation_id + "*.json")
+                       if re.fullmatch(r"[a-f0-9]{64}", path.stem)]
+        if len(matches) != 1:
+            raise BoundaryError("invalid_observation_id" if not matches else "ambiguous_observation_id")
+        return matches[0]
+
     def read_observation(
         self,
         run_id: str,
@@ -194,8 +216,7 @@ class EvidenceStore:
         """Read only a current-run tool observation, with bounded character pages."""
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,160}", run_id):
             raise BoundaryError("invalid_observation_run")
-        if not re.fullmatch(r"[a-f0-9]{64}", observation_id):
-            raise BoundaryError("invalid_observation_id")
+        observation_id = self.resolve_observation(run_id, observation_id)
         if (
             type(offset) is not int
             or offset < 0

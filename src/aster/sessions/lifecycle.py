@@ -144,9 +144,14 @@ def read_session_observation(
     """Read only this run and explicitly authorized ancestor observation IDs."""
     try:
         if args["observation_id"]:
+            wanted = args["observation_id"]
+            # Shortened ids name either this run's archive or an authorized ancestor's.
+            inherited = [key for key in sources if key.startswith(wanted)]
+            if len(inherited) == 1:
+                wanted = inherited[0]
             page = evidence.read_observation(
-                sources.get(args["observation_id"], run_id),
-                args["observation_id"],
+                sources.get(wanted, run_id),
+                wanted,
                 offset=args["offset"],
                 limit=args["limit"],
                 query=args["query"],
