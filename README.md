@@ -234,7 +234,7 @@ run_shell   run_tests   git_diff    tool_load
 
 默认每个任务最多 40 个工具步骤、40 个模型轮次；启用 Worker 后，这也是父子共同消耗的总额度。CLI / TUI 均可用 `--max-steps`、`--max-turns` 调整；Python 接口的 `TaskSpec.max_tokens` 可增加总 token 上限，`--context-tokens` 与 `--output-tokens` 控制单次模型请求预算。
 
-正式验证使用 `run_tests`：pytest、unittest、Node 内置测试、Jest 和 go test 给出逐用例结果；`make test`、`ctest`、`cargo test` 等项目自带的构建加测试命令按退出码判定（只接受 `&&` 串联的普通命令，管道、`||`、`;` 和循环会改变退出码，因此不接受）。测试在一次性副本中运行，不改动工作区。普通 `run_shell` 成功不会生成正式测试证据。依赖默认不跨命令保留。需要常驻的服务用 `service_start` 启动，它在独立进程组中跨工具调用存活，任务结束时停止；也可以要求它在 Agent 退出后继续运行（需开启沙箱并获得审批）。详见[执行环境](docs/execution-environment.md)。
+正式验证使用 `run_tests`：pytest、unittest、Node 内置测试、Jest 和 go test 给出逐用例结果；`make test`、`ctest`、`cargo test` 等项目自带的构建加测试命令按退出码判定（只接受 `&&` 串联的普通命令，管道、`||`、`;` 和循环会改变退出码，因此不接受）。测试在一次性副本中运行，不改动工作区。在 `run_shell` 中执行的测试命令同样计为正式验证（同样在一次性副本中运行）；代码风格检查和其他临时检查不算验证。依赖默认不跨命令保留。需要常驻的服务用 `service_start` 启动，它在独立进程组中跨工具调用存活，任务结束时停止；也可以要求它在 Agent 退出后继续运行（需开启沙箱并获得审批）。详见[执行环境](docs/execution-environment.md)。
 
 ## 架构与模块
 
@@ -258,14 +258,14 @@ flowchart LR
 |---|---|---|
 | 运行与交互 | `core/runtime.py`、`cli.py`、`ui/`、`schema.py` | 组织任务循环、交互事件及统一数据结构 |
 | 模型与协议 | `config.py`、`providers/`、`messages.py` | 解析配置，构造请求，处理流式、错误诊断与历史转换 |
-| 上下文 | `context/` | 预算估算、历史压缩和动态状态组织 |
+| 上下文 | `context/` | 预算估算、历史压缩和动态状态组织；`context/view.py` 把完整的工具记录渲染成模型看到的纯文本（证据与模型视图分离） |
 | 工具与安全 | `tools/`、`storage/workspace.py`、`safety/` | 工具分发、文件边界、审批、沙箱执行与修改回写 |
 | 证据与会话 | `storage/evidence.py`、`sessions/` | 事件轨迹、观察归档、检查点校验和会话续接 |
 | 验证与恢复 | `tools/testing.py`、`core/verifier.py`、`core/recovery.py`、`core/hooks.py` | 正式测试、完成条件、停滞反馈及生命周期钩子 |
 | 可选协作能力 | `knowledge/`、`core/workers.py` | 加载项目说明、保存有来源的记忆、管理子任务 |
-| 研究接口 | `training/env.py`、`training/contracts.py` | 外部策略 rollout、SFT 数据导出与 GRPO 数据契约校验 |
+| 研究接口 | `training/env.py`、`training/contracts.py`、`training/rollout.py`、`training/qwen.py` | 外部策略 rollout、token 级采样轨迹（原生聊天模板、Qwen 工具调用解析、逐回合 token id / logprob / loss mask）、SFT 数据导出与 GRPO 数据契约校验 |
 
-Memory 保存原文摘录，以及带出处和适用条件的事实、操作经验；可从文件、真实用户纠正和执行结果提炼知识。默认由后台从已结束的经历中提炼经验，也支持前台即时保存和纠正；规则 Dream 停用失效记录，模型整理可提炼、合并和替换知识。后台只生成候选，Runtime 在工作区锁内核对后原子提交，避免旧候选覆盖新纠正。测试只反馈给明确应用的记忆，后台用量计入总账；参见[自动学习与异步整理](docs/agent-next-optimization.md)。它改变外部记忆，不训练模型权重。设计依据见[记忆与自进化改进](docs/memory-knowledge-design.md)，启用方法见[配置](docs/configuration.md#项目知识-memory)。后训练部分已提供数据契约与方案，实际 SFT / GRPO 训练器、优化器和权重训练尚未实现。
+Memory 保存原文摘录，以及带出处和适用条件的事实、操作经验；可从文件、真实用户纠正和执行结果提炼知识。默认由后台从已结束的经历中提炼经验，也支持前台即时保存和纠正；规则 Dream 停用失效记录，模型整理可提炼、合并和替换知识。后台只生成候选，Runtime 在工作区锁内核对后原子提交，避免旧候选覆盖新纠正。测试只反馈给明确应用的记忆，后台用量计入总账；参见[自动学习与异步整理](docs/agent-next-optimization.md)。它改变外部记忆，不训练模型权重。设计依据见[记忆与自进化改进](docs/memory-knowledge-design.md)，启用方法见[配置](docs/configuration.md#项目知识-memory)。后训练部分已提供数据契约、token 级采样接口（见[Agent RL 接口](docs/agent-rl-harness.md)）与方案，实际 SFT / GRPO 训练器、优化器和权重训练尚未实现。
 
 ## 目录结构
 
@@ -353,7 +353,7 @@ python -m ruff check src tests scripts learn_web/scripts learn_web/tests
 python docs/learning/run_examples.py all
 ```
 
-测试按 pytest 原生标记分层：截至 2026-10-18，快速检查 37 项、核心回归 549 项、完整回归 1382 项（含网站测试）。核心回归包含一项按计数（而非计时）的 harness 开销预算测试：16 步脚本化任务中哈希的字节数和 fsync 次数超出预算即失败，避免 v12 的开销修复在后续改动中悄悄回退，且不受 CI 机器性能抖动影响。这些是包含关系，无需依次重复运行。CI 将核心与其余回归分开执行，仍覆盖全部用例。按模块选择、失败重跑、参数化维护规则见[测试指南](tests/README.md)。
+测试按 pytest 原生标记分层：截至 2026-10-19，快速检查 37 项、核心回归 600 项、完整回归 1436 项（含网站测试）。核心回归包含一项按计数（而非计时）的 harness 开销预算测试：16 步脚本化任务中哈希的字节数和 fsync 次数超出预算即失败，避免 v12 的开销修复在后续改动中悄悄回退，且不受 CI 机器性能抖动影响。这些是包含关系，无需依次重复运行。CI 将核心与其余回归分开执行，仍覆盖全部用例。按模块选择、失败重跑、参数化维护规则见[测试指南](tests/README.md)。
 
 真实模型评测需要另外配置服务并显式启动，命令与数据说明见[评测指南](docs/benchmark.md)及[数据集说明](datasets/README.md)。工程测试通过、机制被调用和真实任务交付质量是不同指标；未知 usage 保留为未知，已有开发与评测题不作为未见训练测试集。
 
