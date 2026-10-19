@@ -54,7 +54,10 @@ def measure(runs, selected=None):
         previous = None
         for metadata, payload in requests(directory):
             row['requests'] += 1
-            row['input_items'] += len(payload['input'])
+            # Chat Completions requests carry messages instead of Responses input items.
+            items = payload.get('input', payload.get('messages', []))
+            payload = {**payload, 'input': items}
+            row['input_items'] += len(items)
             row['cache_keys'] += bool(payload.get('prompt_cache_key'))
             usage = metadata.get('usage') or {}
             inputs = usage.get('input_tokens', 0)

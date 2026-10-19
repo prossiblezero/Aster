@@ -69,7 +69,8 @@ def select(spec, pool=BASE):
     return chosen
 
 
-def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6):
+def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model='gpt-5.6-luna',
+            protocol='responses', key_env='ASTER_API_KEY'):
     base = pool_dir(pool)
     public, root = paths(name)
     assert not root.exists(), 'Run directory exists; choose a new name'
@@ -84,6 +85,10 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6):
                 target.write_bytes(bundle.extractfile(item).read())
     patch_service_launcher(root / 'runtime' / 'execution_environment.py')
     patch_one_shot_driver(root / 'runtime' / 'aster_episode.py')
+    if agent == 'aster':
+        patch_model_driver(root / 'runtime' / 'aster_episode.py', model, protocol)
+    else:
+        assert (model, protocol) == ('gpt-5.6-luna', 'responses'), 'pi/Codex runs use the default model'
     for link in ('sources', 'preflight', 'task-python', 'pi', 'node-v22.22.0-linux-x64'):
         (root / link).symlink_to((base / link).resolve(), target_is_directory=True)
     shutil.copy2(base / 'repository-dataset.json', root / 'repository-dataset.json')
@@ -94,7 +99,7 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6):
     save(public / 'manifest.json', {
         'name': name, 'ref': ref, 'aster_commit': commit, 'tasks': [t['id'] for t in tasks],
         'pool': pool, 'agent': agent,
-        'model': 'gpt-5.6-luna', 'protocol': 'responses', 'reasoning': 'medium', 'seconds_per_task': 900,
+        'model': model, 'protocol': protocol, 'key_env': key_env, 'reasoning': 'medium', 'seconds_per_task': 900,
         'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
         'cpu': 4, 'memory_gib': 8, 'concurrency': concurrency,
         'product_hashes': hashes(root / 'runtime/aster'), 'runtime_hashes': hashes(root / 'runtime'),
@@ -142,6 +147,105 @@ def patch_one_shot_driver(path):
     text = text.replace(drain, "        if getattr(runtime.settings, 'background_maintenance', True):\n"
                         "            await runtime.maintenance.drain(timeout=15)")
     path.write_text(text)
+
+
+def patch_model_driver(path, model, protocol):
+    """Run Aster against another model family; chat is the protocol local servers speak."""
+    text = path.read_text()
+    assert text.count("model='gpt-5.6-luna'") == 1 and text.count("stream=True") == 1, 'unexpected aster_episode layout'
+    text = text.replace("model='gpt-5.6-luna'", f"model={model!r}")
+    if protocol == 'chat':
+        text = text.replace("stream=True", "stream=False, protocol='chat'")
+    path.write_text(text)
+
+
+def chat_usage(usage):
+    """Chat Completions usage in the Responses shape the summaries read."""
+    if not usage:
+        return None
+    return {'input_tokens': usage.get('prompt_tokens', 0), 'output_tokens': usage.get('completion_tokens', 0),
+            'total_tokens': usage.get('total_tokens', 0),
+            'input_tokens_details': {'cached_tokens': (usage.get('prompt_tokens_details') or {}).get('cached_tokens', 0)},
+            'output_tokens_details': {'reasoning_tokens': (usage.get('completion_tokens_details') or {}).get('reasoning_tokens', 0)}}
+
+
+def serve_gateway(name):
+    """The shared gateway, with this run's model and key, plus non-streaming Chat Completions."""
+    import hashlib as _hashlib
+    import re as _re
+    import time as _time
+    import uuid
+    from socketserver import ThreadingMixIn, UnixStreamServer
+
+    import httpx
+    from pydantic import SecretStr
+
+    from aster.config import read_env
+
+    public, root = paths(name)
+    manifest = load(public / 'manifest.json')
+    module = engine.baseline.module('gateway')
+    module.PRIVATE = root
+    key = {**read_env(REPO / '.env'), **os.environ}[manifest.get('key_env', 'ASTER_API_KEY')]
+    module.SETTINGS = module.SETTINGS.model_copy(update={'model': manifest['model'], 'api_key': SecretStr(key)})
+    settings = module.SETTINGS
+
+    class Gateway(module.Gateway):
+        def do_POST(self):
+            match = _re.fullmatch(r"/([a-z0-9_-]+)/v1/chat/completions", self.path)
+            if not match:
+                return super().do_POST()
+            job = root / 'runs' / match[1]
+            if not (job / 'launch.json').exists():
+                self.send_error(403)
+                return
+            payload = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            original = {k: payload.get(k) for k in ('model', 'max_tokens', 'temperature', 'top_p', 'stream')}
+            payload.update(model=settings.model, max_tokens=8192, stream=False)
+            request_id = uuid.uuid4().hex
+            archive = job / 'provider'
+            archive.mkdir(exist_ok=True)
+            encoded = json.dumps(payload).encode()
+            (archive / (request_id + '.request.json')).write_bytes(encoded)
+            started = _time.monotonic()
+            row = {'request_id': request_id, 'started': _time.time(), 'original_parameters': original,
+                   'model': settings.model, 'protocol': 'chat', 'max_output_tokens': 8192,
+                   'request_sha256': _hashlib.sha256(encoded).hexdigest(), 'usage': None}
+            try:
+                with httpx.Client(timeout=httpx.Timeout(300, connect=20)) as client:
+                    response = client.post(settings.base_url.rstrip('/') + '/chat/completions', content=encoded,
+                                           headers={'Authorization': 'Bearer ' + settings.api_key.get_secret_value(),
+                                                    'Content-Type': 'application/json'})
+                body = response.content
+                (archive / (request_id + '.response')).write_bytes(body)
+                row['http_status'] = response.status_code
+                try:
+                    data = json.loads(body)
+                    row['usage'] = chat_usage(data.get('usage'))
+                    row['response_model'] = data.get('model')
+                    row['terminal'] = (data.get('choices') or [{}])[0].get('finish_reason')
+                except ValueError:
+                    pass
+                self.send_response(response.status_code)
+                self.send_header('Content-Type', response.headers.get('content-type', 'application/json'))
+                self.send_header('Content-Length', str(len(body)))
+                self.send_header('Connection', 'close')
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as exc:
+                row['error'] = type(exc).__name__
+                self.send_error(502, 'Upstream unavailable')
+            finally:
+                row['seconds'] = round(_time.monotonic() - started, 3)
+                (archive / (request_id + '.json')).write_text(json.dumps(row, indent=2) + '\n')
+                self.close_connection = True
+
+    class Server(ThreadingMixIn, UnixStreamServer):
+        daemon_threads = True
+
+    with Server(str(root / 'relay/model.sock'), Gateway) as server:
+        os.chmod(root / 'relay/model.sock', 0o666)
+        server.serve_forever()
 
 
 def verify(name):
@@ -360,8 +464,8 @@ def results(name):
     save(public / 'metrics.json', measure(root / 'runs'))
     try:
         turns = measure_turns(root / 'runs')
-    except ValueError as exc:
-        turns = {'unavailable': str(exc)}
+    except (ValueError, KeyError, TypeError) as exc:  # chat transcripts lack Responses items
+        turns = {'unavailable': f'{type(exc).__name__}: {exc}'}
     save(public / 'turns.json', turns)
     total = {k: sum(r[k] for r in rows) for k in ('requests', 'input_tokens', 'cached_tokens', 'output_tokens',
                                                     'seconds', 'model_seconds', 'weighted_cost', 'passed',
@@ -381,18 +485,23 @@ def main():
     parser.add_argument('--tasks', nargs='+', default=['old20'], help='old20, new30, a pool tag (fresh30, fresh30b), or task ids (prepare)')
     parser.add_argument('--pool', default='general-coding-50-20261012', help='private task pool directory (prepare)')
     parser.add_argument('--agent', default='aster', choices=['aster', 'pi', 'codex'], help='agent to run (prepare)')
+    parser.add_argument('--model', default='gpt-5.6-luna', help='model the gateway requests (prepare)')
+    parser.add_argument('--protocol', default='responses', choices=['responses', 'chat'],
+                        help='protocol Aster speaks to the gateway (prepare)')
+    parser.add_argument('--key-env', default='ASTER_API_KEY', help='.env variable holding the key (prepare)')
     parser.add_argument('--concurrency', type=int, default=6,
                         help='episodes at once (prepare); keep the host total at 6 so timings stay comparable')
     args = parser.parse_args()
     if args.mode == 'prepare':
-        prepare(args.name, args.ref, args.tasks, args.pool, args.agent, args.concurrency)
+        prepare(args.name, args.ref, args.tasks, args.pool, args.agent, args.concurrency, args.model,
+                args.protocol, args.key_env)
     elif args.mode == 'verify':
         verify(args.name)
         print('Frozen source verified; no model requests made.')
     elif args.mode == 'gateway':
         verify(args.name)
         configure(args.name)
-        engine.gateway()
+        serve_gateway(args.name)
     elif args.mode == 'run':
         run(args.name)
     elif args.mode == 'regrade':
