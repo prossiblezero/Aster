@@ -348,4 +348,4 @@ v14 的方案见 [docs/v14-and-agent-rl-plan.md](../../docs/v14-and-agent-rl-pla
 
 - **成本**：fresh30b 上比 v14.2 低 13%、比 v14 低 23%，已低于 Codex，约为 pi 的 1.13 倍。old20 上比 v14.2 低 7%。
 - **每请求输入**：fresh30b 少 20%，old20 少 5%。
-- **质量**：fresh30b 上与 v14 持平。old20 上 15 道题中少 2 道，涉及 requests-2931、cancel-async-tasks 和 cobol-modernization，这几道在历次运行中本来就时过时不过（v13 两次分别为 13 和 10），暂判为波动，后续继续观察。
+- **质量**：fresh30b 上与 v14 持平。old20 上 15 道题中少 2 道，涉及 requests-2931、cancel-async-tasks 和 cobol-modernization，这几道在历次运行中本来就时过时不过。同样 15 道题上，v15 两次都是 11 道，v14.2 和 v14-rc1 都是 13 道，v13 两次分别是 12 和 11 道。差距在单次运行的波动范围内，但方向不利，后续继续观察。
