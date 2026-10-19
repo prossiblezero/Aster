@@ -213,3 +213,15 @@ async def test_read_file_accepts_a_single_line(tmp_path):
     runtime = runtime_for(tmp_path)
     result = await runtime.step(ToolCall(name="read_file", arguments={"path": "m.py", "line": 100}))
     assert result.status == "success" and "x100 = 100" in result.content and result.data["start"] == 80
+
+
+@pytest.mark.asyncio
+async def test_absolute_workspace_writes_get_an_explanation(tmp_path):
+    from aster.safety.runner import SandboxRunner
+    from aster.storage.workspace import Workspace
+    (tmp_path / "make.py").write_text(f"open({str(tmp_path / 'out.csv')!r}, 'w').write('x')\n")
+    result = await SandboxRunner(Settings()).run(Workspace(tmp_path), "python3 make.py")
+    assert result.status == "error" and "Permission denied" in result.content
+    assert "commands run in a copy of the workspace" in result.content
+    relative = await SandboxRunner(Settings()).run(Workspace(tmp_path), "python3 -c \"open('out.csv','w').write('x')\"")
+    assert relative.status == "success" and (tmp_path / "out.csv").read_text() == "x"

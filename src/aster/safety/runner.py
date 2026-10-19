@@ -35,6 +35,21 @@ DEPENDENCY_DIRECTORIES = {".venv", "node_modules"}
 CREDENTIAL_URL = re.compile(rb"://[^/\s@]+@")
 
 
+ABSOLUTE_WRITE_NOTE = (
+    "\n[Aster: commands run in a copy of the workspace. The workspace's absolute paths ({root}/...) "
+    "are read-only inside a command, so a program that writes to them fails with this permission "
+    "error. Run it with a relative output path (the current directory is the copy, and its changes are "
+    "published), or write the file with write_file.]"
+)
+
+
+def absolute_write_denied(output: str, root: Path) -> bool:
+    """A program wrote to the real workspace by absolute path, which only the copy may do."""
+    prefix = re.escape(str(root).rstrip("/")) + r"/"
+    return re.search(r"(?:Permission denied|Read-only file system|EACCES|EROFS)[^\n]{0,40}['\"]?" + prefix,
+                     output) is not None
+
+
 def exposable(root: Path) -> bool:
     """Whether the real workspace may be readable (never writable) from a sandboxed copy.
 
@@ -363,6 +378,8 @@ class SandboxRunner:
                 + (["--readable", *map(str, guarded)] if guarded else []),
             )
             result.content = map_root(result.content, root, workspace.root)
+            if absolute_write_denied(result.content, workspace.root):
+                result.content += ABSOLUTE_WRITE_NOTE.format(root=workspace.root)
             if changed := self._restore_modes(guarded):
                 # Landlock leaves chmod unmediated; the original's modes are put back.
                 result.status, result.reason = "blocked", "sandbox_metadata_change"
