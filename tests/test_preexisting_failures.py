@@ -167,3 +167,13 @@ async def test_final_code_recheck_still_blocks_a_real_regression(tmp_path):
     await runtime.recheck_preexisting()
     runtime.finalize("Fixed VALUE.")
     assert runtime.state.phase != "completed"
+
+
+def test_signature_ignores_temporary_paths_relative_to_the_copy():
+    a = ("AssertionError: 'Deleted /tmp/aster-x1/.tmp/django_pwt6bh_r/tmpjtmk4_ra/m/0002.py' not found in "
+         "\"Migrations for 'migrations':\\n  .tmp/django_pwt6bh_r/tmpjtmk4_ra/m/0002.py\"")
+    b = ("AssertionError: 'Deleted /tmp/aster-y9/.tmp/django_k2j1aa_q/tmp0v1dkj0z/m/0002.py' not found in "
+         "\"Migrations for 'migrations':\\n  .tmp/django_k2j1aa_q/tmp0v1dkj0z/m/0002.py\"")
+    assert failure_signature(a) == failure_signature(b)
+    # Ordinary relative paths and real values still distinguish failures.
+    assert failure_signature("E   AssertionError: src/a.py != src/b.py") != failure_signature("E   AssertionError: src/a.py != src/c.py")

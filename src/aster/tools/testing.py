@@ -47,7 +47,10 @@ def failure_signature(detail: str) -> str:
     candidates = errors or [line for line in lines if re.match(r"[\w.]+(Error|Exception|Failed|Exit)\b", line)]
     text = (candidates[-1] if candidates else (lines[-1] if lines else ""))[:500]
     text = re.sub(r"0x[0-9a-fA-F]+", "0x?", text)
-    text = re.sub(r"(/tmp|/var/tmp)/[^\s:'\"]+", "<tmp>", text)
+    # Temporary paths differ per run: absolute ones, and the copy's own TMPDIR (.tmp/...),
+    # which programs print relative to the working directory.
+    text = re.sub(r"(/tmp|/var/tmp|(?<![\w/.])\.tmp)/[^\s:'\"]+", "<tmp>", text)
+    text = re.sub(r"\btmp[a-z0-9_]{6,}\b", "tmp?", text)
     return re.sub(r"__aster_[\w-]+", "__aster_?", text)
 
 
