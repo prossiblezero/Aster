@@ -70,7 +70,7 @@ def select(spec, pool=BASE):
 
 
 def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model='gpt-5.6-luna',
-            protocol='responses', key_env='ASTER_API_KEY'):
+            protocol='responses', key_env='ASTER_API_KEY', base_url_env='ASTER_BASE_URL'):
     base = pool_dir(pool)
     public, root = paths(name)
     assert not root.exists(), 'Run directory exists; choose a new name'
@@ -99,7 +99,8 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model
     save(public / 'manifest.json', {
         'name': name, 'ref': ref, 'aster_commit': commit, 'tasks': [t['id'] for t in tasks],
         'pool': pool, 'agent': agent,
-        'model': model, 'protocol': protocol, 'key_env': key_env, 'reasoning': 'medium', 'seconds_per_task': 900,
+        'model': model, 'protocol': protocol, 'key_env': key_env, 'base_url_env': base_url_env,
+        'reasoning': 'medium', 'seconds_per_task': 900,
         'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
         'cpu': 4, 'memory_gib': 8, 'concurrency': concurrency,
         'product_hashes': hashes(root / 'runtime/aster'), 'runtime_hashes': hashes(root / 'runtime'),
@@ -165,7 +166,8 @@ def chat_usage(usage):
         return None
     return {'input_tokens': usage.get('prompt_tokens', 0), 'output_tokens': usage.get('completion_tokens', 0),
             'total_tokens': usage.get('total_tokens', 0),
-            'input_tokens_details': {'cached_tokens': (usage.get('prompt_tokens_details') or {}).get('cached_tokens', 0)},
+            'input_tokens_details': {'cached_tokens': (usage.get('prompt_tokens_details') or {}).get(
+                'cached_tokens', usage.get('prompt_cache_hit_tokens', 0))},
             'output_tokens_details': {'reasoning_tokens': (usage.get('completion_tokens_details') or {}).get('reasoning_tokens', 0)}}
 
 
@@ -186,8 +188,11 @@ def serve_gateway(name):
     manifest = load(public / 'manifest.json')
     module = engine.baseline.module('gateway')
     module.PRIVATE = root
-    key = {**read_env(REPO / '.env'), **os.environ}[manifest.get('key_env', 'ASTER_API_KEY')]
-    module.SETTINGS = module.SETTINGS.model_copy(update={'model': manifest['model'], 'api_key': SecretStr(key)})
+    env = {**read_env(REPO / '.env'), **os.environ}
+    key = env[manifest.get('key_env', 'ASTER_API_KEY')]
+    base_url = env[manifest.get('base_url_env', 'ASTER_BASE_URL')]
+    module.SETTINGS = module.SETTINGS.model_copy(
+        update={'model': manifest['model'], 'api_key': SecretStr(key), 'base_url': base_url})
     settings = module.SETTINGS
 
     class Gateway(module.Gateway):
@@ -489,12 +494,14 @@ def main():
     parser.add_argument('--protocol', default='responses', choices=['responses', 'chat'],
                         help='protocol Aster speaks to the gateway (prepare)')
     parser.add_argument('--key-env', default='ASTER_API_KEY', help='.env variable holding the key (prepare)')
+    parser.add_argument('--base-url-env', default='ASTER_BASE_URL',
+                        help='.env variable holding the provider base URL (prepare)')
     parser.add_argument('--concurrency', type=int, default=6,
                         help='episodes at once (prepare); keep the host total at 6 so timings stay comparable')
     args = parser.parse_args()
     if args.mode == 'prepare':
         prepare(args.name, args.ref, args.tasks, args.pool, args.agent, args.concurrency, args.model,
-                args.protocol, args.key_env)
+                args.protocol, args.key_env, args.base_url_env)
     elif args.mode == 'verify':
         verify(args.name)
         print('Frozen source verified; no model requests made.')
