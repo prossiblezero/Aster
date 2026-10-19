@@ -387,6 +387,45 @@ WORKFLOW_TOOLS = {
 }
 
 
+def compact_schema(schema: dict) -> dict:
+    """Parameter schema without generator boilerplate: no titles, inlined $defs, and optional
+    fields as their plain type. Arguments are still validated against the pydantic model, so
+    nothing is lost; open models' chat templates paste this JSON into every prompt verbatim."""
+    defs = schema.get("$defs", {})
+
+    def walk(node):
+        if isinstance(node, list):
+            return [walk(item) for item in node]
+        if not isinstance(node, dict):
+            return node
+        if "$ref" in node:
+            target = defs[node["$ref"].rsplit("/", 1)[-1]]
+            return walk({**target, **{k: v for k, v in node.items() if k != "$ref"}})
+        out = {}
+        for key, value in node.items():
+            # Bounds the model never approaches only cost tokens; the pydantic model enforces them.
+            if (key in {"title", "$defs"} or (key == "minLength" and value == 1)
+                    or (key == "maxLength" and value >= 4096) or (key == "maxItems" and value >= 50)):
+                continue
+            out[key] = ({name: walk(prop) for name, prop in value.items()} if key == "properties"
+                        else walk(value))
+        options = out.get("anyOf")
+        if isinstance(options, list) and len(options) == 2 and {"type": "null"} in options:
+            out.pop("anyOf")
+            if "default" in out and out["default"] is None:
+                out.pop("default")
+            out = {**next(item for item in options if item != {"type": "null"}), **out}
+        return out
+
+    compact = walk(schema)
+    for prop in compact.get("properties", {}).values():
+        if isinstance(prop, dict) and prop.get("type") == "object":
+            prop.pop("additionalProperties", None)
+        if isinstance(prop, dict) and isinstance(prop.get("items"), dict):
+            prop["items"].pop("additionalProperties", None)
+    return compact
+
+
 def definitions(
     names: list[str] | None = None, *, available: list[str] | None = None, schemas=None
 ) -> list[dict]:
@@ -398,7 +437,7 @@ def definitions(
         if name == "tool_load" and not unloaded:
             continue
         model, description, _effect = schemas[name]
-        schema = model.model_json_schema()
+        schema = compact_schema(model.model_json_schema())
         if name == "run_tests" and available is not None and "memory_store" not in available:
             schema["properties"].pop("memory_ids")
         if name == "tool_load":
