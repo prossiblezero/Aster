@@ -265,6 +265,9 @@ class BudgetCalculator:
             ),
         }
         limit = budget - output_reserve
+        # Evidence references matter only to a model that can cite them (memory_store);
+        # elsewhere they are noise on every result. Loading it shows them for all results.
+        citing = any((tool.get("function") or tool).get("name") == "memory_store" for tool in tools or [])
         removed = 0
         full_notes = False
         final_notes = []
@@ -283,7 +286,7 @@ class BudgetCalculator:
             nonlocal final_notes
             updates = notes()
             rendered = render_prompt(system, user, messages, groups, updates, redact_history,
-                                     references=memory_enabled)
+                                     references=citing)
             # Persist exactly the redacted note items that were sent to the model.
             final_notes = rendered[-len(updates):] if updates else []
             return rendered
