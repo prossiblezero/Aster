@@ -70,7 +70,10 @@ def select(spec, pool=BASE):
 
 
 def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model='gpt-5.6-luna',
-            protocol='responses', key_env='ASTER_API_KEY', base_url_env='ASTER_BASE_URL'):
+            protocol='responses', key_env='ASTER_API_KEY', base_url_env='ASTER_BASE_URL',
+            acceptance='benchmark'):
+    assert acceptance in {'benchmark', 'default', 'off'}, 'Unknown acceptance mode'
+    assert agent == 'aster' or acceptance == 'benchmark', 'Acceptance modes apply only to Aster'
     base = pool_dir(pool)
     public, root = paths(name)
     assert not root.exists(), 'Run directory exists; choose a new name'
@@ -87,6 +90,7 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model
     patch_one_shot_driver(root / 'runtime' / 'aster_episode.py')
     if agent == 'aster':
         patch_model_driver(root / 'runtime' / 'aster_episode.py', model, protocol)
+        patch_acceptance_driver(root / 'runtime' / 'aster_episode.py', acceptance)
     else:
         assert (model, protocol) == ('gpt-5.6-luna', 'responses'), 'pi/Codex runs use the default model'
     for link in ('sources', 'preflight', 'task-python', 'pi', 'node-v22.22.0-linux-x64'):
@@ -99,6 +103,7 @@ def prepare(name, ref, spec, pool=BASE.name, agent='aster', concurrency=6, model
     save(public / 'manifest.json', {
         'name': name, 'ref': ref, 'aster_commit': commit, 'tasks': [t['id'] for t in tasks],
         'pool': pool, 'agent': agent,
+        'acceptance': acceptance,
         'model': model, 'protocol': protocol, 'key_env': key_env, 'base_url_env': base_url_env,
         'reasoning': 'medium', 'seconds_per_task': 900,
         'context_tokens': 64000, 'output_tokens': 8192, 'max_workers': 0, 'automatic_memory': True,
@@ -157,6 +162,20 @@ def patch_model_driver(path, model, protocol):
     text = text.replace("model='gpt-5.6-luna'", f"model={model!r}")
     if protocol == 'chat':
         text = text.replace("stream=True", "stream=False, protocol='chat'")
+    path.write_text(text)
+
+
+def patch_acceptance_driver(path, mode):
+    """Keep the grader fixed; default/off use the product's prompt-based requirements."""
+    assert mode in {'benchmark', 'default', 'off'}, 'Unknown acceptance mode'
+    if mode == 'benchmark':
+        return
+    text = path.read_text()
+    forced = ',\n                                   require_edit=True, require_verification=True'
+    completion = "completion='strict', "
+    assert text.count(forced) == text.count(completion) == 1, 'Unexpected aster_episode layout'
+    text = text.replace(forced, '')
+    text = text.replace(completion, "completion='off', " if mode == 'off' else '')
     path.write_text(text)
 
 
@@ -498,10 +517,12 @@ def main():
                         help='.env variable holding the provider base URL (prepare)')
     parser.add_argument('--concurrency', type=int, default=6,
                         help='episodes at once (prepare); keep the host total at 6 so timings stay comparable')
+    parser.add_argument('--acceptance', choices=['benchmark', 'default', 'off'], default='benchmark',
+                        help='Aster only: forced edit/test gates, product defaults, or completion gates off (prepare)')
     args = parser.parse_args()
     if args.mode == 'prepare':
         prepare(args.name, args.ref, args.tasks, args.pool, args.agent, args.concurrency, args.model,
-                args.protocol, args.key_env, args.base_url_env)
+                args.protocol, args.key_env, args.base_url_env, args.acceptance)
     elif args.mode == 'verify':
         verify(args.name)
         print('Frozen source verified; no model requests made.')
