@@ -1,7 +1,7 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11｜记忆自进化：让使用结果影响下一次选择 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="11-memory-evolution" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="current" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 11</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="11记忆自进化让使用结果影响下一次选择">11｜记忆自进化：让使用结果影响下一次选择</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>11｜记忆自进化：让使用结果影响下一次选择 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="11-memory-evolution" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="current" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 11</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="11记忆自进化让使用结果影响下一次选择">11｜记忆自进化：让使用结果影响下一次选择</h1>
 <p><a href="10-layered-memory.html">上一章：分层记忆</a> · <a href="../index.html">目录</a> · <a href="12-plans-and-skills.html">下一章：计划与技能</a></p>
 <blockquote>
-<p>保存下来不代表永远可靠；一次失败也不应该抹掉全部证据。</p>
+<p>使用反馈改变知识的排序，来源和历史记录让每次更新可追溯。</p>
 </blockquote>
 <p>本章把“自进化”拆成可以在代码中指出来的动作：从验证过的修复中提炼经验、按新证据纠正知识、记录使用反馈、调整召回排序、停用问题记录，以及用快照回滚。这里改变的是项目知识与后续选择，模型权重没有更新。</p>
 <h2 id="问题两条建议都相关先相信哪一条">问题：两条建议都相关，先相信哪一条</h2>
@@ -39,18 +39,41 @@
 <tr>
 <td><code>auto_dream</code></td>
 <td><code>True</code></td>
-<td>运行结束登记材料；自动规则维护，并在预算允许时后台提炼与整理</td>
+<td>运行结束登记材料并做规则维护；<code>background_maintenance</code> 允许且预算足够时，再于后台提炼与整理</td>
 </tr>
 </tbody>
 </table>
-<p>关闭 <code>auto_dream</code> 不会关闭反馈计数，仍可显式调用 <code>Memory.dream()</code>；但如果 <code>auto_dream=True</code> 而 <code>memory_enabled</code> 或 <code>memory_evolution</code> 关闭，Dream 会返回 <code>skipped</code>，不会进行维护。关闭 <code>memory_evolution</code> 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；长期记忆不能因为停止自进化就变得不可信。</p>
+<p>关闭 <code>auto_dream</code> 不会关闭反馈计数，仍可显式调用 <code>Memory.dream()</code>；但如果 <code>auto_dream=True</code> 而 <code>memory_enabled</code> 或 <code>memory_evolution</code> 关闭，Dream 会返回 <code>skipped</code>，不会进行维护。关闭 <code>memory_evolution</code> 后，基础记忆的来源校验、敏感信息过滤和关键词召回仍然有效；这些属于基础存储与召回规则。</p>
 <p>这三个开关默认全部开启，用户直接启动即可使用。保留开关方便模块对照或主动关闭：保持任务和模型相同，只改变目标机制。</p>
+<p>另有两个设置不改变记忆规则，只决定“什么时候发起整理请求”：</p>
+<table>
+<thead>
+<tr>
+<th><code>Settings</code> 字段</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>background_maintenance</code></td>
+<td><code>True</code></td>
+<td>允许在会话边界于后台发起整理请求（会调用模型）</td>
+</tr>
+<tr>
+<td><code>oneshot_maintenance_seconds</code></td>
+<td><code>0</code></td>
+<td>单次 CLI 任务输出答案后最多等待整理多少秒（0–120）；为 0 时单次 CLI 会把 <code>background_maintenance</code> 关掉</td>
+</tr>
+</tbody>
+</table>
+<p>它们描述的是进程怎么跑，不是任务的安全边界，所以 <code>Settings.identity()</code> 把它们排除在检查点身份之外：恢复检查点时，不会因为这两项设置不同而被拒绝。详见本章“睡眠期”一节与<a href="../source/docs/configuration.md">配置说明（Markdown 原文下载）</a>。</p>
 <h2 id="从一次任务自动提炼知识">从一次任务自动提炼知识</h2>
-<p>过去，Aster 主要依靠主 Agent 主动调用记忆工具；它有时会说“已记住”，实际上却没有存入。本轮新增的 <code>MemoryMaintenance</code> 独立检查已结束任务中的材料，用户不必额外要求记忆。主 Agent 仍可立即保存或纠正知识。</p>
+<p>过去，Aster 主要依靠主 Agent 主动调用记忆工具；它有时会说“已记住”，实际上却没有存入。2026-10-07 起新增的 <code>MemoryMaintenance</code> 独立检查已结束任务中的材料，用户不必额外要求记忆。主 Agent 仍可立即保存或纠正知识。</p>
 <p>流程从 <code>enqueue()</code> 开始：选取真实用户消息、最近的失败、验证通过结果及读文件证据，持久化事件引用及输入指纹。<code>_prepare()</code> 读取最多三个已结束任务和六条相关旧记忆，构成小请求。原始交互仍在 trace 中，模型只看到有上限的真实证据片段，不再额外携带助手最终答复的摘要。</p>
-<p>如果新会话重复了已经成功整理的材料，且工作区、记忆内容版本、日期与提炼契约都没有变化，就记录 <code>skipped / unchanged_evidence</code>，不再请求模型。上一批有候选被拒绝、取消或失败时不能走这条路径。检测到“现在”“明天”等中英文相对时间表达时保留完整时间戳，减少错误地当作相同事实的风险；它不是通用时间理解器。新约定、更正、来源变动仍会自动处理。这个检查沿用现有审计表，和用另一个模型先判断“值不值得记”不同，不额外产生分类调用。</p>
+<p>如果新会话重复了已经成功整理的材料，且工作区、记忆内容版本、日期与提炼契约都没有变化，就记录 <code>skipped / unchanged_evidence</code>，不再请求模型。上一批有候选被拒绝、取消或失败时不能走这条路径。检测到“现在”“明天”等中英文相对时间表达时保留完整时间戳，减少错误地当作相同事实的风险。新约定、更正、来源变动仍会自动处理。这个检查沿用现有审计表，和用另一个模型先判断“值不值得记”不同，不额外产生分类调用。</p>
 <p><code>_request()</code> 使用当前模型与账户，调用一次，提出最多三项结构化操作：新增、替换/合并、停用，也允许空列表。前台可以在这期间处理下一任务。候选没有代码编辑或 Shell 权限；<code>_commit()</code> 由 Runtime 在工作区锁内核对并原子提交。</p>
-<p><code>when</code> 描述知识适用于什么场景，例如“工单 CSV 导出接口”；不应夹带“本轮确认”或“本轮不写代码”等对话过程。这些词可能触发临时信息过滤，导致有价值的约定未保存。提炼指令明确了这个区别，但自然语言候选仍可能被拒绝；有模型调用不等于知识已经入库。</p>
+<p><code>when</code> 描述知识适用于什么场景，例如“工单 CSV 导出接口”；不应夹带“本轮确认”或“本轮不写代码”等对话过程。这些词可能触发临时信息过滤，导致有价值的约定未保存。提炼指令明确了这个区别，实际保存结果由提交回执确认。</p>
 <table>
 <thead>
 <tr>
@@ -81,20 +104,42 @@
 </tr>
 </tbody>
 </table>
-<p>例如支付测试发现浮点数舍入错误，并且旧实现忽略 <code>amount_minor</code>。在修复且通过测试后，可保存“该项目优先采用整数分字段，否则用 Decimal 和 ROUND_HALF_UP 转换金额”，同时保留失败、验证来源与支付记录这一适用范围。它不是所有项目通用的金额规则。已有支付补查见<a href="../source/evaluations/memory-knowledge-20261005/REPORT.md">历史案例（Markdown 原文下载）</a>，本轮自动学习验证见<a href="../source/evaluations/memory-sleep-20261005/PROTOCOL.md">固定协议（Markdown 原文下载）</a>。</p>
-<p>如果关闭后台整理或没有可用后台模型，<code>Runtime._reflect_repair</code> 保留原有回退：真实非零执行失败后测试通过，向主 Agent 提醒一次，可保存也可跳过。正常后台路径省去这条前台提醒，避免同一经验重复提炼。自动生成 Skill 不在这一流程内。</p>
-<h2 id="aster-的睡眠期不是停工状态">Aster 的“睡眠期”不是停工状态</h2>
-<p><a href="https://arxiv.org/abs/2510.18866">LightMem</a>（ICLR 2026）把及时记录与后续批量更新拆开，候选检索可与在线推理并行。Aster 采用同一思想：稳定的旧经历可以后台处理，当前任务继续执行；仅提交时需要与前台协调。它不需要等到夜间，也不是在任何状态都允许任意改写记忆。论文方法、开源源码与具体取舍见<a href="../source/docs/agent-next-optimization.md">本轮调研与设计（Markdown 原文下载）</a>。</p>
-<p>任务结束时尝试调度；新的任务边界还会处理遗留材料。生成调用由专用文件锁保证同一工作区同时最多一个，前台不等待这个计算锁；生成结果在请求、工具批次或任务边界发布。简单起见，最多 64 条的记忆使用整库内容版本检查，而没有复杂的局部冲突重放，因此无关正文变化也可能让一批候选作废。</p>
-<p>CLI 先输出最终答案，再给整理最多 15 秒；这个时间属于命令总耗时。TUI 可以继续接收任务，退出则取消未完成调用，保留待处理引用，下一次使用再尝试。供应商失败或坏格式不会自动重试，也不会改变已经交付的任务结果。</p>
-<p>每批完整请求的本地输入估算不超过 4,096 tokens，输出限制设为 768。后台调用数和已知 usage 纳入任务预算及总量，<code>memory_usage</code> 单列其中的维护部分；请求已经发出但没有 usage 的取消或失败保持未知，并保留预算估计。请求尚未启动时发生存储失败，则释放预留，材料留待后续处理。前台预算不足时延期整理，临近最后一次请求时优先交付已完成工作，未满足验收条件仍标记为未完成。并行改善等待体验，不等于免费或必然减少 token。</p>
-<p><code>/memory</code> 可查看条目是否生效、类型、适用范围、来源、最近整理和维护用量；CLI/TUI 的学习通知来自真实提交事件。对常见“已记住”却没有写入的答复，Runtime 会补充“尚未写入长期记忆”的状态，不为此再调用模型。自然语言表达很多，这条补救不是通用承诺校验器。</p>
-<h2 id="反馈来自哪里被召回不等于被正确使用">反馈来自哪里：被召回不等于被正确使用</h2>
+<p>例如支付测试发现浮点数舍入错误，并且旧实现忽略 <code>amount_minor</code>。在修复且通过测试后，可保存“该项目优先采用整数分字段，否则用 Decimal 和 ROUND_HALF_UP 转换金额”，同时保留失败、验证来源与支付记录这一适用范围。适用范围限定为该项目的支付处理。已有支付补查见<a href="../source/evaluations/memory-knowledge-20261005/REPORT.md">历史案例（Markdown 原文下载）</a>，本轮自动学习验证见<a href="../source/evaluations/memory-sleep-20261005/PROTOCOL.md">固定协议（Markdown 原文下载）</a>。</p>
+<p>如果关闭 <code>auto_dream</code> 或没有可用后台模型，<code>Runtime._reflect_repair</code> 保留原有回退：真实非零执行失败后测试通过，向主 Agent 提醒一次，可保存也可跳过。正常后台路径省去这条前台提醒，避免同一经验重复提炼。这里的判断条件是 <code>maintenance.enabled and can_generate</code>，不看 <code>background_maintenance</code>，所以单次 CLI 也算正常路径：材料已经登记，由下一次交互式会话提炼，这次不再发前台提醒。自动生成 Skill 不在这一流程内。</p>
+<h2 id="后台整理何时启动">后台整理何时启动</h2>
+<p>Aster 借鉴 <a href="https://arxiv.org/abs/2510.18866">LightMem</a> 将及时记录与批量更新分开的思路：前台继续任务，后台处理稳定材料，提交时再协调。研究与取舍见<a href="../source/docs/agent-next-optimization.md">记忆设计（Markdown 原文下载）</a>。</p>
+<table>
+<thead>
+<tr>
+<th>入口</th>
+<th>调度方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>交互会话</td>
+<td>任务边界尝试整理，下一任务可继续执行；退出时取消未完成请求并保留待处理引用</td>
+</tr>
+<tr>
+<td>单次 CLI，默认 <code>oneshot_maintenance_seconds=0</code></td>
+<td>登记材料、执行规则维护，打印答案后退出；后续会话处理队列</td>
+</tr>
+<tr>
+<td>单次 CLI，显式设置 1–120 秒</td>
+<td>输出答案后等待整理至指定时限</td>
+</tr>
+</tbody>
+</table>
+<p><a href="../source/src/aster/cli.py.html">cli.py</a> 将默认单次任务的 <code>background_maintenance</code> 设为 <code>False</code>；<a href="../source/src/aster/knowledge/maintenance.py.html">MemoryMaintenance.pulse()</a> 据此控制启动。这个区别来自 2026-10-18 的修正：第一版只取消答案后的等待，任务结束处仍已启动后台请求；<code>937fb49</code> 才将控制放到启动入口。fresh30 的分析中，后台整理平均每 30 题增加约 17.5 次请求，成果主要用于未来会话，见<a href="../source/docs/v14-and-agent-rl-plan.md">v14 方案 A.1（Markdown 原文下载）</a>。</p>
+<p>同一工作区用专用文件锁保证至多一个生成调用，提交时检查整库内容版本。正文或来源变化使候选重新准备；查询计数变化不影响提交。供应商失败或坏格式留待后续处理，不立即重复请求。</p>
+<p>每批输入本地估算上限 4,096 token，输出上限 768；调用和已知 usage 纳入团队总预算，<code>memory_usage</code> 单列维护部分。未知用量保留未知，预算不足时延期整理。<code>/memory</code> 展示条目、来源、最近整理和用量，学习通知由实际提交事件触发。</p>
+<h2 id="反馈如何关联到实际使用的记忆">反馈如何关联到实际使用的记忆</h2>
 <p>在 <a href="../source/src/aster/core/runtime.py.html">Runtime._memory_text</a> 和 <code>_collect_step</code> 对 <code>memory_retrieve</code> 的结果归集中，召回条目的 ID 会进入 <code>state.recalled_ids</code>。<code>recalled_ids</code> 是“待关联后续测试结果的条目集合”，不是“已证明有帮助的条目集合”。</p>
 <p>Runtime 的实际反馈条件是：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="p">(</span>
     <span class="n">state</span><span class="o">.</span><span class="n">recalled_ids</span>
     <span class="ow">and</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"run_tests"</span>
+    <span class="ow">and</span> <span class="ow">not</span> <span class="n">outcome</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"idempotency_replayed"</span><span class="p">)</span>
     <span class="ow">and</span> <span class="p">(</span><span class="n">outcome</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">or</span> <span class="n">outcome</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"tests_failed"</span><span class="p">)</span>
 <span class="p">):</span>
     <span class="n">applied</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"memory_ids"</span><span class="p">,</span> <span class="p">[]))</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">recalled_ids</span><span class="p">)</span>
@@ -103,51 +148,41 @@
         <span class="n">state</span><span class="o">.</span><span class="n">recalled_ids</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">recalled_ids</span><span class="p">)</span> <span class="o">-</span> <span class="n">applied</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>工具名字叫 <code>run_tests</code> 还不够，必须得到了明确的成功或 <code>tests_failed</code>。工具参数错误、审批失败、测试环境没有配置好等问题，不应该统统算成记忆的责任，因此它们不会触发这里的负反馈。</p>
+<p>工具名字叫 <code>run_tests</code> 还不够，必须得到了明确的成功或 <code>tests_failed</code>。工具参数错误、审批失败、测试环境没有配置好等问题，不应该统统算成记忆的责任，因此它们不会触发这里的负反馈。重放的结果（<code>idempotency_replayed</code>：同一个操作键的重复调用直接返回旧回执，并没有真的再跑一次测试）同样不计，否则一次测试会被奖惩两次。</p>
+<p>还要注意反馈只在 <code>run_tests</code> 上结算。经 <code>run_shell</code> 运行的测试命令从 2026-10-18（<code>1fec769</code>）起也算正式验证，但 <code>run_shell</code> 没有 <code>memory_ids</code> 参数，不会产生记忆反馈。</p>
 <p>Agent 要通过 <code>run_tests.memory_ids</code> 明确列出实际应用并检验的记忆；省略时不更新任何条目，也不会奖励未召回的伪造 ID。这样可避免把所有召回条目一起奖惩。不过，选择条目仍由模型判断，测试也是代理信号，Runtime 没有证明某条记忆“导致”成功。</p>
 <h2 id="每个计数字段在数什么">每个计数字段在数什么</h2>
 <table>
 <thead>
 <tr>
 <th>字段</th>
-<th>什么时候变化</th>
-<th>不代表什么</th>
+<th>更新依据</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>support</code></td>
-<td>合法知识被记录，并且与最近一次记录的证据 ID 不同</td>
-<td>不保证支持证据在全历史内全局去重</td>
+<td>合法知识再次记录，且与最近一次证据 ID 不同</td>
 </tr>
 <tr>
 <td><code>contradictions</code></td>
-<td>记录反证或显式丢弃时增加</td>
-<td>不是由模型自动判定的自然语言矛盾总数</td>
+<td>显式反证或丢弃</td>
 </tr>
 <tr>
 <td><code>retrievals</code></td>
-<td>条目被选中召回时增加</td>
-<td>不是成功使用次数</td>
+<td>选中召回，仅作观测统计</td>
 </tr>
 <tr>
-<td><code>successful_uses</code></td>
-<td>相关测试成功时增加</td>
-<td>不证明该条目是成功原因</td>
-</tr>
-<tr>
-<td><code>failed_uses</code></td>
-<td>相关测试确实失败时增加</td>
-<td>不包含所有运行异常</td>
+<td><code>successful_uses</code> / <code>failed_uses</code></td>
+<td>声明应用该记忆的测试得到明确结果</td>
 </tr>
 <tr>
 <td><code>inactive_reason</code></td>
-<td>显式停用或 Dream 隔离后填写</td>
-<td>不表示原始记录已经被删除</td>
+<td>停用原因；保留原始条目</td>
 </tr>
 </tbody>
 </table>
-<p>尤其不要把 <code>retrievals</code> 当成推荐权重：经常出现的错误知识，不应该仅因为出现频繁就越来越受信任。当前排序使用相关性、支持证据与使用反馈，召回次数只是观测数据。</p>
+<p>排序使用相关性、支持证据与使用反馈。召回次数单列，避免错误知识仅因频繁出现而获得更高权重。</p>
 <h2 id="排序公式先相关再用反馈打破平局">排序公式：先相关，再用反馈打破平局</h2>
 <p><code>Memory.retrieve()</code> 的核心计算可以直接在源码里找到：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">confidence</span> <span class="o">=</span> <span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"support"</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"support"</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
@@ -162,7 +197,7 @@
 </div>
 <p><code>overlap</code> 是查询关键词在条目正文、标签及适用条件中命中的数量；<code>confidence</code> 是支持证据项；<code>reliability</code> 是使用可靠度。分子分母中的常数用于平滑，避免新记录没有历史就出现除零或极端分数。</p>
 <p>假设两条记录的 <code>support</code> 都是 1，关键词命中也相同。各使用一次后，成功记录的可靠度是 <code>2/3</code>，失败记录是 <code>1/3</code>，因此前者排序更高。两条记录都还存在，失败一次不会立刻停用。</p>
-<p>这只是固定规则，不是训练得到的概率模型。关键词命中数仍是主要排序项：可靠度没有把不相关的内容凭空变成相关内容。</p>
+<p>这是一条固定排序公式，关键词命中数仍是主要项，反馈主要用于区分相关程度接近的记录。</p>
 <h2 id="两种维护规则检查与模型整理">两种维护：规则检查与模型整理</h2>
 <p><code>Memory.dream()</code> 会扫描已有记录，按以下情况填写停用原因：</p>
 <table>
@@ -197,12 +232,12 @@
 </div>
 <p>因此零次成功、一次失败不会停用；零次成功、两次失败会停用；三次成功则至少需要五次失败。这些都是累计次数，代码不要求失败连续发生。</p>
 <p>这里的 <code>Memory.dream()</code> 只是无需模型的规则检查，不改正文；新增 <code>MemoryMaintenance</code> 才负责知识提炼和合并。两者都保留审计记录。文件过期等安全过滤在每次召回时就会执行，不需要等 Dream 才生效。</p>
-<h2 id="快照与回滚恢复记录不恢复现实">快照与回滚：恢复记录，不恢复现实</h2>
+<h2 id="快照与回滚恢复知识条目">快照与回滚：恢复知识条目</h2>
 <p><code>snapshot()</code> 深拷贝当前 <code>lessons</code>，用内容哈希作为快照 ID；最多保留八份快照。<code>rollback(id)</code> 恢复这份条目列表，并写入回滚审计。深拷贝意味着后续计数变化不会悄悄修改快照。</p>
 <p>规则 <code>Memory.dream()</code> 本身不创建快照，手工调用时可先 <code>snapshot()</code>；后台整理在变更前自动快照，并将通过准入的整批修改一次写入。保存失败会恢复原内存状态，不发布成功回执。快照也不包含工作区文件、运行状态与全部审计历史。</p>
 <p>回滚之后仍会执行来源校验。如果磁盘文件已经从端口 8123 改为 9090，恢复旧条目不会让“8123”重新变成事实。恢复权重与恢复世界状态是两件事。</p>
 <h2 id="离线实验同一条记忆如何降权停用和恢复">离线实验：同一条记忆如何降权、停用和恢复</h2>
-<p>从项目根目录、在 <code>aster</code> 环境中运行下列 Python 代码。此实验通过 Runtime 写入有真实读取证据的条目，然后人工注入反馈标签，只演示确定性规则；它不会真的执行两种测试命令，也不衡量真实模型效果。</p>
+<p>在 <code>aster</code> 环境运行。实验通过真实读取证据保存条目，再注入反馈标签，观察排序、停用与回滚。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
@@ -275,11 +310,13 @@
 来源变化后：即使回滚，也不会召回旧事实
 </pre></div>
 </div>
-<h2 id="练习什么时候不应惩罚记忆">练习：什么时候不应惩罚记忆</h2>
+<p>单次 CLI 与后续会话的调度可继续读 <a href="../source/tests/test_memory_maintenance.py.html">test_memory_maintenance.py</a> 中的 <code>test_one_shot_runtime_never_starts_background_consolidation</code> 和 <code>test_one_shot_cli_leaves_consolidation_for_the_next_session</code>：前者检查待整理材料入队，后者检查 CLI 在默认设置下结束。</p>
+<h2 id="练习与核对">练习与核对</h2>
 <ol>
 <li>将实验中的 <code>Settings</code> 改成 <code>memory_evolution=False</code>。注入反馈后、期待优先召回 <code>ids[1]</code> 的排序断言还会通过吗？</li>
 <li><code>run_tests</code> 因没有可运行测试而失败，与实际测试断言失败，应不应该给相同负反馈？</li>
 <li>两次失败后直接回滚，下一次运行是否还能从 audit 中看到发生过 Dream？</li>
+<li>若后续会话也使用 <code>background_maintenance=False</code>，队列里的材料何时会被提炼？</li>
 </ol>
 <details>
 <summary>参考答案</summary>
@@ -287,11 +324,12 @@
 <li>不会。<code>record_use()</code> 不再更新计数，排序也不使用可靠度；关键词与支持证据相同时保持已有顺序。需要相应修改实验预期。</li>
 <li>不应该。前者可能是运行条件问题，不能据此判断知识错误；Runtime 只对 <code>success</code> 或 <code>tests_failed</code> 更新反馈。具体边界由 <a href="../source/tests/test_memory_feedback_contract.py.html">test_memory_feedback_contract.py</a> 检查。</li>
 <li>可以。回滚替换 <code>lessons</code>，不会删除已有审计，并且会增加 <code>rollback</code> 事件；不过审计只保留最近 256 条，不是无限历史仓库。</li>
+<li>材料保持 <code>pending</code>，等待允许后台整理的会话处理。<code>background_maintenance</code> 管的是“启动”：连显式的 <code>drain()</code> 也不会越过它，而登记（<code>enqueue</code>）与它无关，任务只要不是过短的寒暄，仍会把材料排进队列。</li>
 </ol>
 </details>
-<h2 id="如何评测不把规则收益冒充模型收益">如何评测，不把规则收益冒充模型收益</h2>
-<p><a href="../source/datasets/memory_evolution_cases.json">memory_evolution_cases.json</a> 把准入、来源变化、反馈排序和回滚组织成可读数据；<a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a> 对照开关运行它们。它们能证明固定输入下的机制符合预期，不能单独证明模型因记忆而解决了更多任务。</p>
-<p>要论证实际收益，应固定任务和模型，记录错误是否复发、重复调用是否减少、任务是否完成。测试通过也不能证明反馈归因已经精确；模型若主动填入无关 ID，仍可能产生错误归因。知识提炼、用户纠正与十题对比的设计见<a href="../source/docs/memory-knowledge-design.md">记忆改进说明（Markdown 原文下载）</a>，自动提炼、并发和恢复的源码及检查见 <a href="../source/src/aster/knowledge/maintenance.py.html">MemoryMaintenance</a> 与 <a href="../source/tests/test_memory_maintenance.py.html">test_memory_maintenance.py</a>，实际成绩及指标口径见<a href="14-evaluation.html">第 14 章</a>。</p>
+<h2 id="怎样评价记忆维护">怎样评价记忆维护</h2>
+<p><a href="../source/datasets/memory_evolution_cases.json">规则场景</a>与 <a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a>检查准入、反馈和回滚。实际收益则固定任务与模型，观察错误复发、重复调用和交付情况；反馈由模型声明使用了哪条记忆，所以还需检查归因。</p>
+<p>跨会话实验见<a href="../source/docs/memory-knowledge-design.md">记忆改进说明（Markdown 原文下载）</a>，调度与并发检查见 <a href="../source/tests/test_memory_maintenance.py.html">test_memory_maintenance.py</a>，历史结果统一在<a href="14-evaluation.html">第 14 章</a>解释。</p>
 <p>下一章转向人明确编写的工作方法：计划记录进度，Skill 提供可按需加载的操作说明。它们与机器积累的记忆各有职责。</p>
 <p><a href="10-layered-memory.html">上一章：分层记忆</a> · <a href="../index.html">目录</a> · <a href="12-plans-and-skills.html">下一章：计划与技能</a></p>
-<nav class="chapter-nav"><a href="10-layered-memory.html">← 10｜分层记忆：刚读过的内容，下一次还记得吗</a><a href="12-plans-and-skills.html">12 · 计划、待办与 Skills：记住要做什么，也记住怎么做 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题两条建议都相关先相信哪一条">问题：两条建议都相关，先相信哪一条</a><a href="#先分清三个开关">先分清三个开关</a><a href="#从一次任务自动提炼知识">从一次任务自动提炼知识</a><a href="#aster-的睡眠期不是停工状态">Aster 的“睡眠期”不是停工状态</a><a href="#反馈来自哪里被召回不等于被正确使用">反馈来自哪里：被召回不等于被正确使用</a><a href="#每个计数字段在数什么">每个计数字段在数什么</a><a href="#排序公式先相关再用反馈打破平局">排序公式：先相关，再用反馈打破平局</a><a href="#两种维护规则检查与模型整理">两种维护：规则检查与模型整理</a><a href="#快照与回滚恢复记录不恢复现实">快照与回滚：恢复记录，不恢复现实</a><a href="#离线实验同一条记忆如何降权停用和恢复">离线实验：同一条记忆如何降权、停用和恢复</a><a href="#练习什么时候不应惩罚记忆">练习：什么时候不应惩罚记忆</a><a href="#如何评测不把规则收益冒充模型收益">如何评测，不把规则收益冒充模型收益</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="10-layered-memory.html">← 10｜分层记忆：刚读过的内容，下一次还记得吗</a><a href="12-plans-and-skills.html">12 · 计划、待办与 Skills：记住要做什么，也记住怎么做 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题两条建议都相关先相信哪一条">问题：两条建议都相关，先相信哪一条</a><a href="#先分清三个开关">先分清三个开关</a><a href="#从一次任务自动提炼知识">从一次任务自动提炼知识</a><a href="#后台整理何时启动">后台整理何时启动</a><a href="#反馈如何关联到实际使用的记忆">反馈如何关联到实际使用的记忆</a><a href="#每个计数字段在数什么">每个计数字段在数什么</a><a href="#排序公式先相关再用反馈打破平局">排序公式：先相关，再用反馈打破平局</a><a href="#两种维护规则检查与模型整理">两种维护：规则检查与模型整理</a><a href="#快照与回滚恢复知识条目">快照与回滚：恢复知识条目</a><a href="#离线实验同一条记忆如何降权停用和恢复">离线实验：同一条记忆如何降权、停用和恢复</a><a href="#练习与核对">练习与核对</a><a href="#怎样评价记忆维护">怎样评价记忆维护</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

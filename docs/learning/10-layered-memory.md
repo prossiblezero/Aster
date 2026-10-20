@@ -30,7 +30,7 @@ flowchart TD
 | 对象 | 负责什么 | 生命周期 | 不能替代什么 |
 |---|---|---|---|
 | `RunState.messages` | 保存本次运行的消息记录 | 随运行保存到检查点 | 不负责长期知识筛选 |
-| `RunState.working_memory` | 按路径保存近期读文件、搜索、测试的简短结果 | 当前运行；通过检查点恢复 | 不保存完整原文，不等于消息协议历史，也不再发给模型 |
+| `RunState.working_memory` | 按路径保存近期读文件、搜索、测试的简短结果 | 当前运行；通过检查点恢复 | 供运行时使用的摘要；模型输入另由历史与便笺构建 |
 | `Memory.state["lessons"]` | 保存有出处的项目摘录、事实与操作经验 | 工作区的 `.aster/memory/state.json` | 不替代任务状态或检查点 |
 
 `RunState` 是运行状态对象。`working_memory` 的唯一所有者就是它，`Memory` 类没有第二份持久化的 working memory。`Memory.remember_file()` 只负责向那张工作便笺写入内容；模块级 `store_excerpt()` 才负责跨运行来源认证。
@@ -82,7 +82,7 @@ def remember_file(self, path: str, summary: str, working: dict | None = None):
 
 有一个例外：自己成功的 `write_file`/`patch_file` 不会让读取证据失效。`_collect_step` 在写入成功后重新读一次文件，若与写入回执里的字节指纹一致，就把 `read_evidence[path]` 改绑到写入后的内容（`0c3ca67`，2026-10-16），所以同一个文件可以连续编辑，不必每次先重读；被清掉的只是工作便笺里该文件的旧摘录（以及搜索、测试两条汇总），下一次 `read_file` 才会重建它。其他方式造成的变化（外部进程、`run_shell` 写文件）仍要重新读取。
 
-因此，“之前看过”不等于“现在仍然有效”。编辑前的 fresh read 检查与这里共享了文件指纹这个事实依据，详见[工具系统](03-tool-system.md)。
+文件指纹把读取证据绑定到具体版本，编辑前的 fresh read 检查也使用这份依据，详见[工具系统](03-tool-system.md)。
 
 ## 跨运行保存：模型提出候选，Runtime 检查出处
 
@@ -101,7 +101,7 @@ def remember_file(self, path: str, summary: str, working: dict | None = None):
 
 模型从哪里拿到 `evidence_id`？读取、Shell 和测试结果开头的方括号状态行里有一项 `evidence a1b2c3d4e5f6`（完整 ID 的前 12 位；出错时与原因写在同一行，如 `[error: tests_failed; evidence …]`）。这条引用只在 `memory_store` 已经加载、出现在本次请求的工具表里时才显示（[view.py](../../src/aster/context/view.py) 的 `references`，由 [budget.py](../../src/aster/context/budget.py) 的 `citing` 决定）；没加载时它对模型没有用处，却会随历史在每个请求里重复，所以按需显示，设计依据见 [harness-v15.md](../harness-v15.md) 第 2 节。一旦加载，更早的结果也会重新带上引用。认证时，`store_excerpt` 接受完整 ID，或在本次运行里唯一匹配的 12 位以上十六进制前缀；前缀有歧义或根本不存在，一律返回 `memory_provenance`，不会猜。
 
-`excerpt` 必须是观察中的原文，比较时归一化空白；`fact` 与 `procedure` 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。认证来源不等于证明归纳正确，没有另一个模型替它做语义验证。
+`excerpt` 必须是观察中的原文，比较时归一化空白；`fact` 与 `procedure` 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。来源认证确认出处，归纳质量通过后续使用与纠正继续检验。
 
 通过检查后的记录包含：
 

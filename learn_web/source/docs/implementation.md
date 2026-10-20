@@ -22,25 +22,27 @@ flowchart TD
 
 运行事件与模型历史分开保存：前者用于审计，后者保留调用协议所需的配对和元数据。记忆的短期状态只属于 `RunState`，跨运行条目单独持久化。`.aster` 等控制目录不向模型工具开放直接写入。
 
-Linux 沙箱采用 bubblewrap 私有挂载命名空间、Landlock、seccomp 和过滤后的临时工作区副本。执行副本在命令内映射回原工作区绝对路径，保证 Shell、脚本、子进程和正式测试的路径一致；宿主目录只读挂载，工作区修改仍经原有检查后回写。需要可用的用户/挂载命名空间，Ubuntu 的 AppArmor 配置见[执行环境](execution-environment.md#工作区绝对路径与沙箱安装)。`required` 模式隔离不可用就拒绝执行；主动选择 `best_effort` 或 `off` 的行为见 [配置说明](configuration.md)，不将降级运行描述成具有相同隔离保证。
+Linux 沙箱采用 Landlock、seccomp 和过滤后的临时工作区副本。命令优先使用工作区相对路径；参数中的工作区绝对路径会映射到副本，符合条件时也可只读访问原工作区。执行结果经检查后发布回原目录。`required` 模式在隔离不可用时拒绝执行；`best_effort` 和 `off` 的具体行为见 [配置说明](configuration.md)。
 
 ## 当前实现与验证边界
+
+2026-10-12 的集中修复曾回退至 `c6b651d`，过程保留于[最终修复与回退报告](../evaluations/final-repair-20261012/REPORT.md)。此后按阶段重新改进上下文计量、执行环境、检查点开销和测试反馈；截至 10 月 20 日，已落地证据与模型视图分离、两个模型家族验证、输出截断恢复和完成要求推断修复。当前机制与结果见 [v12](harness-v12.md)、[v13](harness-v13.md)、[v14](v14-and-agent-rl-plan.md)、[v15](harness-v15.md) 及[完成检查对照](../evaluations/acceptance-ablation-20261020/REPORT.md)。
 
 下面的“验证”指可运行的检查入口。实际通过数、真实模型失败样本和逐题对照统一保存在 [评测说明及报告](benchmark.md)，避免多份文档重复维护数字。
 
 | 组件 | 当前实现 | 验证与仍需区分的边界 |
 |---|---|---|
-| 模型协议 | Responses、Chat、Anthropic 的请求适配、原生工具与元数据、usage、分类错误和有界重试 | `test_context_provider.py` 验证协议与错误契约；真实模型使用 GPT-5.6 Luna / Responses，另两种协议未宣称实机通过 |
+| 模型协议 | Responses、Chat、Anthropic 的请求适配、原生工具与元数据、usage、分类错误和有界重试 | `test_context_provider.py` 验证协议与错误契约；真实评测覆盖 GPT-5.6 Luna / Responses，自 2026-10-19 起也覆盖 DeepSeek 官方 Chat Completions（非流式）；Anthropic 已通过本地契约测试 |
 | 工具分发 | 工作区工具处理文件/搜索/图像/进程；工作流工具处理计划、待办、记忆、技能和 Worker；diff 使用运行文本基线 | `test_runtime_repairs.py` 与 Harness 回归覆盖实际路由；按需加载改变展示集合，不绕过权限 |
 | 安全边界 | 路径、符号链接、敏感文件、控制目录、只读、写入范围、进程网络和取消；禁止规则优先 | `test_safety.py`、`test_interaction_workers.py` 及机制场景检查具体边界；前缀规则不是通用 Shell 静态分析器 |
 | 上下文 | 对实际协议请求及工具 schema 估算预算；完整调用组裁剪；过大必需输入明确拒绝 | `test_context_provider.py` 与上下文压力数据；本地估计与远端 usage 分开，未实现上下文策略自进化 |
 | 运行治理 | 有进展不误停、有界恢复、Hooks、完成契约、验证失效、一次性收尾 | `test_runtime_repairs.py`、`test_review_regressions.py`；Hook 被调用与任务受益分开测试 |
 | 恢复与审计 | 保存文本基线、文件指纹、调用组、恢复次数、状态和验证结果；恢复时检查漂移 | 修改/新增/恢复与漂移场景；不恢复操作系统进程，不从旧哈希伪造文本基线 |
-| 记忆 | 默认启用持久记忆、演化与自动整理；带真实来源和适用范围的摘录、事实、方法；任务后有界自动提炼、并行生成/边界提交、来源与版本冲突检查、真实回执、按实际应用反馈及快照回滚 | `test_memory_maintenance.py`、`test_memory_knowledge.py`、`test_memory_feedback_contract.py`、`test_memory_evolution.py` 及来源洗白回归；[前期知识对照](../evaluations/memory-knowledge-20261005/REPORT.md)、[自动学习十题](../evaluations/memory-sleep-20261005/REPORT.md)与机制检查分别报告，不将来源认证或测试反馈视为语义正确性和因果证明 |
+| 记忆 | 默认启用持久记忆和演化；交互会话自动整理，单次 CLI 默认延期；带出处的摘录、事实和方法；并行提炼/边界提交、来源与版本检查、使用反馈及快照回滚 | `test_memory_maintenance.py`、`test_memory_knowledge.py`、`test_memory_feedback_contract.py`、`test_memory_evolution.py` 覆盖机制；实际收益见[知识对照](../evaluations/memory-knowledge-20261005/REPORT.md)与[自动学习十题](../evaluations/memory-sleep-20261005/REPORT.md) |
 | 交互与 Worker | TUI/CLI 真正等待批准和答案；后台取消；Worker 消息下一轮交付、并发回收、权限继承 | 无显示窗口的 Textual 交互测试；子任务共享工作区且写入范围受限，无递归子树；保留工作记忆，不写共享持久记忆 |
-| RL 环境接口 | 独立临时 episode、统一动作执行、步骤/轮数限制、终态保护、宿主独立奖励验证器 | `test_rl_contract.py`、Runtime 与终态竞态回归；没有验证器就没有成功奖励，终态前等待 Worker 清理 |
+| RL 环境接口 | 独立临时 episode、统一动作执行、宿主奖励验证器；Qwen 调用解析、token 轨迹、分段与 loss mask | `test_rl_contract.py`、`test_token_rollout.py` 等覆盖离线契约；GPU 实测与训练器尚待完成，见[训练接口](agent-rl-harness.md) |
 | 评测 | 数据与执行器分离；独立验证、参考行为检查、固定真实模型名单、模块对照与失败归档 | 见 `datasets/`、主任务/机制/鲁棒性专项执行器和 [评测说明](benchmark.md)；参考动作通过不等于真实模型通过 |
-| 学习材料 | 从数据契约到完整运行，再进入评测、可靠性、记忆与环境接口的分阶段导读 | [学习入口](learning/README.md) 的命令与当前代码对应；后训练章节在训练实现后再写 |
+| 学习材料 | 从完整运行进入上下文、可靠性、记忆、评测与训练接口的分阶段导读 | [学习入口](learning/README.md) 提供离线实验，第 15 章说明已实现的 token 接口和后续训练工作 |
 
 2026-10-07 的[降耗改造](cost-optimization-20261007.md)增加随 `run_tests` 提交的临时 Python 测试，保留原有沙箱和正式验证要求；父任务预算收尾保留工具定义，由执行入口阻止新动作；后台用输入指纹和记忆内容版本跳过已处理的相同材料。默认自动学习继续开启，没有新增配置或运行依赖。机制检查见 `test_inline_verification.py`、`test_memory_maintenance.py` 与原有上下文、Worker 回归。
 

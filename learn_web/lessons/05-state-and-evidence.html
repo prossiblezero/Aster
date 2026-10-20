@@ -1,137 +1,147 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05｜状态、历史和证据分别放在哪里 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="05-state-and-evidence" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="current" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 05</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="05状态历史和证据分别放在哪里">05｜状态、历史和证据分别放在哪里</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>05｜状态、历史和证据分别放在哪里 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="05-state-and-evidence" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="current" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 05</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="05状态历史和证据分别放在哪里">05｜状态、历史和证据分别放在哪里</h1>
 <p>上一章：<a href="04-permissions-sandbox.html">权限与沙箱</a> · <a href="../index.html">目录</a> · 下一章：<a href="06-context-budget.html">上下文预算</a></p>
 <blockquote>
 <p>当前该怎么继续，看状态；过去发生过什么，看证据；模型这轮能看到什么，看请求。</p>
 </blockquote>
 <h2 id="为什么有聊天记录还不够">为什么有聊天记录还不够</h2>
-<p>假设 Agent 说“测试已经通过”，随后又修改了代码。聊天里那句“通过”仍然存在，但它已经不能证明当前版本可用。类似地，模型读过一个文件，不代表它下一轮仍看到完整正文，也不代表断电后能恢复执行。</p>
-<p>因此 Aster 没有把所有问题都塞进一个 <code>messages</code> 列表。它分别保存当前状态、原生模型交互和运行证据。它们职责不同，可以从同一次工具调用派生，但不能互相替代。</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>一个 ToolCall
-    ↓
-Runtime.step() → Outcome
-    ├─ 更新 RunState：改了哪些文件、验证是否有效
-    ├─ 追加原生交互：调用编号 ↔ 结果
-    ├─ 更新 working_memory：近期可用事实
-    └─ 写 trace / checkpoint：供审计和恢复
+<p>Agent 测试通过后又改了代码，聊天里的“通过”还在，验证对应的版本却已经变了。恢复执行、核对改动与组装下一轮请求各需一份合适的数据，因此 Aster 把当前状态、历史记录和模型视图分开。</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>ToolCall → Runtime.step() → Outcome
+  ├─ trace：保存完整动作与结果
+  ├─ RunState：更新文件变化、验证状态、工作记忆
+  ├─ 历史：追加调用与结果的 JSON 记录
+  └─ checkpoint：保存当前状态与历史
 
-下一轮 prepare_request()
-    └─ 从状态与历史构造受预算限制的模型输入
+prepare_request() → 从历史渲染纯文本 → 计数与压缩 → 模型请求
 </pre></div>
 </div>
-<h2 id="第一张表内存中的几类对象">第一张表：内存中的几类对象</h2>
+<h2 id="内存中的状态与历史">内存中的状态与历史</h2>
 <table>
 <thead>
 <tr>
 <th>对象</th>
 <th>保存什么</th>
-<th>谁主要使用</th>
+<th>用在哪里</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>TaskSpec</code></td>
-<td>本次要求、上限与完成条件</td>
+<td>目标、预算与完成条件</td>
 <td>Runtime、Verifier</td>
 </tr>
 <tr>
 <td><code>RunState</code></td>
-<td>步数、阶段、待办、验证状态等</td>
-<td>所有运行时组件</td>
+<td>步数、阶段、待办、验证和已读文件摘要</td>
+<td>决定下一步执行</td>
 </tr>
 <tr>
 <td><code>RunState.messages</code></td>
 <td>工具观察及附加消息，带 <code>important</code> / <code>native</code> 标记</td>
-<td>状态记录、上下文构造</td>
+<td>状态记录与上下文构造</td>
 </tr>
 <tr>
 <td><code>Runtime._structured_history</code></td>
-<td>工具调用、对应结果及原生模型字段</td>
-<td>协议适配、上下文、恢复</td>
+<td>原生模型回复、工具结果记录、追加的状态便笺</td>
+<td>协议适配、预算、恢复、训练</td>
 </tr>
 <tr>
 <td><code>RunState.working_memory</code></td>
-<td>本次运行整理出的文件事实与近期结果</td>
-<td>提示词中的工作记忆区</td>
+<td>已读文件及近期搜索、测试的前 500 字符摘录</td>
+<td>Worker 交接和界面展示</td>
 </tr>
 <tr>
 <td><code>Outcome</code></td>
-<td>一次工具动作的真实结果</td>
-<td>状态更新、记录和模型反馈</td>
+<td>一次动作的结果</td>
+<td>状态更新、日志与反馈</td>
 </tr>
 </tbody>
 </table>
-<p><code>native=True</code> 表示这条观察已有原生交互形式，上下文不应再把它重复塞一份。<code>important</code> 表示压缩时需要特殊保留，但不代表其中的文字获得更高执行权限。</p>
-<p><code>RunState</code> 的多数记录继承自 <code>Record</code>。在 <a href="../source/src/aster/schema.py.html">schema.py</a> 中可看到：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">extra</span><span class="o">=</span><span class="s2">"forbid"</span><span class="p">,</span> <span class="n">validate_assignment</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>这让未知字段和不合规的赋值尽早报错。不过，它不是递归监视器：原地修改普通列表、字典的内容，仍需要业务代码维护其约束，不能只靠一句 Pydantic 配置。</p>
-<h2 id="第二张表一次工具结果怎么读">第二张表：一次工具结果怎么读</h2>
+<p><code>native=True</code> 表示消息已有对应的原生历史，组装请求时跳过重复副本；<code>important</code> 用于压缩时保留普通消息。记录类型继承 <a href="../source/src/aster/schema.py.html">schema.py</a> 的 <code>Record</code>，用 <code>extra=&quot;forbid&quot;</code>、<code>validate_assignment=True</code> 检查字段与赋值；列表、字典的原地更新由业务代码维护约束。</p>
+<p>工作记忆早期也进入每轮提示。2026-10-15 的 v10 将它移出模型请求，保留交接和界面用途：原文已有历史记录，重复且不断变化的摘录还会改变缓存前缀，见<a href="../source/docs/context-state-plan.md">状态便笺方案（Markdown 原文下载）</a>。</p>
+<h2 id="同一条结果三种表示">同一条结果，三种表示</h2>
+<p>2026-10-19（<code>a774b25</code>）起，记录与请求明确分开。以读取 <code>settings.txt</code> 为例：</p>
 <table>
 <thead>
 <tr>
-<th><code>Outcome</code> 字段</th>
-<th>含义</th>
-<th>不该如何理解</th>
+<th>位置</th>
+<th>内容</th>
+<th>目的</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>status</code></td>
-<td>成功、错误、拒绝、超时或取消</td>
-<td><code>success</code> 不代表整项任务正确</td>
+<td>trace 的完整 <code>Outcome</code></td>
+<td>正文、状态、完整证据 ID、文件 <code>source_sha256</code> 等</td>
+<td>审计、核对来源与文件版本</td>
 </tr>
 <tr>
-<td><code>content</code></td>
-<td>供模型阅读的结果正文</td>
-<td>不应拿自由文本代替结构化状态</td>
+<td>历史及 checkpoint 的结果记录</td>
+<td>JSON：正文、状态、12 位证据前缀、读取范围、归档引用等</td>
+<td>恢复与上下文加工</td>
 </tr>
 <tr>
-<td><code>reason</code></td>
-<td>可归类的原因代码</td>
-<td>空字符串不是异常</td>
-</tr>
-<tr>
-<td><code>changed_paths</code></td>
-<td>本次动作导致变化的文件</td>
-<td>不等于改动一定符合用户要求</td>
-</tr>
-<tr>
-<td><code>partial_success</code></td>
-<td>部分动作已经完成、整体仍有问题</td>
-<td>失败不一定代表零副作用</td>
-</tr>
-<tr>
-<td><code>evidence_id</code></td>
-<td>可追溯到证据事件的编号</td>
-<td>不能随便编造一个字符串充证据</td>
-</tr>
-<tr>
-<td><code>data</code></td>
-<td>给运行时使用的结构化信息</td>
-<td>不必原样全部塞进模型输入</td>
+<td>请求中的模型视图</td>
+<td><code>1: timeout = 30</code></td>
+<td>让模型直接阅读文件内容</td>
 </tr>
 </tbody>
 </table>
-<p>比如 <code>read_file</code> 的 <code>data.source_sha256</code> 是内容摘要，用来判断下一次编辑是否仍基于读过的版本。它不是密码学签名，也不是模型对文件的“理解分数”。</p>
-<h2 id="第三张表磁盘上的记录">第三张表：磁盘上的记录</h2>
-<p><code>EvidenceStore</code> 默认把记录放到<strong>目标工作区</strong>的 <code>.aster/</code>，不是固定写到 Aster 安装目录：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>工作区/.aster/
-  runs/&lt;run_id&gt;/
-    trace.jsonl           # 按事件追加，一行一个 JSON
-    checkpoint.json       # 最新可恢复状态
-    report.json           # 结束时的摘要
-    requests/*.json       # 实际构造请求的审计副本
-    observations/*.json   # 可按需回读的工具观察归档
+<p>这里的“完整记录”相对于模型视图而言。trace 保存完整 <code>Outcome</code>；历史使用适合上下文管理的结果记录，例如文件摘要保留在 trace 和 <code>state.read_evidence</code> 中。<code>Runtime._append_output</code> 写历史，<a href="../source/src/aster/context/view.py.html">render_output</a> 在组装请求时生成模型视图。</p>
+<p>早期直接发送 JSON 记录，代码与测试输出需要转义，记账字段又随历史反复发送。<a href="../source/docs/harness-v15.md">v15 设计说明（Markdown 原文下载）</a>统计，fresh30b 中每条工具结果的包装平均约 111 token；分离后，模型只读下一步行动需要的内容。</p>
+<table>
+<thead>
+<tr>
+<th>结果信息</th>
+<th>模型看到的形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>错误、阻止、超时等状态</td>
+<td>首行 <code>[error: tests_failed]</code> 等；成功时通常省略状态</td>
+</tr>
+<tr>
+<td>正文</td>
+<td>原样文本，保留代码换行</td>
+</tr>
+<tr>
+<td>改动路径</td>
+<td><code>[changed: a.py]</code>；写入、补丁结果已说明改动时省略</td>
+</tr>
+<tr>
+<td>翻页与捕获截断</td>
+<td><code>[more from line N]</code>、<code>next_offset</code>、已捕获字节数</td>
+</tr>
+<tr>
+<td>压缩后的摘录</td>
+<td>页脚给 <code>observation_read</code> 回读入口</td>
+</tr>
+<tr>
+<td>空结果</td>
+<td><code>[no matches]</code>、<code>[no files]</code>、<code>[empty file]</code> 等</td>
+</tr>
+<tr>
+<td>证据引用</td>
+<td><code>memory_store</code> 已加载时，读取、命令与测试结果显示 <code>[evidence …]</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>render_output</code> 是确定性纯函数：相同记录、工具名和引用开关产生相同文本。两次压缩之间，旧请求项能保持字节一致，便于供应商复用前缀缓存；加载工具或压缩历史时，前缀按新内容重建。</p>
+<p>v15 在两个模型、两套题上的合并结果是每请求输入下降 9.8%，95% 置信区间为 [−14.2%, −5.1%]；总成本变化未达到统计显著，见<a href="../source/evaluations/harness-v12-20261017/REPORT.md">评测报告第 15.4 节（Markdown 原文下载）</a>。第 14 章解释如何把输入长度、请求数和成本放在一起判断。</p>
+<h2 id="磁盘上的记录">磁盘上的记录</h2>
+<p><code>EvidenceStore</code> 默认在目标工作区的 <code>.aster/</code> 下保存：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>runs/&lt;run_id&gt;/
+  trace.jsonl           # 按事件追加，含完整 Outcome
+  checkpoint.json       # 当前 RunState 与历史
+  report.json           # 结束时的摘要
+  requests/*.json       # 实际构造请求的脱敏审计副本
+  observations/*.json   # 可回读的历史工具正文
 </pre></div>
 </div>
-<p>某些目录要等对应动作发生后才出现。主评测脚本还会把运行记录和候选代码复制到指定结果目录，并生成 <code>patch.diff</code>；不要以为每次普通 Runtime 运行都会自动在 <code>.aster/runs</code> 下生成这份评测 diff。</p>
-<p><code>trace</code> 是事件日志，适合回答“先发生了什么”；<code>checkpoint</code> 是状态快照，适合恢复；<code>report</code> 是运行总结，适合汇总；<code>requests</code> 回答“这一轮送给模型的输入长什么样”。模型请求的 <code>ModelReply.diagnostics</code> 会携带有界诊断，包括请求 <code>attempt</code>、故障类别和未知 usage 标记；它不是成功证明。它们的日志副本经过脱敏，并非包含认证信息的网络抓包。</p>
-<h2 id="代码走读追加日志与原子快照">代码走读：追加日志与原子快照</h2>
-<p><a href="../source/src/aster/storage/evidence.py.html">evidence.py</a> 的 <code>emit()</code> 给事件加入 <code>seq</code>、<code>previous</code> 和 <code>hash</code>。<code>seq</code> 是序号，<code>previous</code> 指向上一个事件摘要，<code>hash</code> 是当前记录的内容摘要。</p>
-<p>检查点使用 <code>atomic_json()</code>：先写同目录临时文件，刷新内容，再 <code>os.replace()</code> 替换目标。这样读者不会看到只写到一半的 JSON。但它只保证这个文件的替换边界，不等于工具对整个工作区做了数据库事务。</p>
+<p><code>context_built</code> 事件中的 <code>request_artifact</code> 与 <code>request_sha256</code> 把请求工件和 trace 对上。模型诊断还记录尝试次数、故障类别及未知 usage，方便核算请求成本。评测脚本另行生成候选代码和 <code>patch.diff</code>，见第 14 章。</p>
+<p><a href="../source/src/aster/storage/evidence.py.html">evidence.py</a> 的 <code>emit()</code> 用 <code>seq</code>、<code>previous</code>、<code>hash</code> 串起事件顺序，检查日志内容的一致性。<code>atomic_json()</code> 先写同目录临时文件，再用 <code>os.replace()</code> 发布完整检查点；落盘节奏见<a href="09-checkpoint-resume.html">第 09 章</a>。</p>
 <h2 id="实验沿一次读取找到状态与证据">实验：沿一次读取找到状态与证据</h2>
-<p>本实验不调用模型，直接执行一个工具步骤，然后显式结束任务。</p>
+<p>本实验不调用模型，直接执行一个工具步骤，组装（但不发送）一次请求，然后显式结束任务。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
@@ -139,9 +149,14 @@ Runtime.step() → Outcome
 <span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">aster.context.view</span><span class="w"> </span><span class="kn">import</span> <span class="n">render_output</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.core.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.storage.workspace</span><span class="w"> </span><span class="kn">import</span> <span class="n">digest</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">result_of</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"function_call_output"</span><span class="p">)</span>
 
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
@@ -153,6 +168,7 @@ Runtime.step() → Outcome
         <span class="n">outcome</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"settings.txt"</span><span class="p">}</span>
         <span class="p">))</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>  <span class="c1"># 只组装请求，不调用模型</span>
         <span class="n">runtime</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="s2">"已读取配置。"</span><span class="p">)</span>
 
         <span class="n">events</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">events</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">run_id</span><span class="p">)</span>
@@ -172,18 +188,50 @@ Runtime.step() → Outcome
         <span class="nb">print</span><span class="p">(</span><span class="s2">"检查点步骤:"</span><span class="p">,</span> <span class="n">saved</span><span class="p">[</span><span class="s2">"state"</span><span class="p">][</span><span class="s2">"step"</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">saved</span><span class="p">[</span><span class="s2">"state"</span><span class="p">][</span><span class="s2">"phase"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"completed"</span>
 
+        <span class="c1"># 同一次读取的三种形态：trace 里是完整 Outcome，检查点里是 JSON 记录，请求里是纯文本。</span>
+        <span class="n">traced</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="n">e</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"tool_result"</span><span class="p">)[</span><span class="s2">"outcome"</span><span class="p">]</span>
+        <span class="n">stored</span> <span class="o">=</span> <span class="n">result_of</span><span class="p">(</span><span class="n">saved</span><span class="p">[</span><span class="s2">"structured_history"</span><span class="p">])</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">stored</span><span class="p">)</span>
+        <span class="n">shown</span> <span class="o">=</span> <span class="n">result_of</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">traced</span><span class="p">[</span><span class="s2">"evidence_id"</span><span class="p">])</span> <span class="o">==</span> <span class="mi">64</span> <span class="ow">and</span> <span class="s2">"source_sha256"</span> <span class="ow">in</span> <span class="n">traced</span><span class="p">[</span><span class="s2">"data"</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">record</span><span class="p">[</span><span class="s2">"evidence_id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">traced</span><span class="p">[</span><span class="s2">"evidence_id"</span><span class="p">][:</span><span class="mi">12</span><span class="p">]</span> <span class="ow">and</span> <span class="s2">"source_sha256"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">record</span>
+        <span class="k">assert</span> <span class="n">shown</span> <span class="o">==</span> <span class="n">render_output</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="s2">"read_file"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"1: timeout = 30"</span>
+        <span class="c1"># 渲染是纯函数；证据引用只在 memory_store 已加载时才显示。</span>
+        <span class="k">assert</span> <span class="n">render_output</span><span class="p">(</span><span class="n">stored</span><span class="p">,</span> <span class="s2">"read_file"</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">"[evidence </span><span class="si">{</span><span class="n">record</span><span class="p">[</span><span class="s1">'evidence_id'</span><span class="p">]</span><span class="si">}</span><span class="s2">]</span><span class="se">\n</span><span class="si">{</span><span class="n">shown</span><span class="si">}</span><span class="s2">"</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"历史记录字段:"</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">record</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"模型看到的文本:"</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">shown</span><span class="p">))</span>
+
 
 <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
 </div>
-<p>预期包括 <code>证据事件: tool_decision read_file</code>、<code>状态: completed 观察: True</code>，工作记忆包含 <code>settings.txt</code>，检查点步骤为 1。哈希链检查在实验中全部通过。</p>
+<p>预期输出：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>证据事件: tool_decision read_file
+状态: completed 观察: True
+工作记忆: ['settings.txt']
+检查点步骤: 1
+历史记录字段: ['status', 'evidence_id', 'content', 'path', 'start', 'end']
+模型看到的文本: '1: timeout = 30'
+</pre></div>
+</div>
+<p>哈希链检查在实验中全部通过。后半段的断言展示了分离：检查点里的记录只有 <code>evidence_id</code> 的 12 位前缀和读取范围，没有 <code>source_sha256</code>；完整的 64 位编号和摘要在 trace 的 <code>Outcome</code> 里；请求里只剩 <code>1: timeout = 30</code> 这一行。</p>
 <p>注意这里 <code>turn</code> 仍是 0：我们没有向模型请求决策。相同的工具执行与证据路径可以被不同调用方复用。</p>
-<h2 id="练习与边界">练习与边界</h2>
+<h2 id="练习与核对">练习与核对</h2>
 <ol>
-<li>为什么保存 <code>Outcome.evidence_id</code> 之外，还要保存文件哈希？前者证明“这次运行发生了一个事件”，后者判断“现在的文件是否还是那个版本”。</li>
-<li>哈希链是不是不可篡改审计？不是。它能帮助检查顺序和内容变化，但能改整个日志的人也可能重算整条链；当前没有外部签名或可信时间戳服务。</li>
-<li>为什么不把检查点原样当下一轮 prompt？检查点包含恢复和审计字段，还有完整历史；模型输入应经过筛选、去重和预算处理。</li>
+<li>证据编号和文件摘要分别回答什么问题？</li>
+<li>为什么 checkpoint 需要结果记录，模型请求却使用纯文本？</li>
+<li>若在每条工具结果中加入当前时间，会怎样影响缓存？</li>
+<li>哈希链可以检查什么，它的信任前提是什么？</li>
 </ol>
-<p>下一章就进入这个筛选过程：保留恢复所需状态，同时只给模型当前预算内的输入。</p>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>编号定位一次执行事件；文件摘要用于比较当前内容与当时读取的版本。</li>
+<li>checkpoint 要恢复结构、游标和引用；模型主要需要正文与下一步操作所需的少量字段。</li>
+<li>历史项每次渲染都会变化，缓存前缀和回执计量的锚都会失效。</li>
+<li>它检查事件顺序和内容一致性；信任前提是整条日志未被一并替换，当前实现没有外部签名。</li>
+</ol>
+</details>
+<p>下一章沿 <code>prepare_request()</code> 看预算如何决定本轮输入。</p>
 <p>上一章：<a href="04-permissions-sandbox.html">04｜权限与沙箱</a> · <a href="../index.html">目录</a> · 下一章：<a href="06-context-budget.html">06｜上下文预算</a></p>
-<nav class="chapter-nav"><a href="04-permissions-sandbox.html">← 04 · 权限与沙箱：批准动作以后，还要限制它的影响</a><a href="06-context-budget.html">06｜上下文预算：决定这一轮模型看见什么 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么有聊天记录还不够">为什么有聊天记录还不够</a><a href="#第一张表内存中的几类对象">第一张表：内存中的几类对象</a><a href="#第二张表一次工具结果怎么读">第二张表：一次工具结果怎么读</a><a href="#第三张表磁盘上的记录">第三张表：磁盘上的记录</a><a href="#代码走读追加日志与原子快照">代码走读：追加日志与原子快照</a><a href="#实验沿一次读取找到状态与证据">实验：沿一次读取找到状态与证据</a><a href="#练习与边界">练习与边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="04-permissions-sandbox.html">← 04 · 权限与沙箱：批准动作以后，还要限制它的影响</a><a href="06-context-budget.html">06｜上下文预算：决定这一轮模型看见什么 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么有聊天记录还不够">为什么有聊天记录还不够</a><a href="#内存中的状态与历史">内存中的状态与历史</a><a href="#同一条结果三种表示">同一条结果，三种表示</a><a href="#磁盘上的记录">磁盘上的记录</a><a href="#实验沿一次读取找到状态与证据">实验：沿一次读取找到状态与证据</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

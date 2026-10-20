@@ -214,9 +214,9 @@ def test_original_code_blocks_and_answers_are_preserved():
         page = parse_page(LESSONS / f"{source.stem}.html")
         actual.extend(page.code_frames)
         actual_answers += page.answer_details
-    assert len(expected) == len(actual) == 79
+    assert len(expected) == len(actual) == 81
     assert actual == expected
-    assert answers == actual_answers == 8
+    assert answers == actual_answers == 16
 
 
 def test_each_mermaid_diagram_preserves_nodes_edges_labels_and_order():
@@ -236,8 +236,8 @@ def test_each_mermaid_diagram_preserves_nodes_edges_labels_and_order():
             nodes, _ = diagram_contract(diagram["raw"])
             actual.append((nodes, edges, diagram["raw"]))
     assert len(expected) == len(actual) == 14
-    assert sum(len(nodes) for nodes, _, _ in expected) == 120
-    assert sum(len(edges) for _, edges, _ in expected) == 119
+    assert sum(len(nodes) for nodes, _, _ in expected) == 126
+    assert sum(len(edges) for _, edges, _ in expected) == 125
     assert actual == expected
 
 

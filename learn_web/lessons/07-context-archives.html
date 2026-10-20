@@ -1,25 +1,26 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07｜归档与回读：让移出窗口的证据仍然可找 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="07-context-archives" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="current" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 07</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="07归档与回读让移出窗口的证据仍然可找">07｜归档与回读：让移出窗口的证据仍然可找</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>07｜归档与回读：让移出窗口的证据仍然可找 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="07-context-archives" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="current" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 07</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="07归档与回读让移出窗口的证据仍然可找">07｜归档与回读：让移出窗口的证据仍然可找</h1>
 <p><a href="06-context-budget.html">上一章：上下文预算</a> · <a href="../index.html">学习目录</a> · <a href="08-hooks-and-completion.html">下一章：Hooks 与任务完成</a></p>
 <blockquote>
 <p>上下文是手边的工作台，归档是可查找的资料柜；柜子里存的必须是当时那份证据。</p>
 </blockquote>
 <p>本章解决上一章留下的问题：日志被压短，关键错误恰好在中间，怎么办？
 你将亲手执行“读取 → 压缩 → 搜索归档 → 分页回读”，
-并区分历史证据、当前文件与长期记忆。</p>
-<h2 id="为什么不能让-agent-重新跑一次命令">为什么不能让 Agent 重新跑一次命令</h2>
+区分历史证据、当前文件与长期记忆，并看清模型在请求里到底看到什么样的归档编号。</p>
+<h2 id="为什么保存当时的输出">为什么保存当时的输出</h2>
 <p>重新读取一个没有变化的源码文件通常可行。
 但诊断命令的输出可能只出现一次：临时文件已删除、测试环境已清理，
 或者再次执行命令就会产生新的副作用。
-因此“反正能重跑”不能作为所有工具结果的压缩方案。</p>
+保存当时的输出，才能在环境变化后继续核对诊断依据。</p>
 <p>Aster 在缩短正文之前，把已经捕获的文本结果存入当前运行的归档目录；命令输出先受 <code>run_shell</code> 的 4 MiB 捕获上限，模型可见预览还受 8192 字符上限约束。超过捕获上限的内容从未进入观察归档，不能靠归档恢复。
-模型请求只保留有界摘录与引用；即使整组旧交互后来被移除，
+模型请求只保留有界摘录、占位符与引用；即使整组旧交互后来被移除，
 仍可用 <code>observation_read</code> 搜索这个运行留下的归档。
 这里的 observation 就是“工具当时返回的一份观察结果”。</p>
 <h2 id="一份结果会经过哪些地方">一份结果会经过哪些地方</h2>
-<figure class="diagram" data-edge-count="6"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="T">工具结果正文</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="A">脱敏后归档</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">脱敏后归档</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">observations / 内容标识.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="T">工具结果正文</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">模型请求里的正文或摘录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">observations / 内容标识.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="S">observation_read 搜索/列举</span></li><li class="diagram-edge"><span class="diagram-node" data-node="S">observation_read 搜索/列举</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">按 ID 与字符偏移回读</span></li><li class="diagram-edge"><span class="diagram-node" data-node="R">按 ID 与字符偏移回读</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">模型请求里的正文或摘录</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>T</code> 工具结果正文</span><span class="diagram-key"><code>A</code> 脱敏后归档</span><span class="diagram-key"><code>D</code> observations / 内容标识.json</span><span class="diagram-key"><code>P</code> 模型请求里的正文或摘录</span><span class="diagram-key"><code>S</code> observation_read 搜索/列举</span><span class="diagram-key"><code>R</code> 按 ID 与字符偏移回读</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart LR
+<figure class="diagram" data-edge-count="7"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="T">工具结果正文</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="A">脱敏后归档</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">脱敏后归档</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">observations / 内容标识.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="T">工具结果正文</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">历史里的 JSON 记录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">历史里的 JSON 记录</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">渲染进请求：正文、摘录或占位符</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">observations / 内容标识.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="S">observation_read 搜索/列举</span></li><li class="diagram-edge"><span class="diagram-node" data-node="S">observation_read 搜索/列举</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="R">按 ID 与字符偏移回读</span></li><li class="diagram-edge"><span class="diagram-node" data-node="R">按 ID 与字符偏移回读</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="P">渲染进请求：正文、摘录或占位符</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>T</code> 工具结果正文</span><span class="diagram-key"><code>A</code> 脱敏后归档</span><span class="diagram-key"><code>D</code> observations / 内容标识.json</span><span class="diagram-key"><code>H</code> 历史里的 JSON 记录</span><span class="diagram-key"><code>P</code> 渲染进请求：正文、摘录或占位符</span><span class="diagram-key"><code>S</code> observation_read 搜索/列举</span><span class="diagram-key"><code>R</code> 按 ID 与字符偏移回读</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart LR
     T[工具结果正文] --&gt; A[脱敏后归档]
     A --&gt; D[observations / 内容标识.json]
-    T --&gt; P[模型请求里的正文或摘录]
+    T --&gt; H[历史里的 JSON 记录]
+    H --&gt; P[渲染进请求：正文、摘录或占位符]
     D --&gt; S[observation_read 搜索/列举]
     S --&gt; R[按 ID 与字符偏移回读]
     R --&gt; P
@@ -50,22 +51,80 @@
 内容标识对脱敏后的来源与正文一起计算 SHA-256，
 所以同一段文本来自不同调用时，也不会被误认为完全相同的证据。
 重复归档同一份记录可以复用文件。</p>
+<p>归档发生在<strong>每次组装请求时</strong>，而不只是压缩时：<code>BudgetCalculator.calculate()</code> 开头遍历历史里的全部文本工具结果，
+没有 <code>observation</code> 引用的就当场归档，并校验引用的归档仍然可读（<code>observation_read</code> 自己的分页结果除外，免得“归档的归档”）。
+所以压缩真正发生时，“先归档”早已完成，压缩只是把已有引用写进占位符。
+<code>run_shell</code>、<code>run_tests</code> 和 MCP 工具更早：结果一产生，<code>Runtime._finish_tool</code> 就归档；
+这几类工具以及其他非读取类工具的输出超过 8192 字符时，历史里只留前 8192 字符的预览，末尾自带 <code>[Preview clipped; observation_read id=… has N captured characters.]</code>。</p>
 <p>完整正文指工具已经返回的、经过脱敏的正文，
 不意味着突破工具自身的读取边界：例如 <code>read_file</code> 只读指定行范围，
-归档不会自动补齐没有读过的整个源文件。</p>
-<p>归档成功后，压缩结果可以携带：</p>
+归档不会自动补齐没有读过的整个源文件。归档的正文就是当时写进历史的 <code>content</code>，
+所以 <code>read_file</code> 的归档带行号前缀，与模型当时看到的一致。</p>
+<p>历史里的记录被压缩后可以这样携带归档引用：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"success"</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"reason"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"evidence_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"这次执行证据的标识"</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"开头摘录……结尾摘录"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"evidence_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"这次执行证据的 12 位前缀"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"content"</span><span class="p">:</span><span class="w"> </span><span class="s2">"开头摘录……\n[excerpt; observation_read for archived content]\n……结尾摘录"</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">"observation"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"64 位十六进制标识"</span><span class="p">,</span><span class="w"> </span><span class="nt">"characters"</span><span class="p">:</span><span class="w"> </span><span class="mi">42035</span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>这里展示的是结构示意，字段值不是可用于请求的真实 ID。
-<code>status</code>、<code>reason</code>、<code>evidence_id</code> 等结果外壳仍然保留。
-<code>observation.id</code> 则用于取回被省略的正文，两种 ID 的职责不同。</p>
+<p>这里展示的是结构示意，字段值不是可用于请求的真实 ID；<code>reason</code> 为空时不写。
+<code>evidence_id</code> 指向执行证据，<code>observation.id</code> 则用于取回被省略的正文，两种 ID 的职责不同。
+模型请求使用<a href="05-state-and-evidence.html">第 05 章</a>讲过的纯文本视图：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>开头摘录……
+[excerpt; observation_read for archived content]
+……结尾摘录
+[full output: observation_read observation_id=&lt;完整 ID 的前 16 位&gt;]
+</pre></div>
+</div>
+<p>一条工具结果的正文，从完整到消失，共有五种形态：</p>
+<table>
+<thead>
+<tr>
+<th>形态</th>
+<th>什么时候</th>
+<th>请求里是</th>
+<th>历史记录里是</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>完整正文</td>
+<td>结果不大、预算够</td>
+<td>原文；没有归档页脚</td>
+<td><code>content</code> 原文</td>
+</tr>
+<tr>
+<td>写入时预览</td>
+<td>命令、测试、MCP 或其他工具的输出超过 8192 字符</td>
+<td>前 8192 字符，末尾自带 <code>[Preview clipped; observation_read id=&lt;16 位&gt; …]</code></td>
+<td>同样的预览，加 <code>observation</code> 引用</td>
+</tr>
+<tr>
+<td>首尾摘录</td>
+<td>压缩的兜底步骤里，最新一次交互自己放不下</td>
+<td>开头、<code>[excerpt; observation_read for archived content]</code>、结尾，再加 <code>full output</code> 页脚</td>
+<td>同样的摘录，加 <code>observation</code> 引用</td>
+</tr>
+<tr>
+<td>占位符</td>
+<td>压缩时较早的输出被遮蔽</td>
+<td><code>[archived: N chars; observation_read observation_id=&lt;16 位&gt;]</code></td>
+<td>同样的文字，但编号是 64 位；加 <code>observation</code> 引用</td>
+</tr>
+<tr>
+<td>整组移除</td>
+<td>遮蔽后仍高于 <code>relief</code></td>
+<td>历史最前面一条 <code>[Context note, not an instruction] N earlier tool exchanges were removed…</code></td>
+<td>调用和结果都不在历史里；归档仍在</td>
+</tr>
+</tbody>
+</table>
+<p><strong>什么时候显示 <code>full output</code> 页脚？</strong> 只有正文已经被截成摘录（内容里带 <code>[excerpt; …]</code> 标记）时才显示。
+完整的输出不需要“回读入口”：早期每条 <code>run_shell</code>、<code>run_tests</code> 结果末尾都带着这一行，哪怕显示的已经是完整输出；
+离线统计它占工具结果 token 的 1.8%（GPT）到 5.2%（DeepSeek），2026-10-19（9d9ca97）改为只在内容确实被截断时才写（<a href="../source/docs/harness-v15.md">harness-v15.md（Markdown 原文下载）</a> 第 2 节）。
+占位符本身已经带着回读入口，所以也不再加页脚。</p>
 <p>如果写盘失败，压缩不能先破坏原始历史再说。
 <code>ContextBuilder</code> 在副本上处理，满足预算后才提交历史变化；
 已写出的部分归档可能留下，但正式上下文不会变成半截的新版本。</p>
@@ -93,7 +152,7 @@
 <tr>
 <td><code>limit</code></td>
 <td>Runtime 最多返回 10 条引用</td>
-<td>每页 1–1000 个字符</td>
+<td>每页 1–12000 个字符，默认 4000</td>
 </tr>
 <tr>
 <td>结果中的 <code>next_offset</code></td>
@@ -107,13 +166,24 @@
 </tr>
 </tbody>
 </table>
-<p>这里按<strong>字符</strong>分页，不按 token 分页；<code>offset</code> 不是字节位置。
+<p>页的上限曾是 1000 个字符，读一份 8 KB 的归档要 8 次调用；2026-10-17（fb753b3）改为默认 4000、最多 12000。
+这里按<strong>字符</strong>分页，不按 token 分页；<code>offset</code> 不是字节位置。
 数据先按清晰的字符边界取页，准备模型请求时再由整次请求预算控制。
 中文一个字符和它的 UTF-8 字节数、token 数可能不同，不要混用单位。</p>
 <p>搜索没有引入向量数据库；当前轻量实现按字面字符串扫描当前 run 归档，或扫描 Runtime 显式授权的同 session 祖先观察。它不是任意历史 run 的搜索。
 搜索结果有 <code>match_offset</code>，指明命中位置，模型可以直接从那里取页。
 底层存储接口还返回 <code>sha256</code>、<code>tool</code>、<code>call_id</code>；
 Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍在归档和 trace 中。</p>
+<p><strong>编号怎么写。</strong> 归档编号是 64 位十六进制，模型每引用一次约花 30 个 token，还容易抄错。
+所以请求里的占位符、页脚，以及 <code>observation_read</code> 的列举和分页结果，都只显示前 16 位（9d9ca97）；
+历史记录和磁盘上的归档仍用完整编号。<code>observation_read</code> 接受完整编号，也接受至少 12 位的唯一前缀：</p>
+<ul>
+<li><a href="../source/src/aster/storage/evidence.py.html"><code>resolve_observation()</code></a> 先校验格式（12 到 64 位小写十六进制）；64 位直接使用，更短的就在当前 run 的 <code>observations/</code> 目录里按前缀查找，恰好一个匹配才通过。
+不存在或短于 12 位报 <code>invalid_observation_id</code>，匹配到多个报 <code>ambiguous_observation_id</code>。</li>
+<li>续聊时，<a href="../source/src/aster/sessions/lifecycle.py.html"><code>read_session_observation()</code></a> 会先在经授权的祖先观察里按前缀找唯一匹配，再回到当前 run。</li>
+<li>工具层把这些错误统一报告为 <code>observation_unavailable</code>；短前缀只是定位符，不能用来越过 run 边界。</li>
+<li>渲染器缩短带 <code>observation_id=</code> 或 <code>observation_read id=</code> 前缀的引用，以及回读结果的 <code>id</code> 字段；普通哈希文本原样保留。</li>
+</ul>
 <h2 id="已取的一页还被压短游标怎么办">已取的一页还被压短，游标怎么办</h2>
 <p>假设工具读出了从字符 100 开始的 800 个字符，原本 <code>next_offset=900</code>。
 整次请求超预算后，如果模型最终只看见前 200 个字符，
@@ -127,15 +197,16 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <p>普通日志摘录可以保留首尾；有游标的正文页保留连续前缀并更新游标，
 这样模型知道自己真正看到了哪里。
 <code>todo_list</code>、<code>skill_load</code> 的文本分页也遵守这个原则。
-归档回读的结果不会再次被递归归档，避免“归档的归档”持续膨胀。</p>
+归档回读的结果不会再次被递归归档，避免“归档的归档”持续膨胀；
+较早的分页结果在遮蔽时直接换成 <code>[omitted page; call observation_read again to re-read it]</code>，因为再读一次就能得到。</p>
 <h2 id="动手把日志中间的那条错误找回来">动手：把日志中间的那条错误找回来</h2>
 <p>完成<a href="00-quickstart.html">第 00 章</a>安装后，将完整代码保存为
 <code>/tmp/aster-context-archives-lesson.py</code>，在项目根目录执行：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>conda<span class="w"> </span>run<span class="w"> </span>--no-capture-output<span class="w"> </span>-n<span class="w"> </span>aster<span class="w"> </span>python<span class="w"> </span>/tmp/aster-context-archives-lesson.py
 </pre></div>
 </div>
-<p>本实验只用本地工具；开头与结尾的重复日志把一次性标记推到正文中间。
-它使用 <code>Runtime.step()</code> 手动给动作，是机制演示，不声称验证模型会自主决定回读。</p>
+<p>本实验只用本地工具；日志有 1,201 行，一次性标记在正文中间，读取后因预算很小被截成首尾摘录。
+实验通过 <code>Runtime.step()</code> 依次给出动作，观察正文从请求移出、再从归档取回的过程；只读内部属性 <code>_structured_history</code> 来核对保存格式。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
@@ -146,25 +217,35 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.core.runtime</span><span class="w"> </span><span class="kn">import</span> <span class="n">Runtime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">aster.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">ToolCall</span>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">result_of</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"output"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"function_call_output"</span><span class="p">)</span>
+
+
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"aster-archive-"</span><span class="p">)</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="n">witness</span> <span class="o">=</span> <span class="s2">"ONE-TIME-729: payment retry exhausted"</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="s2">"routine prefix "</span> <span class="o">*</span> <span class="mi">1500</span> <span class="o">+</span> <span class="n">witness</span> <span class="o">+</span> <span class="s2">" routine suffix"</span> <span class="o">*</span> <span class="mi">1500</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"routine prefix"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">600</span> <span class="o">+</span> <span class="p">[</span><span class="n">witness</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"routine suffix"</span><span class="p">]</span> <span class="o">*</span> <span class="mi">600</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="s2">"diagnostic.txt"</span>
-        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
         <span class="n">runtime</span> <span class="o">=</span> <span class="n">Runtime</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">Settings</span><span class="p">(</span>
             <span class="n">context_tokens</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">output_tokens</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
             <span class="n">memory_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">approval</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
         <span class="p">))</span>
         <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"找出历史诊断中的 ONE-TIME 标记。"</span><span class="p">))</span>
         <span class="n">read</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"diagnostic.txt"</span><span class="p">},</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"diagnostic.txt"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">:</span> <span class="mi">1300</span><span class="p">},</span>
         <span class="p">))</span>
         <span class="k">assert</span> <span class="n">read</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
         <span class="n">prompt</span><span class="p">,</span> <span class="n">tools</span><span class="p">,</span> <span class="n">report</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">report</span><span class="o">.</span><span class="n">compacted</span> <span class="ow">and</span> <span class="n">witness</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
         <span class="k">assert</span> <span class="s2">"observation_read"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="n">tool</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tools</span><span class="p">}</span>
+        <span class="c1"># 正文被截成首尾摘录，页脚给出回读入口；请求里的编号只有 16 位前缀，历史记录里是完整的 64 位。</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">result_of</span><span class="p">(</span><span class="n">runtime</span><span class="o">.</span><span class="n">_structured_history</span><span class="p">))</span>
+        <span class="n">short</span> <span class="o">=</span> <span class="n">record</span><span class="p">[</span><span class="s2">"observation"</span><span class="p">][</span><span class="s2">"id"</span><span class="p">][:</span><span class="mi">16</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">"observation"</span><span class="p">][</span><span class="s2">"id"</span><span class="p">])</span> <span class="o">==</span> <span class="mi">64</span>
+        <span class="k">assert</span> <span class="n">result_of</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[full output: observation_read observation_id=</span><span class="si">{</span><span class="n">short</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
         <span class="n">loaded</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"observation_read"</span><span class="p">]},</span>
         <span class="p">))</span>
@@ -177,20 +258,34 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
         <span class="n">matches</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">found</span><span class="o">.</span><span class="n">content</span><span class="p">)[</span><span class="s2">"observations"</span><span class="p">]</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="n">reference</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">short</span><span class="p">)</span>
+        <span class="c1"># 回读时照模型看到的写法，只用 16 位前缀。</span>
         <span class="n">page_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"observation_read"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"observation_id"</span><span class="p">:</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span>
+                <span class="s2">"observation_id"</span><span class="p">:</span> <span class="n">short</span><span class="p">,</span>
                 <span class="s2">"offset"</span><span class="p">:</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"match_offset"</span><span class="p">],</span> <span class="s2">"limit"</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
             <span class="p">},</span>
         <span class="p">))</span>
         <span class="n">page</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">page_result</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">page_result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="n">page</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">witness</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">page</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="o">==</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
         <span class="k">assert</span> <span class="n">page</span><span class="p">[</span><span class="s2">"next_offset"</span><span class="p">]</span> <span class="o">==</span> <span class="n">page</span><span class="p">[</span><span class="s2">"offset"</span><span class="p">]</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">page</span><span class="p">[</span><span class="s2">"content"</span><span class="p">])</span>
+
+        <span class="c1"># 后续请求里，列举和分页结果的编号同样只显示前缀，较早的交互已整组移除。</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">report</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">short</span> <span class="ow">in</span> <span class="n">text</span> <span class="ow">and</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"id"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">text</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="s2">"earlier tool exchanges were removed"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">))</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">prompt</span><span class="p">)</span>
+        <span class="c1"># 少于 12 位的前缀不被接受。</span>
+        <span class="n">too_short</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">"observation_read"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"observation_id"</span><span class="p">:</span> <span class="n">short</span><span class="p">[:</span><span class="mi">8</span><span class="p">]},</span>
+        <span class="p">))</span>
+        <span class="k">assert</span> <span class="n">too_short</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"observation_unavailable"</span>
 
         <span class="c1"># 磁盘文件后来变了，归档仍然记录当时实际看到的文本。</span>
         <span class="n">path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"current diagnosis: service recovered"</span><span class="p">)</span>
         <span class="n">historical</span> <span class="o">=</span> <span class="n">runtime</span><span class="o">.</span><span class="n">evidence</span><span class="o">.</span><span class="n">read_observation</span><span class="p">(</span>
-            <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">run_id</span><span class="p">,</span> <span class="n">reference</span><span class="p">[</span><span class="s2">"id"</span><span class="p">],</span> <span class="n">query</span><span class="o">=</span><span class="s2">"ONE-TIME-729"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+            <span class="n">runtime</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">run_id</span><span class="p">,</span> <span class="n">short</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="s2">"ONE-TIME-729"</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">fresh</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"read_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"path"</span><span class="p">:</span> <span class="s2">"diagnostic.txt"</span><span class="p">},</span>
@@ -200,7 +295,9 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
         <span class="nb">print</span><span class="p">(</span><span class="s2">"归档命中数:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">matches</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"历史证据:"</span><span class="p">,</span> <span class="n">page</span><span class="p">[</span><span class="s2">"content"</span><span class="p">][:</span><span class="nb">len</span><span class="p">(</span><span class="n">witness</span><span class="p">)])</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"本页字符数:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">page</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"请求里的编号长度:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">short</span><span class="p">))</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"最新文件:"</span><span class="p">,</span> <span class="n">fresh</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+
 
 <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </pre></div>
@@ -209,13 +306,15 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>归档命中数: 1
 历史证据: ONE-TIME-729: payment retry exhausted
 本页字符数: 80
+请求里的编号长度: 16
 最新文件: current diagnosis: service recovered
 </pre></div>
 </div>
 <p>第一条断言先确认完整关键句已不在压缩后的请求中，
 随后从当前 run（或经授权的同 session 祖先）的归档找回它；否则“回读成功”可能只是再次看到从未被裁掉的内容。
+中间两段说明编号的两种写法：历史记录里是 64 位，请求里和模型回读时只用 16 位前缀，少于 12 位会被拒绝。
 最后更改磁盘文件，展示历史证据和当前事实可以同时成立。</p>
-<h2 id="归档不等于新鲜读取也不等于-memory">归档不等于新鲜读取，也不等于 Memory</h2>
+<h2 id="当前文件历史观察与记忆如何分工">当前文件、历史观察与记忆如何分工</h2>
 <table>
 <thead>
 <tr>
@@ -238,7 +337,7 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <tr>
 <td>工作记忆</td>
 <td>这次任务里已经掌握了哪些简要事实？</td>
-<td><code>RunState.working_memory</code>，随检查点恢复</td>
+<td><code>RunState.working_memory</code>，随检查点恢复；不渲染进模型请求，供 Worker 交接和界面使用</td>
 </tr>
 <tr>
 <td>长期记忆</td>
@@ -250,26 +349,29 @@ Runtime 的模型可见结果会省掉部分重复来源字段，完整来源仍
 <p>工具描述和系统提示都说明归档是不可信观察数据，不能晋升成系统指令。
 回读一条旧文件记录不会更新 <code>read_evidence</code>，
 所以它不能绕过“编辑前先检查当前文件”的约束。</p>
-<h2 id="练习与参考答案">练习与参考答案</h2>
-<p><strong>练习 1：把搜索词改成不存在的 <code>MISSING-999</code>，应该得到什么？</strong></p>
-<p>列表模式返回空的 <code>observations</code> 和 <code>total=0</code>，不是编造一条近似结果。
-若已知 ID 后在正文里搜索不到，存储接口返回 <code>matched=False</code> 和空正文。</p>
-<p><strong>练习 2：完整工具交互都被压缩删除了，还能回读吗？</strong></p>
-<p>可以通过不传 ID 的搜索/列举模式发现归档。
-引用不需要永远占据活跃上下文中的一个位置，但模型仍需要有线索主动搜索。
-“存储可找回”不能替代“模型成功找回”的任务评测。</p>
-<p><strong>练习 3：有人改写了归档 JSON 中的 <code>content</code>，会怎样？</strong></p>
-<p><code>read_observation()</code> 重新校验记录归属、字段类型和内容标识。
-校验失败会抛出 <code>observation_integrity_error</code>；工具层把它报告为
-<code>observation_unavailable</code>，不会把修改后的文本当作已验证的原始证据。
-这项哈希检查不是针对拥有全部本地写权限者的防篡改安全承诺。</p>
-<h2 id="本章的边界">本章的边界</h2>
-<p>归档解决了证据外置、定位和完整性检查，没有解决模型永远不忘线索的问题。
-归档也可能被用户清理或发生磁盘错误，下一次准备请求需要的引用不可用时会明确失败。
-Aster 没有把“有磁盘归档”宣传成无限上下文或所有内容永久无损。</p>
+<h2 id="练习与核对">练习与核对</h2>
+<ol>
+<li>把搜索词改成不存在的 <code>MISSING-999</code>，会得到什么？</li>
+<li>完整工具交互都被压缩删除后，如何回读？</li>
+<li>归档 JSON 的正文被改写后会怎样？</li>
+<li>请求只显示 16 位前缀，遇到前缀冲突怎样处理？</li>
+<li>为什么只给首尾摘录加 <code>full output</code> 页脚？</li>
+</ol>
+<details>
+<summary>参考答案</summary>
+<ol>
+<li>列表模式返回空 <code>observations</code> 和 <code>total=0</code>；指定 ID 后搜索正文，未命中返回 <code>matched=False</code> 和空正文。</li>
+<li>不传 ID，先按线索搜索或列举归档，再按 ID 分页读取。</li>
+<li><code>read_observation()</code> 校验归属、字段和内容标识；校验失败时，工具返回 <code>observation_unavailable</code>。这依赖本地归档与引用的完整性。</li>
+<li>前缀解析要求唯一匹配；冲突时报告 <code>ambiguous_observation_id</code>，工具返回 <code>observation_unavailable</code>，调用者可提供更长的前缀。</li>
+<li>完整正文已提供全部内容，占位符本身已有入口；首尾摘录需要页脚指出被省略正文的去处。</li>
+</ol>
+</details>
+<p>归档提供定位和回读路径；真实任务还要观察模型是否发现缺失线索、选择合适查询。历史文件记录用于复盘，编辑前则通过 <code>read_file</code> 建立当前版本证据。</p>
 <p>继续读 <a href="../source/src/aster/storage/evidence.py.html">EvidenceStore</a>、
-<a href="../source/src/aster/tools/workflow.py.html">WorkflowTools.execute()</a> 和
+<a href="../source/src/aster/sessions/lifecycle.py.html">read_session_observation()</a>（<code>WorkflowTools.execute()</code> 只是把 <code>observation_read</code> 转交给它）、
+<a href="../source/src/aster/context/view.py.html">view.py</a> 和
 <a href="../source/tests/test_context_archives.py.html">归档合同测试</a>。
 更大的真实任务结果见<a href="../source/docs/context-results.md">上下文评测（Markdown 原文下载）</a>。</p>
 <p><a href="06-context-budget.html">上一章：上下文预算</a> · <a href="../index.html">学习目录</a> · <a href="08-hooks-and-completion.html">下一章：Hooks 与任务完成</a></p>
-<nav class="chapter-nav"><a href="06-context-budget.html">← 06｜上下文预算：决定这一轮模型看见什么</a><a href="08-hooks-and-completion.html">08 · Hooks 与运行纠偏：让错误动作和过早收尾有反馈 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么不能让-agent-重新跑一次命令">为什么不能让 Agent 重新跑一次命令</a><a href="#一份结果会经过哪些地方">一份结果会经过哪些地方</a><a href="#先归档再替换正文">先归档，再替换正文</a><a href="#回读的两种模式">回读的两种模式</a><a href="#已取的一页还被压短游标怎么办">已取的一页还被压短，游标怎么办</a><a href="#动手把日志中间的那条错误找回来">动手：把日志中间的那条错误找回来</a><a href="#归档不等于新鲜读取也不等于-memory">归档不等于新鲜读取，也不等于 Memory</a><a href="#练习与参考答案">练习与参考答案</a><a href="#本章的边界">本章的边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="06-context-budget.html">← 06｜上下文预算：决定这一轮模型看见什么</a><a href="08-hooks-and-completion.html">08 · Hooks 与运行纠偏：让执行和交付都有反馈 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么保存当时的输出">为什么保存当时的输出</a><a href="#一份结果会经过哪些地方">一份结果会经过哪些地方</a><a href="#先归档再替换正文">先归档，再替换正文</a><a href="#回读的两种模式">回读的两种模式</a><a href="#已取的一页还被压短游标怎么办">已取的一页还被压短，游标怎么办</a><a href="#动手把日志中间的那条错误找回来">动手：把日志中间的那条错误找回来</a><a href="#当前文件历史观察与记忆如何分工">当前文件、历史观察与记忆如何分工</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

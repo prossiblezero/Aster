@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>04 · 权限与沙箱：批准动作以后，还要限制它的影响 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="04-permissions-sandbox" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="current" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 04</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><aside class="course-note"><strong>实现核对</strong>read_file 记录规范化文本哈希；Runtime 在审批前固定原始字节哈希（新文件记为不存在），并在审批等待结束后的执行前、隔离复制后、best_effort 降级前复核。沙箱写回前还会对照执行前快照检查并发漂移。Git 仓库的常规扫描、快照和输入复制排除被忽略的未跟踪产物；显式路径仍可读，但写入与写回会拒绝。无 .git 副本和非 Git 工作区都不解析 Git ignore；命令新生成的 ignored 路径会在原仓库发布检查时整批拒绝。这些保护不是跨进程事务。</aside><h1 id="04-权限与沙箱批准动作以后还要限制它的影响">04 · 权限与沙箱：批准动作以后，还要限制它的影响</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>04 · 权限与沙箱：批准动作以后，还要限制它的影响 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="04-permissions-sandbox" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="current" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 04</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><aside class="course-note"><strong>实现核对</strong>read_file 记录规范化文本哈希；Runtime 在审批前固定原始字节哈希（新文件记为不存在），并在审批等待结束后的执行前、隔离复制后、best_effort 降级前复核。沙箱写回前还会对照执行前快照检查并发漂移。Git 仓库的常规扫描、快照和输入复制排除被忽略的未跟踪产物；显式路径仍可读，但写入与写回会拒绝。无 .git 副本和非 Git 工作区都不解析 Git ignore；命令新生成的 ignored 路径会在原仓库发布检查时整批拒绝。这些保护不是跨进程事务。</aside><h1 id="04-权限与沙箱批准动作以后还要限制它的影响">04 · 权限与沙箱：批准动作以后，还要限制它的影响</h1>
 <blockquote>
 <p>一句话：权限决定“能不能做”，沙箱和工作区边界限制“做了以后能影响哪里”。</p>
 </blockquote>
@@ -8,7 +8,7 @@
 模型也可能没有恶意，只是根据半小时前读取的代码提交补丁，而你已经在编辑器里修改了同一个文件。
 前者是信任边界问题，后者是过期证据问题；让模型“多注意”不能替代运行时检查。</p>
 <p>Aster 把这两类情况放进真正的执行路径中处理。
-阅读本章时，请一直区分：<strong>模型建议的动作、用户授权的范围、操作系统实际施加的限制</strong>。</p>
+执行路径依次处理<strong>模型动作、授权范围和操作系统限制</strong>。</p>
 <figure class="diagram" data-edge-count="10"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">模型提出工具调用</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">校验参数和能力可用性</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">校验参数和能力可用性</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">已有文件：读取证据是否新鲜</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">已有文件：读取证据是否新鲜</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">权限策略 allow / ask / deny</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">权限策略 allow / ask / deny</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">ask</span><span class="diagram-node" data-node="E">等待用户批准</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">权限策略 allow / ask / deny</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">deny</span><span class="diagram-node" data-node="F">返回 blocked</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">权限策略 allow / ask / deny</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">allow</span><span class="diagram-node" data-node="G">工具前 Hook</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">等待用户批准</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">批准</span><span class="diagram-node" data-node="G">工具前 Hook</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">工具前 Hook</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">路径检查 / 隔离副本执行</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">路径检查 / 隔离副本执行</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">检查改动范围和并发变化</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">检查改动范围和并发变化</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="J">写回允许的改动 + 记录结果</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> 模型提出工具调用</span><span class="diagram-key"><code>B</code> 校验参数和能力可用性</span><span class="diagram-key"><code>C</code> 已有文件：读取证据是否新鲜</span><span class="diagram-key"><code>D</code> 权限策略 allow / ask / deny</span><span class="diagram-key"><code>E</code> 等待用户批准</span><span class="diagram-key"><code>F</code> 返回 blocked</span><span class="diagram-key"><code>G</code> 工具前 Hook</span><span class="diagram-key"><code>H</code> 路径检查 / 隔离副本执行</span><span class="diagram-key"><code>I</code> 检查改动范围和并发变化</span><span class="diagram-key"><code>J</code> 写回允许的改动 + 记录结果</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
     A[模型提出工具调用] --&gt; B[校验参数和能力可用性]
     B --&gt; C[已有文件：读取证据是否新鲜]
@@ -74,8 +74,7 @@
 <p>明确的拒绝规则优先；用户批准也不能让它失效。
 Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.txt</code> 后面还有另一个命令。
 因此 <code>shell_argv()</code> 先区分普通参数与活跃的 Shell 语法，无法可靠按前缀判断时转入询问或拒绝路径。</p>
-<p>这也不是静态程序分析器。<code>python -c</code> 能执行任意 Python，单凭命令名字不能证明程序安全。
-参数分类的作用是执行清楚的规则；进程运行范围仍要由后面的隔离层控制。</p>
+<p><code>python -c</code> 可以执行任意 Python，所以参数分类负责匹配授权规则，后面的隔离层负责限制进程的实际访问范围。</p>
 <h2 id="第二层文件路径也必须过边界">第二层：文件路径也必须过边界</h2>
 <p><a href="../source/src/aster/storage/workspace.py.html">Workspace.path()</a> 检查路径是否留在当前工作区，并拒绝符号链接、特殊文件和受保护路径。
 例如 <code>../outside.txt</code>、<code>.git/config</code>、<code>.env</code> 不能通过普通文件工具读取。
@@ -86,28 +85,77 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <h2 id="第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</h2>
 <p><code>read_file</code> 成功时，结果包含整个源文件的 <code>source_sha256</code>，Runtime 将它记入 <code>state.read_evidence[path]</code>。
 写入已有文件之前，Runtime 再计算当前文件摘要。
-下面是 <a href="../source/src/aster/core/runtime.py.html">Runtime._prepare_tool()</a> 中这一检查的关键部分：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="n">fingerprint</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-<span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">read_evidence</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">!=</span> <span class="n">fingerprint</span><span class="p">:</span>
+下面是 <a href="../source/src/aster/core/runtime.py.html">Runtime._prepare_tool()</a> 中这一检查的关键部分，<code>current</code> 是文件现在的内容：</p>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">read_evidence</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">!=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">Outcome</span><span class="p">(</span>
         <span class="n">status</span><span class="o">=</span><span class="s2">"blocked"</span><span class="p">,</span>
         <span class="n">reason</span><span class="o">=</span><span class="s2">"fresh_read_required"</span><span class="p">,</span>
-        <span class="n">content</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Read </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> immediately before editing it."</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="p">(</span><span class="s2">"The file changed since your last read_file or your own last edit. "</span>
+                 <span class="sa">f</span><span class="s2">"Call read_file on </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> before retrying."</span><span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
 </div>
 <p>摘要相同意味着读取后的文件内容没有变化；它不是基于“过去了几秒”的时间判断。
 新建一个不存在的文件没有旧版本需要确认；覆盖或补丁修改已有文件则需要匹配的读取证据。
 从历史归档回读旧工具结果不会刷新这份证据，必须重新 <code>read_file</code>。</p>
-<h2 id="第四层在副本执行检查后写回">第四层：在副本执行，检查后写回</h2>
-<p><a href="../source/src/aster/safety/runner.py.html">SandboxRunner.run()</a> 将可见工作区复制到临时目录，启动命令，再检查改动。
-<a href="../source/src/aster/safety/linux.py.html">linux.py</a> 用 bubblewrap 将执行副本映射到原工作区绝对路径，再使用 Landlock 限制文件系统访问、seccomp 限制相关系统调用。脚本和子进程看到的项目路径保持一致。
-命令只获得精简的环境变量，模型 API key 不会随父进程环境直接传入。</p>
-<p>执行后会检查只读约束、写入范围、危险文件类型和外部并发修改，再发布合法改动。
-<code>required</code> 表示隔离不可用就拒绝；本章实验需要支持 Landlock/seccomp 和 bubblewrap 命名空间的 Linux 环境，安装方法见<a href="../source/docs/execution-environment.md">执行环境（Markdown 原文下载）</a>。
+<p><strong>自己的编辑不让证据失效。</strong> 当时（2026-10-16 之前）每次成功编辑都让摘要对不上，同一个文件改第二次之前必须再读一遍，纯重读的回合是浪费回合的来源之一（<a href="../source/docs/turn-reduction-plan.md">turn-reduction-plan.md（Markdown 原文下载）</a>）。
+后来（<code>0c3ca67</code>）改为：<code>write_file</code>、<code>patch_file</code> 成功后，<code>Runtime._collect_step</code> 把磁盘上读回的字节与写入回执 <code>written_sha256</code> 对照，相等才把证据更新为新内容的摘要。其他途径（<code>run_shell</code>、编辑器、别的进程）的修改仍然让证据失效。</p>
+<h2 id="第四层在副本执行校验后发布">第四层：在副本执行，校验后发布</h2>
+<p><a href="../source/src/aster/safety/runner.py.html">SandboxRunner.run()</a> 不在真实工作区里运行命令。<code>run_shell</code> 如此，<code>write_file</code> 和 <code>patch_file</code> 也是：它们把新内容用一条短命令写进副本。流程是：</p>
+<ol>
+<li><strong>复制</strong>：把 <code>workspace.files()</code> 列出的文件复制到临时目录。<code>.git</code>、<code>.env</code> 一类的受保护和敏感文件、被 Git 忽略的文件、<code>node_modules</code> 和 <code>.venv</code> 都不在其中。</li>
+<li><strong>映射路径</strong>：命令里的工作区绝对路径按完整路径段换成副本路径（<code>map_root</code>，<code>/app</code> 不会误伤 <code>/apps</code>），输出里再换回去。2026-10-17（<code>7a5d074</code>）之前，<code>cd /app &amp;&amp; python3 interp.py</code> 读文件得到 EACCES，而 <code>ls</code>、<code>stat</code> 正常，v11 的解释器题因此停滞退出（<a href="../source/docs/harness-v12.md">harness-v12.md 第 3 节（Markdown 原文下载）</a>）。</li>
+<li><strong>限制并执行</strong>：由 <a href="../source/src/aster/safety/linux.py.html">linux.py</a> 装上 Landlock 和 seccomp（见下），再运行 <code>/bin/sh</code>。命令只获得精简的环境变量，模型 API key 不会随父进程环境传入。</li>
+<li><strong>校验</strong>：删掉副本里的 <code>.tmp</code>，拒绝符号链接、特殊文件和敏感或受保护的名字（<code>sandbox_protected_output</code>）；只读约束下出现任何改动则返回 <code>read_only</code>。</li>
+<li><strong>发布</strong>：比较副本与执行前的快照得到改动；发布前再看一次真实工作区，相关文件已被别人改过就返回 <code>concurrent_workspace_change</code>；检查写入范围，然后逐个文件原子替换。</li>
+</ol>
+<p><code>HOME</code> 曾经就是副本根目录，<code>~/.npm</code> 之类的文件会被当作任务改动发布，模型要花回合去删它们；2026-10-18（<code>3971692</code>）起它是副本里的 <code>.tmp/home</code>，校验前整个删除，从不发布。</p>
+<p><code>required</code> 表示隔离不可用就拒绝；本章实验因此只能在支持 Landlock/seccomp 的 Linux 环境中成功。
 <code>off</code> 明确关闭隔离；遇到只读或写入范围约束时会直接 <code>blocked</code>，不能继续执行。<code>best_effort</code> 只有在没有这两类约束时，才允许隔离不可用后降级并记录结果；存在约束时仍拒绝。两者都不是本实验 <code>required</code> 的降级路径。</p>
+<h3 id="为什么保留副本执行">为什么保留副本执行</h3>
+<p>副本模型有代价：程序里写死的绝对路径、依赖原路径的可编辑安装，都要靠下面的补救机制。直接在真实工作区执行命令可以消除这类问题，项目选择保留“副本中执行、校验后发布”（<a href="../source/docs/harness-v15.md">harness-v15.md 第 4 节（Markdown 原文下载）</a>）：直接在工作区执行的 Agent，一条错误的删除命令就可能造成不可挽回的损失。
+副本也不是备份：在副本里删掉可见的文件，校验通过后就会真的被删除，是否允许 <code>rm</code> 仍由第一层的规则决定。</p>
+<h3 id="只读暴露原工作区并守住权限位">只读暴露原工作区，并守住权限位</h3>
+<p>可编辑安装的项目（<code>pip install -e .</code>）和测试夹具会用<strong>绝对路径</strong>指向工作区，副本回答不了。
+当时（2026-10-18 之前）副本之外的路径全被 Landlock 拒绝；后来（<code>60b15d8</code>）改为：原工作区里没有副本刻意排除的东西时，以只读方式加入 Landlock。<code>exposable()</code> 要求整棵目录树里没有敏感名字（<code>.env*</code>、<code>.ssh</code>、<code>id_rsa</code>、<code>*.pem</code>、<code>*.key</code>，被忽略的文件和 <code>.git</code> 也算；<code>node_modules</code>、<code>.venv</code> 不检查），且 <code>.git/config</code> 里没有带凭据的 URL，否则不暴露。
+<a href="../source/evaluations/harness-v12-20261017/REPORT.md">评测报告第 12.1 节（Markdown 原文下载）</a>认为，fresh30b 上只有 v14 通过的两道题都是可编辑安装的项目，这项改动修复的正是这类导入问题；这是对轨迹的解读，不是对照实验。</p>
+<p>Landlock 不管 chmod、时间戳和扩展属性，所以运行器在命令前拍下原工作区的权限位，命令后比较，变了就恢复（<code>_restore_modes</code>），并返回 <code>blocked</code>、<code>sandbox_metadata_change</code>。它只守权限位；副本内部的 <code>chmod +x</code> 仍然允许，会作为改动发布。</p>
+<h3 id="绝对路径写入失败时的说明">绝对路径写入失败时的说明</h3>
+<p>程序自己把绝对路径写进代码时（<code>OUT = &quot;/app/summary.csv&quot;</code>），命令文本里没有这个路径，<code>map_root</code> 改写不到，而原工作区是只读的，于是得到权限错误。DeepSeek 曾为此花了约 60 个回合去排查“时有时无的权限问题”（<a href="../source/docs/harness-v15.md">harness-v15.md 第 4 节（Markdown 原文下载）</a>）。
+2026-10-19（<code>f3f2a1f</code>）起，这类输出末尾会附上 <code>ABSOLUTE_WRITE_NOTE</code>：命令在副本里运行，请改用相对路径（当前目录就是副本，改动会被发布）或 <code>write_file</code>。</p>
+<h3 id="常驻服务直接使用工作区">常驻服务直接使用工作区</h3>
+<p><code>service_start</code>（<a href="03-tool-system.html">上一章</a>）要看到之后的代码修改，所以不经过副本：启动器的 Landlock 根就是真实工作区，可读写，也看得见副本刻意排除的文件。启动条件见 <a href="../source/src/aster/tools/availability.py.html">availability.py</a>：沙箱不能是 <code>off</code>；不能处于只读或计划模式；不能设置 <code>write_scope</code>，因为服务直接写工作区，范围无法执行；还要通过与 <code>run_shell</code> 相同的审批。服务的写入没有“校验后发布”这一步，表现为外部改动，会让已读文件的证据失效。
+服务在独立会话中启动，日志放在工作区之外；等 2 秒后报告存活状态、日志末尾和期间的工作区变化。任务结束时先 SIGTERM、再 SIGKILL 整个进程组，<code>keep_running=True</code> 的保留，并列在最终回答的“Services left running”里。</p>
+<h3 id="landlock-与-seccomp-到底限制了什么">Landlock 与 seccomp 到底限制了什么</h3>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Landlock（ABI ≥ 3），默认拒绝</td>
+<td>先声明处理全部 15 种文件访问，再放行：<code>/usr</code>、<code>/bin</code>、<code>/lib*</code>、Python 前缀和少数 <code>/etc</code> 文件只读加执行，<code>/dev/null</code> 可读写，执行目录整棵可读写，原工作区和借用的依赖目录只读。<code>/tmp</code> 和家目录不在白名单里，所以临时文件放 <code>.tmp/</code></td>
+</tr>
+<tr>
+<td>seccomp，默认放行</td>
+<td>始终拒绝 <code>ptrace</code>、<code>mount</code>、<code>unshare</code>、<code>setns</code>、<code>bpf</code>、<code>io_uring_setup</code>、<code>setsid</code>、<code>setpgid</code>、<code>kill</code> 等（返回 EPERM）：不能调试别的进程，不能开新命名空间，也不能脱离进程组或向外发信号</td>
+</tr>
+<tr>
+<td>seccomp，无网络时</td>
+<td>再拒绝 <code>socket</code>、<code>connect</code>、<code>bind</code>、<code>sendmsg</code>、<code>sendmmsg</code>，只放行 <code>AF_UNIX</code> 的 <code>socketpair</code> 和不带目的地址的 <code>sendto</code>（asyncio 唤醒事件循环要用）；本机 TCP 也不可用</td>
+</tr>
+<tr>
+<td>其他</td>
+<td>先设 <code>NO_NEW_PRIVS</code>；单个文件 16 MiB、打开文件 256 个、CPU 120 秒；任何一步装不上，启动器以 125 退出，命令不运行</td>
+</tr>
+</tbody>
+</table>
 <h3 id="依赖与进程边界">依赖与进程边界</h3>
-<p>默认情况下，一条命令安装的依赖不会进入下一条命令。<code>reuse_environment</code> 只在 <code>required</code> 且同一进程中复用受控 <code>.venv</code>/<code>node_modules</code>；可写命令失败时环境可能被丢弃，需要按结果提示重新安装。它不会跨进程恢复。每次工具调用拥有自己的进程，后台服务不会存活到下一次调用；临时文件放在工作区 <code>.tmp/</code> 或 <code>TMPDIR</code>，网络关闭时也包括本机 TCP。</p>
+<p>默认情况下，一条命令安装的依赖不会进入下一条命令。<code>reuse_environment</code> 只在 <code>required</code> 且同一进程中复用受控 <code>.venv</code>/<code>node_modules</code>；可写命令失败时环境可能被丢弃，需要按结果提示重新安装。它不会跨进程恢复。借用的依赖目录与父进程共享 inode，所以 seccomp 额外禁止其中的 chmod、chown、时间戳和扩展属性修改。
+每条 <code>run_shell</code> 命令拥有自己的进程组，返回时整组被结束，后台进程活不到下一次调用，需要常驻的用 <code>service_start</code>；临时文件放在工作区 <code>.tmp/</code> 或 <code>TMPDIR</code>，网络关闭时也包括本机 TCP。</p>
 <table>
 <thead>
 <tr>
@@ -132,13 +180,17 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <td><code>reason=&quot;concurrent_workspace_change&quot;</code></td>
 <td>发布前发现用户或其他进程修改了将被写回的文件</td>
 </tr>
+<tr>
+<td><code>reason=&quot;sandbox_metadata_change&quot;</code></td>
+<td>命令改了原工作区的权限位，已被恢复</td>
+</tr>
 </tbody>
 </table>
 <p>单个文件通过替换发布，整批文件不是数据库事务；磁盘错误仍可能造成部分发布。
-这是需要保留在状态和审计中的事实，而不是通过一个“安全”标签抹掉的边界。</p>
-<h2 id="离线实验批准了也不能根据过期读取修改">离线实验：批准了，也不能根据过期读取修改</h2>
+运行时通过 <code>partial_success</code> 和 <code>changed_paths</code> 记录部分发布。</p>
+<h2 id="离线实验读取证据如何随编辑更新">离线实验：读取证据如何随编辑更新</h2>
 <p>激活 <code>aster</code> 环境，把下面代码保存到 <code>/tmp/aster_lesson04.py</code>，在项目根运行 <code>python /tmp/aster_lesson04.py</code>。
-本实验不使用模型 API，并显式要求 <code>sandbox=&quot;required&quot;</code>：缺少 Landlock/seccomp 或 bubblewrap 命名空间支持时会明确失败。运行前请完成上述沙箱安装和检查。</p>
+实验需要支持 Landlock/seccomp 的 Linux 环境，使用 <code>sandbox=&quot;required&quot;</code>。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
@@ -161,9 +213,9 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
         <span class="p">))</span>
         <span class="n">runtime</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">TaskSpec</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="s2">"将 value.txt 改成 new"</span><span class="p">))</span>
 
-        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">patch</span><span class="p">(</span><span class="n">old</span><span class="p">):</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">patch</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="s2">"new"</span><span class="p">):</span>
             <span class="k">return</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"patch_file"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
-                <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"value.txt"</span><span class="p">,</span> <span class="s2">"old_text"</span><span class="p">:</span> <span class="n">old</span><span class="p">,</span> <span class="s2">"new_text"</span><span class="p">:</span> <span class="s2">"new"</span><span class="p">,</span>
+                <span class="s2">"path"</span><span class="p">:</span> <span class="s2">"value.txt"</span><span class="p">,</span> <span class="s2">"old_text"</span><span class="p">:</span> <span class="n">old</span><span class="p">,</span> <span class="s2">"new_text"</span><span class="p">:</span> <span class="n">new</span><span class="p">,</span>
             <span class="p">}))</span>
 
         <span class="n">first</span> <span class="o">=</span> <span class="k">await</span> <span class="n">patch</span><span class="p">(</span><span class="s2">"old"</span><span class="p">)</span>
@@ -184,6 +236,15 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
         <span class="nb">print</span><span class="p">(</span><span class="s2">"执行隔离:"</span><span class="p">,</span> <span class="n">changed</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"isolation"</span><span class="p">])</span>
         <span class="k">assert</span> <span class="n">changed</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"isolation"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"landlock+seccomp"</span>
 
+        <span class="n">again</span> <span class="o">=</span> <span class="k">await</span> <span class="n">patch</span><span class="p">(</span><span class="s2">"new"</span><span class="p">,</span> <span class="s2">"newer"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"自己的编辑之后继续改:"</span><span class="p">,</span> <span class="n">again</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">again</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
+        <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"run_shell"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">"command"</span><span class="p">:</span> <span class="s2">"sed -i 's/newer/newest/' value.txt"</span><span class="p">}))</span>
+        <span class="n">after_shell</span> <span class="o">=</span> <span class="k">await</span> <span class="n">patch</span><span class="p">(</span><span class="s2">"newest"</span><span class="p">,</span> <span class="s2">"final"</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"run_shell 改过之后:"</span><span class="p">,</span> <span class="n">after_shell</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">after_shell</span><span class="o">.</span><span class="n">reason</span> <span class="o">==</span> <span class="s2">"fresh_read_required"</span>
+
         <span class="n">denied</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
             <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"run_shell"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"command"</span><span class="p">:</span> <span class="s2">"rm value.txt"</span><span class="p">})</span>
         <span class="p">)</span>
@@ -199,7 +260,9 @@ Shell 复合命令不能简单用第一个单词判断：<code>echo ok; rm data.
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>没有读过: fresh_read_required
 读取后发生外部修改: fresh_read_required
 重新读取后: success ['value.txt']
-执行隔离: landlock+seccomp  # 支持隔离的 Linux；required 不支持时明确失败
+执行隔离: landlock+seccomp
+自己的编辑之后继续改: success
+run_shell 改过之后: fresh_read_required
 auto 遇到明确拒绝: blocked no_delete
 </pre></div>
 </div>
@@ -207,17 +270,18 @@ auto 遇到明确拒绝: blocked no_delete
 <ol>
 <li>如果文件被外部改成另一内容，再改回原内容，读取摘要还能匹配吗？</li>
 <li><code>read_file(start=1, end=10)</code> 的源文件摘要是否只覆盖这 10 行？</li>
-<li>为什么不能用 <code>run_shell(&quot;pytest -q&quot;)</code> 的退出码代替“测试已通过”的证据？</li>
+<li>为什么不能把任意 <code>run_shell</code> 命令的退出码当作“测试已通过”的证据？</li>
+<li>程序在副本里执行 <code>open(&quot;/app/out.txt&quot;, &quot;w&quot;)</code>（<code>/app</code> 是真实工作区）会怎样？应该怎么改？</li>
 </ol>
 <details>
 <summary>参考答案</summary>
 <ol>
 <li>能。这里验证当前内容是否与已读取版本一致，不提供完整的编辑历史或时间版本锁。</li>
 <li>不是。<code>source_sha256</code> 基于整个文件；返回给模型的是指定行范围。</li>
-<li>普通命令没有结构化测试报告。<code>run_tests</code> 在独立副本运行测试并解析 JUnit 结果（原生 Python 入口从测试框架捕获并转换），确认确实执行了测试，而且结果绑定当前工作区摘要。</li>
+<li>退出码只说明这条命令返回成功：<code>pytest || true</code> 永远是 0。Aster 只把被识别为测试的命令算作正式验证：框架有逐用例报告，项目自带的构建加测试命令按退出码判定（不含管道、<code>||</code>、<code>;</code>），结果绑定当前工作区摘要。所以 <code>run_shell(&quot;pytest -q&quot;)</code> 会被识别并作为正式验证运行，见<a href="03-tool-system.html">上一章</a>。</li>
+<li>程序得到权限错误，输出末尾会附上说明：副本里的工作区绝对路径是只读的。改用相对路径（当前目录就是副本，改动会被发布），或用 <code>write_file</code>。</li>
 </ol>
 </details>
-<p>继续阅读 <a href="../source/tests/test_fresh_read.py.html">test_fresh_read.py</a>、<a href="../source/tests/test_safety.py.html">test_safety.py</a> 和 <a href="../source/tests/test_workspace_execution.py.html">test_workspace_execution.py</a>，可以看到各层边界分别如何被验证。
-这些机制限制工具副作用，并不能保证模型对任意不可信文字都判断正确。
+<p>继续阅读 <a href="../source/tests/test_fresh_read.py.html">test_fresh_read.py</a>、<a href="../source/tests/test_safety.py.html">test_safety.py</a>、<a href="../source/tests/test_workspace_execution.py.html">test_workspace_execution.py</a>、<a href="../source/tests/test_sandbox_paths.py.html">test_sandbox_paths.py</a>、<a href="../source/tests/test_command_tests.py.html">test_command_tests.py</a>（暴露条件与权限位恢复）和 <a href="../source/tests/test_services.py.html">test_services.py</a>，可以看到各层边界分别如何被验证。
 下一章把这里产生的动作、结果和文件变化串成一条可复盘的运行记录。</p>
-<nav class="chapter-nav"><a href="03-tool-system.html">← 03 · 工具系统：先知道有什么，再拿到调用说明</a><a href="05-state-and-evidence.html">05｜状态、历史和证据分别放在哪里 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么一句只在项目里操作不够">为什么一句“只在项目里操作”不够</a><a href="#第一层把授权变成可执行规则">第一层：把授权变成可执行规则</a><a href="#第二层文件路径也必须过边界">第二层：文件路径也必须过边界</a><a href="#第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</a><a href="#第四层在副本执行检查后写回">第四层：在副本执行，检查后写回</a><a href="#依赖与进程边界">依赖与进程边界</a><a href="#离线实验批准了也不能根据过期读取修改">离线实验：批准了，也不能根据过期读取修改</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="03-tool-system.html">← 03 · 工具系统：先知道有什么，再拿到调用说明</a><a href="05-state-and-evidence.html">05｜状态、历史和证据分别放在哪里 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#为什么一句只在项目里操作不够">为什么一句“只在项目里操作”不够</a><a href="#第一层把授权变成可执行规则">第一层：把授权变成可执行规则</a><a href="#第二层文件路径也必须过边界">第二层：文件路径也必须过边界</a><a href="#第三层读取过不代表现在还新鲜">第三层：读取过，不代表现在还新鲜</a><a href="#第四层在副本执行校验后发布">第四层：在副本执行，校验后发布</a><a href="#为什么保留副本执行">为什么保留副本执行</a><a href="#只读暴露原工作区并守住权限位">只读暴露原工作区，并守住权限位</a><a href="#绝对路径写入失败时的说明">绝对路径写入失败时的说明</a><a href="#常驻服务直接使用工作区">常驻服务直接使用工作区</a><a href="#landlock-与-seccomp-到底限制了什么">Landlock 与 seccomp 到底限制了什么</a><a href="#依赖与进程边界">依赖与进程边界</a><a href="#离线实验读取证据如何随编辑更新">离线实验：读取证据如何随编辑更新</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

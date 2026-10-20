@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 工具系统：先知道有什么，再拿到调用说明 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="03-tool-system" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="current" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 03</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="03-工具系统先知道有什么再拿到调用说明">03 · 工具系统：先知道有什么，再拿到调用说明</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>03 · 工具系统：先知道有什么，再拿到调用说明 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="03-tool-system" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="current" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 03</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="03-工具系统先知道有什么再拿到调用说明">03 · 工具系统：先知道有什么，再拿到调用说明</h1>
 <blockquote>
 <p>一句话：模型负责提出动作，Harness 负责把动作变成有边界、可检查的执行结果。</p>
 </blockquote>
@@ -8,7 +8,7 @@
 如果每轮都发送所有工具的 JSON Schema，模型要为当前用不到的能力付出上下文成本。
 反过来，只在提示词里写“你可以管理待办”，却没有参数契约和执行入口，模型也无法真正使用它。</p>
 <p>Aster 将这个问题分成三件事：<strong>系统实现了什么、当前配置允许什么、这一轮向模型展示什么</strong>。
-三个集合有联系，但不能合成一个列表。</p>
+这三个集合分别由注册表、配置和按需加载状态决定。</p>
 <figure class="diagram" data-edge-count="11"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">SCHEMAS：已实现的工具</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span></li><li class="diagram-edge"><span class="diagram-node" data-node="B">按配置与运行状态过滤可用能力</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">tool_load 的可选名称目录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">本轮发给模型的完整参数定义</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">tool_load 的可选名称目录</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">模型调用 tool_load</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">模型调用 tool_load</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="G">state.loaded_tools 更新</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">state.loaded_tools 更新</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">core 核心集 + 本次已加载工具</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">本轮发给模型的完整参数定义</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">模型提出 ToolCall</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">模型提出 ToolCall</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">Runtime 校验与权限检查</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">Runtime 校验与权限检查</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="J">ToolRegistry 分发</span></li><li class="diagram-edge"><span class="diagram-node" data-node="J">ToolRegistry 分发</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="K">Outcome + 执行记录</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> SCHEMAS：已实现的工具</span><span class="diagram-key"><code>B</code> 按配置与运行状态过滤可用能力</span><span class="diagram-key"><code>C</code> core 核心集 + 本次已加载工具</span><span class="diagram-key"><code>D</code> tool_load 的可选名称目录</span><span class="diagram-key"><code>E</code> 本轮发给模型的完整参数定义</span><span class="diagram-key"><code>F</code> 模型调用 tool_load</span><span class="diagram-key"><code>G</code> state.loaded_tools 更新</span><span class="diagram-key"><code>H</code> 模型提出 ToolCall</span><span class="diagram-key"><code>I</code> Runtime 校验与权限检查</span><span class="diagram-key"><code>J</code> ToolRegistry 分发</span><span class="diagram-key"><code>K</code> Outcome + 执行记录</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
     A[SCHEMAS：已实现的工具] --&gt; B[按配置与运行状态过滤可用能力]
     B --&gt; C[core 核心集 + 本次已加载工具]
@@ -34,9 +34,9 @@
 <p><code>path</code> 是工作区内的文件路径；<code>start</code>、<code>end</code> 是从 1 开始、两端都包含的行号。
 <code>ge=1</code> 表示必须大于等于 1；未传的参数由默认值补齐。
 额外的校验器拒绝倒置的范围，以及 <code>end - start &gt; 2000</code> 的读取范围。
-这不是一句给模型的建议：即使模型生成错误参数，Pydantic 也会在执行前拒绝。</p>
+Pydantic 在执行前校验这些约束。</p>
 <p><code>SCHEMAS</code> 中每个条目包含参数类型、用途描述和副作用类别。例如：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="s2">"read_file"</span><span class="p">:</span> <span class="p">(</span><span class="n">ReadFile</span><span class="p">,</span> <span class="s2">"Read a UTF-8 file with a bounded line range."</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">)</span>
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="s2">"read_file"</span><span class="p">:</span> <span class="p">(</span><span class="n">ReadFile</span><span class="p">,</span> <span class="s2">"Read a UTF-8 file line range; prefer one wide read (150-400 lines) to adjacent narrow ones."</span><span class="p">,</span> <span class="s2">"read"</span><span class="p">)</span>
 </pre></div>
 </div>
 <table>
@@ -61,7 +61,7 @@
 <tr>
 <td><code>effect</code></td>
 <td>是读取、写入、进程执行还是内部状态操作？</td>
-<td>权限策略的输入</td>
+<td>权限策略的输入；批次预检也靠它认出只读调用</td>
 </tr>
 <tr>
 <td><code>ToolCall.call_id</code></td>
@@ -81,7 +81,7 @@
 <tr>
 <td><code>Outcome.content</code></td>
 <td>模型实际看见什么？</td>
-<td>写入工具结果与后续上下文</td>
+<td>写入工具结果与后续上下文；发给模型前由 <a href="../source/src/aster/context/view.py.html">view.py</a> 渲染成纯文本</td>
 </tr>
 <tr>
 <td><code>Outcome.data</code></td>
@@ -91,45 +91,125 @@
 </tbody>
 </table>
 <p><code>Record</code> 在 <a href="../source/src/aster/schema.py.html">schema.py</a> 中禁止未知字段。
-工具实现因而不必到处写 <code>args.get(&quot;path&quot;)</code>，也不会悄悄吞掉模型拼错的参数名。</p>
-<p><code>run_shell</code> 依据实际退出状态报告结果。组合命令应通过 <code>&amp;&amp;</code> 或显式传递退出码保留关键步骤的失败，不能让最后成功的清理命令掩盖前面的错误。<code>run_tests</code> 则要求有效的结构化测试结果；它不会自动判断测试是否覆盖完整需求，测试仍应调用真实实现或公开入口。</p>
-<p>写入工具的参数也按整批边界验证。例如 <code>patch_file</code> 的 <code>edits</code> 是一组不重叠、各自唯一匹配的 <code>{old_text, new_text}</code>；任一项缺失、不唯一或重叠时整批拒绝，不会先应用前几项。还要区分两种“整批”：<code>patch_file</code> 是同一文件内的原子参数/匹配校验；模型同轮返回多个工具调用时，Runtime 会先对整个调用批次做 schema 预检，只要一个调用参数无效，整个批次都不执行。先读后改和成功后的新鲜证据因此仍是调用者责任。</p>
-<p>启用 <code>reuse_environment</code> 后，正式 Python 测试使用可信测试运行器，并自动加入受控 <code>.venv</code> 的依赖路径；直接调用 <code>python -m unittest</code> 或 <code>python -m pytest</code>，不要增加 <code>.venv/bin/</code>；也支持只含工作区相对目录的 <code>PYTHONPATH=.</code> 前缀，也不要在正式验证前删除依赖。失败的可写 Shell 若丢弃了复用环境，结果会带 <code>environment_discarded=true</code> 和重装提示。Shell 中自测成功不会更新正式验证状态，完成反馈会明确要求调用 <code>run_tests</code>。</p>
-<p>项目原生 Python 入口也可通过 <code>run_tests</code> 执行，例如 <code>python tests/runtests.py ...</code> 和 <code>python bin/test ...</code>。运行器在隔离副本内捕获 unittest、pytest 或 SymPy 的真实框架结果，生成统一测试证据；只有退出码或打印“passed”的脚本不能通过正式验证。SymPy 的额外测试子进程会关闭，以在当前隔离进程收集 reporter 结果，不关闭 Aster 沙箱。零测试、全部跳过、失败、运行器错误仍不能证明通过。</p>
-<p>测试结果中的用例身份供完成检查使用：先前失败的用例不会因后续局部测试通过而消失。完整结构化结果写入 trace，不会把几千条通过用例重复发送给模型；请求末尾只展示尚待解决的失败摘要。记录和清除规则见<a href="08-hooks-and-completion.html">完成检查</a>。</p>
-<p>对于没有现成测试的小改动，可以把临时 Python 测试放进同一次 <code>run_tests.code</code>，省去先创建临时文件、再请求模型调用测试的往返。例如，<code>command=&quot;pytest -q&quot;</code> 配合 <code>code=&quot;from calculator import add\ndef test_add(): assert add(2, 3) == 5\n&quot;</code>。源码写入隔离副本，实际导入项目实现，完成后不留下测试文件；也支持 <code>python -m unittest</code> 的 <code>TestCase</code>，不支持和 <code>discover</code> 混用。需要长期维护的回归测试仍应写进项目。<code>.tmp</code> 不会带入下一次沙箱调用，不能先写在那里再指望 <code>run_tests</code> 读到。实现及通过、失败、伪造输出和只读边界见 <a href="../source/tests/test_inline_verification.py.html">test_inline_verification.py</a>。</p>
-<h2 id="两种分类不要交叉理解">两种分类，不要交叉理解</h2>
-<p><code>CORE_TOOLS</code> 是<strong>展示策略</strong>：默认包含文件列表、读取、搜索、写入、补丁、命令、测试、差异和 <code>tool_load</code>，最多 9 项。
-“最多”是因为没有批准入口、处于只读模式等情况还会隐藏其中部分工具。
+工具实现因而不必到处写 <code>args.get(&quot;path&quot;)</code>，也不会悄悄吞掉模型拼错的参数名。只有两个只读工具故意放宽这条规则，见后文。</p>
+<p>模型收到的不是 Pydantic 原样生成的 JSON Schema，而是 <code>compact_schema()</code> 整理后的版本：去掉 <code>title</code>，内联 <code>$defs</code>，把可选字段的 <code>anyOf [..., null]</code> 折成普通类型，去掉模型碰不到的边界（如 <code>minLength: 1</code>）。参数仍由 Pydantic 校验，核心工具定义因此从 1,975 降到 1,638 个 token（<a href="../source/docs/harness-v15.md">harness-v15.md 第 3 节（Markdown 原文下载）</a>）。
+GPT 上这部分几乎总命中缓存，省钱很少；价值在开源模型，它们的聊天模板会把这段 JSON 原样贴进每个提示，32k 窗口里每个 token 都占地方。<code>definitions()</code> 还会按配置改写：<code>tool_load</code> 的枚举只列尚未加载的可用名称。</p>
+<p><code>run_shell</code> 依据实际退出状态报告结果。组合命令应通过 <code>&amp;&amp;</code> 或显式传递退出码保留关键步骤的失败，不能让最后成功的清理命令掩盖前面的错误。</p>
+<p>写入工具的参数也按整批边界验证。例如 <code>patch_file</code> 的 <code>edits</code> 是一组不重叠、各自唯一匹配的 <code>{old_text, new_text}</code>；任一项缺失、不唯一或重叠时整批拒绝，不会先应用前几项。
+模型同一轮返回的多个调用是另一种“整批”，<a href="../source/src/aster/core/runtime.py.html"><code>Runtime._execute_batch</code></a> 先预检所有参数。当时（2026-10-17 之前）一个调用参数无效，整批都不执行；后来（<code>98f0cfb</code>）改为：其余有效调用<strong>全是只读</strong>（<code>SCHEMAS</code> 里 effect 为 <code>read</code>）时照常执行，只给错误的那个返回 <code>invalid_arguments</code>；只要有一个会写文件、执行进程或改变内部状态，整批仍不执行，其余调用得到 <code>batch_validation_failed</code>。
+只读调用被跳过没有保护作用，只会让模型白丢一轮（sphinx-9230 一次 12 个调用的探索批次就这样作废，<a href="../source/docs/harness-v12.md">harness-v12.md 第 3 节（Markdown 原文下载）</a>）；带副作用的调用常相互依赖，“部分执行”会让模型难以判断哪些已经发生。先读后改和成功后的新鲜证据因此仍是调用者责任。</p>
+<h2 id="展示策略与执行职责">展示策略与执行职责</h2>
+<p><code>CORE_TOOLS</code> 是<strong>展示策略</strong>：默认包含 <code>list_files</code>、<code>read_file</code>、<code>search</code>、<code>write_file</code>、<code>patch_file</code>、<code>run_shell</code>、<code>run_tests</code>、<code>git_diff</code> 和 <code>tool_load</code>，最多 9 项。
+“最多”是因为没有批准入口、处于只读模式等情况还会隐藏其中部分工具。其余能力（待办与计划、记忆、技能、归档回读、图片、常驻服务、Worker 等）通过 <code>tool_load</code> 按需加入。
 <code>tool_profile=&quot;all&quot;</code> 会展示全部<strong>当前可用</strong>工具，并不会把关闭的能力重新打开。</p>
 <p><code>WorkspaceTools</code> 与 <code>WorkflowTools</code> 是<strong>执行职责</strong>：前者操作仓库文件或进程，后者操作当前任务的状态和协作能力。
-例如，<code>todo_add</code> 要改的是 <code>RunState.todos</code>；<code>git_diff</code> 需要本次任务的初始快照，也走工作流分发。
-所以“核心工具”不等于“工作区工具”，两套划分解决不同问题。</p>
-<p><code>ToolRegistry.execute()</code> 的完整分发逻辑很短：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">call</span><span class="p">:</span> <span class="n">ToolCall</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Outcome</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">WORKFLOW_TOOLS</span><span class="p">:</span>
-        <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workflow</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
-    <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">workspace</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">call</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>工具可用性统一由 <a href="../source/src/aster/tools/availability.py.html">tools/availability.py</a> 判断，供工具展示、<code>tool_load</code> 和直接执行预检共用；执行时仍要另过具体参数的权限与审批检查。</p>
-<p>真正的外部入口是 <a href="../source/src/aster/core/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
+例如，<code>todo_add</code> 要改的是 <code>RunState.todos</code>；<code>git_diff</code> 需要本次任务的初始快照，也走工作流分发；<code>service_start</code> 要启动进程，属于前者。
+所以“核心工具”不等于“工作区工具”，两套划分解决不同问题。
+<code>ToolRegistry.execute()</code> 的分发逻辑仍然很短：复用 Runtime 已预检过的参数（否则现场校验），再按名字交给 <code>WorkflowTools</code> 或 <code>WorkspaceTools</code>；外部 MCP 工具另走一条分支，见 <a href="../source/docs/mcp.md">mcp.md（Markdown 原文下载）</a>。</p>
+<p>工具可用性统一由 <a href="../source/src/aster/tools/availability.py.html">tools/availability.py</a> 判断，供工具展示、<code>tool_load</code> 和直接执行预检共用；执行时仍要另过具体参数的权限与审批检查。
+真正的外部入口是 <a href="../source/src/aster/core/runtime.py.html">Runtime.step()</a>。它还要完成可用性、参数、权限、Hooks、证据记录和状态更新。
 业务集成应调用 <code>Runtime.step()</code>；直接实例化某个工具处理器会绕开这一层治理。</p>
 <h2 id="按需加载到底加载了什么">按需加载到底加载了什么</h2>
 <p>模型起初能看到 <code>tool_load</code> 的参数，其中 <code>names</code> 的枚举列出了当前可加载的名称。
 调用 <code>tool_load(names=[&quot;todo_add&quot;])</code> 后，Aster 把名称写入 <code>state.loaded_tools</code>；<strong>下一次模型请求</strong>的 <code>tools</code> 列表才包含 <code>todo_add</code> 的完整说明。
-没有下载插件，没有动态导入 Python，也没有额外创建一个 Agent。</p>
-<p>这与 learn-workbuddy 的“先发现，再加载，再执行”共享思路，但 Aster 选择下一轮直接调用具体工具。
-它没有另设一个接收任意参数的通用延迟执行工具。</p>
-<p>注意一个实现边界：<code>loaded_tools</code> 管理模型可见性，<strong>不充当授权凭证</strong>。
+这里的“加载”是把已有工具的定义加入后续请求。</p>
+<p>这与 learn-workbuddy 的“先发现，再加载，再执行”共享思路；Aster 在下一轮直接调用具体工具。</p>
+<p><code>loaded_tools</code> 管理模型可见性，授权由运行时配置和权限策略决定。
 Python 调用者通过 <code>Runtime.step()</code> 提交一个已注册、当前可用但未加载的工具时，Runtime 仍会正常校验执行。
 配置关闭的能力则无论是否加载、是否使用 <code>all</code>、是否直接调用，都要被拒绝。</p>
+<h2 id="工具结果要回答模型的下一个问题">工具结果要回答模型的下一个问题</h2>
+<p>模型读完结果通常还要问一个问题，结果里没有答案，它就多花一个回合。2026-10-16 至 10-19 的一组改动让结果直接带上答案；起因是 fresh30 轨迹中 v13 每次运行（30 题）约有 14.5 个回合因工具调用被拦截而整轮作废，主要是 <code>patch_nonunique</code> 和 <code>search</code> 参数无效（<a href="../source/docs/v14-and-agent-rl-plan.md">v14 方案 A.1（Markdown 原文下载）</a>）。</p>
+<table>
+<thead>
+<tr>
+<th>模型接着会问</th>
+<th>工具现在怎么回答</th>
+<th>在哪里</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>我改的那几行现在什么样？</td>
+<td><code>patch_file</code> 成功后回显改动行（前后各 2 行，最多 80 行）</td>
+<td><code>edit_preview</code></td>
+</tr>
+<tr>
+<td>为什么没匹配上？</td>
+<td>找不到 <code>old_text</code> 时给出最接近的当前行；匹配多处时列出每处起始行</td>
+<td><code>closest_lines</code></td>
+</tr>
+<tr>
+<td>只是空白不同，也要重发吗？</td>
+<td>整行只差空白且唯一匹配时直接应用，并注明 <code>matched ignoring whitespace differences</code></td>
+<td><code>tolerant_span</code></td>
+</tr>
+<tr>
+<td>命中行周围是什么？</td>
+<td><code>search</code> 的 <code>context</code>（上限 10）；每个文件一个标题，<code>12:</code> 命中行、<code>11-</code> 上下文，重叠部分只显示一次，<code>--</code> 表示间隔</td>
+<td><code>grouped_matches</code></td>
+</tr>
+<tr>
+<td>想看第 N 行附近</td>
+<td><code>read_file</code> 接受单个 <code>line</code>，读 <code>line-20</code> 到 <code>line+60</code>；超过 24,000 个字符时提示从哪一行继续</td>
+<td><code>ReadFile.lenient</code></td>
+</tr>
+<tr>
+<td>测试通过了，我改了什么？</td>
+<td>通过的验证结果末尾附上本次改动：不超过 80 行给完整 diff，否则给每个文件的 +/- 行数</td>
+<td><code>Runtime._change_summary</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>宽容只给只读工具。</strong> <code>Search.lenient</code> 与 <code>ReadFile.lenient</code> 在字段校验之前修正常见的小失误：<code>search</code> 把值粘进字段名（<code>&quot;regex=false,&quot;: ...</code>）、<code>context</code> 超限（截到 10）；<code>read_file</code> 的单个 <code>line</code>；两者都丢弃未知字段。读错一次只多花一个回合；写入工具若也去猜参数，猜错就会改错地方，所以仍然严格拒绝。<code>patch_file</code> 唯一的宽容是 <code>tolerant_span</code>，沿用 Codex <code>apply_patch</code> 中 <code>seek_sequence</code> 的回退顺序（精确、忽略行尾空白、忽略行首行尾空白），多处匹配一律拒绝。
+工具描述建议对多个文件“并行调用”，指模型在同一轮里发出多个编辑调用，Runtime 仍按顺序执行写入；只有全是 <code>read_file</code>、<code>search</code>、<code>list_files</code> 的批次才可能并发（<code>read_parallelism</code>，默认 1）。</p>
+<p><strong>模型看到的是渲染后的文本。</strong> 历史里仍保存完整的 JSON 记录，审计、恢复和上下文预算读它；组装请求时，<code>render_output</code> 把它渲染成纯文本：出错时一行 <code>[error: tests_failed]</code> 式的状态行，然后是原文，空结果写成 <code>[no matches]</code> 而不是看似“完成”的空白。原来整条记录原样发出，每条结果平均多出约 111 个 token（pi 是 2 个）（<a href="../source/docs/harness-v15.md">harness-v15.md 第 1 节（Markdown 原文下载）</a>）。</p>
+<p>这些反馈设计来自轨迹审查。真实任务中的请求数和成本按题比较，方法见<a href="14-evaluation.html">第 14 章</a>。</p>
+<h2 id="哪些调用算正式验证">哪些调用算正式验证</h2>
+<p><code>run_tests</code> 和 <code>run_shell</code> 中识别出的测试命令共用 <a href="../source/src/aster/tools/testing.py.html">testing.py</a>，结果绑定当前工作区摘要。</p>
+<table>
+<thead>
+<tr>
+<th>命令类型</th>
+<th>示例</th>
+<th>证据如何使用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有逐用例报告的框架</td>
+<td>pytest、unittest、Jest、go test</td>
+<td>保存每个用例的身份与结果；失败由同一用例重新通过来消除</td>
+</tr>
+<tr>
+<td>按命令聚合的框架报告</td>
+<td>Node <code>--test</code>、SymPy 原生报告</td>
+<td>失败按命令保留，重跑原命令确认</td>
+</tr>
+<tr>
+<td>项目构建加测试命令</td>
+<td><code>make test</code>、<code>cmake --build build &amp;&amp; ctest</code>、<code>cargo test</code></td>
+<td>退出码决定本次验证状态</td>
+</tr>
+<tr>
+<td>内联断言脚本</td>
+<td><code>run_tests.code</code>、<code>python -c '…assert…'</code>、Python heredoc</td>
+<td>作为一个测试运行，结果决定本次验证状态</td>
+</tr>
+</tbody>
+</table>
+<p>2026-10-18（<code>1fec769</code>）之前，Shell 自测不更新正式验证，模型需要换入口重跑；现在两个入口共享证据路径。<code>_shell_tests</code> 会剥离末尾仅用于显示的 <code>2&gt;&amp;1</code>、<code>| tail -N</code>、<code>| head -N</code>，再运行实际测试命令。</p>
+<p>项目命令仅接受以 <code>&amp;&amp;</code> 串联的普通命令，其中至少一步运行测试。<code>lint</code> 等检查可参与构建链，但单独运行只检查代码风格。含 <code>||</code>、任意管道或 <code>;</code> 的命令留在普通 Shell 路径，因为最终退出码可能来自别的动作。</p>
+<p>小改动可通过 <code>run_tests.code</code> 在临时副本中加入测试；含顶层 <code>assert</code> 的脚本会包装为一个用例。退出码与脚本共用编号无法标识具体失败用例，因此只影响当前验证状态；真实用例失败的保留、既有失败的复跑与最终交付检查统一见<a href="08-hooks-and-completion.html">第 08 章</a>。</p>
+<h2 id="需要常驻的进程service_start">需要常驻的进程：service_start</h2>
+<p><code>run_shell</code> 的每条命令返回时，运行器都会结束它的整个进程组，后台进程活不到下一次工具调用。old20 里的 kv-store-grpc 要求交付后服务仍在运行，v12 的 4 次运行全部失败；v13 加入 <code>service_start</code> 后，两次 old20 运行都通过了（开发集上的现象，不是留出结论；<a href="../source/docs/harness-v13.md">harness-v13.md 第 2.1 节（Markdown 原文下载）</a>）。</p>
+<p><code>service_start</code>、<code>service_status</code>、<code>service_stop</code> 是三个按需加载的工具，不在核心集里。<code>service_start(name, command, keep_running=False)</code> 用同一个 Landlock/seccomp 启动器，在独立会话中启动命令，等待 2 秒，报告进程是否还活着以及日志末尾；<code>service_stop</code> 先发 SIGTERM，必要时再发 SIGKILL。它在哪里运行、需要什么条件、任务结束时怎么处理，属于权限与沙箱的问题，见<a href="04-permissions-sandbox.html">下一章</a>。</p>
 <h2 id="离线实验观察工具列表如何变化">离线实验：观察工具列表如何变化</h2>
 <p>从项目根目录运行，先执行 <code>conda activate aster</code>。
 把下面完整 Python 代码保存到 <code>/tmp/aster_lesson03.py</code>，再运行 <code>python /tmp/aster_lesson03.py</code>。
 它直接驱动真实 Runtime，不调用模型；所有运行文件保存在自动清理的临时目录。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
@@ -152,6 +232,10 @@ Python 调用者通过 <code>Runtime.step()</code> 提交一个已注册、当�
         <span class="n">before</span> <span class="o">=</span> <span class="n">names</span><span class="p">(</span><span class="n">runtime</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"初始完整工具数:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">before</span><span class="p">))</span>
         <span class="k">assert</span> <span class="s2">"todo_add"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">before</span>
+
+        <span class="n">read_file</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">runtime</span><span class="o">.</span><span class="n">tool_definitions</span><span class="p">()</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">"name"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"read_file"</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="s2">"title"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">read_file</span><span class="p">[</span><span class="s2">"parameters"</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"read_file 的参数:"</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">read_file</span><span class="p">[</span><span class="s2">"parameters"</span><span class="p">][</span><span class="s2">"properties"</span><span class="p">]))</span>
 
         <span class="n">loaded</span> <span class="o">=</span> <span class="k">await</span> <span class="n">runtime</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
             <span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"todo_add"</span><span class="p">]})</span>
@@ -186,6 +270,7 @@ Python 调用者通过 <code>Runtime.step()</code> 提交一个已注册、当�
 </div>
 <p>预期输出：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>初始完整工具数: 9
+read_file 的参数: ['end', 'path', 'start']
 加载结果: success
 新增工具: ['todo_add']
 待办状态: pending
@@ -194,13 +279,15 @@ all 暴露 memory_store: False
 错误行号: invalid_arguments
 </pre></div>
 </div>
-<p>这里的 9 只是本实验配置下的数量，不是每个运行都固定 9 个工具。
-实验中给了 <code>approval=&quot;auto&quot;</code>，因此允许展示写文件、运行命令等核心能力；实验本身只操作临时状态。</p>
+<p>这里的 9 只是本实验配置下的数量，不是每个运行都固定 9 个工具；实验中给了 <code>approval=&quot;auto&quot;</code>，因此允许展示写文件、运行命令等核心能力。
+<code>read_file</code> 的定义里没有 <code>title</code>，也没有 <code>line</code>：<code>line</code> 是运行时宽容接受的，见下一个实验。</p>
 <h2 id="练习与核对">练习与核对</h2>
 <ol>
 <li>把 <code>memory_enabled=False</code> 改成 <code>True</code>，<code>all</code> 下会发生什么？</li>
 <li>如果一次 <code>tool_load</code> 同时申请 <code>todo_add</code> 和已关闭的 <code>memory_store</code>，是否应该只加载前者？</li>
 <li><code>read_file</code> 和 <code>todo_list</code> 都是“读取”，为什么不放进同一个执行器？</li>
+<li>为什么 <code>run_shell(&quot;pytest -q 2&gt;&amp;1 | tail -5&quot;)</code> 会成为正式验证，<code>run_shell(&quot;pytest -q | tee out.txt&quot;)</code> 却不会？</li>
+<li>一个批次包含 <code>[read_file（合法）, todo_add（合法）, search（缺少 pattern）]</code>，会发生什么？</li>
 </ol>
 <details>
 <summary>参考答案</summary>
@@ -208,11 +295,10 @@ all 暴露 memory_store: False
 <li><code>all</code> 会展示当前可用的记忆工具；实验中关于“关闭能力”的断言需要相应修改。</li>
 <li>当前实现拒绝整次加载请求，返回 <code>tool_unavailable</code>，不留下半成功的 <code>loaded_tools</code> 更新。</li>
 <li>副作用类型都是 <code>read</code>，但依赖不同。前者依赖仓库，后者依赖计划与待办状态；权限类别不等于模块职责。</li>
+<li><code>2&gt;&amp;1</code> 和 <code>| tail -N</code> 只改变显示，去掉后运行的是裸命令。<code>| tee</code> 不在可去掉的范围内：管道让退出码变成 <code>tee</code> 的，Aster 不去猜，于是它只是一条普通 Shell 命令。</li>
+<li>整批都不执行。<code>todo_add</code> 的 effect 是 <code>state</code>，不满足“其余调用全是只读”，所以另两个调用得到 <code>batch_validation_failed</code> 和 <code>invalid_arguments</code>。</li>
 </ol>
 </details>
-<h2 id="到这一章为止我们证明了什么">到这一章为止，我们证明了什么</h2>
-<p>我们证明了定义、展示和执行各有可检查的路径，以及配置关闭的能力不会被 <code>all</code> 重新暴露。
-工具按需加载是否节省真实模型费用，还取决于目录大小、调用次数和 provider 的计费方式；本实验没有测量这项收益。
-更完整的回归入口是 <a href="../source/tests/test_tool_contracts.py.html">test_tool_contracts.py</a>，其中也覆盖恢复后的工具列表和计划模式。</p>
+<p>工具列表的变化可以在一个离线实验里看清；结果预览、批次预检和测试识别可继续读 <a href="../source/tests/test_tool_feedback.py.html">test_tool_feedback.py</a>、<a href="../source/tests/test_command_tests.py.html">test_command_tests.py</a> 与 <a href="../source/tests/test_tool_contracts.py.html">test_tool_contracts.py</a>。</p>
 <p>下一章把“可以提出调用”进一步变成“允许执行，而且只能影响允许的范围”。</p>
-<nav class="chapter-nav"><a href="02-model-protocols.html">← 02｜把不同模型接到同一个循环</a><a href="04-permissions-sandbox.html">04 · 权限与沙箱：批准动作以后，还要限制它的影响 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从一个具体问题开始">从一个具体问题开始</a><a href="#先认识一份工具契约">先认识一份工具契约</a><a href="#两种分类不要交叉理解">两种分类，不要交叉理解</a><a href="#按需加载到底加载了什么">按需加载到底加载了什么</a><a href="#离线实验观察工具列表如何变化">离线实验：观察工具列表如何变化</a><a href="#练习与核对">练习与核对</a><a href="#到这一章为止我们证明了什么">到这一章为止，我们证明了什么</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="02-model-protocols.html">← 02｜把不同模型接到同一个循环</a><a href="04-permissions-sandbox.html">04 · 权限与沙箱：批准动作以后，还要限制它的影响 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#从一个具体问题开始">从一个具体问题开始</a><a href="#先认识一份工具契约">先认识一份工具契约</a><a href="#展示策略与执行职责">展示策略与执行职责</a><a href="#按需加载到底加载了什么">按需加载到底加载了什么</a><a href="#工具结果要回答模型的下一个问题">工具结果要回答模型的下一个问题</a><a href="#哪些调用算正式验证">哪些调用算正式验证</a><a href="#需要常驻的进程service_start">需要常驻的进程：service_start</a><a href="#离线实验观察工具列表如何变化">离线实验：观察工具列表如何变化</a><a href="#练习与核对">练习与核对</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

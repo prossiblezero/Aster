@@ -1,7 +1,7 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aster 的设计与演进 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="project-story" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="current" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 导读</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="aster-的设计与演进">Aster 的设计与演进</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aster 的设计与演进 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="project-story" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="current" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 导读</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="aster-的设计与演进">Aster 的设计与演进</h1>
 <p>Aster 是一个用 Python 编写的本地 Coding Agent。给它一项代码任务，它需要自己查资料、读文件、修改实现、运行测试，再把结果交给用户。这个项目关心的是：怎样把模型的工具调用能力，组织成一套可以持续工作、可以恢复、可以检查的运行系统。</p>
 <p>这篇文章把项目的设计和实验按问题串起来。先理解最小循环为什么不够，再看上下文、会话、子 Agent 和记忆怎样逐步加入，以及真实评测怎样反过来改变设计。读完后，再进入 <a href="../index.html">00–15 章源码教程</a>，会更容易理解每个模块为什么存在。</p>
-<p>记录范围为 <strong>2026 年 9 月 11 日至 10 月 11 日</strong>。日期表示相关阶段和实验发生的时间；不同实验的模型预算、题目和评分方式并不相同。文中的数字各自链接到原始报告，不能沿着时间线直接拼成一条能力增长曲线。</p>
+<p>记录范围为 <strong>2026 年 9 月 11 日至 10 月 20 日</strong>。各阶段围绕不同问题设计实验，文中随结果说明题目、预算和评分口径，并链接原始报告。</p>
 <h2 id="一为什么要做一个-coding-agent-harness">一、为什么要做一个 Coding Agent Harness</h2>
 <p>假设用户提出这样的需求：</p>
 <blockquote>
@@ -164,8 +164,8 @@
 <li><strong>机制分析</strong>回看轨迹，确认新增的机制是否触发、交付是否被使用。</li>
 </ul>
 <p>固定动作回放可以全部通过，真实模型仍可能选错工具；真实模型成绩上升，新增机制也可能一次都没用到。后面的子 Agent 实验就出现过第二种情况。</p>
-<p>实验协议、候选源码身份、任务和判分规则尽量在运行前固定。题目用过之后仍可用于开发回归，但它们已经参与设计，不能再叫未见测试集。旧失败、服务故障和额外补测也需要保留身份，不能挑各轮最好的答案拼分。</p>
-<p>早期 <code>artifacts</code> 中还有旧指标口径的记录。<a href="../source/artifacts/README.md">工件说明（Markdown 原文下载）</a>明确保留了早期 token 重复相加、任务重复等问题。因此学习项目时应沿着修订后的报告读，不能只找历史上最漂亮的百分比。</p>
+<p>实验前固定协议、候选源码、任务和判分规则；分析过轨迹的题目转为开发集。旧失败、服务故障和补测分别保留，读者可以追溯每份成绩来自哪次尝试。</p>
+<p>早期 <code>artifacts</code> 中还有旧指标口径的记录。<a href="../source/artifacts/README.md">工件说明（Markdown 原文下载）</a>列出了 token 重复相加、任务重复等问题；阅读时以修订后的报告为准。</p>
 <p>继续读：<a href="14-evaluation.html">14 评测与审计</a>、<a href="../source/docs/grader-boundary.md">评分器边界（Markdown 原文下载）</a>、<a href="../source/evaluations/README.md">评测总索引（Markdown 原文下载）</a>。</p>
 <h2 id="四上下文越来越长应该删掉什么">四、上下文越来越长，应该删掉什么</h2>
 <h3 id="41-只保留最近几轮为什么不够">4.1 只保留最近几轮为什么不够</h3>
@@ -174,26 +174,26 @@
 <p>还有一个更基础的约束：工具历史本身是一种协议。某条结果对应特定调用编号；结果与调用不能随意拆散，一些服务要求的推理元数据也不能被当作普通文本删除。</p>
 <p>因此，Aster 在 9 月 16 日的改造中采用确定性预算管理：先保存可回读的原文，再计算整个请求是否装得下；只有存在压力时，才按规则减少发送给模型的内容。</p>
 <h3 id="42-全局预算成组压缩按需回读">4.2 全局预算、成组压缩、按需回读</h3>
-<p>这里有三个相互配合的选择。</p>
+<p>9 月 16 日的方案有三个相互配合的选择。</p>
 <p><strong>第一，预算针对完整请求。</strong> 系统指令、工具定义、历史消息、动态状态和协议包装都会占空间，同时还要给输出留额度。只数用户正文和文件内容，会低估真实请求。</p>
-<p><strong>第二，压缩保持交互完整。</strong> 优先移出允许删除的旧普通消息，再缩短旧工具结果或移出旧的完整交互组；最近交互和必要协议信息尽量保留。如果仍然放不下，明确停止并说明预算不足。</p>
+<p><strong>第二，压缩保持交互完整。</strong> 当时先移出可删除的旧普通消息，再缩短工具结果或移出完整交互组。10 月的 v10 进一步改为先遮蔽旧观察正文、再移出旧组，并追加状态便笺；当前顺序见 <a href="06-context-budget.html">06 章</a>。两版都保留必要协议关系，必需内容仍放不下时报告预算不足。</p>
 <p><strong>第三，详细结果有归档入口。</strong> 被移出的工具正文可以通过 <code>observation_read</code> 查找和分页读回。较小的完整结果不必额外挂长引用，回读工具也按需加载，避免为“可能需要”增加每轮固定开销。</p>
-<p>可以把它理解成：桌面放当前工作需要的材料，文件柜保存已经收集到的原文。桌面清理之后，文件柜里的东西仍可找回。但文件柜不能补出最初就没采集到的内容，也不能保证模型主动想到去查。</p>
+<p>可以把它理解成：桌面放当前工作需要的材料，文件柜保存已经采集的原文。清理桌面后，模型还可以按线索回读文件柜；实验会继续检查它是否真的这样做了。</p>
 <p>具体规则及其研究取舍见<a href="../source/docs/context-redesign.md">上下文设计（Markdown 原文下载）</a>，当前代码从 <a href="../source/src/aster/context/builder.py.html">ContextBuilder</a> 进入 <a href="../source/src/aster/context/budget.py.html">BudgetCalculator</a>。预算计算先生成候选，成功后再安装压缩结果，避免失败预检破坏原历史。</p>
 <h3 id="43-最有价值的结果包含没有改善的那一组">4.3 最有价值的结果，包含没有改善的那一组</h3>
 <p>上下文实验使用 12 道预置长历史的代码题，每题运行三次。v8 在原来的 <strong>6,144 输入预算</strong>下，完整完成数从 v7 的 <strong>28/36 降到 22/36</strong>。虽然隐藏功能检查有改善，但更多运行在正常收尾前用尽动作额度。</p>
-<p>因此，这一轮不能解释为“换了压缩算法，同样预算下效果更好”。</p>
+<p>同预算下，压缩改造的完整完成数下降，下一步需要检查任务是否仍有足够输入空间。</p>
 <p>随后按预先确定的规则比较 8,192、10,240、12,288 三档输入预算，选择满足门槛的最小档位，再用全新尝试确认。选定 <strong>8,192 输入预算</strong>后，主任务 <strong>36/36 完成</strong>；首次请求长度从平均 <strong>18,434.83</strong> 压到 <strong>7,779.25</strong> 个本地估算 token，平均压缩 <strong>57.8%</strong>。</p>
-<p>这里要同时读出两层信息：全局预算机制可以在这组任务上保留足够材料；给任务足够空间也很重要。后面的 36/36 包含预算选择的影响，不能全归给代码改动。</p>
+<p>这份 36/36 来自压缩机制与预算选择的共同结果：前者组织材料，后者给任务保留足够空间。</p>
 <p>另外，一次性历史证据控制题在新确认批次中 <strong>0/3 完成</strong>，模型没有主动使用归档读取。这说明“原文没有丢”和“模型能利用原文”之间还有距离。</p>
-<p>57.8% 也只描述首次请求的本地长度估计，不是整项任务的总 token 降幅，更不是账单下降。完整的选参、失败与确认过程见<a href="../source/docs/context-results.md">上下文结果（Markdown 原文下载）</a>。其中 8,192 是压力实验档位，日常配置仍按模型窗口与用户设置管理。</p>
+<p>57.8% 对应首次请求的本地长度估计；完整选参、失败与确认过程见<a href="../source/docs/context-results.md">上下文结果（Markdown 原文下载）</a>。8,192 是压力实验档位，日常配置按模型窗口与用户设置管理。</p>
 <p>继续读：<a href="06-context-budget.html">06 上下文预算</a>、<a href="07-context-archives.html">07 归档与回读</a>。</p>
 <h2 id="五工具能执行还要让它适合真实仓库">五、工具能执行，还要让它适合真实仓库</h2>
 <h3 id="51-从允许操作到能正确完成操作">5.1 从“允许操作”到“能正确完成操作”</h3>
 <p>一个只有读文件、写文件、运行命令的 Agent，已经可以完成简单任务。进入真实仓库后，问题会集中到操作细节：补丁匹配到多个位置、测试日志超过返回上限、依赖安装后下一条命令找不到、模型使用了过时的文件内容。</p>
 <p>9 月 18 日的长任务改造逐批处理了这些问题。</p>
 <p>批量补丁会先在同一份原文里定位所有修改，要求位置唯一且互不重叠，再统一应用。这样可以减少工具往返，也避免第一处修改已经发布、第二处才发现无效的半成品状态。</p>
-<p>命令输出增加有界采集、脱敏归档和分页回读。模型先看到可读预览，必要时查询详细日志；超过采集上限的部分明确标记，不能声称所有输出都永久可恢复。</p>
+<p>命令输出增加有界采集、脱敏归档和分页回读。模型先看预览，必要时查询已采集的详细日志；超过采集上限会明确标记。</p>
 <p>对于权限，工具名称本身没有特殊通行证。读取、写入、命令执行和结果发布仍要通过各自的检查。文件在等待用户批准期间可能已被另一进程修改，因此实际执行前还要复核版本。</p>
 <p>这些机制共同服务于一件很具体的事：模型基于刚才读到的内容提出修改时，程序要确认它现在面对的仍是那份内容。</p>
 <h3 id="52-保护边界也会改变模型面对的环境">5.2 保护边界也会改变模型面对的环境</h3>
@@ -211,7 +211,7 @@
 <h2 id="六任务会中断探索也会走弯路">六、任务会中断，探索也会走弯路</h2>
 <h3 id="61-恢复运行需要检查什么">6.1 恢复运行需要检查什么</h3>
 <p>长任务不可能只考虑一直顺利执行的情况。模型请求可能失败，终端可能退出，用户也可能主动取消。</p>
-<p>checkpoint 保存了恢复线索，但保存过不代表现在可以直接继续。恢复前还要检查工作区是否改变，模型协议是否兼容，引用的归档是否存在，以及上次中断时有没有状态不明的动作。</p>
+<p>checkpoint 保存恢复线索。恢复前，Runtime 检查工作区变化、协议兼容性、归档是否存在，以及上次中断时有没有状态不明的动作。</p>
 <p>如果写入动作可能已经执行，盲目重放会产生第二次修改；如果文件已经变化，旧测试通过也不能继续当作当前版本的验收证据。</p>
 <p>因此，Aster 的恢复路径复用正常运行的权限、协议和来源检查。遇到无法确认的状态会明确拒绝，让用户或后续操作处理实际差异。</p>
 <h3 id="62-回到之前逐渐变成一个会话树问题">6.2 “回到之前”逐渐变成一个会话树问题</h3>
@@ -223,11 +223,11 @@
     A --&gt; D[从旧位置尝试方案二]
     C --&gt;|显式带入有来源的摘录| D
 </code></pre></details></figure>
-<p>关键区别在于“显式”。选择旧位置，不能自动看到离开它以后发生的全部对话；如果想复用新探索的结论，需要说明哪些材料被带回来、来自哪里。子会话的恢复后来也沿用这个原则，避免旧父分支看到孩子在未来才得到的信息。</p>
+<p>每个历史位置保留当时可见的内容。复用另一条探索的结论时，显式带回材料及出处；子会话恢复也沿用这个原则，让父子分支的时间线保持一致。</p>
 <p>会话分支并不回滚磁盘文件。对话回到了旧位置，工作区仍可能保留新修改，因此恢复要检查文件差异；如果需要文件也分支，应配合 Git 或独立工作区。</p>
 <h3 id="63-这轮改善的是使用流程">6.3 这轮改善的是使用流程</h3>
 <p>六类固定工作流、每类三个变体的离线对照中，两版都完成 <strong>18/18</strong>，规定路径的操作数从 <strong>69 降到 36</strong>，减少 <strong>47.8%</strong>。减少的是按协议计数的命令、确认、复制等操作，没有测量人的思考时间。</p>
-<p>后续又单独进行了真实编码回归：核心工具集两版均 <strong>5/5</strong> 完整完成，完整工具集两版均 <strong>4/5</strong>。这支持“固定流程更方便，这组编码质量持平”，不需要把导航改造说成模型推理能力提升。</p>
+<p>后续真实编码回归中，核心工具集两版均 <strong>5/5</strong> 完整完成，完整工具集两版均 <strong>4/5</strong>。这轮的收益是固定流程更省操作，编码通过数持平。</p>
 <p>继续读：<a href="../source/evaluations/session-ux-20260920/REPORT.md">会话操作评测（Markdown 原文下载）</a>、<a href="../source/evaluations/session-quality-20260921/REPORT.md">编码质量回归（Markdown 原文下载）</a>、<a href="../source/evaluations/session-branch-scenario-20260921/REPORT.md">回到历史位置的专项（Markdown 原文下载）</a>、<a href="09-checkpoint-resume.html">09 检查点与恢复</a>。</p>
 <h2 id="七为什么中途还要重构代码">七、为什么中途还要重构代码</h2>
 <p>功能增加后，运行时、工具、协议和界面的边界会变得模糊。例如，为估算新配置下的上下文，先临时修改全局状态再改回来；或者同一份工具参数在多个入口被重复解析。</p>
@@ -267,7 +267,7 @@
 </tbody>
 </table>
 <p>一个贯穿这些边界的做法是：<strong>先准备并验证候选，再提交状态变化。</strong> 模型切换预检失败时保留原会话；上下文计算失败时保留原历史；后台记忆生成候选时，也不能直接覆盖前台的新纠正。</p>
-<p>这次重构并没有让全部代码变短。阶段报告中，Python 模块从 <strong>27 增至 51</strong>，源码物理行从 <strong>9,350 增至 9,707</strong>。某些入口文件缩短，是因为职责被拆开，并不代表全部业务消失了。</p>
+<p>阶段报告中，Python 模块从 <strong>27 增至 51</strong>，源码物理行从 <strong>9,350 增至 9,707</strong>。重构增加了模块与少量代码，换来更明确的职责和状态归属。</p>
 <p>重构的价值要落到具体的重复逻辑、修改范围和状态边界上。上述数字属于当时的重构批次，后面会话树和记忆维护继续增加了代码；当前目录结构应看<a href="../source/docs/module-layout.md">模块说明（Markdown 原文下载）</a>。</p>
 <p>过程、兼容性与验证见<a href="../source/docs/src-refactor-results.md">源码重构结果（Markdown 原文下载）</a>。</p>
 <h2 id="八多个-agent-为什么没有自然地变得更好">八、多个 Agent 为什么没有自然地变得更好</h2>
@@ -276,23 +276,23 @@
 <p>Aster 在 9 月下旬连续做了等待、交付和预算方面的修正。早期发现父任务的正式测试要求被沿用到子任务后，只负责调查或局部实现的孩子也可能被完整交付条件挡住。于是区分子任务交付与父任务最终验收，让孩子按自己的职责返回，最终由父方检查整体结果。</p>
 <p>但机制修好，整体收益仍没有自动出现。</p>
 <p>9 月 28 日的 20 道混合代码题对照中，Solo 通过 <strong>14/20</strong>，Worker 通过 <strong>13/20</strong>；全队 token 多 <strong>5.9%</strong>，耗时多 <strong>3.4%</strong>。18 个实际启动的子任务只有 <strong>5 个正常交付</strong>，不少孩子把额度花在调查上，最后没有交付报告。</p>
-<p>报告也保留了有效协作：一次 COBOL 任务里，孩子指出父方验证数据矛盾，反馈被采纳。一个正例可以帮助定位适用方式，却不足以推翻整体结果。</p>
+<p>报告也保留了一次有效协作：COBOL 任务中，孩子指出父方验证数据矛盾，反馈被采纳。这个案例为后续分工设计提供了线索。</p>
 <p>因此，后续改造先处理“能交什么、什么时候交、预算由谁负责”。子任务收到必要的原始需求和局部分工；接近额度时尝试有界交付；父方收到的部分结果明确标记为 partial；全队统一统计消耗，避免每个孩子各自拥有一份看似独立的无限预算。</p>
 <p>相关记录：<a href="../source/evaluations/worker-code-20260928/REPORT.md">Worker 基线（Markdown 原文下载）</a>、<a href="../source/docs/worker-redesign.md">交付与预算改造（Markdown 原文下载）</a>、<a href="../source/evaluations/worker-owned-20260930/REPORT.md">需求归属评测（Markdown 原文下载）</a>。</p>
 <h3 id="82-孩子答对了父方仍可能重复做一遍">8.2 孩子答对了，父方仍可能重复做一遍</h3>
 <p>进入十题源码调查与审查实验后，问题变得更细。</p>
 <p>r2 采用父方加一个孩子的分工，两遍严格通过为 Solo <strong>12/20</strong>、team <strong>16/20</strong>。但父方在子交付前读取的 11,490 个不同源码行中，有 4,673 行与孩子重合；完整用量配对的成本仍然很高。</p>
-<p>这并不是说同一文件绝不能重复读。父方有时需要核对关键结论。真正的问题是，如果父方在孩子尚未交付时，已经独立完成了孩子的整个工作包，团队只是做了两遍调查。</p>
+<p>父方需要核对关键结论；这批轨迹里的重复则发生在孩子尚未交付时，父方已经独立做完同一个工作包，调查成本花了两遍。</p>
 <p>于是后续迭代加入更明确的父方分工、精选来源片段、交付通知、等待方式和工具目录精简。它们分别减少重读、轮询和消息开销。</p>
 <p>r3 的交叠行数确实下降，但质量收益仍有限；r4 的固定分工总体通过数甚至略低于 Solo。到 r5，策略改成按需要自主决定是否委派，20 个 team 回合只有 <strong>3 次实际派工</strong>。严格通过为 <strong>13/20 → 15/20</strong>，19 对完整用量的总 token 增加 <strong>17.3%</strong>，耗时配对中位数减少 <strong>19.0%</strong>。</p>
-<p>这是一种有限的取舍：减少不值得做的协作，让少数分工产生实际交付。但全体行为事实并没有全面改善，六个胜对里还有四个没有派工，因此不能把所有分差都记在多 Agent 头上。</p>
+<p>这轮选择减少派工，让少数分工形成实际交付。六个胜对中四个没有派工，说明分数变化还包含提示与其他行为的影响。</p>
 <p>完整 r0–r6 的失败、修改和采用理由保存在<a href="../source/evaluations/subagent-ten-20261003/ITERATIONS.md">十题迭代记录（Markdown 原文下载）</a>。它比单看最终通过率更能解释设计怎样收敛。</p>
 <h3 id="83-新机制一次没触发应该怎样验证">8.3 新机制一次没触发，应该怎样验证</h3>
 <p>r5 留下了一个很明确的失败：孩子耗尽 token，父方只收到程序生成的部分读取摘要，接管后又花光全队额度，最终没有答案。</p>
 <p>r6 据此增加按剩余 token 提前收尾，让孩子趁还能负担一次请求时生成部分结论。</p>
 <p>第一次完整复测中，team 分数有所变化，但 <strong>20 个 team 回合没有一次实际委派</strong>。新分支根本没执行。因此当时保留 r5，把 r6 候选和负结论一起存档。</p>
 <p>后续才专门设计受控实验：确保发生真实派工，并用已读取证据和预先冻结的压力预算检验交付。44 个回合全部启动孩子，r6 的六个压力回合全部触发提前总结。压力组严格通过从 <strong>0/6 到 4/6</strong>，空答案从 <strong>6 到 1</strong>，token 增加 <strong>10.2%</strong>。</p>
-<p>这次证据支持的是“预算紧张时更容易交出可用结果”。它没有证明速度更快，也没有解决所有子答案错误或父方耗尽问题。采用决定见<a href="../source/evaluations/subagent-budget-controlled-20261004/REPORT.md">受控续测报告（Markdown 原文下载）</a>。</p>
+<p>这轮在预算紧张时提高了可用交付率，代价是更多 token；子答案错误和父方额度耗尽仍在失败记录中。采用决定见<a href="../source/evaluations/subagent-budget-controlled-20261004/REPORT.md">受控续测报告（Markdown 原文下载）</a>。</p>
 <p>这段经历给项目留下一个很实用的评测习惯：新增机制后，先确认真实运行经过了那条路径，再讨论它贡献了多少。</p>
 <p>当前默认 <code>max_workers=0</code>，模型自主委派仍默认关闭；用户可以按需使用显式子 Agent 入口。产品能力与默认策略需要分开理解。继续读：<a href="13-interaction-and-workers.html">13 交互与 Worker</a>、<a href="../source/docs/worker-readiness.md">Worker 使用边界（Markdown 原文下载）</a>。</p>
 <h2 id="九记忆是怎样从文件摘录变成知识的">九、记忆是怎样从文件摘录变成知识的</h2>
@@ -331,13 +331,13 @@
 </tr>
 </tbody>
 </table>
-<p>出处检查能证明材料确实存在，不能自动证明模型归纳正确。所以“有引用”只是准入条件之一，知识质量还需要实际使用与纠正。</p>
+<p>出处检查确认材料真实存在，实际使用与用户纠正继续检验归纳是否准确。</p>
 <h3 id="92-召回使用和正确使用要分开">9.2 召回、使用和正确使用要分开</h3>
 <p>假设某次请求同时召回“金额用 Decimal”和“项目说明用法语”。代码测试通过，并不能说明法语约定被正确应用。</p>
 <p>旧逻辑中曾出现无关召回条目连带获得成功反馈。改造后由测试调用明确说明正在检验哪些已召回记忆，没有声明的条目不跟着计分，环境错误也不作为知识对错的证据。</p>
-<p>这改善了反馈归属，但仍然依赖模型正确判断使用关系。它没有自动完成严格的因果归因。</p>
-<p>十题定向学习对照中，新版复用严格成功从 <strong>4/10 到 7/10</strong>，约束通过从 <strong>17/30 到 25/30</strong>，学习加复用总 token 增加 <strong>1.7%</strong>。学习阶段明确要求记住，所以测到的是定向学习后的复用，不是无人提示时的自动积累能力。</p>
-<p>这一轮还暴露了更直接的问题：模型会说“已经记住”，实际没有写入；金额与用户纠正题仍然失败。学习和复用全流程成功只有 <strong>6/10</strong>，不能只盯着复用阶段的 7/10。</p>
+<p>反馈归属因此更明确；使用关系仍由模型声明，知识收益还需对照实验检验。</p>
+<p>十题定向学习对照中，新版复用严格成功从 <strong>4/10 到 7/10</strong>，约束通过从 <strong>17/30 到 25/30</strong>，学习加复用总 token 增加 <strong>1.7%</strong>。学习阶段明确要求记住，实验测量的是定向学习后的复用。</p>
+<p>这一轮也发现模型说“已经记住”却没有写入，金额与用户纠正题仍然失败。计入学习阶段后，全流程成功为 <strong>6/10</strong>。</p>
 <p>设计与结果：<a href="../source/docs/memory-knowledge-design.md">知识记忆改造（Markdown 原文下载）</a>、<a href="../source/evaluations/memory-knowledge-20261005/REPORT.md">十题报告（Markdown 原文下载）</a>。</p>
 <h3 id="93-自动学习为什么需要独立的后台路径">9.3 自动学习为什么需要独立的后台路径</h3>
 <p>要求主 Agent 既完成当前任务，又恰好在正确时机主动保存经验，并不稳定。于是 10 月 6—7 日加入从已结束经历中自动提炼和批量整理的路径。</p>
@@ -354,9 +354,9 @@
 </code></pre></details></figure>
 <p>生成与提交分开的原因很具体：后台开始处理之后，用户可能已经更正了旧规则。如果它完成时直接写回旧理解，就会覆盖刚发生的纠正。候选必须接受当前版本和来源检查。</p>
 <p>保存回执也来自实际提交结果。后台正在处理、决定跳过、候选被拒绝，都不能显示成已经学会。</p>
-<p>十题、44 会话对照中，正常完成且通过从 <strong>4/10 到 7/10</strong>，独立功能通过从 <strong>4/10 到 9/10</strong>，14 次新增或替换回执都能对应实际条目。但已报告总 token <strong>增加 12.6%</strong>，预设的降耗目标没有达到；基线还存在服务失败，分差不能全部归因于自动学习。</p>
+<p>十题、44 会话对照中，正常完成且通过从 <strong>4/10 到 7/10</strong>，独立功能通过从 <strong>4/10 到 9/10</strong>，14 次新增或替换回执都对应实际条目。已报告总 token <strong>增加 12.6%</strong>，超过预设降耗目标；基线中的服务失败也影响了分差。</p>
 <p>因此，异步整理解决的是时机、并发和漏存问题。它是否减少总成本，要由下一轮单独回答。</p>
-<p>当前配置默认开启 <code>memory_enabled</code>、<code>memory_evolution</code>、<code>auto_dream</code>，显式关闭仍生效。这里改变的是外部知识与召回材料，模型权重没有训练或更新。</p>
+<p>当前默认开启 <code>memory_enabled</code>、<code>memory_evolution</code>、<code>auto_dream</code>。交互会话自动整理，单次 CLI 自 10 月 18 日起默认延期到下次交互会话。这条路径更新外部知识和召回材料，后训练接口另见第十三节。</p>
 <p>继续读：<a href="../source/docs/agent-next-optimization.md">自动学习设计与交付（Markdown 原文下载）</a>、<a href="../source/evaluations/memory-sleep-20261005/REPORT.md">自动学习实验（Markdown 原文下载）</a>、<a href="10-layered-memory.html">10 分层记忆</a>、<a href="11-memory-evolution.html">11 记忆演化</a>。</p>
 <h2 id="十降成本之前先看看钱花在哪里">十、降成本之前，先看看钱花在哪里</h2>
 <p>自动整理增加了模型调用，很容易让人先想到把它关掉。但上一轮账本显示，维护只占已报告总 token 的约 <strong>7.8%</strong>，主要开销仍在前台任务。</p>
@@ -407,30 +407,28 @@
 </tbody>
 </table>
 <p>总 token 减少 <strong>39.9%</strong>，后续任务减少 <strong>45.9%</strong>。真实新版运行中用了 12 次临时测试源码入口，跳过了 2 次相同材料整理，因此可以确认这些机制确实执行过。</p>
-<p>不过，一条 CSV 约定没有保存，功能断言退步了三项。修正提炼说明后，单题补查通过，但原始失败仍保留在主表。工具与提示同时变化，也没有做逐项消融，所以不能把总降幅拆给某个单独机制。</p>
-<p>缓存数字同样需要仔细读。缓存输入占比从 <strong>61.26% 降到 59.17%</strong>，未缓存输入却减少 <strong>36.8%</strong>。比例下降和绝对工作量下降可以同时发生；这组结果支持减少总输入，不支持缓存命中比例提高。</p>
-<p>两组还存在缺失用量，供应商实际单价也没有核实，不能把 token 降幅写成账单降幅。全项目总成本更不能直接累加几个摘要：有些后续报告已经包含前期重试消耗，还有后台用量和未知部分。</p>
+<p>一条 CSV 约定没有保存，功能断言退步了三项；修正提炼说明后单题补查通过，主表仍保留原始失败。工具与提示同时改动，这组降幅对应整套方案。</p>
+<p>缓存输入占比从 <strong>61.26% 降到 59.17%</strong>，未缓存输入减少 <strong>36.8%</strong>。这轮通过减少输入总量降耗，即使缓存比例稍低，需付更高单价的输入仍然更少。</p>
+<p>上述降幅按已报告 token 计算；供应商账单、缺失用量和后台消耗另列。汇总跨阶段成本时，还要按请求身份去除报告间重复收录的尝试。</p>
 <p>完整账本、失败与请求归档缺口见<a href="../source/evaluations/memory-cost-20261007/REPORT.md">降耗报告（Markdown 原文下载）</a>，方案见<a href="../source/docs/cost-optimization-20261007.md">成本优化设计（Markdown 原文下载）</a>。</p>
 <h2 id="十一真实仓库评测把哪些问题重新暴露出来">十一、真实仓库评测把哪些问题重新暴露出来</h2>
 <h3 id="111-从内部任务走向-swe-bench">11.1 从内部任务走向 SWE-bench</h3>
 <p>前面的专项实验分别检查上下文、协作和记忆。它们能帮助定位机制，但真实仓库修复还需要模型理解复杂 API、找到正确测试入口，并处理跨文件的语义影响。</p>
 <p>10 月 8 日先做了十题 SWE-bench Verified 本地隔离评分，Aster 为 <strong>4/10</strong>。随后 Aster、pi、Codex 使用固定模型和十题进行官方 Docker 评分，原始结果分别为 <strong>2/10、3/10、2/10</strong>。</p>
-<p>这两组数字的评分环境不同，不能说同一条件下从 40% 退到 20%。官方对照中还有五次尝试因主机或模型连接故障留下空补丁；五次补测后，替换对应结果的合并成绩为 <strong>2/10、3/10、3/10</strong>，原始尝试和费用另行保留。</p>
+<p>本地与官方评分环境各有一套口径。官方对照中五次尝试因主机或模型连接故障留下空补丁；替换这五次补测结果后，合并成绩为 <strong>2/10、3/10、3/10</strong>，原始尝试和费用另行保留。</p>
 <p>官方评分会同时检查原来失败、修复后应通过的测试，以及原来通过、仍应保持通过的测试，通常记为 F2P 和 P2P。这样才能区分“目标问题修好了”和“顺便破坏了其他行为”。</p>
 <p>原始材料：<a href="../source/evaluations/swebench-verified-20261008/REPORT.md">本地十题（Markdown 原文下载）</a>、<a href="../source/evaluations/swebench-compare-20261008/REPORT.md">官方三方对照（Markdown 原文下载）</a>、<a href="../source/evaluations/swebench-retry-20261009/REPORT.md">故障补测（Markdown 原文下载）</a>。</p>
 <h3 id="112-一个通过的测试不能擦掉另一份失败">11.2 一个通过的测试，不能擦掉另一份失败</h3>
 <p>这轮诊断推动了验证状态修复。</p>
 <p>假设第一次正式测试发现 A、B 两项失败，随后模型只重跑 A 并通过。如果程序把“最近一次测试通过”当成全部验证通过，B 就会被遗忘。测试受环境阻碍或没有真正采集到用例，也可能被误解为完成。</p>
-<p>当前 <a href="../source/src/aster/core/verifier.py.html">Verifier</a> 持续保留结构化报告中的失败项，只在对应失败重新通过时移除；文件修改之后，旧版本的通过证据也要失效。</p>
-<p>这修复的是“已知失败不应消失”。它仍然无法发现从未测试过的情况。</p>
-<p>修复后的十题官方结果仍为 <strong>2/10</strong>。九份非空补丁的已有通过测试都保持通过，但七份仍没通过目标修复测试。框架更准确地追踪已有证据，不代表模型已经覆盖共享根因和边界。</p>
+<p>当时的修复让 <a href="../source/src/aster/core/verifier.py.html">Verifier</a> 跨验证保留失败；10 月 18 日进一步区分具名用例和匿名证据：具名失败由同一用例重新通过来解除，退出码和共用编号的断言脚本只更新验证状态。文件修改后，旧版本的通过证据失效。具体规则见 <a href="08-hooks-and-completion.html">08 章</a>。</p>
+<p>修复后的十题官方结果仍为 <strong>2/10</strong>。九份非空补丁的已有通过测试都保持通过，七份仍没通过目标修复测试。这一轮改善了证据追踪，模型对共享根因和边界的遗漏仍需解决。</p>
 <p>结果与限制见<a href="../source/evaluations/swebench-verification-20261009/REPORT.md">验证机制复测（Markdown 原文下载）</a>。</p>
 <h3 id="113-多加一次再检查为什么最后被删除">11.3 多加一次“再检查”为什么最后被删除</h3>
 <p>下一版尝试在完成前自动追加复核，同时改进过载处理。官方结果仍为 <strong>2/10</strong>。</p>
 <p>六次复核触发后，记录到 34 次请求和 931,400 个已报告 token，其中四次没有文件修改。部分复核确实调整了实现或测试，但没有足够证据支持默认追加这一流程。最后删除自动复核，保留故障处理修复，并补齐断流重试。</p>
-<p>这不是说代码审查没有价值，而是这个固定触发方式在该批任务上没有证明足够收益。复核之后的 token 是观察量，也不能直接当成删除流程后必然节省的净费用。</p>
-<p>另外，报告成绩属于带复核的冻结候选；后来删除复核、补断流重试后的代码只做本地回归，没有凭空获得一份新的十题成绩。完整决策见<a href="../source/evaluations/swebench-review-20261009/REPORT.md">复核实验报告（Markdown 原文下载）</a>。</p>
-<h3 id="114-最新二十题改进真实存在盲区也仍然存在">11.4 最新二十题：改进真实存在，盲区也仍然存在</h3>
+<p>这批结果使项目放弃默认追加复核。931,400 token 是触发后的观察量，净节省需要另做关闭对照；十题成绩对应带复核的冻结候选，删除后的版本完成了本地回归。完整决策见<a href="../source/evaluations/swebench-review-20261009/REPORT.md">复核实验报告（Markdown 原文下载）</a>。</p>
+<h3 id="114-10-月-1011-日二十题环境适配与语义遗漏">11.4 10 月 10—11 日二十题：环境适配与语义遗漏</h3>
 <p>10 月 10—11 日扩大到三来源的 20 道通用编码题：12 道仓库修复、6 道终端编码、2 道小型实现。三者原始单次都使用同一模型，每次尝试 900 秒。</p>
 <table>
 <thead>
@@ -464,27 +462,90 @@
 </tbody>
 </table>
 <p>pi、Codex 的原始成绩为 <strong>15/20、14/20</strong>，后两轮没有重新跑它们。第二版 Aster 与 pi 的历史成绩持平。</p>
-<p>改动包括临时目录隔离、有界故障退避，以及提醒模型追踪共享根因、验证类型和顺序等通用验收指引。同时，评测容器的解释器、导入、信号权限和持久服务也做了适配，所以结果不能全部归因于生产 Harness。</p>
-<p>最新一轮正常交付且独立通过也是 <strong>15/20</strong>。但是，内部正常完成的 18 题中仍有 3 题独立失败：Django 遗漏共享 API 的排序行为，SymPy 漏掉通用零矩阵加法，pytest 的实现不满足返回类型和继承顺序要求。</p>
-<p>还有一次解释器任务反复使用隔离副本中不合适的绝对路径，停滞退出；其产物本身也没有通过独立验收。因此不能假定只要修通路径就一定解对。</p>
+<p>这一批同时改进 Harness 和评测环境：前者调整临时目录、故障退避和验收指引，后者适配解释器、导入、信号权限与持久服务。结果对应整套运行条件。</p>
+<p>第二版正常交付且独立通过也是 <strong>15/20</strong>。内部正常完成的 18 题中有 3 题独立失败：Django 遗漏共享 API 的排序行为，SymPy 漏掉通用零矩阵加法，pytest 的实现不满足返回类型和继承顺序要求。</p>
+<p>另一次解释器任务反复使用隔离副本中不合适的绝对路径，停滞退出，产物也未通过独立验收。它同时留下执行环境和实现正确性两个问题。</p>
 <p>这些失败把下一步问题指向更具体的地方：怎样让模型定位共享语义、选择有区分力的验证，并在环境反馈后有效调整行为。继续追加泛泛的自查提醒，还不足以解决它们。</p>
 <p>这 20 题已经用于诊断和优化，属于开发集复测。两版优化共 40 次正式尝试，已报告 <strong>16,746,634 tokens</strong>，另有健康探测和缺失用量说明；全部失败仍然保留。详见<a href="../source/evaluations/general-coding-20261010/REPORT.md">原始对照（Markdown 原文下载）</a>、<a href="../source/evaluations/general-coding-retry-20261010/combined/REPORT.md">补测合并（Markdown 原文下载）</a>、<a href="../source/evaluations/general-coding-optimized-v2-20261011/REPORT.md">第二版完整结果（Markdown 原文下载）</a>。</p>
-<h2 id="十二这些演进留下了怎样的设计方法">十二、这些演进留下了怎样的设计方法</h2>
-<h3 id="121-用明确的程序事实约束执行">12.1 用明确的程序事实约束执行</h3>
+<h2 id="十二10-月中旬从开销定位走到双模型检验">十二、10 月中旬：从开销定位走到双模型检验</h2>
+<p>10 月 12—16 日，优化先从请求前缀入手：回执校准本地计量，历史尽量只追加，状态变化通过 <code>[Context update]</code> 便笺传递。这样既让模型得到新事实，也减少替换旧消息造成的缓存失效。过程与成本口径见<a href="../source/evaluations/cost-summary-20261016.md">缓存和轮次总结（Markdown 原文下载）</a>。</p>
+<p>接下来，分阶段计时和逐轮对照把问题拆得更细：一次请求为何迟迟发不出去，任务为何多做几十轮，以及更短的输入最后是否真的省钱。</p>
+<h3 id="121-先量-harness-自己花了多少时间">12.1 先量 Harness 自己花了多少时间</h3>
+<p>v11 的 old20 账本中，模型之外的时间占任务总时间 <strong>63%</strong>。逐段计时发现，每次 checkpoint 反复哈希仓库、复制文本基线，trace 追加时又重读历史；容器 overlayfs 上一次 <code>fsync</code> 需要 <strong>88–225 ms</strong>，频繁落盘进一步放大了等待。</p>
+<p>改动围绕这些重复工作展开：用文件属性缓存摘要并保留短时间内修改的复核窗口，基线按内容寻址，trace 缓存尾部，SQLite 使用常驻连接与 WAL。checkpoint 仍逐次原子写入，把强制同步改成至少间隔 5 秒的组提交，终态强制同步。</p>
+<p>同容器、脚本化模型、各重复三次的 A/B 中，每个模型轮次的 Harness 开销，小仓库从约 <strong>1.24 秒降到 0.18 秒</strong>，35 MB 仓库从约 <strong>6.65 秒降到 0.50 秒</strong>，分别改善 <strong>6.7 倍、13 倍</strong>。真实任务 rc1 到 rc5 的模型外时间从 <strong>3,259 秒降到 622 秒（−81%）</strong>。前者隔离了框架开销，后者记录整批任务实际耗时。设计见 <a href="../source/docs/harness-v12.md">v12（Markdown 原文下载）</a>，测量条件见<a href="../source/evaluations/harness-v12-20261017/REPORT.md">报告第 4、7、9 节（Markdown 原文下载）</a>。</p>
+<h3 id="122-官方补丁也失败时先检查判分环境">12.2 官方补丁也失败时，先检查判分环境</h3>
+<p>requests 的超时测试假定 <code>10.255.255.1:80</code> 是黑洞地址。主机网络开始应答它后，连官方参考补丁也过不了测试。项目改用 tarpit 判分网络，为该地址保留无人应答的链路内位置；随后复判的 <strong>24 个历史补丁全部重现原结果</strong>。这一步修正了测量环境。</p>
+<p>题目来源也需要保持清楚。fresh30 和 fresh30b 都先抽题、排除已用题、预检环境、冻结名单，再运行候选。看过轨迹并据此修改设计后，它们就转为开发集。比较时尽量让版本在同一时段运行，按同一道题配对，并用 bootstrap 给差值区间。</p>
+<p>由此形成两条习惯：用参考补丁检查评分器，用冻结协议约束开发过程。网络复现与两套题的过程见<a href="../source/evaluations/harness-v12-20261017/REPORT.md">报告第 5、11、12 节（Markdown 原文下载）</a>；具体方法见 <a href="14-evaluation.html">14 章</a>。</p>
+<h3 id="123-多出的-83-个请求主要花在收尾">12.3 多出的 83 个请求，主要花在收尾</h3>
+<p>fresh30 上，v13 平均发出 <strong>356</strong> 个请求，pi 为 <strong>273</strong> 个。逐轮拆解后，差额集中在两处：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th style="text-align:right">每 30 题多出的请求</th>
+<th>轨迹给出的线索</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后台记忆整理</td>
+<td style="text-align:right">17.5</td>
+<td>单次任务结束后仍发出维护请求</td>
+</tr>
+<tr>
+<td>最后一次编辑后的收尾</td>
+<td style="text-align:right">55.5</td>
+<td>Shell 已跑通又换测试工具重跑、反复查看 diff、完成反馈后继续绕路</td>
+</tr>
+<tr>
+<td>探索</td>
+<td style="text-align:right">9.5</td>
+<td>与对照接近</td>
+</tr>
+<tr>
+<td>编辑和修复</td>
+<td style="text-align:right">0.5</td>
+<td>与对照接近</td>
+</tr>
+</tbody>
+</table>
+<p>v14 据此统一测试与 Shell 的执行路径，让已识别的 <code>run_shell</code> 测试进入正式验证；通过结果附带改动，最终代码上的必要复跑由 Runtime 完成。单次 CLI 默认将记忆整理留到后续交互会话，减少任务末尾额外请求。</p>
+<p>第一次调整只取消了等待，后台仍会启动；冻结的评测 driver 也保留等待逻辑。检查轨迹后才修正启动条件，并将这次后续修改记为开发修复。这个例子说明，减少一次调用要核对真正的启动路径。分解与改动见 <a href="../source/docs/v14-and-agent-rl-plan.md">v14 方案 A.1、A.2（Markdown 原文下载）</a>，运行结果见<a href="../source/evaluations/harness-v12-20261017/REPORT.md">报告第 12 节（Markdown 原文下载）</a>。</p>
+<h3 id="124-完整记录留给系统决策内容呈现给模型">12.4 完整记录留给系统，决策内容呈现给模型</h3>
+<p>工具结果原先直接把内部 JSON 发给模型：状态、证据编号、64 位归档编号、输出字节数包在正文外面，代码中的换行和引号还要转义。fresh30b 的离线统计中，这层外壳平均每条约 <strong>111 token</strong>，并随历史反复发送。</p>
+<p>v15 在请求组装时增加 <a href="../source/src/aster/context/view.py.html">模型视图</a>：完整记录继续用于审计、恢复、预算和训练，模型看到原文、必要的错误状态，以及真正有用的引用或翻页入口。搜索按文件分组，完整结果省去回读页脚，状态便笺改成可读文字。相同输入产生相同文本，便于复用稳定前缀。</p>
+<p>固定轨迹的离线回放能估计表达方式缩短多少；真实运行还会改变模型的后续路线。因此又在 GPT、DeepSeek 和两套题上做同时段对照。合并 <strong>98 个题目样本</strong>，每请求输入减少 <strong>9.8%</strong>，95% 置信区间为 <strong>[−14.2%, −5.1%]</strong>，四组方向一致；总费用变化为 <strong>−1.9%</strong>，区间 <strong>[−16.6%, +17.0%]</strong>，质量与总费用均未测出显著变化。</p>
+<p>这轮得到了稳定的输入缩减；整项任务花费还受请求数和少数长任务支配。尤其旧版 DeepSeek 会因输出截断提前退出，失败得更“便宜”，恢复后继续探索反而增加请求。BigCodeBench 的工具视图和状态视图分别回退为 JSON 的消融，也帮助核查早期分数波动。设计见 <a href="../source/docs/harness-v15.md">v15（Markdown 原文下载）</a>，完整数据、缺失用量处理及排除规则见<a href="../source/evaluations/harness-v12-20261017/REPORT.md">报告第 15 节（Markdown 原文下载）</a>。</p>
+<h3 id="125-完成检查到底值不值">12.5 完成检查到底值不值</h3>
+<p>完成契约从 9 月 11 日首版 Runtime 就存在：模型提出结束请求，程序再检查任务要求。后来评测 driver 对每题强制要求“修改且验证”；产品默认则按提示推断。这次 fresh30b 中，产品默认要求 18 题测试，另 12 题没有这项强制要求。</p>
+<p>10 月 20 日在同一源码上比较严格评测、产品默认、关闭三组。严格组复用较早运行，新增两组同时开跑；按预定供应商故障规则共同剔除后，14 道可比题均通过 <strong>13 道</strong>。各组可读终态中的补做次数为 <strong>3、4、0</strong>，没有救回任务。关闭组正常结束的 22 题中，<strong>19 题为 <code>verified</code>，3 题带警告交付</strong>：多数运行自行满足了当前交付要求。</p>
+<p>关闭组在共同题目上请求多 <strong>13.3%</strong>、已知费用高 <strong>6.5%</strong>。全表中它看起来更便宜，约 <strong>61.4%</strong> 的费用差来自压缩器一题被供应商提前中断。</p>
+<p>这份强模型对照未测出完成检查的质量收益，也未测出关闭后的成本收益。产品保留默认检查，作为低成本保险，并用 <code>completed_with_warning</code> 标明未满足的交付条件；它对弱模型的作用留待验证。数据见<a href="../source/evaluations/acceptance-ablation-20261020/REPORT.md">对照报告（Markdown 原文下载）</a>，19/3 的终态分布可从 <a href="../source/evaluations/acceptance-ablation-20261020/comparison.json">comparison.json</a>复算。</p>
+<h3 id="126-规则越补越多意味着什么">12.6 规则越补越多，意味着什么</h3>
+<p>测试识别先后遇到编译后运行、<code>npm run lint</code>、<code>python -c</code> 断言脚本等情况。关键在于证据类型：具名用例有可追踪身份，退出码只说明一次命令的结果，共用编号的内联脚本也缺乏稳定身份。按这层区别管理失败，比把所有失败都堆成待消除义务更贴近实际。</p>
+<p>另一些问题发生在文本匹配上。失败签名若保留副本的相对临时路径，同一个旧失败每次都会看起来不同；需求推断把 <code>without changing existing values to NaN</code> 理解为禁止改代码，则误读了解法约束。10 月 20 日的 <code>476f09f</code> 修复了这类否定与单词片段误判，并补充对应回归。</p>
+<p>这些例子推动下一步重新考虑抽象：命令、测试用例、运行环境和任务要求分别需要怎样的证据。新增规则应回到这些职责上评估。失败分类的取舍见 <a href="../source/docs/harness-v13.md">v13（Markdown 原文下载）</a>，当前实现见 <a href="../source/src/aster/tools/testing.py.html">testing.py</a> 与 <a href="../source/src/aster/core/verifier.py.html">verifier.py</a>。</p>
+<h3 id="127-第二个模型让协议和环境问题显形">12.7 第二个模型让协议和环境问题显形</h3>
+<p>GPT 使用 Responses 流式接口，DeepSeek 使用官方 Chat Completions 非流式接口。加入后者后，两处缺陷更容易看见：模型视图从 Chat 历史中认不出工具名；推理用满输出额度时，Runtime 直接结束了任务。</p>
+<p>修复后，三种协议的工具名都能正确提取。遇到输出上限截断，Runtime 保留用量记录、追加简短行动提示，每次运行最多恢复两次；残缺内容不执行、不进入历史。第二个模型因此既检验输入优化的可迁移性，也补足了协议覆盖。</p>
+<p>执行环境仍保留“副本中运行、检查后发布”的产品选择，以保护真实工作区。绝对路径映射、符合条件时对原目录的只读访问、写入失败后的具体说明，逐步弥合副本与普通终端的差异。这个选择带来的兼容成本，会继续通过真实任务检查。协议与路径修复见 <a href="../source/docs/harness-v15.md">v15 第 2、4 节（Markdown 原文下载）</a>及 <a href="04-permissions-sandbox.html">04 章</a>。</p>
+<h2 id="十三这些演进留下了怎样的设计方法">十三、这些演进留下了怎样的设计方法</h2>
+<h3 id="131-用明确的程序事实约束执行">13.1 用明确的程序事实约束执行</h3>
 <p>Aster 逐渐把适合程序判断的事实放进运行系统：工具参数是否合法，文件是否变化，历史配对是否完整，额度是否足够，哪些失败尚未解除。</p>
-<p>模型继续负责理解需求、选择证据和提出实现。对这些开放判断，框架可以提供更好的信息和反馈，但不能把一条自然语言提示当作正确性保证。</p>
+<p>模型负责理解需求、选择证据和提出实现。框架为这些开放判断提供信息与反馈，独立评测检验最终效果。</p>
 <p>这也是为什么某些改动适合写成硬检查，另一些需要通过实验选择。禁止执行半截工具调用是明确的协议约束；要求所有任务额外复核一次，则是有成本的策略选择。</p>
-<h3 id="122-轻量意味着每项复杂度都有用途">12.2 轻量意味着每项复杂度都有用途</h3>
+<h3 id="132-轻量意味着每项复杂度都有用途">13.2 轻量意味着每项复杂度都有用途</h3>
 <p>上下文先采用确定性预算和归档，知识记忆继续使用本地 JSON，后台整理复用 asyncio，子任务复用同一个 Runtime。源码重构增加了模块，却尽量让状态只在明确位置修改。</p>
-<p>这些选择各有适用范围。本地少量记忆可以用简单检索，不能据此保证十万条知识仍有同样效果；单机工作区锁能保护当前提交边界，也不能被解释成分布式事务。</p>
+<p>当前的本地记忆规模适合简单检索，单机锁服务于工作区提交。增加系统规模时，重新测量检索成本和并发需求，再选择相应组件。</p>
 <p>判断是否需要更复杂的组件，应回到具体失败。例如只有证据显示跨条目的关联检索是主要瓶颈，才有理由承担知识图或新检索服务的维护成本。</p>
-<h3 id="123-记忆演化和模型训练处于不同层">12.3 记忆演化和模型训练处于不同层</h3>
-<p>参考项目围绕 SFT 和 GRPO 组织故事，Aster 当前的重点是 Harness。两者可以连接，但现有成果要分清楚。</p>
-<p>Aster 已经提供外部策略环境，以及带来源、数据划分、请求匹配和分组校验的后训练数据契约。外部策略提出动作后，仍可以经过共同的工具和执行边界。</p>
-<p>实际 tokenizer 对齐、采样训练器、优化器、权重更新和训练效果尚未完成。后台从任务中提炼知识属于外部记忆变化，不能称为已经训练了模型。</p>
-<p>如果以后推进后训练，这些历史开发题也不能直接改名为未见测试集。任务来源与许可、训练验证隔离、可验证奖励以及完整成本，仍然需要各自落实。</p>
-<p>继续读：<a href="15-rl-interface.html">15 外部策略环境接口</a>、<a href="../source/docs/post-training-design.md">后训练设计（Markdown 原文下载）</a>、<a href="../source/docs/post-training-readiness.md">训练准备度（Markdown 原文下载）</a>。</p>
-<h2 id="十三沿着时间线回看再进入源码">十三、沿着时间线回看，再进入源码</h2>
+<h3 id="133-记忆演化和模型训练处于不同层">13.3 记忆演化和模型训练处于不同层</h3>
+<p>记忆整理更新外部知识，后训练更新模型参数。Aster 已提供共同执行内核、外部策略环境，以及带来源、划分、请求匹配和分组校验的数据契约。</p>
+<p>10 月 18 日又加入 Qwen 工具调用解析和 token 采样接口：prompt token 直接送入生成器，采样出的 token、logprob 与 loss mask 原样记录；上下文前缀被改写时切成新段，避免重新分词改变训练样本。终止标签用于区分任务失败与基础设施失败。</p>
+<p>这些接口已有离线验证。GPU 实测、R0 与 R4–R7 阶段、训练器和权重更新仍待完成；verifier 异常的轨迹标签还需与数据契约对齐。继续推进时沿用冻结题集、独立奖励和完整成本记录。</p>
+<p>继续读：<a href="15-rl-interface.html">15 外部策略环境接口</a>、<a href="../source/docs/agent-rl-harness.md">训练接口（Markdown 原文下载）</a>、<a href="../source/docs/v14-and-agent-rl-plan.md">v14 与训练路线（Markdown 原文下载）</a>。</p>
+<h2 id="十四沿着时间线回看再进入源码">十四、沿着时间线回看，再进入源码</h2>
 <p>前面按问题组织故事，下表把主要阶段放回时间顺序。某个阶段解决的问题会在后面重新出现，例如预算最初约束上下文，后来又影响子任务和最终交付。</p>
 <table>
 <thead>
@@ -548,7 +609,37 @@
 <td>10 月 10—11 日</td>
 <td>通用编码二十题与两版优化</td>
 <td>环境适配与模型语义遗漏怎样区分</td>
-<td><a href="../source/evaluations/general-coding-optimized-v2-20261011/REPORT.md">最新完整复测（Markdown 原文下载）</a></td>
+<td><a href="../source/evaluations/general-coding-optimized-v2-20261011/REPORT.md">二十题完整复测（Markdown 原文下载）</a></td>
+</tr>
+<tr>
+<td>10 月 12—16 日</td>
+<td>回执计量、稳定历史、追加状态便笺</td>
+<td>缓存收益怎样落到真实请求和用量</td>
+<td><a href="../source/evaluations/cost-summary-20261016.md">缓存与轮次总结（Markdown 原文下载）</a></td>
+</tr>
+<tr>
+<td>10 月 17 日</td>
+<td>增量快照、组提交、判分网络修正</td>
+<td>Harness 自身和评分环境各花了什么成本</td>
+<td><a href="../source/docs/harness-v12.md">v12 设计（Markdown 原文下载）</a>、<a href="../source/evaluations/harness-v12-20261017/REPORT.md">阶段报告（Markdown 原文下载）</a></td>
+</tr>
+<tr>
+<td>10 月 18 日</td>
+<td>冻结留出集、减少收尾请求、token 轨迹接口</td>
+<td>从轨迹找到重复工作，并隔离开发与评测</td>
+<td><a href="../source/docs/v14-and-agent-rl-plan.md">v14 与训练路线（Markdown 原文下载）</a>、<a href="../source/docs/agent-rl-harness.md">训练接口（Markdown 原文下载）</a></td>
+</tr>
+<tr>
+<td>10 月 19 日</td>
+<td>记录与模型视图分离、双模型对照、截断恢复</td>
+<td>每请求输入下降后，总费用为什么仍会波动</td>
+<td><a href="../source/docs/harness-v15.md">v15 设计（Markdown 原文下载）</a>、<a href="../source/evaluations/harness-v12-20261017/REPORT.md">双模型结果（Markdown 原文下载）</a></td>
+</tr>
+<tr>
+<td>10 月 20 日</td>
+<td>完成检查消融、需求推断修复</td>
+<td>哪些检查改善交付标注，哪些收益还需验证</td>
+<td><a href="../source/evaluations/acceptance-ablation-20261020/REPORT.md">完成检查对照（Markdown 原文下载）</a>、<a href="08-hooks-and-completion.html">08 章</a></td>
 </tr>
 </tbody>
 </table>
@@ -582,13 +673,18 @@
 <td>01 → 12 → 13 → 14</td>
 <td>父方重复调查和 r6 未触发的复测</td>
 </tr>
+<tr>
+<td>怎样定位成本与检验收益</td>
+<td>05 → 06 → 08 → 09 → 14</td>
+<td>分阶段计时、双模型视图与完成检查消融</td>
+</tr>
 </tbody>
 </table>
 <p>源码教程中的离线实验可以让你在不调用远程模型的情况下观察机制。真实能力、服务故障和费用仍应回到对应实验报告，不用再运行一轮付费评测才能理解这篇文章。</p>
 <p>学完后，试着从一个失败出发解释整条链路：模型当时看到了什么，选择了什么动作，环境实际执行了什么，哪份证据影响了下一轮，最后的判分又在检查什么。能沿着这些问题找到源码与原始记录，就能继续独立研究项目的新变化。</p>
 <h3 id="阅读依据与写作参考">阅读依据与写作参考</h3>
-<p>本文以 Aster 的源码、专题设计、阶段报告和 Git 历史为依据。最新二十题结果以 10 月 11 日冻结报告为准；当前工作区中的后续修改不自动继承该批成绩。历史设计页中“尚未实现”的内容应结合日期阅读，后续落地情况沿本篇给出的下一阶段链接查询。</p>
-<p>仓库公开材料与本机完整运行证据不是同一份集合。部分原始请求、冻结工作区和轨迹受 Git 忽略规则管理，本篇与教学网站提供可阅读的正文及直接引用文件，不表示所有原始实验都随网站完整发布。</p>
+<p>本文以 Aster 的源码、专题设计、阶段报告和 Git 历史为依据。截至 10 月 20 日，近期结果集中在 <a href="../source/evaluations/harness-v12-20261017/REPORT.md">v12–v15 报告（Markdown 原文下载）</a>和<a href="../source/evaluations/acceptance-ablation-20261020/REPORT.md">完成检查对照（Markdown 原文下载）</a>。历史成绩对应各自的冻结候选；设计页中的实施状态结合日期和后续记录阅读。</p>
+<p>本篇与教学网站提供正文及直接引用文件。部分原始请求、冻结工作区和轨迹保存在本地忽略目录，复现范围见各报告的工件说明。</p>
 <p>写作组织参考用户指定的<a href="https://yyhdbl.github.io/">长程购物 Agent 后训练文章</a>及其<a href="https://github.com/YYHDBL/shopping-grpo-longhorizon/tree/main">项目 main 分支</a>。2026-10-11 阅读时，main 指向 <code>449bba2686a6ff07327cb3ea77e5f0f91ebb4239</code>，对应<a href="https://github.com/YYHDBL/shopping-grpo-longhorizon/blob/449bba2686a6ff07327cb3ea77e5f0f91ebb4239/README.md">仓库说明快照</a>。借鉴的是从动机、具体困难、方案取舍、实验结果走向未解决问题的叙述方式；本文的实现、案例和数字均来自 Aster。</p>
 <p><a href="00-quickstart.html">进入 00 章：跑通任务</a> · <a href="../index.html">查看完整课程</a></p>
-<nav class="chapter-nav"><a href="../index.html">← 课程首页</a><a href="00-quickstart.html">00｜先让 Aster 完成一次任务 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#一为什么要做一个-coding-agent-harness">一、为什么要做一个 Coding Agent Harness</a><a href="#二先把一次任务跑成闭环">二、先把一次任务跑成闭环</a><a href="#21-一轮模型请求之后事情才刚刚开始">2.1 一轮模型请求之后，事情才刚刚开始</a><a href="#22-为什么聊天记录之外还要保存状态和证据">2.2 为什么聊天记录之外还要保存状态和证据</a><a href="#三先弄清楚做对了是什么意思">三、先弄清楚“做对了”是什么意思</a><a href="#四上下文越来越长应该删掉什么">四、上下文越来越长，应该删掉什么</a><a href="#41-只保留最近几轮为什么不够">4.1 只保留最近几轮为什么不够</a><a href="#42-全局预算成组压缩按需回读">4.2 全局预算、成组压缩、按需回读</a><a href="#43-最有价值的结果包含没有改善的那一组">4.3 最有价值的结果，包含没有改善的那一组</a><a href="#五工具能执行还要让它适合真实仓库">五、工具能执行，还要让它适合真实仓库</a><a href="#51-从允许操作到能正确完成操作">5.1 从“允许操作”到“能正确完成操作”</a><a href="#52-保护边界也会改变模型面对的环境">5.2 保护边界也会改变模型面对的环境</a><a href="#53-流式显示并行读取和-skills-分别解决什么">5.3 流式显示、并行读取和 Skills 分别解决什么</a><a href="#六任务会中断探索也会走弯路">六、任务会中断，探索也会走弯路</a><a href="#61-恢复运行需要检查什么">6.1 恢复运行需要检查什么</a><a href="#62-回到之前逐渐变成一个会话树问题">6.2 “回到之前”逐渐变成一个会话树问题</a><a href="#63-这轮改善的是使用流程">6.3 这轮改善的是使用流程</a><a href="#七为什么中途还要重构代码">七、为什么中途还要重构代码</a><a href="#八多个-agent-为什么没有自然地变得更好">八、多个 Agent 为什么没有自然地变得更好</a><a href="#81-第一层困难是孩子交不出东西">8.1 第一层困难是孩子交不出东西</a><a href="#82-孩子答对了父方仍可能重复做一遍">8.2 孩子答对了，父方仍可能重复做一遍</a><a href="#83-新机制一次没触发应该怎样验证">8.3 新机制一次没触发，应该怎样验证</a><a href="#九记忆是怎样从文件摘录变成知识的">九、记忆是怎样从文件摘录变成知识的</a><a href="#91-保存原文解决不了所有跨会话问题">9.1 保存原文解决不了所有跨会话问题</a><a href="#92-召回使用和正确使用要分开">9.2 召回、使用和正确使用要分开</a><a href="#93-自动学习为什么需要独立的后台路径">9.3 自动学习为什么需要独立的后台路径</a><a href="#十降成本之前先看看钱花在哪里">十、降成本之前，先看看钱花在哪里</a><a href="#十一真实仓库评测把哪些问题重新暴露出来">十一、真实仓库评测把哪些问题重新暴露出来</a><a href="#111-从内部任务走向-swe-bench">11.1 从内部任务走向 SWE-bench</a><a href="#112-一个通过的测试不能擦掉另一份失败">11.2 一个通过的测试，不能擦掉另一份失败</a><a href="#113-多加一次再检查为什么最后被删除">11.3 多加一次“再检查”为什么最后被删除</a><a href="#114-最新二十题改进真实存在盲区也仍然存在">11.4 最新二十题：改进真实存在，盲区也仍然存在</a><a href="#十二这些演进留下了怎样的设计方法">十二、这些演进留下了怎样的设计方法</a><a href="#121-用明确的程序事实约束执行">12.1 用明确的程序事实约束执行</a><a href="#122-轻量意味着每项复杂度都有用途">12.2 轻量意味着每项复杂度都有用途</a><a href="#123-记忆演化和模型训练处于不同层">12.3 记忆演化和模型训练处于不同层</a><a href="#十三沿着时间线回看再进入源码">十三、沿着时间线回看，再进入源码</a><a href="#阅读依据与写作参考">阅读依据与写作参考</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="../index.html">← 课程首页</a><a href="00-quickstart.html">00｜先让 Aster 完成一次任务 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#一为什么要做一个-coding-agent-harness">一、为什么要做一个 Coding Agent Harness</a><a href="#二先把一次任务跑成闭环">二、先把一次任务跑成闭环</a><a href="#21-一轮模型请求之后事情才刚刚开始">2.1 一轮模型请求之后，事情才刚刚开始</a><a href="#22-为什么聊天记录之外还要保存状态和证据">2.2 为什么聊天记录之外还要保存状态和证据</a><a href="#三先弄清楚做对了是什么意思">三、先弄清楚“做对了”是什么意思</a><a href="#四上下文越来越长应该删掉什么">四、上下文越来越长，应该删掉什么</a><a href="#41-只保留最近几轮为什么不够">4.1 只保留最近几轮为什么不够</a><a href="#42-全局预算成组压缩按需回读">4.2 全局预算、成组压缩、按需回读</a><a href="#43-最有价值的结果包含没有改善的那一组">4.3 最有价值的结果，包含没有改善的那一组</a><a href="#五工具能执行还要让它适合真实仓库">五、工具能执行，还要让它适合真实仓库</a><a href="#51-从允许操作到能正确完成操作">5.1 从“允许操作”到“能正确完成操作”</a><a href="#52-保护边界也会改变模型面对的环境">5.2 保护边界也会改变模型面对的环境</a><a href="#53-流式显示并行读取和-skills-分别解决什么">5.3 流式显示、并行读取和 Skills 分别解决什么</a><a href="#六任务会中断探索也会走弯路">六、任务会中断，探索也会走弯路</a><a href="#61-恢复运行需要检查什么">6.1 恢复运行需要检查什么</a><a href="#62-回到之前逐渐变成一个会话树问题">6.2 “回到之前”逐渐变成一个会话树问题</a><a href="#63-这轮改善的是使用流程">6.3 这轮改善的是使用流程</a><a href="#七为什么中途还要重构代码">七、为什么中途还要重构代码</a><a href="#八多个-agent-为什么没有自然地变得更好">八、多个 Agent 为什么没有自然地变得更好</a><a href="#81-第一层困难是孩子交不出东西">8.1 第一层困难是孩子交不出东西</a><a href="#82-孩子答对了父方仍可能重复做一遍">8.2 孩子答对了，父方仍可能重复做一遍</a><a href="#83-新机制一次没触发应该怎样验证">8.3 新机制一次没触发，应该怎样验证</a><a href="#九记忆是怎样从文件摘录变成知识的">九、记忆是怎样从文件摘录变成知识的</a><a href="#91-保存原文解决不了所有跨会话问题">9.1 保存原文解决不了所有跨会话问题</a><a href="#92-召回使用和正确使用要分开">9.2 召回、使用和正确使用要分开</a><a href="#93-自动学习为什么需要独立的后台路径">9.3 自动学习为什么需要独立的后台路径</a><a href="#十降成本之前先看看钱花在哪里">十、降成本之前，先看看钱花在哪里</a><a href="#十一真实仓库评测把哪些问题重新暴露出来">十一、真实仓库评测把哪些问题重新暴露出来</a><a href="#111-从内部任务走向-swe-bench">11.1 从内部任务走向 SWE-bench</a><a href="#112-一个通过的测试不能擦掉另一份失败">11.2 一个通过的测试，不能擦掉另一份失败</a><a href="#113-多加一次再检查为什么最后被删除">11.3 多加一次“再检查”为什么最后被删除</a><a href="#114-10-月-1011-日二十题环境适配与语义遗漏">11.4 10 月 10—11 日二十题：环境适配与语义遗漏</a><a href="#十二10-月中旬从开销定位走到双模型检验">十二、10 月中旬：从开销定位走到双模型检验</a><a href="#121-先量-harness-自己花了多少时间">12.1 先量 Harness 自己花了多少时间</a><a href="#122-官方补丁也失败时先检查判分环境">12.2 官方补丁也失败时，先检查判分环境</a><a href="#123-多出的-83-个请求主要花在收尾">12.3 多出的 83 个请求，主要花在收尾</a><a href="#124-完整记录留给系统决策内容呈现给模型">12.4 完整记录留给系统，决策内容呈现给模型</a><a href="#125-完成检查到底值不值">12.5 完成检查到底值不值</a><a href="#126-规则越补越多意味着什么">12.6 规则越补越多，意味着什么</a><a href="#127-第二个模型让协议和环境问题显形">12.7 第二个模型让协议和环境问题显形</a><a href="#十三这些演进留下了怎样的设计方法">十三、这些演进留下了怎样的设计方法</a><a href="#131-用明确的程序事实约束执行">13.1 用明确的程序事实约束执行</a><a href="#132-轻量意味着每项复杂度都有用途">13.2 轻量意味着每项复杂度都有用途</a><a href="#133-记忆演化和模型训练处于不同层">13.3 记忆演化和模型训练处于不同层</a><a href="#十四沿着时间线回看再进入源码">十四、沿着时间线回看，再进入源码</a><a href="#阅读依据与写作参考">阅读依据与写作参考</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>

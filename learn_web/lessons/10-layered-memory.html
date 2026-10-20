@@ -1,15 +1,15 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10｜分层记忆：刚读过的内容，下一次还记得吗 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="10-layered-memory" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让错误动作和过早收尾有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="current" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“证明有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 10</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="10分层记忆刚读过的内容下一次还记得吗">10｜分层记忆：刚读过的内容，下一次还记得吗</h1>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>10｜分层记忆：刚读过的内容，下一次还记得吗 · Aster 教程</title><link rel="stylesheet" href="../assets/site.css"></head><body data-lesson="10-layered-memory" data-root=".."><header class="topbar"><a class="brand" href="../index.html"><b>A</b> Aster <span>工程阅读</span></a><nav><button id="search-open" aria-label="搜索课程" title="搜索">⌕</button><button id="theme-toggle" aria-label="切换明暗主题" title="切换主题">◐</button><button id="menu-toggle" aria-label="展开章节目录" title="章节目录">☰</button></nav></header><div class="reading-layout"><aside class="sidebar"><a class="home-link" href="../index.html">← 课程首页</a><p class="nav-label">从这里开始</p><ol><li><a class="" href="project-story.html"><span>导读</span>Aster 的设计与演进</a></li></ol><p class="nav-label">基础</p><ol><li><a class="" href="00-quickstart.html"><span>00</span>先让 Aster 完成一次任务</a></li><li><a class="" href="01-agent-loop.html"><span>01</span>一个循环，三种操作</a></li><li><a class="" href="02-model-protocols.html"><span>02</span>把不同模型接到同一个循环</a></li></ol><p class="nav-label">可靠执行</p><ol><li><a class="" href="03-tool-system.html"><span>03</span>工具系统：先知道有什么，再拿到调用说明</a></li><li><a class="" href="04-permissions-sandbox.html"><span>04</span>权限与沙箱：批准动作以后，还要限制它的影响</a></li></ol><p class="nav-label">状态与上下文</p><ol><li><a class="" href="05-state-and-evidence.html"><span>05</span>状态、历史和证据分别放在哪里</a></li><li><a class="" href="06-context-budget.html"><span>06</span>上下文预算：决定这一轮模型看见什么</a></li><li><a class="" href="07-context-archives.html"><span>07</span>归档与回读：让移出窗口的证据仍然可找</a></li><li><a class="" href="08-hooks-and-completion.html"><span>08</span>Hooks 与运行纠偏：让执行和交付都有反馈</a></li><li><a class="" href="09-checkpoint-resume.html"><span>09</span>检查点与恢复：继续一个任务之前先确认世界没变</a></li></ol><p class="nav-label">记忆与扩展</p><ol><li><a class="current" href="10-layered-memory.html"><span>10</span>分层记忆：刚读过的内容，下一次还记得吗</a></li><li><a class="" href="11-memory-evolution.html"><span>11</span>记忆自进化：让使用结果影响下一次选择</a></li><li><a class="" href="12-plans-and-skills.html"><span>12</span>计划、待办与 Skills：记住要做什么，也记住怎么做</a></li><li><a class="" href="13-interaction-and-workers.html"><span>13</span>人工交互与子任务：同一个 Runtime，多种参与方式</a></li><li><a class="" href="14-evaluation.html"><span>14</span>从“能跑”到“知道改动是否有用”</a></li><li><a class="" href="15-rl-interface.html"><span>15</span>选读：把同一个 Harness 接到外部策略</a></li></ol><div class="continue"><small>学习进度</small><a id="continue-link" href="project-story.html">从项目全景开始 →</a></div></aside><main class="article"><div class="article-meta">ASTER / 学习课程 / 10</div><article><div class="lesson-toolbar"><label><input type="checkbox" class="completed-toggle"> 标记本章完成</label><span class="progress-text"></span></div><h1 id="10分层记忆刚读过的内容下一次还记得吗">10｜分层记忆：刚读过的内容，下一次还记得吗</h1>
 <p><a href="09-checkpoint-resume.html">上一章：检查点与恢复</a> · <a href="../index.html">目录</a> · <a href="11-memory-evolution.html">下一章：记忆自进化</a></p>
 <blockquote>
 <p>当前任务需要一张工作便笺；下一次任务需要有出处、仍然有效的项目知识。</p>
 </blockquote>
-<p>读完本章，你应该能回答：<code>messages</code> 已经记录了工具结果，为什么还需要 <code>working_memory</code>？关闭长期记忆会不会让 Agent 失去短期记忆？不会；<code>memory_enabled=False</code> 关闭的是持久 Memory 工具与召回，<code>_collect_step</code> 仍维护本次 RunState 的工作记忆。哪些内容允许跨运行保存？</p>
-<h2 id="问题记住所有聊天不等于用好记忆">问题：记住所有聊天，不等于用好记忆</h2>
+<p>本章沿一次读取，追踪历史记录、工作记忆与长期知识的用途，再看来源改变后如何停止召回。<code>memory_enabled=False</code> 控制持久存储和召回，本次运行的工作记忆由 <code>_collect_step</code> 继续维护。</p>
+<h2 id="问题哪些信息值得带到下次任务">问题：哪些信息值得带到下次任务</h2>
 <p>假设 Agent 已经读到 <code>config.txt</code> 中的 <code>Service port is 8123.</code>。它接下来需要改测试、看日志、回复用户。若每次查端口都重新读文件，会增加工具调用；若一直保留完整文件正文，又会占用上下文。等到任务结束，下次重新启动时，这个项目事实是否还值得继续使用？</p>
-<p>这里其实有三种不同需求。历史要保留“刚才发生了什么”，工作记忆要快速提供“当前已经知道什么”，长期记忆要回答“以前留下的哪些信息现在仍然适用”。Aster 分开管理这三件事。</p>
-<figure class="diagram" data-edge-count="9"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">messages：记录本次工具输出</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">RunState.working_memory：短期摘录</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="G">.aster/memory/state.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">.aster/memory/state.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">后续任务按关键词召回</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">后续任务按关键词召回</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">来源文件仍然一致？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">来源文件仍然一致？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="J">加入当前模型输入</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> read_file 成功</span><span class="diagram-key"><code>B</code> messages：记录本次工具输出</span><span class="diagram-key"><code>C</code> RunState.working_memory：短期摘录</span><span class="diagram-key"><code>D</code> _collect_step：观察与来源指纹</span><span class="diagram-key"><code>E</code> memory_store / store_excerpt：认证候选知识</span><span class="diagram-key"><code>F</code> 来源真实、内容合规、文件未变？</span><span class="diagram-key"><code>G</code> .aster/memory/state.json</span><span class="diagram-key"><code>H</code> 后续任务按关键词召回</span><span class="diagram-key"><code>I</code> 来源文件仍然一致？</span><span class="diagram-key"><code>J</code> 加入当前模型输入</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
+<p>这里其实有三种不同需求。历史保留“刚才发生了什么”，按预算进入模型请求；工作记忆是 Runtime 自己的“已读文件索引”，记着读过哪些文件、开头是什么、之后有没有被改过；长期记忆要回答“以前留下的哪些信息现在仍然适用”。Aster 分开管理这三件事。</p>
+<figure class="diagram" data-edge-count="9"><ol class="diagram-edges"><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="B">messages：记录本次工具输出</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="C">RunState.working_memory：已读文件索引，不进模型请求</span></li><li class="diagram-edge"><span class="diagram-node" data-node="A">read_file 成功</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span></li><li class="diagram-edge"><span class="diagram-node" data-node="D">_collect_step：观察与来源指纹</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span></li><li class="diagram-edge"><span class="diagram-node" data-node="E">memory_store / store_excerpt：认证候选知识</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="F">来源真实、内容合规、文件未变？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="G">.aster/memory/state.json</span></li><li class="diagram-edge"><span class="diagram-node" data-node="G">.aster/memory/state.json</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="H">后续任务按关键词召回</span></li><li class="diagram-edge"><span class="diagram-node" data-node="H">后续任务按关键词召回</span><span class="edge-arrow" aria-hidden="true">→</span><span class="diagram-node" data-node="I">来源文件仍然一致？</span></li><li class="diagram-edge"><span class="diagram-node" data-node="I">来源文件仍然一致？</span><span class="edge-arrow" aria-hidden="true">→</span><span class="edge-label">是</span><span class="diagram-node" data-node="J">加入当前模型输入</span></li></ol><div class="diagram-key-list" aria-label="图中节点"><span class="diagram-key"><code>A</code> read_file 成功</span><span class="diagram-key"><code>B</code> messages：记录本次工具输出</span><span class="diagram-key"><code>C</code> RunState.working_memory：已读文件索引，不进模型请求</span><span class="diagram-key"><code>D</code> _collect_step：观察与来源指纹</span><span class="diagram-key"><code>E</code> memory_store / store_excerpt：认证候选知识</span><span class="diagram-key"><code>F</code> 来源真实、内容合规、文件未变？</span><span class="diagram-key"><code>G</code> .aster/memory/state.json</span><span class="diagram-key"><code>H</code> 后续任务按关键词召回</span><span class="diagram-key"><code>I</code> 来源文件仍然一致？</span><span class="diagram-key"><code>J</code> 加入当前模型输入</span></div><figcaption>每一行忠实对应原图的一条边；回到前置节点的边表示循环。</figcaption><details><summary>查看原始 Mermaid 定义</summary><pre><code>flowchart TD
     A[read_file 成功] --&gt; B[messages：记录本次工具输出]
-    A --&gt; C[RunState.working_memory：短期摘录]
+    A --&gt; C[RunState.working_memory：已读文件索引，不进模型请求]
     A --&gt; D[_collect_step：观察与来源指纹]
     D --&gt; E[memory_store / store_excerpt：认证候选知识]
     E --&gt; F{来源真实、内容合规、文件未变？}
@@ -39,7 +39,7 @@
 <td><code>RunState.working_memory</code></td>
 <td>按路径保存近期读文件、搜索、测试的简短结果</td>
 <td>当前运行；通过检查点恢复</td>
-<td>不保存完整原文，不等于消息协议历史</td>
+<td>供运行时使用的摘要；模型输入另由历史与便笺构建</td>
 </tr>
 <tr>
 <td><code>Memory.state[&quot;lessons&quot;]</code></td>
@@ -51,6 +51,7 @@
 </table>
 <p><code>RunState</code> 是运行状态对象。<code>working_memory</code> 的唯一所有者就是它，<code>Memory</code> 类没有第二份持久化的 working memory。<code>Memory.remember_file()</code> 只负责向那张工作便笺写入内容；模块级 <code>store_excerpt()</code> 才负责跨运行来源认证。</p>
 <p>当前调用模型所需的原生工具历史由 Runtime 单独维护；<code>messages</code> 不能简单拿来替代完整的调用/结果协议。有关这部分，回看<a href="02-model-protocols.html">模型协议</a>与<a href="07-context-archives.html">上下文归档</a>。</p>
+<p><strong>历史说明：工作记忆曾经每个请求都发给模型。</strong> 早期版本在请求末尾附一份 <code>working_memory</code> 文本；自 2026-10-16 的 v10（<code>ad63d26</code>）起，它不再渲染进模型请求。原因是：这些 500 字符摘录在历史里已有原文，属于重复，也没有评测证明它提高通过率；而它又是那条“每轮整条替换”的请求尾部里最大的一块，替换式尾部会让供应商的提示词缓存失效（现在改为只追加、内容变化才追加一条上下文便笺，见<a href="12-plans-and-skills.html">第 12 章</a>）。设计依据与审计见 <a href="../source/docs/context-state-plan.md">context-state-plan.md（Markdown 原文下载）</a> 第 1.2、1.3 节，回归测试见 <a href="../source/tests/test_harness.py.html">test_harness.py</a> 的 <code>test_read_file_updates_working_memory_without_reinjecting_summary</code>。数据结构、写入和失效逻辑都保留，因为它还有三个读者：Worker 交付时的摘录回退（<code>WorkerManager._source_excerpts</code>，<a href="13-interaction-and-workers.html">第 13 章</a>）、TUI 的 <code>/working-memory</code> 命令，以及训练环境的状态快照。</p>
 <h3 id="长期记忆存原始文档还是提炼出的知识">长期记忆存原始文档，还是提炼出的知识</h3>
 <p>两种都支持，但不会把整份文档或全部聊天自动搬进记忆。原文件留在工作区，交互与执行事件由运行记录保存；长期记忆保存前台或后台模型提炼的短条目，每条正文最多 1,000 字符：</p>
 <table>
@@ -79,7 +80,7 @@
 </tr>
 </tbody>
 </table>
-<p>上图展示文件来源的路径；事实和方法还可以引用当前运行中的真实用户请求、测试或 Shell 执行结果。模型负责归纳，Runtime 负责认证来源与检查准入。它仍是本地 JSON 中的小型知识集合，没有把交互历史重建成知识图谱；研究取舍见<a href="../source/docs/memory-knowledge-design.md">记忆设计说明（Markdown 原文下载）</a>。</p>
+<p>上图展示文件来源的路径；事实和方法还可以引用当前运行中的真实用户请求、测试或 Shell 执行结果。模型负责归纳，Runtime 负责认证来源与检查准入。条目以本地 JSON 保存；研究取舍见<a href="../source/docs/memory-knowledge-design.md">记忆设计说明（Markdown 原文下载）</a>。</p>
 <h2 id="顺着一次-read_file-读源码">顺着一次 read_file 读源码</h2>
 <p>从 <a href="../source/src/aster/core/runtime.py.html">Runtime._collect_step</a> 搜索观察采集路径；当前实现把工作记忆和读取证据放在步骤收集阶段，前台工具入库在 <code>memory.py</code> 的 <code>store_excerpt</code> 中认证，后台跨任务入库则由 <code>maintenance.py</code> 核对事件来源：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">outcome</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span> <span class="ow">and</span> <span class="n">call</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"read_file"</span><span class="p">:</span>
@@ -88,7 +89,7 @@
     <span class="n">state</span><span class="o">.</span><span class="n">read_evidence</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">outcome</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">"source_sha256"</span><span class="p">]</span>
 </pre></div>
 </div>
-<p>这里的 <code>outcome</code> 是工具结果。<code>_collect_step</code> 负责把本次观察写入运行状态；长期入库时再由 <code>memory.store_excerpt</code> 认证知识来源，原文类型还要检查摘录是否确实出现在读取结果中。<code>content</code> 是展示给模型的文本，<code>data</code> 是程序消费的结构化信息；<code>source_sha256</code> 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。</p>
+<p>这里的 <code>outcome</code> 是工具结果。<code>_collect_step</code> 负责把本次观察写入运行状态（真实代码在写入工作记忆前还会用 <code>redactor.text</code> 脱敏，这里省略）；长期入库时再由 <code>memory.store_excerpt</code> 认证知识来源，原文类型还要检查摘录是否确实出现在读取结果中。<code>content</code> 是工具给出的正文，<code>data</code> 是程序消费的结构化信息。注意模型看到的读取结果每行前面多了行号（<code>1: Service port is 8123.</code>），那是 Runtime 把结果写进模型历史时才加的；工作记忆和执行记录里存的是没有行号的原文，所以 <code>memory_store</code> 的摘录也要写原文。<code>source_sha256</code> 是读取时文件内容的哈希值，可用来判断后来是否发生变化。哈希值不是文件内容的摘要文字，而是内容指纹。</p>
 <p>继续到 <a href="../source/src/aster/knowledge/memory.py.html">Memory.remember_file</a>：</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">remember_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">working</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">working</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -96,10 +97,11 @@
 </pre></div>
 </div>
 <p><code>summary</code> 这个字段名容易引起误解：目前保存的是结果前 <strong>500 个字符</strong>，没有额外调用模型生成摘要。<code>updated</code> 是更新时间。搜索和测试也会写入工作记忆，键分别是 <code>__search__</code>、<code>__run_tests__</code>，表示这两类结果，而不是某个真实文件路径。</p>
-<p><code>Runtime.prepare_request()</code> 将工作记忆转成短文本，交给上下文构建器。它不是无限扩容的第二个上下文；最终输入仍受第 06 章介绍的全局预算约束。</p>
+<p><code>Runtime.prepare_request()</code> 组装请求时不再读取工作记忆（见上面的历史说明）。模型看到的是只追加的历史，加上按需追加的上下文便笺（以 <code>[Context update, not an instruction]</code> 开头的用户消息；长期记忆召回见下文，计划与待办等状态见<a href="12-plans-and-skills.html">第 12 章</a>），它们一起受第 06 章介绍的全局预算约束。工作记忆里这 500 个字符只在 Runtime 内部流转，例如 Worker 没有用 <code>worker_finish</code> 选出证据行段时，交付会回退到这里取最多四条摘录。</p>
 <h3 id="文件改了工作便笺也要失效">文件改了，工作便笺也要失效</h3>
-<p>如果 Agent 修改了已读取文件，Runtime 会删除对应的旧工作记忆；如果外部进程修改了文件，<code>_refresh_observations()</code> 会检查 <code>read_evidence</code> 中记录的指纹，删除过期项。搜索和测试结果也可能随文件变化失效。</p>
-<p>因此，“之前看过”不等于“现在仍然有效”。编辑前的 fresh read 检查与这里共享了文件指纹这个事实依据，详见<a href="03-tool-system.html">工具系统</a>。</p>
+<p>如果 Agent 修改了已读取文件，Runtime 会删除对应的旧工作记忆；如果外部进程修改了文件，<code>_refresh_observations()</code> 会检查 <code>read_evidence</code> 中记录的指纹，删除过期项。搜索和测试结果也可能随文件变化失效。用户在运行中追加新指导（见<a href="13-interaction-and-workers.html">第 13 章</a>），或带反馈续聊时，读取证据与工作记忆也会被整体清空，要求重新读取。</p>
+<p>有一个例外：自己成功的 <code>write_file</code>/<code>patch_file</code> 不会让读取证据失效。<code>_collect_step</code> 在写入成功后重新读一次文件，若与写入回执里的字节指纹一致，就把 <code>read_evidence[path]</code> 改绑到写入后的内容（<code>0c3ca67</code>，2026-10-16），所以同一个文件可以连续编辑，不必每次先重读；被清掉的只是工作便笺里该文件的旧摘录（以及搜索、测试两条汇总），下一次 <code>read_file</code> 才会重建它。其他方式造成的变化（外部进程、<code>run_shell</code> 写文件）仍要重新读取。</p>
+<p>文件指纹把读取证据绑定到具体版本，编辑前的 fresh read 检查也使用这份依据，详见<a href="03-tool-system.html">工具系统</a>。</p>
 <h2 id="跨运行保存模型提出候选runtime-检查出处">跨运行保存：模型提出候选，Runtime 检查出处</h2>
 <p><code>memory_store</code> 接收的关键参数如下：</p>
 <table>
@@ -129,7 +131,7 @@
 <tr>
 <td><code>evidence_id</code></td>
 <td>当前运行的真实来源</td>
-<td>读取证据 ID；派生知识也可用 <code>user</code></td>
+<td>工具结果里显示的 12 位引用或完整 ID；派生知识也可用 <code>user</code></td>
 </tr>
 <tr>
 <td><code>evidence_ids</code></td>
@@ -143,8 +145,9 @@
 </tr>
 </tbody>
 </table>
-<p>Runtime 不会因为模型写了一个 <code>evidence_id</code> 就相信它。<code>WorkflowTools.execute()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>（保留兼容名称）：它在本 run 中认证来源。原文摘录只接受成功 <code>read_file</code>；<code>fact</code> 与 <code>procedure</code> 都还接受真实用户请求，以及实际执行的测试或 Shell 结果。<code>evidence_id=&quot;user&quot;</code> 会解析为本次运行的真实用户事件，不能用 Runtime 自动生成的纠偏提示冒充用户约定。</p>
-<p><code>excerpt</code> 必须是观察中的原文，比较时归一化空白；<code>fact</code> 与 <code>procedure</code> 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。认证来源不等于证明归纳正确，没有另一个模型替它做语义验证。</p>
+<p><code>WorkflowTools.execute()</code> 委托 <code>memory.py</code> 模块级的 <code>store_excerpt</code>（保留兼容名称）：它在本 run 中认证来源。原文摘录只接受成功 <code>read_file</code>；<code>fact</code> 与 <code>procedure</code> 都还接受真实用户请求，以及实际执行的测试或 Shell 结果。<code>evidence_id=&quot;user&quot;</code> 会解析为本次运行的真实用户事件，不能用 Runtime 自动生成的纠偏提示冒充用户约定。</p>
+<p>模型从哪里拿到 <code>evidence_id</code>？读取、Shell 和测试结果开头的方括号状态行里有一项 <code>evidence a1b2c3d4e5f6</code>（完整 ID 的前 12 位；出错时与原因写在同一行，如 <code>[error: tests_failed; evidence …]</code>）。这条引用只在 <code>memory_store</code> 已经加载、出现在本次请求的工具表里时才显示（<a href="../source/src/aster/context/view.py.html">view.py</a> 的 <code>references</code>，由 <a href="../source/src/aster/context/budget.py.html">budget.py</a> 的 <code>citing</code> 决定）；没加载时它对模型没有用处，却会随历史在每个请求里重复，所以按需显示，设计依据见 <a href="../source/docs/harness-v15.md">harness-v15.md（Markdown 原文下载）</a> 第 2 节。一旦加载，更早的结果也会重新带上引用。认证时，<code>store_excerpt</code> 接受完整 ID，或在本次运行里唯一匹配的 12 位以上十六进制前缀；前缀有歧义或根本不存在，一律返回 <code>memory_provenance</code>，不会猜。</p>
+<p><code>excerpt</code> 必须是观察中的原文，比较时归一化空白；<code>fact</code> 与 <code>procedure</code> 可归纳，但必须有来源和适用条件。所有类型都检查敏感信息、临时状态、越权指令及来源文件的当前哈希。来源认证确认出处，归纳质量通过后续使用与纠正继续检验。</p>
 <p>通过检查后的记录包含：</p>
 <table>
 <thead>
@@ -180,7 +183,7 @@
 </tr>
 </tbody>
 </table>
-<p>这是一份轻量项目知识库，当前最多保留 64 条记录。它没有向量数据库。后台会提出提炼与合并候选，但没有额外语义裁判证明候选一定正确。</p>
+<p>知识库当前最多保留 64 条记录，使用本地 JSON 和关键词召回。后台提出提炼、合并候选，来源校验与使用反馈负责后续维护。</p>
 <h3 id="更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</h3>
 <table>
 <thead>
@@ -209,10 +212,10 @@
 </tbody>
 </table>
 <p><code>lesson_id</code> 就是条目的 <code>id</code>。更新仍需要 <code>text</code> 和 <code>evidence_id</code>，不能随意改写事实；新文本生成新 ID 时，旧条目被标记为 <code>superseded</code>，表示已被替代。比如用户纠正报表时区，模型可引用新请求更新旧约定；新知识未通过准入时，旧条目不会先被停用。丢弃也保留原记录，并不是物理删除文件。下一章解释任务后的自动提炼、并行整理和使用反馈如何维护排序与有效状态。</p>
-<p>除了工具写入，默认的自动学习还会从已结束任务中提炼遗漏知识。原始对话保存在 trace，待整理队列只记任务 ID 和证据引用；最多处理三个任务、提交三项修改，用户不必说“请记住”。更新保留新旧来源，旧条目停用后不再占用召回名额。具体调度与成本见<a href="11-memory-evolution.html">下一章</a>。</p>
+<p>除了工具写入，默认的自动学习还会从已结束任务中提炼遗漏知识。原始对话保存在 trace，待整理队列只记任务 ID 和证据引用；最多处理三个任务、提交三项修改，用户不必说“请记住”。更新保留新旧来源，旧条目停用后不再占用召回名额。交互式会话在任务边界于后台处理这个队列；单次 CLI 任务（<code>aster '任务'</code>）自 2026-10-18 起默认只登记材料、不在本进程里发起提炼，留给下一次交互式会话。具体调度与成本见<a href="11-memory-evolution.html">下一章</a>。</p>
 <h2 id="召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</h2>
 <p><code>Memory.retrieve(query, limit=3)</code> 先过滤已停用、有反证、不合规或来源失效的记录，再按关键词重合与可靠度排序。<code>query</code> 是查询文本，<code>limit</code> 是最多返回多少条。</p>
-<p>Runtime 构造输入时会结合初始任务和最近一次真实用户请求，自动召回最多三条；恢复提醒、反思等内部 <code>role=user</code> 消息不再改变检索查询。模型也可以先通过 <code>tool_load</code> 加载 <code>memory_retrieve</code>，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权。</p>
+<p>Runtime 构造输入时会结合初始任务和最近一次真实用户请求，自动召回最多三条；恢复提醒、反思等内部 <code>role=user</code> 消息不再改变检索查询。模型也可以先通过 <code>tool_load</code> 加载 <code>memory_retrieve</code>，再提交更具体的查询。召回的项目知识作为背景数据进入上下文，不构成新的权限授权：它作为 <code>memory</code> 上下文便笺追加到历史末尾，召回结果没有变化时不再重复追加。</p>
 <p>关键词方案适合小型项目知识库，但它不是语义检索器。中文分词、同义表达和复杂相关性不是当前实现的强项。判断是否需要升级检索，应先看实际漏召回的任务。</p>
 <h2 id="离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</h2>
 <p>在项目根目录激活环境：</p>
@@ -222,6 +225,7 @@
 <p>把下面代码块保存到临时 Python 文件并运行，或整体放进 <code>python - &lt;&lt;'PY'</code> 与结束行 <code>PY</code> 之间执行。代码只创建临时工作区，不连接模型、不修改你的项目文件。</p>
 <div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span><span class="c1"># 可运行实验</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
 
@@ -244,12 +248,22 @@
         <span class="p">))</span>
         <span class="k">assert</span> <span class="n">observed</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span>
         <span class="k">assert</span> <span class="s2">"config.txt"</span> <span class="ow">in</span> <span class="n">first</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">working_memory</span>
+        <span class="c1"># 模型请求里只有历史中的那一份读取结果；工作便笺不再附带，memory_store 未加载时也没有证据引用。</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="n">sent</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">working_text</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">working_section</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">working_memory</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">sent</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"Service port is 8123."</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">working_text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sent</span>
+        <span class="k">assert</span> <span class="s2">"[evidence "</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sent</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"模型请求：读取结果 1 份，工作便笺 0 份，证据引用 无"</span><span class="p">)</span>
         <span class="k">await</span> <span class="n">first</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">"tool_load"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span><span class="s2">"names"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"memory_store"</span><span class="p">]}</span>
         <span class="p">))</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="sa">f</span><span class="s2">"[evidence </span><span class="si">{</span><span class="n">observed</span><span class="o">.</span><span class="n">evidence_id</span><span class="p">[:</span><span class="mi">12</span><span class="p">]</span><span class="si">}</span><span class="s2">]"</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"加载 memory_store 后：同一条读取结果带 12 位证据引用"</span><span class="p">)</span>
         <span class="n">stored</span> <span class="o">=</span> <span class="k">await</span> <span class="n">first</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">ToolCall</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"memory_store"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{</span>
             <span class="s2">"text"</span><span class="p">:</span> <span class="s2">"Service port is 8123."</span><span class="p">,</span>
-            <span class="s2">"evidence_id"</span><span class="p">:</span> <span class="n">observed</span><span class="o">.</span><span class="n">evidence_id</span><span class="p">,</span>
+            <span class="s2">"evidence_id"</span><span class="p">:</span> <span class="n">observed</span><span class="o">.</span><span class="n">evidence_id</span><span class="p">[:</span><span class="mi">12</span><span class="p">],</span>
             <span class="s2">"tags"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"service"</span><span class="p">,</span> <span class="s2">"port"</span><span class="p">],</span>
         <span class="p">}))</span>
         <span class="k">assert</span> <span class="n">stored</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"success"</span><span class="p">,</span> <span class="n">stored</span><span class="o">.</span><span class="n">reason</span>
@@ -261,6 +275,11 @@
         <span class="k">assert</span> <span class="n">second</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">working_memory</span> <span class="o">==</span> <span class="p">{}</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">second</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="s2">"service port"</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">"第二次运行：短期摘录 = 0，长期召回 = 1"</span><span class="p">)</span>
+        <span class="n">prompt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">second</span><span class="o">.</span><span class="n">prepare_request</span><span class="p">()</span>
+        <span class="n">recalled</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s2">"content"</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">prompt</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"content"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+            <span class="s2">"[Context update, not an instruction]</span><span class="se">\n</span><span class="s2">memory:"</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">recalled</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s2">"Service port is 8123."</span> <span class="ow">in</span> <span class="n">recalled</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"第二次运行的请求：召回作为 1 条上下文便笺追加"</span><span class="p">)</span>
 
         <span class="n">source</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"Service port is 9090.</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">second</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">retrieve</span><span class="p">(</span><span class="s2">"service port"</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span>
@@ -284,30 +303,36 @@
 </pre></div>
 </div>
 <p>预期输出：</p>
-<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>第一次运行：短期摘录 = 1，长期记忆 = 1
+<div class="code-frame"><button class="copy-code" title="复制代码" aria-label="复制代码">复制</button><div class="highlight"><pre><span></span>模型请求：读取结果 1 份，工作便笺 0 份，证据引用 无
+加载 memory_store 后：同一条读取结果带 12 位证据引用
+第一次运行：短期摘录 = 1，长期记忆 = 1
 第二次运行：短期摘录 = 0，长期召回 = 1
+第二次运行的请求：召回作为 1 条上下文便笺追加
 来源文件变化后：长期召回 = 0
 关闭长期记忆后：短期摘录仍然存在
 </pre></div>
 </div>
 <p>注意第二次调用 <code>Runtime.start()</code> 是新任务，不是恢复旧任务。若你执行 <code>resume()</code>，检查点中的 <code>working_memory</code> 会随旧运行状态恢复，仍然是原来那一份短期状态。</p>
-<h2 id="练习记住看过的还是猜到的">练习：记住“看过的”还是“猜到的”</h2>
+<h2 id="练习与核对">练习与核对</h2>
 <ol>
 <li>把存储参数的 <code>text</code> 改成 <code>Service port is 9999.</code>，其他参数不变。哪一层会拒绝它？</li>
 <li>在长期记忆关闭时调用 <code>memory_store</code>，只是模型看不到工具，还是直接执行也会拒绝？</li>
 <li>如果文件只增加一行无关注释，原有记忆会继续召回吗？这个选择有什么代价？</li>
+<li>实验里 <code>prepare_request()</code> 的结果不含工作便笺。如果在请求之前把 <code>first.state.working_memory</code> 清空，请求会变吗？哪些功能会受影响？</li>
+<li>在加载 <code>memory_store</code> 之前，模型能从读取结果里看到 <code>[evidence …]</code> 吗？这会让后来的 <code>memory_store</code> 认证更严格吗？</li>
 </ol>
 <details>
 <summary>参考答案</summary>
 <ol>
 <li>Runtime 找得到读取证据，但 <code>Memory.record()</code> 找不到对应摘录，返回 <code>unsupported_excerpt</code>。在实验中需要相应调整成功断言。</li>
 <li>两边都受能力检查约束。<code>_unavailable_reason()</code> 返回 <code>memory_disabled</code>；工具目录和直接调用都会使用这项检查，<code>tool_profile=&quot;all&quot;</code> 也不会绕过它。</li>
-<li>不会。当前用整份来源文件的指纹校验，任何文本变化都会让旧摘录失效。这很保守，会牺牲一些命中率，但避免继续信任旧事实。它不是段落级依赖分析。</li>
+<li>不会。当前用整份来源文件的指纹校验，任何文本变化都会让旧摘录失效。整文件校验实现简单，代价是无关改动也会使摘录失效。</li>
+<li>请求不会变，因为组装请求只用历史、便笺和工具表，不读工作记忆。受影响的只是它的读者：<code>/working-memory</code> 显示为空、Worker 交付少了摘录回退、训练快照里的 <code>working_memory</code> 为空。</li>
+<li>看不到：引用只在 <code>memory_store</code> 位于请求的工具表里时才渲染。这不影响认证，因为认证不看显示：<code>store_excerpt</code> 在本次运行的执行记录里按完整 ID 或唯一的 12 位以上前缀查找。显示只是让模型有东西可抄，抄错的前缀会得到 <code>memory_provenance</code>（见 <a href="../source/tests/test_compact_observations.py.html">test_compact_observations.py</a> 的 <code>test_memory_store_accepts_the_visible_evidence_prefix</code>）。</li>
 </ol>
 </details>
-<h2 id="本章的验收点与边界">本章的验收点与边界</h2>
-<p>能解释实验的四行输出，比背下“分层记忆”这个词更重要。对应自动回归可阅读 <a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a> 与 <a href="../source/tests/test_runtime_repairs.py.html">test_runtime_repairs.py</a>，重点搜索 <code>disabled_durable_memory</code> 和 <code>memory_cannot_launder</code>。归纳、用户纠正和执行经验的跨会话用例见 <a href="../source/tests/test_memory_knowledge.py.html">test_memory_knowledge.py</a>。</p>
-<p>实验验证的是存储、隔离和失效机制，没有测模型任务成功率；<code>Settings.memory_enabled</code> 默认是 <code>True</code>，普通用户无需配置即可使用项目记忆。显式关闭它不影响本 run 的 <code>working_memory</code>。启用后，每次构造请求按初始任务与最近用户反馈召回，并重新检查来源。跨运行记忆的收益应使用同题对照，观察重复读取、额外调用和正确率；参见<a href="14-evaluation.html">评测章节</a>。</p>
+<h2 id="继续读源码">继续读源码</h2>
+<p>工作记忆、来源认证和失效路径见 <a href="../source/tests/test_memory_evolution.py.html">test_memory_evolution.py</a>、<a href="../source/tests/test_runtime_repairs.py.html">test_runtime_repairs.py</a>；归纳、用户纠正与执行经验见 <a href="../source/tests/test_memory_knowledge.py.html">test_memory_knowledge.py</a>。实际收益按同题对照观察重复读取、额外调用与任务正确率，方法见<a href="14-evaluation.html">第 14 章</a>。</p>
 <p>下一章继续处理另一种老化：文件没变，某条建议却连续使用失败。Aster 如何调整它的排序，何时停用，以及停错了如何恢复？</p>
 <p><a href="09-checkpoint-resume.html">上一章：检查点与恢复</a> · <a href="../index.html">目录</a> · <a href="11-memory-evolution.html">下一章：记忆自进化</a></p>
-<nav class="chapter-nav"><a href="09-checkpoint-resume.html">← 09｜检查点与恢复：继续一个任务之前先确认世界没变</a><a href="11-memory-evolution.html">11｜记忆自进化：让使用结果影响下一次选择 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题记住所有聊天不等于用好记忆">问题：记住所有聊天，不等于用好记忆</a><a href="#三种信息放在哪里">三种信息放在哪里</a><a href="#长期记忆存原始文档还是提炼出的知识">长期记忆存原始文档，还是提炼出的知识</a><a href="#顺着一次-read_file-读源码">顺着一次 read_file 读源码</a><a href="#文件改了工作便笺也要失效">文件改了，工作便笺也要失效</a><a href="#跨运行保存模型提出候选runtime-检查出处">跨运行保存：模型提出候选，Runtime 检查出处</a><a href="#更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</a><a href="#召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</a><a href="#离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</a><a href="#练习记住看过的还是猜到的">练习：记住“看过的”还是“猜到的”</a><a href="#本章的验收点与边界">本章的验收点与边界</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
+<nav class="chapter-nav"><a href="09-checkpoint-resume.html">← 09｜检查点与恢复：继续一个任务之前先确认世界没变</a><a href="11-memory-evolution.html">11｜记忆自进化：让使用结果影响下一次选择 →</a></nav></article></main><aside class="toc"><strong>本页目录</strong><a href="#问题哪些信息值得带到下次任务">问题：哪些信息值得带到下次任务</a><a href="#三种信息放在哪里">三种信息放在哪里</a><a href="#长期记忆存原始文档还是提炼出的知识">长期记忆存原始文档，还是提炼出的知识</a><a href="#顺着一次-read_file-读源码">顺着一次 read_file 读源码</a><a href="#文件改了工作便笺也要失效">文件改了，工作便笺也要失效</a><a href="#跨运行保存模型提出候选runtime-检查出处">跨运行保存：模型提出候选，Runtime 检查出处</a><a href="#更新和删除也要有清楚的语义">更新和删除也要有清楚的语义</a><a href="#召回相关只是第一步还要检查是否过期">召回：相关只是第一步，还要检查是否过期</a><a href="#离线实验记住一个事实再让它过期">离线实验：记住一个事实，再让它过期</a><a href="#练习与核对">练习与核对</a><a href="#继续读源码">继续读源码</a></aside></div><div class="mobile-overlay"></div><script src="../assets/site.js" defer></script></body></html>
