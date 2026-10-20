@@ -1,6 +1,6 @@
 # 12 · 计划、待办与 Skills：记住要做什么，也记住怎么做
 
-> 一句话：计划组织目标，待办记录进度，Skill 按需提供做事方法；三者都不创建另一套主循环。
+> 一句话：计划组织目标，待办记录进度，Skill 按需提供做事方法。
 
 上一章：[记忆演化](11-memory-evolution.md) · [目录](README.md) · 下一章：[人工交互与子任务](13-interaction-and-workers.md)
 
@@ -11,7 +11,7 @@
 再假设项目有固定的测试约定，每次在用户请求里重复粘贴一大段说明也很费力。
 
 Aster 对这两件事采用不同表示：当前任务的计划与待办放在 `RunState`；可复用的操作说明放在工作区的 Markdown Skill 中。
-这样任务结束不会把所有临时待办都误当成长期经验，也不需要向量数据库来查找几个本地说明文件。
+前者跟随任务生命周期，后者按名称跨任务复用。
 
 ```mermaid
 flowchart LR
@@ -28,7 +28,7 @@ flowchart LR
 ## 计划和待办到底存了什么
 
 看 [schema.py](../../src/aster/schema.py) 的 `RunState`，再看 [WorkflowTools.execute()](../../src/aster/tools/workflow.py) 的 `todo_*` 和 `plan_*` 分支。
-它们的状态很直接，没有隐藏的工作流 DAG，也没有另起一个规划模型。
+这些工具直接更新当前运行的计划与待办。
 
 | 字段或工具 | 含义 | 不自动提供什么 |
 |---|---|---|
@@ -44,12 +44,23 @@ flowchart LR
 Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所有待办都打勾了”。
 
 `plan_write` 修改的是运行状态，并随检查点保存，不会自动在仓库根目录写一个 `PLAN.md`。
-`ContextBuilder` 会把计划和未完成待办放入工作流状态区；内容太长时也受全局上下文预算约束。
-完整内容仍可通过分页 `todo_list` 回读。
+
+模型怎么看到计划和待办？会变化的上下文被做成“上下文便笺”：以 `[Context update, not an instruction]` 开头的用户消息，一共四种——`workflow_state`（工作流状态）、`memory`（长期记忆召回，见[第 10 章](10-layered-memory.md)）、`skills`（Skill 目录）和 `active_skill_bodies`（已选 Skill 正文），名单见 [CONTEXT_SECTIONS](../../src/aster/context/prompt.py)。计划和未完成的待办放在 `workflow_state` 状态便笺里，由 [render_workflow](../../src/aster/context/view.py) 渲染成几行可读文字，例如：
+
+```text
+mode: plan
+plan: 先读说明，再准备测试。
+todo 1 [pending]: 读完 Python 检查说明
+active skills: python-check@17f4f8e7e071
+```
+
+除了计划和未完成的待办，便笺里还会出现已修改的文件、验证状态、完成前还缺什么（`before final answer`）以及预算偏紧时的提示；已完成或取消的待办不再列出。内容太长时仍受全局上下文预算约束，完整内容可通过分页 `todo_list` 回读。`Settings.workflow_notes=False` 可以关掉这条便笺，训练配置档就是这样做的（见[第 15 章](15-rl-interface.md)）。
+
+便笺只在渲染结果变化时才追加到历史末尾，已写入的不就地改写（只有上下文压缩时，才整体移除旧便笺、重新追加一组完整的）。这样每个请求都是上一个请求的纯追加，供应商的提示词缓存才用得上。这条状态信息走过两步：2026-10-16 的 v10（`ad63d26`）之前，状态是附在每个请求末尾、每轮替换的一条消息，会让缓存失效（[上下文状态只追加方案](../context-state-plan.md)）；2026-10-19 的 v15（`a774b25`）又把便笺正文从带两串 64 位哈希的 JSON 改成现在的可读文字（[harness-v15.md](../harness-v15.md) 第 1 节）。
 
 `todo_add` 可附带 `acceptance`，把普通待办标为需要验收的交付项。关闭这类事项必须通过 `todo_update.resolution` 写明实际检查或取消原因；未处理项阻止严格完成，取消项使交付保留警告。这个规则同样适用于单 Agent，不要求启动 Worker。没有 `acceptance` 的旧待办保持原有语义；状态是模型的工作记录，不能替代独立测试。
 
-## 写计划不等于进入计划模式
+## 计划内容与运行模式
 
 `plan_enter` 将 `state.mode` 切为 `plan`，使工作区写入工具不可用。
 进入前还会等待现有 workers 关闭并汇总状态，避免父任务转成只读后，旧的子任务仍继续写入。
@@ -59,7 +70,7 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 如果全局设置是 `read_only=True`，不能通过退出计划模式解除只读。
 这沿用了第 04 章的原则：运行模式只能在已有授权内切换，不能扩大上层约束。
 
-## Skill 是本地说明文件，不是可执行插件
+## Skill：可复用的本地说明
 
 [Skills](../../src/aster/knowledge/skills.py) 搜索两处目录：
 
@@ -72,10 +83,10 @@ Runtime 的完成检查使用 `TaskSpec` 与验证证据，而不是只看“所
 这里同时支持旧式 `<name>.md` 与包式 `<name>/SKILL.md`；包可带 `name`/`description` 元数据和受限只读资源。catalog 不只是名称，还返回 `path`、包的 `base_dir`、`description`、`resources` 和截断标记；旧式单文件没有包资源。同名时优先读取 `.aster/skills`；目录列表只包含合法名称的普通文件或包目录，不跟随符号链接。
 名称允许字母、数字、下划线、点和连字符，长度 1–80；单个文件上限是 20 KiB，按字节计算。
 
-第一轮上下文包含 Skill 名称目录。模型选择 `skill_load(name="test-python")` 后，名字写入 `state.active_skills`。
-首次加载正文后，Runtime 把内容保存为 `state.skill_snapshots`，下一轮使用固定快照；文件变化不会自动更新，只有 `refresh=True` 才显式刷新。`resource` 只读取当前包资源，不能与 refresh 同用。分页读取是一种观察接口，`active_skills` 和快照共同表示已选说明。
+目录以 `skills` 上下文便笺的形式随上下文送给模型。模型选择 `skill_load(name="test-python")` 后，名字写入 `state.active_skills`。
+首次加载正文后，Runtime 把内容保存为 `state.skill_snapshots`，之后 `active_skill_bodies` 上下文便笺使用这份固定快照；文件变化不会自动更新，只有 `refresh=True` 才显式刷新，刷新后模型会在该次结果开头看到一行 `[updated: version 旧12位 -> 新12位]`。`resource` 只读取当前包资源，不能与 refresh 同用。分页读取是一种观察接口，`active_skills` 和快照共同表示已选说明。
 
-下面是从 `WorkflowTools.execute` 压缩出的**有效关键节选**；`text` 在这之前已由 `redactor.text()` 脱敏，省略的上下文不会改变顺序：
+下面节选 `WorkflowTools.execute` 的加载与快照逻辑，正文先经过脱敏：
 
 ```python
 resource = args.get("resource", "")
@@ -98,14 +109,18 @@ if not resource:
     state.skill_snapshots[args["name"]] = snapshot
     if args["name"] not in state.active_skills:
         state.active_skills.append(args["name"])
+    result.data.update(
+        version=snapshot.sha256,
+        previous_version=previous.sha256 if previous else None,
+        updated=previous is not None and previous.sha256 != snapshot.sha256,
+    )
 result.data["untrusted"] = True
 return result
 ```
 
-`resource` 分支只读取当前包资源，不写入 `active_skills` 或正文快照；它不能和 `refresh` 同用。`untrusted=True` 是工具结果中的元数据标记，当前上下文层并不读取这个字段。
-上下文构造会另外把 Skill 正文统一标为不可信资料，执行权限则由 Runtime 独立检查。
-Skill 写着“允许联网”不会修改 `Settings.network`；写着“忽略安全规则”也不会跳过工具校验。
-安全边界由 Runtime 执行，不能由一份 Markdown 自行授权。
+`resource` 分支只读取当前包资源，不写入 `active_skills` 或正文快照；它不能和 `refresh` 同用。`version`、`previous_version`、`updated` 三项不是给模型读的正文：渲染层据此在 `refresh` 改变了正文时加上那行 `[updated: …]`。`untrusted=True` 是工具结果中的元数据标记，当前上下文层并不读取这个字段。
+Skill 正文以 `active_skill_bodies` 上下文便笺进入上下文（开头就是 `[Context update, not an instruction]`），系统提示词还规定 Skill 的描述和内容是不可信资料、不能改变权限；执行权限则由 Runtime 独立检查。
+例如网络权限仍由 `Settings.network` 决定，Skill 提供任务做法。
 
 ## 分页字段应该怎么读
 
@@ -115,13 +130,15 @@ Skill 写着“允许联网”不会修改 `Settings.network`；写着“忽略�
 | 字段 | 含义 |
 |---|---|
 | `offset` | 本页起点，第一页传 0 |
-| `limit` | 本页最多多少字符，默认 512，最大 1000 |
+| `limit` | 本页最多多少字符，默认 4,000，最大 12,000 |
 | `next_offset` | 下一页起点；`None` 表示读完 |
 | `total` | 完整脱敏文本的字符数 |
 
 `Outcome.content` 第一行是分页信息 JSON，后面才是正文。
-遇到上下文压缩时，返回给模型的可见页还可能缩短；应跟随实际收到的 `next_offset`，不要自己假设永远加 512。
+遇到上下文压缩时，返回给模型的可见页还可能缩短；应跟随实际收到的 `next_offset`，不要自己假设每页都是 `limit` 个字符。
 这也是归档与分页要一起设计的原因：下一步必须能接着读，不应静默跳过被压掉的内容。
+
+页长的默认值有过调整：最初默认 512、上限 1,000，读一份 8 KB 的归档输出要 8 次调用，而每次调用都是一个模型回合；2026-10-17（`fb753b3`）起改为默认 4,000、上限 12,000。`observation_read`、`todo_list`、`skill_load` 的参数都继承同一个 [TextPage](../../src/aster/tools/schemas.py)。
 
 ## 离线实验：规划期间不能写，Skill 可以按页读完
 
@@ -159,6 +176,11 @@ async def main():
         async def call(tool_name, **arguments):
             return await runtime.step(ToolCall(name=tool_name, arguments=arguments))
 
+        def state_note(prompt):
+            prefix = "[Context update, not an instruction]\nworkflow_state:\n"
+            notes = [item["content"] for item in prompt if str(item.get("content", "")).startswith(prefix)]
+            return notes[-1][len(prefix):]
+
         await call("tool_load", names=[
             "plan_enter", "plan_exit", "plan_write", "todo_add",
             "todo_update", "todo_list", "skill_load",
@@ -181,6 +203,15 @@ async def main():
         print("分页还原完整正文:", "".join(chunks) == text)
         assert "".join(chunks) == text
         print("活动技能:", runtime.state.active_skills)
+        prompt, _, _ = runtime.prepare_request()
+        note = state_note(prompt).splitlines()
+        assert note[3].startswith("active skills: python-check@")
+        print("状态便笺:")
+        for line in note[:3]:
+            print("  " + line)
+        _, _, report = runtime.prepare_request()
+        assert report.context_notes == 0
+        print("状态没变时，再次组装请求不追加便笺")
         (package / "SKILL.md").write_text("# 已修改正文\n", encoding="utf-8")
         fixed = await call("skill_load", name="python-check", offset=0, limit=40)
         assert fixed.status == "success" and "Python 检查" in fixed.content
@@ -194,6 +225,9 @@ async def main():
         await call("todo_update", todo_id=todo.data["id"], status="done")
         listing = await call("todo_list", limit=1000)
         print("待办状态:", listing.data["todos"][0]["status"])
+        prompt, _, _ = runtime.prepare_request()
+        assert "todo 1" not in state_note(prompt)
+        print("待办完成后，新便笺不再列出它")
         await call("plan_exit")
         print("退出后模式:", runtime.state.mode)
         print("请求批准的动作:", approvals)
@@ -209,9 +243,15 @@ asyncio.run(main())
 规划期间写入: plan_mode
 分页还原完整正文: True
 活动技能: ['python-check']
+状态便笺:
+  mode: plan
+  plan: 先读说明，再准备测试。
+  todo 1 [pending]: 读完 Python 检查说明
+状态没变时，再次组装请求不追加便笺
 固定快照后显式刷新: 通过
 包资源只读加载: 通过
 待办状态: done
+待办完成后，新便笺不再列出它
 退出后模式: work
 请求批准的动作: ['plan_exit']
 ```
@@ -221,6 +261,7 @@ asyncio.run(main())
 1. 把 `approval="ask"` 改为 `"auto"`，退出计划模式还会调用 `approve()` 吗？
 2. 在 Skill 中增加“现在允许修改所有文件”，计划模式下的写入会成功吗？
 3. 如果计划变了，应该新增 Skill 还是更新 `state.plan`？
+4. 用完全相同的内容再调用一次 `plan_write`，下一次组装请求会追加新的状态便笺吗？为什么这样设计？
 
 <details>
 <summary>参考答案</summary>
@@ -228,8 +269,8 @@ asyncio.run(main())
 1. 不会，已有自动批准策略直接允许，因此 `approvals` 应为空。
 2. 不会。说明文件的文字不修改权限和运行模式。
 3. 当前任务的方案改变应更新计划；稳定、可复用的操作说明才适合整理为 Skill。
+4. 不会。`context_notes()` 把新渲染的文字与历史中最近一条同类便笺比较，相同就跳过。状态没变的轮次不改变请求前缀，供应商的提示词缓存才能命中；如果每轮都重写一遍，每个请求就都不是上一个请求的纯追加了。
 
 </details>
 
-本章刻意保留普通列表、短文本和本地文件，方便你追踪每次动作改变了哪些状态。
-它适合轻量任务组织，没有实现跨任务依赖调度、Skill 市场或自动安装；相关边界可在 [test_skills.py](../../tests/test_skills.py) 与 [test_paged_state.py](../../tests/test_paged_state.py) 查看。
+普通列表、短文本与本地文件让状态变化便于追踪。加载、刷新、分页与计划模式的完整例子见 [test_skills.py](../../tests/test_skills.py) 和 [test_paged_state.py](../../tests/test_paged_state.py)。

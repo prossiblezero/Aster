@@ -8,7 +8,7 @@
 
 Agent 要修改导出格式，但用户还没决定用 CSV 还是 JSON：这需要向人提问。
 Agent 需要同时调查测试入口与模块结构：这可以交给一个只读子任务。
-两者都会暂停部分工作，但权限和返回结果很不一样，不能都塞进一个没有明确语义的“消息工具”。
+两者分别需要人的决策与子任务的调查结果，因此使用不同入口。
 
 Aster 将人工问题接到回调，将子任务接到 `WorkerManager`。
 CLI、TUI、父运行与子运行共享 Runtime 的工具、预算、检查点和权限逻辑。公开 CLI 支持 `--model`/profile 配置；TUI 命令的实际形式是 `/model [alias]`、`/new`、`/continue [--adopt-workspace]`、`/resume RUN_ID [--allow-model-change] [--adopt-workspace]`，恢复时的标志必须显式确认。模型切换不是任意输入型号即可接通：它要经过 profile 配置、空闲边界、历史转换和预算检查。
@@ -19,6 +19,8 @@ flowchart TD
     B --> C[CLI 输入 / TUI 弹窗]
     C --> D[回答作为工具结果返回]
     D --> A
+    U[运行中输入的补充消息] -->|enqueue_user_message| Q[user_inbox 队列]
+    Q -->|下一个安全边界| A
     A -->|worker_start| E[WorkerManager]
     E --> F[权限收窄的子 Runtime]
     A -->|worker_message| G[inbox 消息队列]
@@ -27,7 +29,7 @@ flowchart TD
     H -->|下一轮自动交付 / worker_status| A
 ```
 
-## `ask_user` 是真正的等待，不是占位返回
+## `ask_user`：等待人的回答
 
 在 [WorkflowTools.execute()](../../src/aster/tools/workflow.py) 中，人工提问的执行路径如下：
 
@@ -46,12 +48,23 @@ return Outcome(status="success", content=str(answer))
 
 批准动作使用另一个回调 `approval_callback(call, decision)`，返回布尔值。
 回答“用 JSON”不会变成批准删除文件；批准一个写入动作也不等于回答需求问题。
-它们在 TUI 可以长得相似，运行语义却始终分开。
+
+## 人也可以主动插话：运行中的补充消息
+
+`ask_user` 是 Agent 向人提问。反过来，任务跑到一半，用户发现要求说漏了，也可以直接补一句。TUI 在任务运行期间不锁输入框：不以 `/` 开头的文字会调用 `Runtime.enqueue_user_message()`，进入当前会话的持久化队列（最多 16 条，每条 1–16,384 字符）。2026-10-13（`0ce78db`）之前，运行中提交的文字只是被拦下、保留在输入框里，模型看不到。
+
+补充消息不会打断正在执行的工具，而是在安全边界生效：
+
+- 排队时正好在等模型回复：回复里的工具调用一个都不执行，每个调用得到 `blocked: user_message_pending`（`_step` 在占用步数之前检查队列）；如果回复是最终回答，任务也不会结束，而是带着新消息再请求一次。
+- 一批工具执行到一半：正在执行的那个做完，批里后面的返回 `user_message_pending`，没有副作用。
+- 交付发生在回复到达时、一批工具结束后，或组装下一次请求之前：`_deliver_user_messages()` 把队列写进历史，成为一条 `role=user` 的消息。
+
+交付时 Runtime 还会做三件事：用 `Verifier.infer` 判断新消息是否提高了任务要求（只增不减）；清空读取证据、验证状态和工作记忆，要求模型重新读取、重新测试；清掉停滞计数。原任务的步数、轮数预算和验收要求不重置。队列另存一份 `user-inbox.json`，进程在工具批次中途崩溃也不丢；每个会话各有自己的队列，切换会话后输入的话不会送到另一个会话。取舍和限制见[配置说明](../configuration.md)。
 
 ## TUI 改变的是交互方式
 
 [AsterTui](../../src/aster/ui/app.py) 使用 Textual，包含输入框、执行日志、轮次/工具次数和验证状态。[ui/widgets.py](../../src/aster/ui/widgets.py) 定义输入和批准框；[ui/commands.py](../../src/aster/ui/commands.py) 管理命令目录、解析和执行，App 持有界面状态并通过明确回调响应命令。
-提交任务后由异步 worker 驱动 Runtime，输入框暂时禁用，避免两个前台任务争用同一个运行状态。
+提交任务后由异步 worker 驱动 Runtime。任务运行期间输入框仍可输入：普通文字作为补充消息排队（见上一节），斜杠命令只放行只读检查、会话切换和 `/cancel`、`/quit`，其余会提示稍候，避免两个前台任务争用同一个运行状态。
 日志订阅 `EvidenceStore` 的事件，因此界面显示与执行记录来自同一条事件流。
 
 人工弹窗使用一个异步锁：父运行和子运行如果同时提问，问题会排队，而不是叠放两个互相遮挡的批准框。
@@ -91,7 +104,7 @@ aster --cwd /tmp/aster-tui-practice
 
 每次模型调用发出前，团队账本先预留估算输入与最大输出 token；请求结束后用供应商报告的 usage 结算。缺失 usage 时保留预估收费量，不把失败或取消当作免费请求。`RunState.team_usage` 随父检查点保存，恢复仍保留已消耗额度；它记录调用、工具和 token，不换算为精确的美元费用。
 
-主任务现在也会在调用次数或 token 预算临近上限时转入最终交付，使用已观察到的结果作答。父任务保留工具定义以减少缓存前缀变化，但执行入口禁止继续调用；子任务仍使用原有无工具交接。完成条件满足才标记完成，否则保留停止状态并说明缺口；如果最后一轮仍错误地请求工具，程序给出已修改文件和验证状态。后台记忆整理使用同一账本，预算不足时延期，并给前台留下收尾空间。这里依赖请求估算，不能保证每种上下文增长和供应商计量方式下都恰好用满预算。自动整理的成本与并发见[第 11 章](11-memory-evolution.md)。
+主任务现在也会在调用次数或 token 预算临近上限时转入最终交付，使用已观察到的结果作答。父任务保留工具定义以减少缓存前缀变化，但执行入口禁止继续调用；子任务仍使用原有无工具交接。完成条件满足才标记完成，否则保留停止状态并说明缺口；如果最后一轮仍错误地请求工具，程序给出已修改文件和验证状态。交互式会话里的后台记忆整理使用同一账本，预算不足时延期，并给前台留下收尾空间（单次 CLI 默认不启动整理）。这里依赖请求估算，不能保证每种上下文增长和供应商计量方式下都恰好用满预算。自动整理的成本与并发见[第 11 章](11-memory-evolution.md)。
 
 ### 交付范围与测试责任
 
@@ -121,7 +134,7 @@ Explore 和继承只读权限的子任务按调查交付：即使要求“找出
 
 面板复用 `WorkerManager` 和原有检查点，没有新执行服务。`overview()` 只读状态；`start(..., explicit=True)` 是界面入口，工具调用不能通过该参数绕过 `max_workers=0`。父回答后仍可调查和补问，但沿用该任务的剩余团队额度；已耗尽时需提交新的用户任务。
 
-交付中的 `stale_paths` 列出已读后又变化或不可读取的文件。摘要依然是模型判断，文件哈希仅用于发现过期证据，不证明结论正确。
+交付中的 `stale_paths` 标出已读后又变化或不可读取的文件，帮助父任务定位需要复查的来源。
 
 ## 消息要在明确边界生效
 
@@ -137,7 +150,7 @@ worker 已结束后，默认发送仍返回 `worker_finished`；显式 `resume=t
 
 子任务通过专用 `worker_finish(answer, sources)` 选择支撑结论的已读行段。`sources` 每项包含 `evidence_id/start/end/claim`，最多四段、原文合计不超过 8,000 字符；运行时从读取事件提取正文，检查行段、文件版本及子分支归属。可以选择较早读过的内容和同一文件的多个位置，无须重新读取或抄写。调用经过原有完成检查，成功后无需额外模型轮次重述答案；该工具只对子任务可见。要求 JSON 对象时可直接传对象作为 `answer`，由程序序列化。预算耗尽时仍支持无工具文本交付，未选择来源时回退至多四个既有的 500 字符摘录。
 
-`evidence_id` 可直接填子任务 `read_file` 输出的 12 位 `source_ref`，也兼容完整 ID。短引用必须在当前子分支已授权的读取中唯一匹配，再还原完整 ID；歧义时应复制完整 ID。写错的长 ID 不会被截短猜测。报错会区分未知引用与行段越界，给出可引用的真实范围；超长时说明总字符数、8,000 字符上限和各段大小。
+`evidence_id` 可直接填子任务 `read_file` 结果开头那一行 `[source_ref 96d89ddee00a]` 里的 12 位引用，也兼容完整 ID。这一行是模型视图渲染出来的（[view.py](../../src/aster/context/view.py) 的 `render_output`）：历史里保存的仍是带 `source_ref` 字段的 JSON 记录，2026-10-19 的 `a774b25` 之前模型直接读这份 JSON，之后读纯文本。子任务的读取结果始终带这一行，不像父任务的 `[evidence …]` 要等 `memory_store` 加载才出现，因为交付时必须引用来源。短引用必须在当前子分支已授权的读取中唯一匹配，再还原完整 ID；歧义时应复制完整 ID。写错的长 ID 不会被截短猜测。报错会区分未知引用与行段越界，给出可引用的真实范围；超长时说明总字符数、8,000 字符上限和各段大小。
 
 原始交付中的 `source_excerpts` 带结论标识、实际行段、文件哈希、完整证据 ID 和截断标记。父模型收到的副本省略摘录的两个长标识，正文则像 `read_file` 一样逐行编号；原文与元数据保留在磁盘、快照和直接状态 API 中。父模型收到仍匹配当前文件的摘录即可满足调查的观察门槛；不必为通过该门槛重复读一遍。但这些摘录不是父任务的编辑凭证，编辑仍需 `read_file`，子任务的测试状态也不会替代父任务测试。仅界面查看不认定已收到证据，旧快照只包含当时的摘录。补丁应使用去掉行号前缀的原始正文。
 
@@ -165,7 +178,6 @@ from aster.config import Settings
 from aster.core.runtime import Runtime
 from aster.schema import ModelReply, TaskSpec, ToolCall
 
-
 class PausedModel:
     def __init__(self):
         self.entered = asyncio.Event()
@@ -185,7 +197,6 @@ class PausedModel:
             }])
         self.saw_guidance = "还要检查许可证" in json.dumps(messages, ensure_ascii=False)
         return ModelReply(text="目录已查看，补充要求已收到。")
-
 
 async def main():
     with tempfile.TemporaryDirectory() as directory:
@@ -233,7 +244,6 @@ async def main():
         assert len(deliveries) == 1
         await runtime.workers.close()
 
-
 asyncio.run(main())
 ```
 
@@ -249,11 +259,88 @@ asyncio.run(main())
 补问自动交付次数: 1
 ```
 
+## 离线实验二：任务运行中插话
+
+这个实验用一个确定性的替身模型复现上面的“安全边界”：第一次回复被事件 `release` 卡住，期间用户插话；放行后模型仍按旧计划要写文件，Runtime 应当挡下这次写入，并让模型在第二次请求里看到新要求。
+
+```python
+# 可运行实验
+import asyncio
+import json
+import tempfile
+from pathlib import Path
+
+from aster.config import Settings
+from aster.core.runtime import Runtime
+from aster.schema import ModelReply, TaskSpec, ToolCall
+
+class SteeredModel:
+    """第一次回复前暂停，之后要求写文件；第二次回复文字。"""
+
+    def __init__(self):
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+        self.requests = []
+
+    async def complete(self, messages, tools):
+        self.requests.append(json.dumps(messages, ensure_ascii=False))
+        if len(self.requests) == 1:
+            self.entered.set()
+            await self.release.wait()
+            call = ToolCall(name="write_file", arguments={"path": "plan.txt", "content": "旧方案"})
+            return ModelReply(calls=[call], raw=[{
+                "type": "function_call", "name": call.name,
+                "call_id": call.call_id, "arguments": json.dumps(call.arguments, ensure_ascii=False),
+            }])
+        return ModelReply(text="已按新要求回答，没有写文件。")
+
+async def main():
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        model = SteeredModel()
+        runtime = Runtime(
+            root, Settings(approval="auto", completion="off", memory_enabled=False), model=model,
+        )
+        running = asyncio.create_task(runtime.run(TaskSpec(prompt="整理这个目录")))
+        await asyncio.wait_for(model.entered.wait(), timeout=5)
+
+        message_id = runtime.enqueue_user_message("先别改文件，只告诉我目录里有什么。")
+        print("模型回复前，队列中的补充消息:", len(runtime.state.user_inbox))
+        model.release.set()
+        state = await asyncio.wait_for(running, timeout=10)
+
+        print("任务状态:", state.phase)
+        print("旧方案的写入是否发生:", (root / "plan.txt").exists())
+        print("第二次请求看到被挡下的调用:", "user_message_pending" in model.requests[1])
+        print("第二次请求看到新要求:", "先别改文件" in model.requests[1])
+        print("第一次请求看到新要求:", "先别改文件" in model.requests[0])
+        print("队列已清空、已登记交付:", state.user_inbox == [] and state.delivered_user_messages == [message_id])
+        assert state.phase == "completed" and len(model.requests) == 2
+        assert not (root / "plan.txt").exists()
+
+asyncio.run(main())
+```
+
+预期输出：
+
+```text
+模型回复前，队列中的补充消息: 1
+任务状态: completed
+旧方案的写入是否发生: False
+第二次请求看到被挡下的调用: True
+第二次请求看到新要求: True
+第一次请求看到新要求: False
+队列已清空、已登记交付: True
+```
+
+第一次请求看不到新要求，因为它在用户插话之前就已发出；已经发出的 HTTP 请求不会被改写。回归测试见 [test_runtime_steering.py](../../tests/test_runtime_steering.py)，其中还覆盖了工具批次中途插话、审批等待期间插话和崩溃恢复。
+
 ## 练习与核对
 
 1. 删掉 `question_callback` 后，`ask_user` 应该出现在工具目录里吗？
 2. 父运行只允许写 `src/allowed`，子任务申请 `src`，最终范围是什么？
 3. 在第一轮阻塞期间把 `model.release.set()` 换成停止 worker，为什么还要等待异步清理？
+4. 任务已经 `completed` 之后再调用 `runtime.enqueue_user_message(...)` 会怎样？TUI 里这时输入同样的话走的是哪条路径？
 
 <details>
 <summary>参考答案</summary>
@@ -261,33 +348,30 @@ asyncio.run(main())
 1. 不应出现，直接调用也要拒绝。本实验整组 `tool_load` 会因此失败，可改成只加载 worker 工具后单独探测。
 2. 交集是 `src/allowed`；子任务不能通过更宽的路径扩大父权限。
 3. 取消请求与清理完成不同。需要等待正在运行的协程、工具进程和检查点收尾，避免退出后仍有后台副作用。
+4. 前者抛出 `ValueError`（“当前任务已停止，请直接发送消息继续会话”），终态任务没有下一个安全边界可交付。TUI 在空闲时把普通文字当作新的一轮，走 `_start_task` → `continue_task`，沿用同一会话；差别是它开启新的运行、重新分配步数和轮数，而不是在原运行里插话。
 
 </details>
 
 [test_interaction_workers.py](../../tests/test_interaction_workers.py) 还用 Textual 的无头界面测试验证了真实弹窗、拒绝、回答与取消。
-这个设计没有跨机器消息队列、持久化团队调度或自动合并分支；先把有界协作做完整，再由评测判断是否值得继续扩展。
 
-真实代码复验的结果也需要和机制可用性分开看：[2026-09-29 聚焦复验](../../evaluations/worker-focused-20260929/REPORT.md)共运行 24 个 episode。Worker 的冻结评分为 5/12，Solo 为 2/12，但全队报告 token 多 21.6%、时间多 30.2%；只有 CDF 的一次 repeat 能确认子任务实际写入六个方法并被父任务保留。三轮公开样例合计 Worker 31/36、Solo 30/36，不能据此声称委派稳定提升任务能力或降低成本。使用 Worker 时应把独立工作的范围、父任务的验证责任和额外协调成本一起记录。
+## Worker 的历史评测怎样影响设计
 
-[轻量子会话评测](../../evaluations/subagent-light-20260930/REPORT.md)进一步固定两个只读工作包，对 Solo、串行子任务和并行子任务各做两次，共 36 次运行。48 个子任务均正常交付；严格整题通过为 5/12、3/12、5/12，忽略引用位置的行为完整通过三组均为 10/12。并行组主代理累计输入减少 35.4%，但全队已报告 token 约为 Solo 的 2.50 倍、耗时合计为 2.39 倍。学习这个设计时，应区分独立上下文、生命周期可用性与任务效率，不把正常结束或主线程输入下降自动解释成整体收益。运行版本、恢复修复、wheel 和测试证据见[验证记录](../../evaluations/subagent-light-20260930/VERIFICATION.md)。
+以下实验对应 2026-09-29 至 10-05 的版本，沿着“能交付 → 少等候 → 预算内交付”逐步推进：
 
-[2026-10-02 精选交付验证](../../evaluations/subagent-selected-20261002/REPORT.md)覆盖按结论选择已读行段、一次工具调用完成交付和快照隔离。其四组模型对照因 HTTP 401 未得到有效答案；离线接口通过不能证明模型实际减少重读。
+| 实验 | 观察 | 对设计的启示 |
+|---|---|---|
+| [09-29 代码复验](../../evaluations/worker-focused-20260929/REPORT.md) | 冻结评分 Worker 5/12、Solo 2/12；团队 token 多 21.6%、时间多 30.2% | 同时记录子任务的实际写入与全队成本 |
+| [09-30 只读子会话](../../evaluations/subagent-light-20260930/REPORT.md) | 48 个子任务正常交付；并行组主代理输入少 35.4%，全队 token 为 Solo 的 2.50 倍 | 独立上下文能减轻父输入，协调费用仍需整体核算 |
+| [10-02 增量等待](../../evaluations/subagent-live-20261002/REPORT.md) | 提前返回有效；父模型调用从 7 增至 23，token 多 18.0% | 提前结果应当解锁父任务工作，否则频繁等待反而增加往返 |
+| [10-02 any/all 对照](../../evaluations/subagent-wait-modes-20261002/REPORT.md) | 首次 all 相对 any 总 token 少 30.8%，配对耗时中位数少 15.1% | 只有整合工作时等全部结果，能继续独立工作时等首个结果 |
+| [10-02 短引用与交付](../../evaluations/subagent-handoff-20261002/REPORT.md) | 48 份固定交付正文的本地 token 少 10.6% | 消息先做离线长度核对，再跑真实任务 |
+| [10-02 真实交付对照](../../evaluations/subagent-handoff-ab-20261002/REPORT.md) | 新旧严格通过均为 3/6；接口正常的四对里新版 token 多 4.0% | 更短的固定消息没有直接转化为任务降本 |
+| [10-03 十题迭代](../../evaluations/subagent-ten-20261003/REPORT.md) | r5 严格通过 Solo 13/20、team 15/20；仅 3/20 次实际派工 | 先看机制触发率，再解释整组成绩 |
+| [10-05 受控预算续测](../../evaluations/subagent-budget-controlled-20261004/REPORT.md) | 全部回合实际派工，压力组通过 0/6 → 4/6，空答案 6 → 1，token 多 10.2% | r6 的提前部分交付主要改善紧预算场景的交付可靠性 |
 
-[同日增量等待优化](../../evaluations/subagent-incremental-20261002/REPORT.md)使多任务等待及时返回首个新结果，并精简模型消息。历史 12 条固定交付的本地 token 估算减少 7.9%，这是消息体对比，不是全队成本或正确率评测。
+10-04 的 r6 首轮虽然通过数较高，但所有 team 回合都未派工，因此先保留 r5；上表最后一轮让目标分支实际触发后，才采用 r6。交付行段选择的接口验证见[精选交付记录](../../evaluations/subagent-selected-20261002/REPORT.md)，增量等待的固定消息测量见[离线分析](../../evaluations/subagent-incremental-20261002/REPORT.md)。
 
-[接口恢复后的 24 次真实复测](../../evaluations/subagent-live-20261002/REPORT.md)进一步检验增量等待：当前双子任务六题都实际提前返回，但父模型调用从上轮 7 次增至 23 次，已报告 token 增加 18.0%。它的行为完整通过为 6/6，代价仍是 Solo 的 3.61 倍 token、2.58 倍耗时。严格评分原为 4/6；补齐旧评分器遗漏的合法嵌套函数后，单列附加结果为 5/6。增量交付是能力，不保证模型能把提前收到结果转成有效工作；父方无独立工作时反复加载工具、等待和催促，仍可能更贵。
-
-[随后 any/all 的 36 次同版对照](../../evaluations/subagent-wait-modes-20261002/REPORT.md)中，首次 all 相对首次 any 总 token 减少 30.8%，配对耗时中位数减少 15.1%，父模型调用从 70 降至 15；首份交付额外等待中位数却从 0.081 秒增至 38.7 秒。严格整题通过 all 9/12、any 8/12，但事实正确数略降，质量收益不能由此确认。新增选项只净增 10 行，边界检查见[验证记录](../../evaluations/subagent-wait-modes-20261002/VERIFICATION.md)。只有整合工作时才选 all，早期结果能解锁后续工作时仍用 any；小任务继续考虑 Solo。
-
-[短引用与交付展示改进](../../evaluations/subagent-handoff-20261002/REPORT.md)净增 36 行生产代码。48 份固定交付正文的本地 token 估算减少 10.6%，同时给父模型显示逐行编号；短引用只在当前子分支授权的读取中唯一解析。一次新源码真实检查的两个子任务首次交付均成功，最终四条事实及引用通过。首次脚本因只读表述触发编辑完成门槛而失败的记录也已保留；这些检查验证机制可用，尚不证明速度、质量或自主委派收益。
-
-[随后的 12 回合真实对照](../../evaluations/subagent-handoff-ab-20261002/REPORT.md)没有证明这三项改动提升整体效率：新旧严格通过均为 3/6，来源提交拒绝 3 → 4，父方读取 4 → 12。新版可解析答案的引用错误较少，但行为正确数略降，两版也都出现了非法最终 JSON。双方接口正常的四对中，新版 token 合计增加 4.0%；另外两对含新版服务失败及未知用量。五对完整计时的耗时比值中位数为 1.009，六对补充事件时长为 0.818；首回合计时缺失和测量修订均明确保留。工具反馈更易读与模型实际更少出错，需要分别验证。
-
-[2026-10-03 十题迭代](../../evaluations/subagent-ten-20261003/REPORT.md)扩展到十道调查/审查任务、80 个行为事实，六轮共 200 回合。最终 r5 允许模型按需要委派，严格通过 Solo 13/20、team 15/20，两遍各多通过一题；19 对完整用量的 token 总量增加 17.3%，配对耗时中位数减少 19.0%。3/20 回合实际派工，2 次成功交付的八个事实进入父答案，1 次预算耗尽没有最终答案。全体行为事实因此仍为 151/160 对 148/160，双方可解析配对为 143/152 对 148/152；本开发集的整题通过率达标不等于全部质量指标变好或普遍收益。累计五个生产文件净增 14 行、无新增依赖，工程与安装证据见[验证记录](../../evaluations/subagent-ten-20261003/VERIFICATION.md)。
-
-2026-10-04 又完成 r6 的 40 回合。孩子 token 提前收尾候选通过工程回归；真实评测严格通过 Solo 11/20、team 13/20，但 20 个 team 回合均未委派，新分支触发零次。因此候选没有采用，该轮结束时仍使用 r5。这说明“工程路径可用”“整组得分较高”和“协作机制带来收益”是不同的证据要求；未触发的路径不能解释分数改善。
-
-2026-10-05 完成[44 回合受控续测](../../evaluations/subagent-budget-controlled-20261004/REPORT.md)并采用 r6：全部回合实际派工，六个候选压力回合均触发提前部分交付；压力组严格通过 0/6 → 4/6，空答案 6 → 1，token 增加 10.2%。正常十题 7/10 → 8/10（可解析配对事实持平），充足预算前缀对照 3/6 → 4/6、token 基本持平。收益限定为本受控预算条件下的交付可靠性；Boltons 仍未严格通过，父方耗尽与子答案错误继续保留。相对 r5 两个生产文件净增 11 行，零新运行依赖。 冻结、回归和采用检查见[受控验证记录](../../evaluations/subagent-budget-controlled-20261004/VERIFICATION.md)。
+后来的 [v12–v15 评测](../../evaluations/harness-v12-20261017/REPORT.md)使用单 Agent（`max_workers=0`），自动记忆开启。Worker 当前由离线回归覆盖；新增的真实效果证据仍需专门的团队对照，沿用独立工作范围、父任务验证责任和全队成本三项口径。
 
 ## 多个独立会话
 

@@ -1,18 +1,12 @@
-# 08 · Hooks 与运行纠偏：让错误动作和过早收尾有反馈
+# 08 · Hooks 与运行纠偏：让执行和交付都有反馈
 
-> 一句话：Harness 可以拒绝动作、指出停滞和检查收尾，但下一步怎么解决问题仍要由决策者选择。
+> 一句话：Hooks 加入局部规则，停滞检测提示换路，完成检查核对本次交付的要求。
 
 上一章：[上下文归档](07-context-archives.md) · [目录](README.md) · 下一章：[检查点恢复](09-checkpoint-resume.md)
 
-## 为什么主循环能运行，还需要这些机制
+## 主循环之外，还要检查什么
 
-一个 Agent 连续读取同一个没有变化的文件，然后宣布“已经修好了”，但它一次也没有修改文件。
-主循环的协议可能完全正确：每个调用都有结果，API 没有报错，最后还有一段通顺的回答。
-任务却并未完成。
-
-Aster 没有为此增加一套独立编排框架，而是在已有生命周期里放置三个不同的检查点：
-Hooks 用于注入局部规则，`StallDetector` 识别重复无进展，完成检查阻止缺少必要证据的收尾。
-它们协作，但不能笼统地都称为“Hooks”。
+Agent 连续读取同一个文件，再宣布“已修复”，协议上可能完全正常。要解释这种运行，需要分别看动作是否合规、执行是否有进展、交付条件是否满足。Aster 在现有生命周期中安排了三个入口：
 
 ```mermaid
 flowchart TD
@@ -24,101 +18,104 @@ flowchart TD
     E -->|否| G[after_failure]
     F --> H[更新状态与证据]
     G --> H
-    H --> I[StallDetector 观察是否停滞]
+    H --> I[StallDetector 检查进展]
     I --> J[纠偏反馈或停止]
-    K[模型提交最终回答] --> L[完成条件与 Verifier]
-    L -->|缺少必要动作且尚有机会| M[反馈后继续运行]
+    K[模型提交最终回答] --> R[在最终代码上补跑过期验证]
+    R --> L[完成条件与 Verifier]
+    L -->|缺少条件且尚有机会| M[反馈后继续]
     L -->|满足条件| N[完成 + stop Hook]
 ```
 
-## Hooks 是四个可选方法
+## Hooks：四个可选方法
 
-打开 [hooks.py](../../src/aster/core/hooks.py)。插件是一个普通 Python 对象，只实现需要的方法即可，没有必须继承的基类。
-`Hooks([plugin])` 将它接入 Runtime；默认 `Hooks()` 不会凭空执行任何业务插件。
+[Hooks](../../src/aster/core/hooks.py) 接收普通 Python 对象，插件只需实现用到的方法。`HookResult` 包含 `action`、`feedback` 和 `metadata`，执行动作由 `continue`、`deny`、`stop` 表达。
 
-| 回调 | 调用时机 | 常见用途 |
+| 回调 | 时机 | 用途 |
 |---|---|---|
-| `before_tool(state, call)` | 参数、能力和权限检查通过之后，工具执行之前 | 拒绝额外的业务禁区 |
-| `after_tool(state, call, outcome)` | 工具处理器返回成功之后 | 加入下一轮需要看到的提示 |
-| `after_failure(state, call, outcome)` | 工具处理器返回非成功结果之后 | 对失败提供明确的补救建议 |
-| `stop(state)` | 正式完成或停止时 | 一次性的收尾通知 |
+| `before_tool(state, call)` | 参数与权限检查通过，执行前 | 添加业务约束 |
+| `after_tool(state, call, outcome)` | 处理器返回成功后 | 提供下一轮提示 |
+| `after_failure(state, call, outcome)` | 处理器返回非成功结果后 | 提供补救建议 |
+| `stop(state)` | 正式完成或停止时 | 收尾通知 |
 
-注意 `after_failure` 不是捕获所有拒绝的全局异常处理器。
-参数、权限、新鲜读取等执行前检查直接返回时，还没有进入这对执行后回调；最终结果仍会进入 Runtime 的执行记录。
+执行前检查直接返回的结果进入运行记录，执行后回调只处理真正进入工具处理器的调用。前置 Hook 异常转为拒绝；后置异常转为 `hook_error` 反馈，已产生的动作保留在结果中。插件运行在宿主 Python 进程内，适合接入受信任的业务规则。
 
-返回值是源码中的小数据类：
+## 停滞检查：动作与结果一起比较
 
-```python
-@dataclass(frozen=True)
-class HookResult:
-    action: str = "continue"
-    feedback: str = ""
-    metadata: dict = field(default_factory=dict)
-```
+[StallDetector](../../src/aster/core/recovery.py) 在小窗口内记录工具名、参数摘要和结果摘要。文件内容变了，同样的读取就得到不同结果；出现 `changed_paths` 时清空旧窗口。
 
-`action="deny"` 在执行前拒绝当前动作，`"stop"` 请求停止，`"continue"` 继续。
-执行后的 `feedback` 会作为重要反馈加入后续上下文；执行前 `deny` 的反馈则作为拒绝原因返回。
-`metadata` 是插件结果的附加字典，聚合器会合并它，但当前 Runtime 没有把它当作通用状态更新协议，不能指望随便写一个字段就改变运行。
+| 原因 | 检查形态 |
+|---|---|
+| `repeated_identical` | 连续两次动作、结果都相同 |
+| `oscillation` | 最近四次是 A、B、A、B，两个动作不同 |
+| `output_loop` | 最近三次结果相同，且当前结果失败 |
 
-前置 Hook 抛异常时，`_safe()` 返回 `deny`，不能因为规则执行失败反而放行。
-后置 Hook 出错会产生 `hook_error:...` 反馈；已完成的工具副作用不会因此被自动撤销。
-这些 Hook 是受信任的宿主 Python 代码，不是给不可信插件提供的安全隔离容器。
+检测到停滞后，在 `max_recovery` 次额度内清空窗口并提示换方法；额度耗尽后以 `stall_recovery_exhausted` 停止。`max_recovery=0` 表示首次检测就停止。这个启发式识别重复模式，具体下一步仍由模型选择。
 
-## 停滞检查比较的是动作和结果
+## 完成条件怎样确定
 
-[recovery.py](../../src/aster/core/recovery.py) 中的 `StallDetector.observe()` 保存一个小窗口。
-每个记录由工具名、参数摘要、结果摘要构成；结果摘要包括 `status`、`reason`、`content`。
-所以同一个文件读取两次，如果内容真的变了，不会被当成相同结果。
+`TaskSpec` 的 `require_observation`、`require_edit`、`require_verification` 分别要求观察、改动与有效验证。显式值优先；未设置时由 [Verifier.infer()](../../src/aster/core/verifier.py) 从请求推断。`final()` 还检查需验收的待办和指定产物。
 
-| 原因 | 检查形态 | 例子 |
+2026-10-20（`476f09f`）修正了请求推断：英文按整词匹配，`dispatch` 中的 `patch`、`suffix` 中的 `fix` 均是普通文本；“是怎么实现的”归为提问。“不要修改代码”约束工作区操作，“实现算法但不要修改原始数据”约束解法性质，两者分别处理。示例与回归见 [test_requirement_inference.py](../../tests/test_requirement_inference.py)。
+
+| `completion` | 条件不足时 | 最终状态 |
 |---|---|---|
-| `repeated_identical` | 连续两次相同动作、相同结果 | 一直读未变化的同一文件 |
-| `oscillation` | 最近四次是 A、B、A、B，A 与 B 的动作不同 | 在两个相同失败策略间往返 |
-| `output_loop` | 最近三次结果相同，且当前是失败 | 更换参数却始终得到同一种失败 |
+| `strict`（默认） | 最多要求补做 `max_final_revisions` 次，默认 2 | 仍不足则 `completion_requirements_failed` |
+| `warn` / `soft` | 同样有限补做 | 可按 `completed_with_warning` 交付 |
+| `off` | 跳过补做反馈 | 仍计算结果：满足条件为 `verified`，否则带警告 |
 
-如果工具报告了 `changed_paths`，检测器清空旧窗口，因为出现了可观察的文件进展。
-这些规则是轻量启发式，并不理解任务的全部语义；确有必要的重复读取也可能触发提醒。
+评测脚本通常显式要求每题修改并验证，产品默认按提示推断；比较设置时，要把这两个层次一起记录。
 
-检测发生在 Runtime 更新状态后。还有 `max_recovery` 次机会时，Runtime 清空检测窗口，加入重要提示：
+## 失败如何保留，又如何消除
 
-```text
-Recovery required (repeated_identical). Change approach and use fresh evidence.
-```
+先跑整个模块发现 `test_old_api` 失败，再单跑新用例通过，旧失败仍需处理。`verification_failures` 跨编辑、继续任务和 checkpoint 恢复保留，按证据来源消除：
 
-用完机会后仍重复，就以 `stall_recovery_exhausted` 停止。
-`max_recovery=0` 表示检测到停滞就停止，并不是关闭检测器。
-这里由 Harness 识别问题并给出反馈；它没有在后台替模型写好下一步补丁。
+| 证据来源 | 失败怎样保存 | 后续怎样确认 |
+|---|---|---|
+| pytest、unittest、Jest、go test 等逐用例报告 | 用例 ID → 命令 | 同一用例重新通过 |
+| Node `--test`、SymPy 原生报告 | 按原命令聚合 | 原命令重新成功 |
+| 项目构建加测试命令的退出码 | 仅设置当前验证为 `failed` | 后续有效验证可更新状态 |
+| 共用 `InlineScript::test_script` 的断言脚本 | 同上 | 同上 |
 
-## “我要结束了”仍需检查条件
+关键在于能否识别“同一个检查”。具名用例可以持续跟踪；退出码和共享脚本编号只能描述这次执行，硬把它们记为待清除的失败，会让已经改用正确测试入口的任务卡在旧命令上。2026-10-18 的 `68d69d3`、`edd563d` 据此调整规则，见 [harness-v13.md](../harness-v13.md) 第 4、8 节。
 
-`TaskSpec` 可以要求 `require_observation`、`require_edit`、`require_verification`，分别对应观察过仓库、产生过改动、存在有效验证结果。
-`completion_feedback()` 检查这些必要条件；`Runtime.finalize()` 负责反馈、次数限制和最终决策。
-正式 `Verifier` 还会检查任务要求的产物等细节，参见 [verifier.py](../../src/aster/core/verifier.py)。
+正式验证有两个入口：`run_tests`，以及 `run_shell` 中识别出的测试命令。2026-10-09 的旧教程曾写“Shell 成功不更新正式验证”；2026-10-18（`1fec769`）起两者共用 [testing.py](../../src/aster/tools/testing.py)，省去换工具再跑一次的往返。项目命令接受普通命令的 `&&` 链；风格检查单独运行不算行为测试。`run_tests` 还接受 `code`、`python -c` 与 heredoc 形式的断言脚本。
 
-正式验证还要保留已经发现的失败。例如先跑整个模块，发现 `test_old_api` 失败，再只跑新加的 `test_new_api` 并通过，不能据此宣布任务完成。`RunState.verification_failures` 记录失败用例及当时的命令；后续无关测试通过、编辑文件、重建依赖环境、继续任务或恢复 checkpoint，都不会清除这些记录。具名用例需要实际重跑并通过；删除或跳过用例也不算修好。只有已执行测试的证据参与这个判断，不靠模型解释“这是原有问题”来放行。
+测试在一次性副本中运行。新建的构建产物、缓存和不发布的文件随副本清理；改写或删除已有文件会使本次运行受阻，失败记录继续保留，通过结果则不用于清除旧失败。相应修复见 `68ea98f` 和 [test_command_tests.py](../../tests/test_command_tests.py)。
 
-测试执行受阻时也不能丢掉已观察到的失败。`run_tests` 在沙箱副本销毁前读取结构化报告；即使测试写入了不允许发布的文件，返回 `blocked/read_only`，报告中的失败仍进入待解决列表。受阻、超时或取消的执行不会贡献通过证据，也不能用其中的通过用例清除旧失败；测试产生的文件仍不发布到用户仓库。
+只因禁网而失败的测试按运行时证据归入 `environment_failures`，最终列为未验证。分类需要真实网络调用帧及网络不可达、解析失败等条件；连接被拒可能是任务要求的服务未启动，仍按普通失败处理。
 
-pytest、unittest 和基于它们的原生入口保留用例身份，允许只补跑此前失败的用例。临时 `run_tests.code` 的随机文件名会归一化，避免每次调用被当成新测试。当前 SymPy 原生报告只有计数，Node 报告的名称缺少可靠的跨文件身份，这两类先按原命令追踪失败，需要原命令成功后清除；它们没有具名用例的逐项覆盖保证。测试命令写错、安装或收集失败仍会使本次验证失败，但不会作为已确认的断言失败永久挂在待解决列表中。
+## 既有失败与最终代码复跑
 
-待解决列表放在请求末尾的工作状态中，最多展示八项并给出总数；完整记录保存在运行状态和 trace。固定系统提示只补充通用修复要求：复现问题、检查相关实现与旧接口兼容，声称失败原本存在时应核对修改前的代码。这些要求帮助选择检查范围，不能自动证明修复语义或隐藏测试正确。
+测试在原始代码上也失败，可能是环境问题，也可能正是本次任务要修的问题。v11 曾让模型声明既有失败，2026-10-17 撤回；当前把基线证据采集与交付条件分开，见 [harness-v12.md](../harness-v12.md) 第 5 节。
 
-这项设计参考了两种不同层面的实现：[pi 的 bash 工具](https://github.com/earendil-works/pi/blob/f1b2e77f5b13b2a199b1052cb79c235451afe7d7/packages/coding-agent/src/core/tools/bash.ts)保留命令退出状态与完整输出位置；[SWE-bench 的评分器](https://github.com/SWE-bench/SWE-bench/blob/02e7a74ffd0b707aab73d203fe87bdc7c76afc8e/swebench/harness/grading.py)分别核对目标修复与已有行为。Aster 使用自身测试过程发现的失败维护完成条件，不读取 benchmark 的隐藏验收清单。回归用例见 [test_harness.py](../../tests/test_harness.py) 和 [test_inline_verification.py](../../tests/test_inline_verification.py)。
+1. 遇到新失败用例，运行时在恢复为任务初始文本的副本上复跑同一命令。`failure_signature()` 提取异常并归一化内存地址、临时路径；退出码与临时 `code` 测试不走这条基线比较。
+2. 相同签名写入 `preexisting_failures`，绑定被测工作区指纹，先反馈给模型处理。
+3. 只有任务已有改动、完成检查反馈过至少一次，而且最终代码上的失败签名仍相同时，才作为既有失败列入结果、停止阻塞交付。
 
-`max_final_revisions` 控制缺少条件时最多退回多少次。默认是 2 次，不是无限反思。
-`completion="strict"` 在最终检查不通过时停止；`warn` 和 `soft` 当前走相同的宽松分支，重试后可带警告结束。
-`off` 不发起补做提示，但仍计算并记录最终验证结果；它不意味着“从此一律有验证成功证据”。
+后续编辑会使旧证据过期。模型准备给最终文本时，`recheck_preexisting()` 自动重跑过期的既有失败；最后一次通过命令因收尾编辑失效时，也由运行时补跑。这样保留最终代码检查，同时省去让模型再发一次相同测试命令的往返。回归入口是 [test_preexisting_failures.py](../../tests/test_preexisting_failures.py)。
 
-曾试验在完成条件满足后自动追加一次补丁复核。在[十题 SWE-bench 子集](../../evaluations/swebench-review-20261009/REPORT.md)中，通过数仍为 2/10；六次复核后记录到 931,400 个已报告 token，只有一次改动了实现，该题仍未通过官方测试。因此最终版本删除了自动追加复核，保留失败记录与已有完成条件；本地测试通过也不能证明隐藏测试一定通过。
+待解决项通过 `[Context update]` 便笺告诉模型；完整记录留在状态与 trace。测试通过时附带本次短 diff 或改动摘要，帮助模型直接整理交付。
 
-`run_shell` 成功只表示这条命令返回成功，不会更新正式验证证据；需要通过 `run_tests` 生成结构化、绑定当前工作区的正式检查。正式检查通过也不等于教程语义已经正确，更不等于隐藏测试或外部产品验收通过。运行完成检查也不等同于隐藏测试：它只证明当前任务的运行要求。
+## 完成检查的实测作用
 
-`run_tests.code` 让临时 Python 测试随调用进入隔离副本，仍由同一结构化报告决定结果。只有打印“通过”、没有测试用例或全部跳过的代码，都不能更新为验证通过；测试源码保存在工具调用证据中，但不会成为项目的长期测试文件。一次实现及其对应验证属于同一交付，不要求为读、改、测分别创建待办；多个独立交付才需要用待办追踪，减少与任务质量无关的模型往返。
+[2026-10-20 对照报告](../../evaluations/acceptance-ablation-20261020/REPORT.md)在 GPT × fresh30b 上比较严格评测设置、产品默认和关闭三组。fresh30b 已用于分析轨迹，此轮按开发集对照解释；严格组复用较早运行，供应商故障按预定规则共同剔除。
+
+| 共同可比的 14 题 | 严格评测设置 | 产品默认 | 关闭 |
+|---|---:|---:|---:|
+| 独立通过 | 13 | 13 | 13 |
+| 请求数 | 123 | 105 | 119 |
+| 已知费用估算（美元等价） | 0.683 | 0.645 | 0.687 |
+
+补做次数在三组可读取终态中分别为 3、4、0，没有救回任务。关闭组 30 题中有 8 题以 `provider_error` 结束，其余 22 题有 19 题为 `verified`、3 题带警告交付；终态分布可由 [comparison.json](../../evaluations/acceptance-ablation-20261020/comparison.json)复算。强模型大多自行满足了当前交付条件。
+
+共同题目中，关闭组比默认多 13.3% 请求、已知费用高 6.5%；全表成本下降的约 61.4% 来自压缩器一题因供应商故障提前结束。因此本轮没有测出检查带来的质量收益，也没有测出关闭它的成本收益。产品保留默认设置，作为低成本的保险并标明未满足的完成条件；弱模型是否更受益，仍待验证。
+
+更早的[2026-10-09 自动补丁复核实验](../../evaluations/swebench-review-20261009/REPORT.md)也未提高十题子集的通过数，最终移除了自动追加复核。这两次实验说明，是否值得多加一步检查，应看它实际改变了哪些任务的结果。
 
 ## 离线实验：三个机制分别做了什么
 
 激活 `aster` 环境，将代码保存为 `/tmp/aster_lesson08.py`，运行 `python /tmp/aster_lesson08.py`。
-本实验直接提交动作，目的是看见确定的控制行为，没有模拟“模型自主发现问题”的成绩。
+实验直接提交动作，依次观察 Hook、完成检查与停滞反馈。
 
 ```python
 # 可运行实验
@@ -197,21 +194,95 @@ asyncio.run(main())
 再次重复: stall_recovery_exhausted
 ```
 
+## 离线实验二：有身份与匿名的验证证据
+
+在支持 Landlock/seccomp 的 Linux 环境中运行。先通过 Shell 运行 pytest，再比较项目命令与内联脚本的失败记录。
+
+```python
+# 可运行实验
+import asyncio
+import tempfile
+from pathlib import Path
+
+from aster.config import Settings
+from aster.core.runtime import Runtime
+from aster.schema import TaskSpec, ToolCall
+
+
+def start(root):
+    (root / "app.py").write_text("VALUE = 0\n")
+    (root / "test_value.py").write_text("from app import VALUE\n\ndef test_value():\n    assert VALUE == 1\n")
+    (root / "test_other.py").write_text("def test_other():\n    assert True\n")
+    (root / "check_tests.sh").write_text("test -f ok.txt\n")  # 项目自带的测试命令，只看退出码
+    runtime = Runtime(root, Settings(approval="auto", memory_enabled=False, sandbox="required"),
+                      approval_callback=lambda *_: True)
+    runtime.start(TaskSpec(prompt="Fix VALUE", require_verification=True))
+    return runtime
+
+
+async def tool(runtime, name, **arguments):
+    return await runtime.step(ToolCall(name=name, arguments=arguments))
+
+
+async def main():
+    with tempfile.TemporaryDirectory() as directory:
+        runtime = start(Path(directory))
+        state = runtime.state
+        shell = await tool(runtime, "run_shell", command="echo hello")
+        print("普通 shell 命令:", shell.status, "验证状态", state.verification.state)
+        shell = await tool(runtime, "run_shell", command="python -m pytest -q test_value.py 2>&1 | tail -5")
+        print("run_shell 里的 pytest:", shell.reason, "是正式验证", shell.data.get("shell_verification"))
+        print("具名用例失败留下的义务:", sorted(state.verification_failures))
+        await tool(runtime, "run_tests", command="python -m pytest -q test_other.py")
+        print("  另一个测试通过后验证状态:", state.verification.state)
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        runtime = start(root)
+        state = runtime.state
+        await tool(runtime, "run_tests", command="sh check_tests.sh")
+        print("退出码失败留下的义务:", sorted(state.verification_failures), "验证状态", state.verification.state)
+        script = 'python -c "from app import VALUE; assert VALUE == 1, VALUE"'
+        await tool(runtime, "run_tests", command=script)
+        print("断言脚本失败留下的义务:", sorted(state.verification_failures), "验证状态", state.verification.state)
+        (root / "app.py").write_text("VALUE = 1\n")
+        (root / "ok.txt").write_text("ok\n")
+        await tool(runtime, "run_tests", command="sh check_tests.sh")
+        print("修复后再跑一条项目测试命令:", state.verification.state)
+
+
+asyncio.run(main())
+```
+
+预期输出：
+
+```text
+普通 shell 命令: success 验证状态 missing
+run_shell 里的 pytest: tests_failed 是正式验证 True
+具名用例失败留下的义务: ['pytest: test_value::test_value']
+  另一个测试通过后验证状态: failed
+退出码失败留下的义务: [] 验证状态 failed
+断言脚本失败留下的义务: [] 验证状态 failed
+修复后再跑一条项目测试命令: passed
+```
+
 ## 练习与核对
 
-1. 删除 `LocalRule` 的 `after_tool` 方法，其他三个能力还能运行吗？
-2. 把 `max_recovery` 改成 0，运行何时结束？
-3. 规则回放中开关纠偏后结果不同，能否直接写成“模型自主改错率提高”？
+1. 删除 `LocalRule.after_tool` 后，停滞检测与完成检查还会运行吗？
+2. 把 `max_recovery` 改为 0，实验一何时停止？
+3. 为什么另一条测试通过，不能清除 `test_value` 的失败？
+4. 既有失败停止阻塞交付前需要哪些条件？
+5. 完成检查的对照实验支持怎样的产品判断？
 
 <details>
 <summary>参考答案</summary>
 
-1. 能。方法是可选的；需要删除实验中对应反馈的断言。插件既不实现停滞检测，也不实现最终完成检查。
-2. 第二次相同读取触发检测后结束，后续调用返回 `run_terminal`。
-3. 不能。规则回放证明检测、反馈和停止机制按约定运行；真实模型能否利用反馈，需要保持任务与条件一致的模型对照实验。
+1. 会。Hook 方法可选，停滞与完成检查是独立机制；删去对应反馈断言即可。
+2. 第二次相同读取触发停滞后停止。
+3. 失败绑定真实用例身份，需要同一用例重新通过；退出码与匿名脚本则只更新本次验证状态。
+4. 任务已有改动、检查反馈过至少一次、失败在当前代码上仍与原始代码签名相同。
+5. 共同可比题目的质量相同，关闭也未省钱；保留默认检查用于完成反馈与状态标注，弱模型收益另测。
 
 </details>
 
-本章的控制思路类似 claw0 将不同失败交给不同层处理：先说清是哪类问题，再限定恢复动作和次数。
-Aster 没有照搬它的密钥轮换或摘要模型，而是保留与当前轻量 Harness 相关的有限恢复机制。
-下一章讨论另一种“恢复”：进程中断后，如何从磁盘状态继续任务。
+下一章讨论进程中断后的恢复：如何把这些状态和证据接续起来。
