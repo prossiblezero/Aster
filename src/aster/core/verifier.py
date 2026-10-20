@@ -2,8 +2,51 @@
 
 from __future__ import annotations
 
+import re
+
 from ..schema import Outcome, RunState, Verification, VerifierResult
 from ..storage.workspace import Workspace
+
+# Task requirements are guessed from the request with keywords, not with a model. Wrongly
+# demanding an edit is the costly mistake: the completion check would push the agent to change
+# code nobody asked it to change. So English keywords must be whole words ("dispatch" is not
+# "patch"), a negated verb never counts as an edit request, and a negation makes the task
+# read-only only when it targets the workspace itself ("do not modify files", "不要修改代码"),
+# not a property of the solution ("without changing existing values", "不要修改原始数据").
+_EDIT_EN = re.compile(
+    r"\b(?:re)?(?:fix(?:es|ing)?|implement(?:s|ing)?|writ(?:e|es|ing)|edit(?:s|ing)?|"
+    r"modif(?:y|ies|ying)|creat(?:e|es|ing)|patch(?:es|ing)?|updat(?:e|es|ing))\b"
+)
+_EDIT_ZH = re.compile(r"修改|修复|实现|写入|创建|更新")
+_NEGATOR_EN = r"(?:do\s+not|don'?t|never|not|no\s+need\s+to|without)"
+_NEGATOR_ZH = r"(?:不要|不用|无需|不需要|不必|别|请勿|勿|禁止|不准|不许|不得|不能|不)"
+_CHANGE_EN = r"(?:re)?(?:fix|implement|writ|edit|modif|creat|patch|updat|chang|touch|alter)\w*"
+_CHANGE_ZH = r"(?:修改|改动|更改|变更|改变|修复|更新|创建|写入|实现|改)"
+# Mentions that are not requests: negated verbs, and "how was it implemented" questions.
+_NOT_A_REQUEST = re.compile(
+    rf"\b{_NEGATOR_EN}\s+(?:\w+\s+)?{_CHANGE_EN}"
+    rf"|{_NEGATOR_ZH}\s*(?:再|去|做|作|进行)?\s*(?:任何)?{_CHANGE_ZH}"
+    r"|(?:怎么|如何|怎样)[^，。,.!?？！；;\n]{0,12}?实现的"
+)
+_WORKSPACE_EN = r"(?:files?|code(?:base)?|source(?:\s+code)?|repo(?:sitory)?|workspace|project|directory|folder|anything)"
+_WORKSPACE_ZH = r"(?:文件|代码|源码|源代码|仓库|工作区|项目|东西|内容)"
+_CLAUSE_END_EN = r"(?=\s*(?:$|[.,;:!?)\]]|(?:and|but|just|only|please|at\s+all|in\s+any\s+way)\b))"
+_CLAUSE_END_ZH = r"(?=$|[。．.!！?？,，;；、:：)）\s]|只|仅|请|就|即|直接|也)"
+_EXCEPT = r"(?!\s+(?:to|in|outside|other|except|beyond|besides|apart))"
+_READ_ONLY = re.compile(
+    rf"\b{_NEGATOR_EN}\s+(?:\w+\s+)?(?:modif|chang|edit|touch|alter)\w*"
+    rf"(?:\s+(?:any|the|these|this|my|our|existing))?(?:\s+{_WORKSPACE_EN})?{_CLAUSE_END_EN}"
+    rf"|\b(?:make\s+no|(?:do\s+not|don'?t|never)\s+make\s+any|without\s+(?:making\s+)?any)"
+    rf"\s+(?:code\s+|file\s+)?changes\b{_EXCEPT}"
+    rf"|\bno\s+(?:code|file)\s+changes\b{_EXCEPT}"
+    rf"|\bno\s+changes\s+to\s+(?:the\s+|any\s+)?{_WORKSPACE_EN}\b"
+    rf"|\bread[- ]only\b"
+    rf"|{_NEGATOR_ZH}\s*(?:再|去|做|作|进行)?\s*(?:任何)?(?:修改|改动|更改|变更|改变|改)\s*(?:任何)?{_WORKSPACE_ZH}?{_CLAUSE_END_ZH}"
+    rf"|{_NEGATOR_ZH}\s*对\s*(?:任何)?{_WORKSPACE_ZH}\s*(?:做|作|进行)?\s*(?:任何)?(?:修改|改动|更改|变更|改变)"
+    r"|只读"
+)
+_VERIFY = re.compile(r"(?<![a-z])(?:py|unit)?tests?(?:ing|ed|cases?)?(?![a-z])|\bverification\b|验证|测试")
+_OBSERVE = re.compile(r"\b(?:inspect|review|check)|查看|检查|分析")
 
 
 class Verifier:
@@ -120,44 +163,10 @@ class Verifier:
     @staticmethod
     def infer(prompt: str) -> dict[str, bool]:
         text = prompt.casefold()
-        edit_requested = any(
-            x in text
-            for x in (
-                "fix",
-                "implement",
-                "write",
-                "edit",
-                "modify",
-                "create",
-                "patch",
-                "update",
-                "修改",
-                "修复",
-                "实现",
-                "写入",
-                "创建",
-                "更新",
-            )
-        )
-        edit_negated = any(
-            x in text
-            for x in (
-                "do not modify",
-                "don't modify",
-                "without modifying",
-                "without changing",
-                "read-only",
-                "read only",
-                "不要修改",
-                "无需修改",
-                "只读",
-            )
-        )
-        edit = edit_requested and not edit_negated
-        verify = any(x in text for x in ("test", "tests", "pytest", "verification", "验证", "测试"))
-        observe = any(x in text for x in ("inspect", "review", "check", "查看", "检查", "分析"))
+        requested = _NOT_A_REQUEST.sub(" ", text)
+        edit = bool(_EDIT_EN.search(requested) or _EDIT_ZH.search(requested)) and not _READ_ONLY.search(text)
         return {
             "require_edit": edit,
-            "require_verification": edit and verify,
-            "require_observation": observe or edit,
+            "require_verification": edit and bool(_VERIFY.search(text)),
+            "require_observation": bool(_OBSERVE.search(text)) or edit,
         }
