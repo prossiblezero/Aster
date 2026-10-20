@@ -205,7 +205,7 @@ output_tokens = 2048
 aster --config aster.toml --profile remote --cwd /path/to/project
 ```
 
-随后可通过 `/model local` 请求切换到已经启动的本地服务。profile 选择会校验新预算并转换可移植的文本与工具历史；服务专有的推理状态不能无损迁移，历史中的图片、引用或阶段信息无法转换时会拒绝切换。当前流式响应仅支持 Responses，工具调用在完整响应确认后才执行。其他协议已有离线契约测试，已归档的真实服务验证主要使用 Responses。
+随后可通过 `/model local` 请求切换到已经启动的本地服务。profile 选择会校验新预算并转换可移植的文本与工具历史；服务专有的推理状态不能无损迁移，历史中的图片、引用或阶段信息无法转换时会拒绝切换。当前流式响应仅支持 Responses，工具调用在完整响应确认后才执行。真实服务评测覆盖 GPT-5.6 Luna / Responses 和 DeepSeek 官方 Chat Completions（非流式）；Anthropic 已通过本地契约测试。
 
 ### 工具与执行设置
 
