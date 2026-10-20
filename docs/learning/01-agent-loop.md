@@ -6,7 +6,7 @@
 
 ## 从一个具体问题开始
 
-用户让 Agent 查看两个文件并说明关系。模型可能一次回复就提出两个 `read_file`，也可能先读一个、分析后再读另一个。Harness 不能预先规定固定的“读两次再回答”流水线；它需要接收模型动作，并把真实执行结果送回下一轮。
+用户让 Agent 查看两个文件并说明关系。模型可能一次回复就提出两个 `read_file`，也可能先读一个、分析后再读另一个。Harness 接收每轮模型动作，把实际结果送回下一轮，让执行顺序随任务进展调整。
 
 Aster 用 `run → turn → step` 表达这三个尺度。把 `run` 想成整张工单，`turn` 是一次向模型征求下一步，`step` 是执行其中一个工具调用。
 
@@ -17,11 +17,12 @@ run(task)
        └─ turn()
             ├─ prepare_request()：整理模型输入
             ├─ model.complete()：请求一次回复
-            ├─ 有工具调用：逐个 step(call)，补齐结果
-            └─ 只有文本：finalize(answer)，检查能否结束
+            │    └─ 回复在输出上限处被截断：不执行，追加提示后重试（每次运行最多 2 次）
+            ├─ 有工具调用：_execute_batch() 逐个 step(call)，补齐结果
+            └─ 只有文本：recheck_preexisting() 补跑过期的验证，再 finalize(answer) 检查能否结束
 ```
 
-这张图省略了异常、取消与落盘分支。它用于建立阅读路径，不是另一份实现。
+先沿这条主路径读代码，第四站再看批次校验、交付检查与截断恢复。
 
 ## 第一站：看循环的退出条件
 
@@ -50,7 +51,7 @@ while (
 | `observed` | 是否已有成功的工作区观察 | 成功读取后为真 |
 | `feedback` | 运行时给出的纠偏说明 | “还需要执行测试” |
 
-`step` 更精确地说是进入工具步骤的计数，不是成功次数。被执行阶段拒绝的调用也可能消耗步骤；重复调用编号等前置拒绝则可能在进入 `_step` 前返回。读成本报告时不要把 `step` 自动解释成“成功使用了这么多个工具”。
+`step` 统计进入执行阶段的调用，包括参数无效或整批预检失败的调用。重复调用编号等更早的拒绝发生在进入 `_step` 之前。
 
 ## 第二站：模型返回什么
 
@@ -66,7 +67,7 @@ usage: dict[str, int] = Field(default_factory=dict)
 
 `_model_turn` 的处理顺序很关键：先保存模型原始回复，再逐个执行调用，最后为每个调用追加结果。即使中途取消，也会为未完成调用补上带 `turn_interrupted` 原因的取消结果。这个结果表示“未能确认完成”，不表示副作用被自动撤销。
 
-默认配置按顺序执行一轮里的工具调用，但这不是无条件的串行保证：当 `read_parallelism > 1` 时，`_execute_batch` 可并行执行只含 `read_file`、`search`、`list_files` 的纯读取批次；预检、结果提交仍按顺序进行。混合批次以及默认 `read_parallelism=1` 仍串行。Worker 是另一条显式的并发机制，见 [第 13 章](13-interaction-and-workers.md)。
+默认 `read_parallelism=1`，同一轮调用按顺序执行。调大该值后，只含 `read_file`、`search`、`list_files` 的批次可并发读取，结果仍按顺序提交；带写入的批次顺序执行。Worker 的并发机制见[第 13 章](13-interaction-and-workers.md)。
 
 ## 实验：两次工具调用只占一轮模型决策
 
@@ -131,18 +132,44 @@ turn 2: completed 2 2
 
 ## 第三站：工具失败会不会让整个 Agent 崩溃
 
-工具返回统一的 `Outcome`，其中 `status` 区分 `success`、`error`、`blocked`、`timeout`、`cancelled`。例如，读取不存在的文件是工具结果，模型能据此换路径；模型服务连接失败则走 `ProviderError`，记录原因并终止本次运行。
+工具返回统一的 `Outcome`，其中 `status` 区分 `success`、`error`、`blocked`、`timeout`、`cancelled`。例如，读取不存在的文件是工具结果，模型能据此换路径；模型服务出错则走 `ProviderError`：客户端先对暂时性故障有限重试（[第 02 章](02-model-protocols.md)），仍然失败就记录原因，以 `provider_error` 终止本次运行。只有一种服务端结果例外：回复在输出上限处被截断，Runtime 会接住它继续跑，见下一站。
 
 因此“工具失败”和“运行失败”是两个层级。运行时允许模型从部分失败中恢复，同时用步数、停滞检测和完成条件控制无限重试。具体规则在 [第 08 章](08-hooks-and-completion.md)。
 
 `_operation()` 还限制同一个 Runtime 同时只能有一个操作拥有执行权。它允许同一个异步任务内 `run → turn → step` 嵌套，但拒绝另一个异步任务同时修改同一状态，避免界面操作和模型循环互相覆盖。
 
-## 练习与参考思路
+## 第四站：主路径上的三个分支
 
-1. 在实验任务上设置 `max_turns=1`，再用 `await runtime.run()` 驱动。第一轮读取可以完成，但第二轮回答没有机会执行；结束原因应是 `turn_limit`。
-2. 把第一轮回复改成纯文本，并保留 `require_observation=True`。为什么不能立即成功？因为“说读过”不等于记录里真的读过，完成检查会要求补做观察。
-3. 直接调用 `await runtime.step(ToolCall(...))` 会不会自动请求模型？不会。它执行一个外部提供的动作，是后续 RL 环境共用运行时的基础；外部策略需要自行管理决策轮次。
+| 情况 | Runtime 怎样继续 | 为什么 |
+|---|---|---|
+| 批次里有参数错误，其余调用全为只读 | 错误调用得到 `invalid_arguments`，合法调用照常执行 | 保留本轮已有的探索机会 |
+| 批次里有参数错误，且含写入、进程或状态操作 | 整批在执行前返回；其余调用得到 `batch_validation_failed` | 模型能按完整的执行前状态修正请求 |
+| 模型只有文本，准备交付 | `recheck_preexisting()` 补跑过期验证，再由 `finalize()` 检查条件 | 验证结果要对应最终代码 |
+| 回复在输出上限处截断 | 追加提示，每次运行最多恢复 2 次 | 让模型缩短推理、给出下一步动作 |
 
-读完应能回答：**一次 run 有多轮 turn，一轮 turn 可以有多个 step；步骤成功、运行结束、任务正确是三个不同的判断。**
+2026-10-17（`98f0cfb`）之前，参数错误会让整批读取作废；现在预检按副作用类型区别处理。这里保证的是**参数预检阶段**的执行选择，已开始执行的多个写入仍逐个产生结果。
+
+完成检查位于纯文本分支，因为模型此时正在宣布结束。缺少必要条件时，`finalize()` 最多要求补做 `max_final_revisions` 次（默认 2）。交付前补跑覆盖过期的既有失败，以及编辑后失效的最后一次通过命令；细节见[第 08 章](08-hooks-and-completion.md)。
+
+输出截断恢复于 2026-10-19（`7abdba4`）加入。残缺回复不执行、不进入历史，已报告的用量照常累计；恢复占一轮 `turn`，工具步数保持不变。恢复次数耗尽后以 `provider_error` 结束，其他未完成原因由[第 02 章](02-model-protocols.md)解释。
+
+## 练习与核对
+
+1. 将实验改为 `await runtime.run(TaskSpec(..., max_turns=1))`，会在哪一步结束？
+2. 第一次回复直接说“已经读完”，保留 `require_observation=True`，会发生什么？
+3. 外部代码只调用 `runtime.step()`，会不会增加模型请求？
+4. `[read_file（合法）, todo_add（合法）, search（缺少 pattern）]` 会执行哪些调用？
+
+<details>
+<summary>参考答案</summary>
+
+1. 第一轮能读完两个文件，随后因 `turn_limit` 结束，第二轮没有机会回答。
+2. 完成检查要求补做观察，下一轮继续。
+3. `step()` 只执行传入的动作；请求模型由 `turn()` 负责。这也是外部策略复用 Runtime 的入口。
+4. 整批在预检阶段返回。`todo_add` 的 effect 为 `state`，不满足“其余调用全为只读”。
+
+</details>
+
+对应回归见 [test_tool_feedback.py](../../tests/test_tool_feedback.py)、[test_provider_events.py](../../tests/test_provider_events.py) 和 [test_preexisting_failures.py](../../tests/test_preexisting_failures.py)。
 
 上一章：[00｜跑通任务](00-quickstart.md) · [目录](README.md) · 下一章：[02｜模型协议](02-model-protocols.md)

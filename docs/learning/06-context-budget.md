@@ -4,165 +4,119 @@
 
 > 模型窗口决定能装多少；Harness 决定装什么，以及删掉的东西去哪里找。
 
-读完本章，你应该能沿着 `Runtime.prepare_request()` 找到一次请求的组成，
-说明为什么 Aster 不再给每条工具输出设置固定 token 上限，
-并用一个离线实验检查压缩后的请求预算和工具调用配对。
-
 ## 从一个具体问题开始
 
-Agent 刚读了两千行日志，又搜索了三个目录，接着还要修改代码。
-下一轮若把历史原样带上，可能超出模型输入窗口；如果不分内容直接截断，
-又可能把真正的错误行删掉，甚至只留下工具结果而丢掉对应调用。
+Agent 读了长日志，搜索了几个目录，还要继续修改代码。历史越长，下一轮输入越大；压缩既要腾出空间，也要保留目标、调用配对和证据入口。
 
-所以“上下文管理”不是把字符串变短这一件事。
-它至少要同时回答：当前目标有没有保留、下一步需要的状态还在不在、
-请求是否合法、模型能否找回移出窗口的证据。
+Aster 当前使用固定策略 `deterministic-v10`：两次压缩之间只追加，超过触发线时集中压缩，再按同一规则继续。它直接加工现有记录，省去额外的模型摘要请求。
 
-Aster 当前采用固定策略 `deterministic-v7`。
-`deterministic` 表示同样的输入和预算按照同样规则处理；`v7` 是策略版本标记。
-这里没有额外调用 LLM 生成摘要，也没有让 Agent 自行训练或修改压缩策略。
-
-系统约束还要求：调研时把相关正文读入工具观察，自测实际实现，并按需求检查生成的产物。下载文件不等于读过资料，自测通过也不等于覆盖全部需求。这些是给模型的行为指引；Runtime 的完成状态仍只证明其实际检查过的条件，不能保证模型遵守了每一条建议。
-
-请求依次包含稳定系统约束、初始任务、已有历史，再附当前模式、预算余量、工作状态、Memory 与 Skills 等动态观察。动态状态不再位于任务之前。工具目录在第一次观察前就列出可加载的 `observation_read`，空目录返回空列表；完整 schema 仍按需加载。这改善可缓存前缀的稳定性，不保证网关实际命中或任务更快；协议转换、权限变化、加载工具和必要的历史压缩仍可能改变前缀。
-
-## 这一轮请求从哪里来
+## 一轮请求从哪里来
 
 ```mermaid
 flowchart TD
     A[TaskSpec 当前目标] --> P[ContextBuilder.build]
-    B[RunState 计划、待办、验证状态] --> P
-    C[工作记忆、长期记忆召回、Skills] --> P
-    D[原生调用与结果历史] --> P
-    E[当前可见工具定义] --> P
+    B[RunState 计划、待办、验证状态] --> N[状态便笺：变化时追加]
+    C[长期记忆召回、Skills] --> N
+    N --> P
+    D[历史：调用 + JSON 记录] --> V[render_output 渲染为文本]
+    V --> P
+    E[当前工具定义] --> R
     P --> R[转换为 provider 请求并估算 token]
-    R --> Q{输入预算内?}
-    Q -->|是| S[保存请求工件并调用模型]
-    Q -->|否| T[按固定顺序收缩，再检查]
+    R --> Q{超过触发线?}
+    Q -->|否| S[保存请求工件并调用模型]
+    Q -->|是| T[压缩：遮蔽、丢弃、兜底]
     T --> R
 ```
 
-注意最后参与计数的不是只有聊天消息。
-工具的 JSON Schema、system 提示、模型协议包装和输出上限参数都在序列化请求中。
-工具描述越长，留给任务证据的位置也就越少，这与第 03 章的按需加载直接相关。
+请求依次放 system、初始任务、普通消息、原生交互历史和新状态便笺。工具结果从 JSON 记录渲染成文本；工具定义与协议包装也参与计数。入口是 [Runtime.prepare_request()](../../src/aster/core/runtime.py)，它先刷新文件观察和记忆召回，再交给 [ContextBuilder.build()](../../src/aster/context/builder.py)。
 
-消息按“系统规则、任务与已确认历史、动态状态和记忆”的顺序排列，记忆更新不插入稳定前缀。普通父任务进入预算收尾时保留工具定义，靠执行入口的 `handoff_only` 阻止新动作；模型即使再次请求工具也不能继续执行。这样避免单纯为了最终答复就修改工具前缀。子任务沿用原有交接目录；正常按需加载工具、历史压缩或版本升级仍可能影响缓存，不能承诺每次都命中。设计依据见[一日降耗方案](../cost-optimization-20261007.md)。
+系统提示保留跨任务通用的行动原则：先看再改、修 bug 先复现、实现缺失代码时先写再测，以及通过真实代码路径验证。2026-10-17 精简了重复检查清单，设计依据见 [harness-v12.md](../harness-v12.md) 第 5 节。正式完成条件由第 08 章的运行时检查处理。
 
-这里的“稳定”是同一版本、同一任务中，变化的记忆不改写前面的系统规则和已有消息。升级修改系统提示或工具 schema 后，新请求与旧版本的前缀不同，可能需要重新建立缓存。缓存通常只能利用第一次变化之前的连续前缀：压缩早期历史、增减工具定义仍会影响它，后台记忆放在末尾也不代表整个请求永远不变。
+## 预算由模型配置解析
 
-实测应同时看 `缓存输入 token / 全部输入 token`、未缓存输入和输出，不能只追求命中比例。减少无效调用可能同时减少缓存 token 和总成本。当前真实对照使用 Responses，缓存数取供应商返回的 usage；Chat 和 Anthropic 的缓存效果没有在这组实验中验证。
-
-[Runtime.prepare_request()](../../src/aster/core/runtime.py) 的入口如下，节选：
-
-```python
-# 源码节选：每次准备请求都刷新预算，避免换模型后沿用旧值。
-self.context.budget = self.settings.effective_context_tokens
-self.context.output_reserve = self.settings.effective_output_tokens
-self._refresh_observations()
-memory_text = self._memory_text(state.task.prompt)
-working_memory = self.memory.working_section(state.working_memory)
-```
-
-`_refresh_observations()` 检查文件证据是否过期；例如用户在外部修改了文件，
-旧文件摘要就不能继续当作现状使用。
-随后 [ContextBuilder.build()](../../src/aster/context/builder.py) 委托 `BudgetCalculator.calculate()` 计算候选请求和裁剪结果，成功后统一更新历史与消息，返回 `prompt` 和 `ContextReport`。策略正文与区段顺序位于 [context/prompt.py](../../src/aster/context/prompt.py)。
-
-## 预算不需要用户每次手算
-
-[Settings](../../src/aster/config.py) 中最容易混淆的几个字段如下。
-
-| 字段 | 含义 | 示例 |
+| 字段 | 含义 | 本章实验 |
 |---|---|---|
-| `context_tokens` | 显式总预算，包含输入和输出预留；`None` 表示用模型配置 | 实验设为 `4096` |
-| `output_tokens` | 本次模型生成的最大输出及对应预留空间 | `512` |
-| `effective_context_tokens` | 解析后的实际总预算 | 显式配置时为 `4096` |
-| `context_budget_source` | 预算来源：显式、已登记模型或未知模型回退 | `explicit`、`model_profile`、`fallback` |
-| `ContextReport.budget` | 这一轮允许的输入预算 | `4096 - 512 = 3584` |
-| `estimated_tokens` | 序列化请求的本地 token 估算 | 应不超过 `budget` |
-
-正常运行可以省略 `context_tokens`。已登记模型使用代码里的窗口、输入和输出上限，
-输入侧再保留 5% 余量；未知模型使用 24,000 总预算，并在界面显示回退来源。
-这是本地模型配置表，不是自动询问任意网关的能力接口；新模型或别名需要正确配置。
-模型配置表及算例见[配置说明](../configuration.md)。
-
-核心公式是：
+| `context_tokens` | 显式总预算；留空时使用模型配置 | `4096` |
+| `output_tokens` | 最大输出及对应预留 | `512` |
+| `effective_context_tokens` | 解析后的实际总预算 | `4096` |
+| `context_budget_source` | 显式配置、已登记模型或回退值 | `explicit` |
+| `ContextReport.budget` | 本轮可用输入预算 | `3584` |
+| `estimated_tokens` | 完整请求的 token 估算 | 与输入预算比较 |
 
 ```text
 显式配置：输入预算 = context_tokens - output_tokens
 自动配置：输入预算 = floor(min(模型输入上限, 模型总窗口 - output_tokens) × 0.95)
 ```
 
-`count()` 优先用 `tiktoken` 的 `cl100k_base` 编码；没有依赖时按 UTF-8 字节数估算。课程首次使用可能触发词表下载；这不是模型 API 调用。完全断网前应准备缓存，且估算值仍不等于任意模型的真实计费 token。
-这不是每一种模型的精确 tokenizer，因此不能把本地数直接叫作 API 计费 token。
-也不要把本章为了触发压力而设置的几千 token 当作日常推荐上限。
+日常可省略 `context_tokens`。已登记模型读取本地 profile；未知模型回退到 24,000 总预算，并在界面显示来源。模型别名、窗口与算例见[配置说明](../configuration.md)。本章的小预算用于制造可观察的压缩。
 
-## 超预算后，具体先动哪里
+## 为什么历史只追加
 
-[BudgetCalculator.calculate()](../../src/aster/context/budget.py) 每收缩一次就重新构造请求并计数。
-能装下就立即停，不会为了追求漂亮压缩率继续删。
+供应商缓存复用相同的请求前缀。早期 Aster 每轮把历史裁到刚好放下，再写回；下一轮又重新裁，导致已发送内容反复变化。v9 将压缩改为间隔发生的事件，v10 又把动态状态改成追加式便笺。
 
-1. **先做准备。** 校验原生工具历史，给可归档的文本结果落盘；不超预算就保留完整正文。
-2. **删普通旧消息。** 先删不属于原生历史、不是 `user`、也没有 `important=True` 的普通消息。
-3. **处理旧历史组。** 按时间选择可移除的旧原生历史组；有较大工具正文时先缩短，否则删除整组。纯 assistant 文本也可能组成一个旧组。
-4. **让可重建的附加文本让位。** 依次收缩长期记忆召回、技能目录、已加载技能正文、工作记忆展示。
-5. **收缩工作流说明。** 缩短计划和未完成待办的长描述，保留待办身份；最后仍装不下就明确停止。
+[v10 报告](../../evaluations/context-state-20261014/REPORT.md)中，old20 的前台缓存占比为 88.53%，完整前缀改写发生 4 次，均对应显式压缩。通过数为 13/20，与 v9 持平；这组结果支持缓存机制的改进，质量变化由更大范围的配对评测继续判断。
 
-步骤 3 中，最近一次工具交互优先保留。没有可处理的旧交互时，
-最近交互的结果正文也可能被缩短，但不把调用 ID、结果状态等协议外壳切坏。
-这不是“最近结果永不裁剪”的保证。
+Responses 还使用 `prompt_cache_key=session_id` 帮助复用会话前缀。加载新工具、改变系统提示或压缩早期历史时，前缀会随之变化；测量时同时看缓存输入、未缓存输入与输出，见[缓存方案](../context-cache-plan.md)。
 
-步骤 2 的“普通消息”尤其值得注意：模型原生历史中已经保存的 assistant/tool 内容，
-不会又作为 `state.messages` 的重复副本塞进请求。
-`important` 是普通消息的删除保护标记，不是给所有文本无限预算的通行证。
+## 怎样计数：回执优先，本地估算兜底
 
-步骤 4 缩短的是发送给模型的展示，`RunState.working_memory` 的原数据仍在。
-计划、待办也有独立状态，而不是只能从一段旧聊天里猜测。
+本地 `count()` 使用 tiktoken 的 `cl100k_base`，缺少依赖时按 UTF-8 字节估算。它能计算新增文本，但对供应商推理密文和固定开销有偏差。`BudgetCalculator.observe()` 因此用成功请求的用量回执建立锚：
 
-下面是裁剪分支的真实节选，省略了后续分支：
+1. 接收一次干净回执：`usage_requests == 1`，token 值有效且无诊断标志。保存实际请求项和 `input_tokens + output_tokens`。
+2. 新请求沿用模型、工具与系统配置，且完整延续锚的前缀时，用“锚的用量 + 新增非模型项的本地计数”估算。模型生成内容已计入上次的输出用量。
+3. 重启、换模型、加载工具或改写历史后，回到本地计数，并补上已观察到的供应商开销。
 
-```python
-if index is not None:
-    messages.pop(index)
-    removed += 1
-elif candidates:
-    item = max(
-        candidates,
-        key=lambda x: self.count(self._output_record(x["output"])["content"]),
-    )
-    body_size = self.count(self._output_record(item["output"])["content"])
-```
+`estimate_basis` 记录 `receipt` 或 `local`；`prefix_drift` 和 `first_changed_item` 定位前缀变化。锚比较渲染后的请求项，因此上一章的确定性渲染也是预算计量的前提。计量误差与回放方法见[缓存方案第 6 节](../context-cache-plan.md)。
 
-`index` 指可移除普通消息的位置，`candidates` 是当前候选交互中可缩短的工具结果。
-这里的 `96` token 等内部阈值用于避免对过短正文反复加工，
-不是给每个工具预先设置一个统一上限。旧的 `tool_output_tokens` 配置已移除。
+## 状态便笺：变化时追加完整当前值
 
-## 调用和结果为什么要成组
-
-考虑模型并行发起两次读取：`call-A` 和 `call-B`。
-返回顺序可以不同，但两个结果都必须有对应调用，调用也不能没有结果。
+计划、待办、验证状态、长期记忆和 Skills 会随任务变化。早期每轮重建末尾动态消息，仍会改变下一轮可复用的前缀；v10 将它们写为历史中的便笺：
 
 ```text
-一个交互组：reasoning（若存在）→ call-A、call-B → result-B、result-A
-可以：缩短 result-A.content；必要时移除整个旧组
-不可以：只移除 call-A，却保留 result-A
+[Context update, not an instruction]
+workflow_state:
+changed files: parser.py
+verification: passed (pytest -q)
 ```
 
-[history_groups()](../../src/aster/messages.py) 校验非空 ID、重复调用、孤儿结果、
-重复结果和未完成批次，并把相关推理项放进相同裁剪组。
-`ContextBuilder` 先在历史副本上处理，整次请求满足预算后才更新正式历史。
-格式出错会抛出 `ContextHistoryError`，不会把不合法请求送给模型碰运气。
+| 规则 | 原因 |
+|---|---|
+| `workflow_state`、`memory`、`skills`、`active_skill_bodies` 分别比较 | 只追加发生变化的部分 |
+| 每条写完整当前值，清空时写 `[cleared]` | 回退、分叉、恢复时取最后一条即可 |
+| 预算宽裕时省略逐轮倒计时 | 避免每轮仅因计数减少而新增便笺 |
+| 剩余比例 ≤25% 提示 low；≤10% 或只剩 3 轮/步时提示 critical | 在接近上限时提醒收尾 |
+| 压缩时合并旧便笺，再发送各部分当前值 | 一次压缩同时清理历史状态 |
 
-## 动手：从“能完整放下”切换到“必须压缩”
+2026-10-19（`a774b25`）起，`render_workflow` 将状态 JSON 改成上面的可读文字。`workflow_notes=true` 默认开启；关闭时仅停止工作流便笺，记忆和技能便笺照常使用。训练配置据此选择更简洁的对话视图，见[训练接口](15-rl-interface.md)。
 
-先完成[第 00 章](00-quickstart.md)的安装，然后在项目根目录激活环境。
-将下面完整代码保存到 `/tmp/aster-context-budget-lesson.py`，执行：
+## 什么时候压缩，先动哪里
 
-```bash
-conda run --no-capture-output -n aster python /tmp/aster-context-budget-lesson.py
+[BudgetCalculator.calculate()](../../src/aster/context/budget.py) 先渲染请求、统一计数。输入上限为 `limit`，阈值由它推导：
+
+```python
+trigger = limit - min(output_reserve, limit // 8)
+keep_recent, relief, drop_target = limit // 8, limit * 3 // 4, limit // 2
+compacting = before > (trigger if anchored else limit)
 ```
 
-实验只调用真实 Harness 和本地工具，不调用模型 API；临时日志和运行工件自动清理。
-`_structured_history` 是内部属性，本实验只读它来检查协议，并不教调用方手动拼装生产请求。
+有回执锚时使用较低触发线，留出增长空间；没有锚时使用 `limit`，减少本地高估造成的提前压缩。触发后按顺序处理：
+
+| 步骤 | 做什么 |
+|---|---|
+| 整理便笺 | 移除旧便笺，在末尾重发当前值 |
+| 遮蔽旧结果 | 最新交互优先保留；较早输出累计超过 `keep_recent` 后换为归档占位符，状态与调用编号保留 |
+| 丢弃旧组 | 遮蔽后仍高于 `relief`，移除普通旧消息和完整旧交互组，目标为 `drop_target`；留下归档检索提示 |
+| 逐项收缩 | 仍超过 `limit` 时，缩短正文、记忆召回、技能和计划展示；最后才缩短最新结果 |
+
+初始目标、必要协议结构仍放不下时抛出 `ContextBudgetError`。处理发生在副本上，整次请求满足预算后才写回历史与普通消息。计划、待办、技能快照的原始状态继续保存在 `RunState`。
+
+`history_groups()` 将调用、结果及相关推理项划为一组。可以缩短结果正文，也可以移除完整旧组；调用编号与结果的引用关系始终一起检查，见 [messages.py](../../src/aster/messages.py)。
+
+这里按整次请求分配空间。`read_file` 的单次字符上限、命令输出的捕获上限则属于工具层；归档回读在这两层之上找回已捕获的历史内容，见下一章。
+
+## 实验一：从完整请求切换到必须压缩
+
+实验使用真实 Runtime 与本地工具，通过缩小预算观察同一份日志的变化。内部属性 `_structured_history` 只用于检查保存格式，调用方使用 `prepare_request()` 获取请求。
 
 ```python
 # 可运行实验
@@ -176,6 +130,12 @@ from aster.messages import history_groups
 from aster.providers.codec import request_payload
 from aster.core.runtime import Runtime
 from aster.schema import TaskSpec, ToolCall
+
+
+def result_of(items):
+    """唯一一条工具结果：历史里是 JSON 记录，请求里是渲染后的纯文本。"""
+    return next(item["output"] for item in items if item.get("type") == "function_call_output")
+
 
 async def main():
     with TemporaryDirectory(prefix="aster-budget-") as directory:
@@ -195,84 +155,120 @@ async def main():
         runtime.add_message("assistant", "旧的探索思路。" * 200, native=False)
         wide_prompt, _, wide = runtime.prepare_request()
         assert not wide.compacted
-        # 模型看到的读取结果带行号，正文仍然完整。
+        # 模型看到的读取结果带行号，正文仍然完整；read_file 触到单次字符上限，页脚给出续读位置。
         numbered = "\n".join(
             f"{number}: {line}"
             for number, line in enumerate(outcome.content.splitlines(), outcome.data["start"])
         )
-        assert json.loads(runtime._structured_history[-1]["output"])["content"] == numbered
+        assert json.loads(result_of(runtime._structured_history))["content"] == numbered
+        assert result_of(wide_prompt) == numbered + f"\n[more from line {outcome.data['next_start']}]"
 
         # 调小的是实验预算；日常使用可以省略 context_tokens。
         settings.context_tokens = 4096
         prompt, tools, tight = runtime.prepare_request()
         payload = request_payload(
             prompt, tools, model=settings.model, output_tokens=settings.effective_output_tokens,
+            prompt_cache_key=runtime.state.session_id,
         )
         assert runtime.context.count(payload) == tight.estimated_tokens
         assert tight.estimated_tokens <= 4096 - 512
         assert tight.compacted and tight.removed_messages >= 1
         assert any(m.get("content") == runtime.state.task.prompt for m in prompt)
         groups = history_groups(runtime._structured_history)
-        assert len(groups) == 1 and len(groups[0]) == 2
+        assert len(groups[0]) == 2  # 调用和结果；其后只有一条状态便笺
         record = json.loads(groups[0][-1]["output"])
         assert record["status"] == "success" and "observation" in record
-        print("压缩前本地估算:", wide.estimated_tokens)
-        print("压缩后本地估算:", tight.estimated_tokens, "/", tight.budget)
+        # 日志被截成首尾摘录，页脚给出回读入口，编号只写 16 位前缀。
+        clipped = result_of(prompt)
+        assert "[excerpt; observation_read for archived content]" in clipped
+        assert clipped.endswith(f"observation_id={record['observation']['id'][:16]}]")
+        print("压缩前后本地估算(千 token):", wide.estimated_tokens // 1000, "->", tight.estimated_tokens // 1000)
         print("移除旧消息:", tight.removed_messages)
         print("调用和结果仍然成组:", len(groups[0]))
+        print("页脚:", clipped.splitlines()[-1].replace(record["observation"]["id"][:16], "<16 位前缀>"))
         print("策略版本:", tight.policy_version)
+
 
 asyncio.run(main())
 ```
 
-以下是一次示意执行记录；当前实现显示 `deterministic-v7`，计数也可能变化：
+预期输出（token 数会因随机生成的调用 ID 略有浮动，也取决于本地有没有 `tiktoken`，所以只打印千位）：
 
 ```text
-压缩前本地估算: 13325
-压缩后本地估算: 3067 / 3584
+压缩前后本地估算(千 token): 11 -> 3
 移除旧消息: 1
 调用和结果仍然成组: 2
-策略版本: deterministic-v7
+页脚: [more from line 1143; full output: observation_read observation_id=<16 位前缀>]
+策略版本: deterministic-v10
 ```
 
-每次生成的调用 ID、证据标识不同，工具描述和依赖版本也可能变化，
-token 数会略有变化；重要的是断言一直成立。
-第一次读完日志时，模型看到的是带行号的完整正文，没有被固定工具上限提前切掉；第二次预算变小后，
-旧的普通消息被移除，日志留下有界摘录与归档引用，调用和结果仍是一组。
+第一次读完日志时，模型看到的是带行号的完整正文，没有被固定工具上限提前切掉；
+`read_file` 单次最多返回 24,000 个字符的整行，所以末尾有一行续读提示。
+第二次预算变小后，旧的普通消息先被移除；仍然放不下，最新一次交互的日志才被截成首尾摘录，
+页脚给出回读入口，调用和结果仍是一组。
 
-命令输出还受 `run_shell` 的 4 MiB 捕获上限和 8192 字符预览上限约束；超过捕获上限的内容不会靠归档恢复。上下文预算裁剪是另一层：它针对已捕获的请求内容重新计数和收缩，不等于扩大命令捕获能力。
+## 实验二：观察便笺与回执计量
 
-`report.removed_messages` 统计移除的消息/协议项数量，不是“删除了多少事实”。
-`report.compacted=True` 也只说明上下文发生收缩，不能独立证明模型仍能完成任务。
-真实任务通过率和成本需要另测，见[上下文评测结果](../context-results.md)和[第 14 章](14-evaluation.md)。
+这次直接调用 ContextBuilder。模拟回执用于检查计数公式，整个过程离线完成。
 
-## 练习与参考答案
+```python
+# 可运行实验
+from aster.context import ContextBuilder
+from aster.providers.codec import request_payload
+from aster.schema import ModelReply, RunState, TaskSpec, Verification
 
-**练习 1：只把实验中的旧普通消息变短，压缩后一定还会裁日志吗？**
+state = RunState(task=TaskSpec(prompt="修复解析器。"))
+builder, history = ContextBuilder(64000, 8192), []
 
-不一定。是否裁日志取决于删完普通消息后整次请求是否仍超预算。
-你可以把 `context_tokens` 调到刚好容纳工具全文的附近，观察 `compacted` 和正文。
-不要假设“触发压缩”等于“必须截断每条工具输出”。
+def build():
+    return builder.build(state, state.task.prompt, structured_history=history, model="demo")
 
-**练习 2：为什么不能只对 `prompt` 中的字符串逐条相加？**
+first, report = build()
+assert report.context_notes == 1
+state.turn = 1
+same, report = build()
+assert same == first and report.context_notes == 0
+state.changed_paths = ["parser.py"]
+state.verification = Verification(state="passed", command="pytest -q")
+changed, report = build()
+assert changed[:len(first)] == first and report.context_notes == 1
+print("新便笺:", changed[-1]["content"].splitlines()[1:])
+payload = request_payload(changed, [], model="demo", output_tokens=8192,
+                          prompt_cache_key=state.session_id)
+builder.calculator.observe(payload, ModelReply(usage={
+    "usage_requests": 1, "input_tokens": 5000, "output_tokens": 80,
+}), changed)
+history.append({"role": "user", "content": "再检查空输入。"})
+following, report = build()
+assert following[:len(changed)] == changed
+assert report.estimated_tokens == 5080 + builder.count(following[-1])
+print("估算依据:", report.estimate_basis)
+```
 
-协议转换和工具 schema 也占空间。
-实验使用 `request_payload()` 得到与当前协议一致的完整请求，再交给同一个计数器检查。
+预期输出：
 
-**练习 3：预算小到当前目标和必要状态本身都放不下，Aster 会怎样？**
+```text
+新便笺: ['workflow_state:', 'changed files: parser.py', 'verification: passed (pytest -q)']
+估算依据: receipt
+```
 
-抛出 `ContextBudgetError`；自主运行把它记为 `context_budget_exceeded` 并停止。
-它不会偷偷裁掉当前请求，也不会自动新增一次摘要模型调用。
+## 练习与核对
 
-## 本章的边界
+1. 只把实验一的旧普通消息变短，压缩后还一定需要裁日志吗？
+2. 为什么计数入口使用 `request_payload()`，而非逐条相加消息正文？
+3. 状态便笺为什么保存完整当前值？
+4. 回执估算为何只对新增非模型项做本地计数？
 
-这里证明的是预算控制和协议完整性，不是有损压缩后的语义无损。
-旧结果正文移出窗口之后，模型能否发现需要回读、是否读到关键证据，
-仍属于任务层面的能力；下一章会把“可以找回”这条路径跑通。
+<details>
+<summary>参考答案</summary>
 
-源码继续读：[context/budget.py](../../src/aster/context/budget.py)、[providers/codec.py](../../src/aster/providers/codec.py)。
-对应合同检查见 [test_context_archives.py](../../tests/test_context_archives.py)
-和 [test_protocol_pairing.py](../../tests/test_protocol_pairing.py)。
-本章借鉴 learn-claude-code 的“问题 → 机制 → 实验”组织；Aster 的压缩顺序与无 LLM 策略以自己的源码为准。
+1. 取决于剩余空间。移除旧消息后能放下，日志就可保持完整。
+2. 工具定义和协议包装也占输入预算，需要与实际发送的请求使用相同结构。
+3. 恢复或分叉到任意位置时，读取最后一条即可获得该部分状态。
+4. 上一次回执已包含模型生成的输出，再算一遍会重复计数。
+
+</details>
+
+回归入口：[test_receipt_metering.py](../../tests/test_receipt_metering.py)、[test_append_only_context.py](../../tests/test_append_only_context.py)、[test_context_notes.py](../../tests/test_context_notes.py) 和 [test_context_archives.py](../../tests/test_context_archives.py)。下一章实际找回一段已移出窗口的内容；模型在任务中是否选择回读，由第 14 章的任务评测观察。
 
 [上一章：状态与证据](05-state-and-evidence.md) · [学习目录](README.md) · [下一章：归档与回读](07-context-archives.md)

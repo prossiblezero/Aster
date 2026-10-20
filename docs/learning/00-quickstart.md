@@ -8,7 +8,7 @@
 
 你可能已经会调用模型 API：输入一句话，得到一段回答。但 Coding Agent 要完成“修复代码并测试”，中间必须多次接触真实工作区。模型负责提出下一步，Harness 负责组织输入、执行允许的动作、保存结果，并决定什么时候继续或停止。
 
-Aster 的入口并不神秘。终端界面把任务交给 `Runtime`，它循环调用模型和工具。后面的章节都是在这条主线上回答一个工程问题，例如“文件刚被别人改过，还能照着旧内容写吗？”或“聊天历史太长了，如何保住调用与结果的配对？”
+终端界面把任务交给 `Runtime`，它循环调用模型和工具。后面的章节都是在这条主线上回答一个工程问题，例如“文件刚被别人改过，还能照着旧内容写吗？”或“聊天历史太长了，如何保住调用与结果的配对？”
 
 ```text
 用户任务
@@ -20,7 +20,7 @@ Runtime：组装输入 → 模型选择动作 → 检查权限 → 执行工具
 检查完成条件 → 最终回答 + 运行记录
 ```
 
-本课程围绕当前项目做源码导读。章节是学习顺序，不是十几份独立的 Agent 实现；每个实验都直接使用 `src/aster` 的实际代码。
+本课程围绕当前项目做源码导读。章节沿同一条运行路径展开，每个实验都直接使用 `src/aster` 的实际代码。
 
 ## 准备环境
 
@@ -33,7 +33,7 @@ conda activate aster
 python -m pip install -e '.[dev]'
 ```
 
-`-e` 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。`[dev]` 加装 pytest 等开发工具。项目依赖见 [pyproject.toml](../../pyproject.toml)：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。课程实验不调用模型 API，但 tiktoken 首次使用可能需要下载词表；完全断网前请准备好本地缓存。第 04 章的 Linux 沙箱实验要求运行环境支持 Landlock/seccomp；不支持时应看到 `required` 的明确失败，而不是把外层沙箱限制写成产品不支持隔离。
+`-e` 是可编辑安装：导入的是仓库里的源码，修改文件后不需要反复安装。`[dev]` 加装 pytest 等开发工具。项目依赖见 [pyproject.toml](../../pyproject.toml)：HTTPX 负责 HTTP 请求，Pydantic 校验数据，Textual 构建 TUI，tiktoken 估算输入长度。课程实验不调用模型 API，但 tiktoken 首次使用可能需要下载词表；完全断网前请准备好本地缓存。第 04 章的沙箱实验需要支持 Landlock/seccomp 的 Linux 环境。
 
 开发时先运行 `python -m pytest -q -m smoke` 检查主要链路，再测试修改的模块。`-m core` 覆盖核心回归，省略 `-m` 会运行完整测试；三者是包含关系，无需每次都依次执行。模块选择和维护规则见[测试指南](../../tests/README.md)。
 
@@ -65,25 +65,30 @@ from aster.schema import ModelReply, TaskSpec, ToolCall
 
 
 class ReadThenAnswer:
+    def __init__(self):
+        self.seen = ""
+
     async def complete(self, messages, tools):
         outputs = [m for m in messages if m.get("type") == "function_call_output"]
         if not outputs:
             return ModelReply(calls=[
                 ToolCall(name="read_file", arguments={"path": "hello.txt"})
             ])
-        result = json.loads(outputs[-1]["output"])
-        assert result["status"] == "success"
-        return ModelReply(text="文件内容：" + result["content"].strip())
+        # 请求里的工具结果已经渲染成纯文本：read_file 给每一行加了行号前缀。
+        self.seen = outputs[-1]["output"]
+        assert self.seen.startswith("1: "), self.seen
+        return ModelReply(text="文件内容：" + self.seen.splitlines()[0].removeprefix("1: "))
 
 
 async def main():
     with TemporaryDirectory(prefix="aster-lesson-") as directory:
         root = Path(directory)
         (root / "hello.txt").write_text("Hello, Aster!\n")
+        model = ReadThenAnswer()
         runtime = Runtime(
             root,
             Settings(memory_enabled=False, auto_dream=False),
-            model=ReadThenAnswer(),
+            model=model,
         )
         state = await runtime.run(TaskSpec(
             prompt="查看 hello.txt 并告诉我内容",
@@ -94,24 +99,37 @@ async def main():
         print("checkpoint:", runtime.evidence.path(
             "runs", state.run_id, "checkpoint.json"
         ).is_file())
+        # 同一条结果在历史里是完整的 JSON 记录；模型看到的是上面那段文本。
+        record = json.loads(next(
+            item["output"] for item in runtime._structured_history
+            if item.get("type") == "function_call_output"
+        ))
+        print("模型看到:", repr(model.seen))
+        print("历史里的记录字段:", sorted(record))
         assert (state.phase, state.turn, state.step) == ("completed", 2, 1)
+        assert record["status"] == "success" and record["content"] == model.seen
 
 
 asyncio.run(main())
 ```
 
-你会看到包含 `Hello, Aster!` 的回答，以及：
+你会看到包含 `Hello, Aster!` 的回答，以及运行状态：
 
 ```text
+文件内容：Hello, Aster!
 phase=completed, turn=2, step=1
 checkpoint: True
+模型看到: '1: Hello, Aster!'
+历史里的记录字段: ['content', 'end', 'evidence_id', 'path', 'start', 'status']
 ```
 
 为什么有两轮却只有一步？第一轮模型选择读文件，执行了一次工具；第二轮模型给最终回答，没有再调用工具。`turn` 数模型决策轮次，`step` 数工具执行步骤。更多细节留到下一章。
 
 `TemporaryDirectory` 创建临时工作区，退出后自动清理，实验不会改你的业务仓库。`memory_enabled=False` 关闭跨运行记忆，方便单独观察循环；本次任务的工作记忆仍然存在。`auto_dream=False` 关闭任务结束后的长期记忆整理，本章无需它。
 
-这次实验验证的是 Harness 数据流；下一步动作是提前写好的，所以它不能证明模型自主解决任务的能力。
+最后两行展示同一条结果的两种用途：模型读到带行号的文件正文；历史保存状态、证据编号和读取范围，供恢复、预算与审计使用。组装请求时，[view.py](../../src/aster/context/view.py) 的 `render_output` 把记录渲染成文本，省去 JSON 包装和转义。第 05 章会沿同一次读取展开这条路径。
+
+这是 2026-10-19（`a774b25`）之后的做法；此前模型请求直接携带 JSON 记录。实验只读内部属性 `_structured_history` 来观察保存格式，业务集成通过 Runtime 的公开方法操作。模型替身让这条数据流可以离线复现。
 
 ## 换成真实模型
 
@@ -124,7 +142,7 @@ ASTER_BASE_URL=https://api.openai.com/v1
 ASTER_API_KEY=填写自己的密钥
 ```
 
-`protocol` 表示接口的消息格式，`base_url` 是接口前缀，`model` 是服务接受的模型名。兼容网关可能需要不同的地址，但不应把完整 `/responses` 路径重复写进前缀。
+`protocol` 表示接口的消息格式（`responses`、`chat` 或 `anthropic`，区别见[第 02 章](02-model-protocols.md)；DeepSeek 官方接口和本地开源模型服务使用 `chat`），`base_url` 是接口前缀，`model` 是服务接受的模型名。兼容网关可能需要不同的地址，但不应把完整 `/responses` 路径重复写进前缀。
 
 配置好以后，在交互终端运行 `aster` 就会打开 TUI；输入任务后才发送真实请求并产生费用。大多数参数可以省略。下面用一个新目录演示单次任务和交互启动：
 
@@ -138,7 +156,9 @@ aster --cwd /tmp/aster-learning-demo
 
 `.env` 默认从**启动命令时的当前目录**读取，`--cwd` 决定 Agent 的工作区，两者不同。这里从项目根启动，因而会用项目的 `.env`。也可以通过 `--env-file` 显式指定。
 
-日常启动默认开启项目记忆、记忆演化与自动整理，不需要添加记忆配置。Aster 可以保存有出处的项目约定，并在任务结束后自动提炼遗漏的约定与经过测试的修复经验；有价值才保存，提交成功后再告知用户。前台可以继续执行，CLI 会先输出答案，再等待维护最多 15 秒，剩余材料留到下次。上面的离线实验显式关闭了部分能力，目的是看清循环。存储与召回见 [第 10 章](10-layered-memory.md)，修复经验和反馈维护见 [第 11 章](11-memory-evolution.md)。
+日常使用默认开启项目记忆和记忆演化，保存有出处的项目约定与修复经验。交互会话在边界处启动后台整理；单次 CLI 默认在打印答案后退出，待整理材料留给后续会话。
+
+两种入口分开，是因为整理服务于未来任务，却会增加当前任务的等待和请求数。2026-10-18（`1fa30a3`、`937fb49`）将单次任务的 `oneshot_maintenance_seconds` 默认值改为 0；需要当场等待整理时，可在 TOML 中设为大于 0 的秒数，见[配置说明](../configuration.md)。实验关闭记忆是为了单独观察循环；完整机制见[第 10 章](10-layered-memory.md)和[第 11 章](11-memory-evolution.md)。
 
 `aster '任务内容'` 执行一次任务后退出；`aster --tui`、`aster-tui` 仍可显式启动 TUI。非交互输入下需要提供任务文本，避免程序等待输入；`--resume` 与 `--rl-smoke` 保持专用执行路径。
 
@@ -152,14 +172,22 @@ aster --cwd /tmp/aster-learning-demo
 | [schema.py](../../src/aster/schema.py) 的 `TaskSpec` / `ModelReply` | 用户任务和模型回复的数据结构 |
 | [runtime.py](../../src/aster/core/runtime.py) 的 `run` / `_run` | 模型与工具为何可以反复交互 |
 | [config.py](../../src/aster/config.py) 的 `load_settings` | TOML、环境变量和显式参数如何合并 |
+| [view.py](../../src/aster/context/view.py) 的 `render_output` | 完整的工具结果记录，怎样变成模型看到的文本 |
 
 不用立刻把 `runtime.py` 从头读到尾。先找到实验中调用的 `run`，只跟着它进入 `_run` 和 `turn`；暂时把上下文、权限、记忆当作已经装配好的组件。
 
-## 自己改一次
+## 练习与核对
 
-把文件内容改为 `你好，Aster！`，但不要改模型替身的回答逻辑。输出应跟随文件变化。这说明回答来自真实工具结果，而不是代码里预先写死的答案。
+1. 把文件内容改为 `你好，Aster！`，保留模型替身的回答逻辑，输出会怎样变化？
+2. 删除 `hello.txt` 后，第一次工具结果是什么？
 
-再思考：如果删掉 `hello.txt`，能否仍说任务成功？当前实验会在模型替身里的断言失败。正式模型可以根据错误结果继续行动，但 Harness 不该把“读取失败”转换成虚构的文件内容。
+<details>
+<summary>参考答案</summary>
+
+1. 回答随文件内容变化，因为替身从工具结果中提取正文。
+2. 工具返回以 `[error: FileNotFoundError]` 开头的文本，实验里的断言随之失败。正式模型可以根据错误换路径继续；成功读取后，任务才有完成检查所需的观察证据。
+
+</details>
 
 下一章将去掉外围细节，只盯着这两轮中状态如何变化。
 
