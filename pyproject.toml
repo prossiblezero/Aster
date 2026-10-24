@@ -13,6 +13,7 @@ dependencies = ["httpx>=0.28,<1", "pydantic>=2.10,<3", "textual>=1,<7", "tiktoke
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "pytest-asyncio>=0.25,<2", "ruff>=0.12,<1", "setuptools>=75", "wheel>=0.45"]
 docs = ["markdown-it-py>=3,<5", "pygments>=2.18,<3"]
+mcp = ["mcp>=2.3,<3", "jsonschema>=4.20,<5", "httpx2>=2.10,<3"]
 
 [project.urls]
 Homepage = "https://github.com/prossiblezero/Aster"
@@ -22,6 +23,7 @@ Issues = "https://github.com/prossiblezero/Aster/issues"
 [project.scripts]
 aster = "aster.cli:main"
 aster-tui = "aster.cli:tui_main"
+aster-mcp-files = "aster.mcp_files:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aster"]

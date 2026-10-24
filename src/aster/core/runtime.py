@@ -48,16 +48,17 @@ from ..sessions.lifecycle import (
 )
 from ..sessions.tree import SessionTree
 from ..storage.evidence import EvidenceStore
+from ..storage.operations import OperationJournal
 from ..storage.workspace import Workspace
 from ..tools import (
     CORE_TOOLS,
-    SCHEMAS,
     ToolContext,
     ToolRegistry,
     definitions,
     read_edit_source,
 )
 from ..tools.availability import unavailable_reason
+from ..tools.mcp import MCPTools
 from ..tools.registry import validate_arguments
 from ..tools.workflow import WorkflowTools
 from .execution import execute_reads
@@ -85,12 +86,17 @@ class Runtime:
         self.approval_callback = approval_callback
         self.question_callback = question_callback
         secrets = [settings.api_key.get_secret_value()]
+        secrets.extend(settings.mcp_credential(name) for server in settings.mcp_servers.values()
+                       for name in server.credential_names())
         self.evidence = EvidenceStore(self.workspace.root, Redactor(secrets))
         self.session_tree = SessionTree(self.evidence)
         self.memory = Memory(
             self.workspace.root, settings.memory_enabled, settings.memory_evolution, secrets=secrets
         )
         self.model = model or ModelClient(settings)
+        if isinstance(self.model, ModelClient):
+            self.model.redaction_secrets = secrets
+        self.mcp = MCPTools(settings, self.workspace.root, self._unavailable_reason)
         self.sandbox = SandboxRunner(settings)
         self.skills = Skills(self.workspace.root)
         self.context = ContextBuilder(
@@ -213,6 +219,7 @@ class Runtime:
         self.settings, self.model, self.context = settings, model, context
         self.state, self._structured_history = state, history
         self.sandbox.settings = settings
+        self.mcp.settings = settings
         self.evidence.redactor = self.memory.redactor = redactor
         if self.state:
             self._history_origins.append(origin)
@@ -504,6 +511,7 @@ class Runtime:
         if state.turn >= state.task.max_turns:
             self.finish("turn_limit")
             return state
+        await self.mcp.restore(state.loaded_tools)
         try:
             prompt, tool_defs, report = self.prepare_request()
         except (ContextBudgetError, ContextHistoryError) as exc:
@@ -836,6 +844,9 @@ class Runtime:
                 "evidence_id": outcome.evidence_id,
                 "changed_paths": outcome.changed_paths,
                 "content": content,
+                **{key: outcome.data[key] for key in (
+                    "idempotency_replayed", "original_status", "uncertain", "mcp_endpoint", "failover",
+                ) if key in outcome.data},
                 **(
                     {key: outcome.data[key] for key in ("path", "start", "end", "source_sha256")}
                     if call.name == "read_file" and outcome.status == "success"
@@ -997,7 +1008,8 @@ class Runtime:
         # Provider parsing has already established complete JSON and call IDs.
         # A tool's business-schema mistake is correctable feedback, not damaged
         # history. Reject the whole batch before any effect, and pair every call.
-        arguments = {call.call_id: validate_arguments(call) for call in calls}
+        await self.mcp.restore([call.name for call in calls])
+        arguments = {call.call_id: validate_arguments(call, schemas=self.mcp.schemas) for call in calls}
         invalid = {key: value for key, value in arguments.items() if isinstance(value, Outcome)}
         if invalid:
             state = self.state
@@ -1096,6 +1108,8 @@ class Runtime:
             "git_diff",
         }:
             state.observed = True
+        if outcome.status == "success" and call.name in self.mcp.tools:
+            state.observed = True
         if outcome.status == "success" and call.name == "read_file":
             path = call.arguments["path"]
             self.memory.remember_file(
@@ -1109,7 +1123,8 @@ class Runtime:
                     start=str(outcome.data["start"]), evidence_id=outcome.evidence_id,
                     characters=str(len(self.evidence.redactor.text(outcome.content))),
                 )
-        elif outcome.status == "success" and call.name in {"search", "run_tests"}:
+        elif (outcome.status == "success" and call.name in {"search", "run_tests"}
+              and not outcome.data.get("idempotency_replayed")):
             self.memory.remember_file(f"__{call.name}__", outcome.content, state.working_memory)
         if outcome.status == "success" and call.name == "memory_retrieve":
             state.recalled_ids = sorted(
@@ -1118,6 +1133,7 @@ class Runtime:
         if (
             state.recalled_ids
             and call.name == "run_tests"
+            and not outcome.data.get("idempotency_replayed")
             and (outcome.status == "success" or outcome.reason == "tests_failed")
         ):
             applied = set(call.arguments.get("memory_ids", [])) & set(state.recalled_ids)
@@ -1168,7 +1184,7 @@ class Runtime:
                 self.add_message("user", state.feedback, important=True)
             else:
                 self.finish("stall_recovery_exhausted")
-        if not state.terminal:
+        if not state.terminal and not outcome.data.get("idempotency_replayed"):
             self._reflect_repair(call, outcome)
         self.checkpoint()
         return outcome
@@ -1245,21 +1261,59 @@ class Runtime:
             )
 
     async def _execute(self, call: ToolCall, arguments=None) -> Outcome:
+        await self.mcp.restore([call.name])
+        # Earlier tools in a batch may refresh and withdraw or change MCP schemas.
+        if arguments is None or call.name.startswith("mcp__"):
+            arguments = validate_arguments(call, schemas=self.mcp.schemas)
+        if isinstance(arguments, Outcome):
+            return arguments
+        call = call.model_copy(update={"arguments": arguments.model_dump()})
+        journal = None
+        if self.mcp.effect(call.name) in {"write", "process"}:
+            if reason := self._unavailable_reason(call.name):
+                return Outcome(status="blocked", reason=reason)
+            journal = OperationJournal(self.evidence, self.state.session_id, call,
+                                       self._safety_identity(self.settings.identity()))
+            try:
+                replay = journal.lookup()
+            except (OSError, ValueError, KeyError, TypeError):
+                return Outcome(status="blocked", reason="idempotency_journal_unavailable")
+            if replay is not None:
+                return self._finish_tool(call, replay, 0) if replay.data.get("idempotency_replayed") else replay
         prepared = await self._prepare_tool(call, arguments=arguments)
         if isinstance(prepared, Outcome):
             return prepared
         call, registry = prepared
         started = time.monotonic()
+        mcp_write = call.name in self.mcp.tools and self.mcp.effect(call.name) == "write"
+        before = self.workspace.snapshot() if mcp_write else None
+        if journal:
+            try:
+                journal.reserve()
+            except OSError:
+                return Outcome(status="blocked", reason="idempotency_journal_unavailable")
         outcome = await registry.execute(call)
+        if before is not None:
+            outcome.changed_paths = Workspace.changes(before, self.workspace.snapshot())
+            outcome.partial_success = bool(outcome.changed_paths and outcome.status != "success")
+            self.state.verification = Verification()
+        if journal:
+            try:
+                journal.settle(outcome)
+            except OSError:
+                outcome.data.update(stop_requested="idempotency_journal_unavailable", uncertain=True)
+                outcome.status, outcome.reason = "error", "idempotency_journal_unavailable"
         return self._finish_tool(call, outcome, (time.monotonic() - started) * 1000)
 
     async def _prepare_tool(self, call: ToolCall, *, detached=False, arguments=None):
         state = self.state
         assert state is not None
-        arguments = validate_arguments(call) if arguments is None else arguments
+        await self.mcp.restore([call.name])
+        if arguments is None or call.name.startswith("mcp__"):
+            arguments = validate_arguments(call, schemas=self.mcp.schemas)
         if isinstance(arguments, Outcome):
             return arguments
-        effect = SCHEMAS[call.name][2]
+        effect = self.mcp.effect(call.name)
         if effect in {"write", "process"} and self._team.writer_busy(self):
             return Outcome(status="blocked", reason="worker_writer_active",
                            content="Await or stop the writing worker before editing or running processes.")
@@ -1316,14 +1370,18 @@ class Runtime:
             return Outcome(status="blocked", reason=before.feedback or "hook_denied")
         context = ToolContext(
             self.workspace, self.sandbox, state.run_id, expected_files=expected_files,
-            readonly=state.mode == "plan", workflow=None if detached else self._workflow_tools()
+            readonly=state.mode == "plan", workflow=None if detached else self._workflow_tools(),
+            mcp=self.mcp,
         )
         return call, ToolRegistry(context, validated=(call, arguments))
 
     def _finish_tool(self, call: ToolCall, outcome: Outcome, duration_ms: float) -> Outcome:
         state = self.state
         assert state is not None
-        if call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data:
+        if call.name == "mcp_list" or call.name in self.mcp.tools:
+            outcome.content = self.evidence.redactor.text(outcome.content)
+        if (call.name in self.mcp.tools
+                or (call.name in {"run_shell", "run_tests"} and "captured_bytes" in outcome.data)):
             outcome.content = self.evidence.redactor.text(outcome.content)
             ref = None
             try:
@@ -1358,6 +1416,9 @@ class Runtime:
             status=outcome.status,
             reason=outcome.reason,
         )["hash"]
+        if outcome.data.get("idempotency_replayed"):
+            state.used_call_ids.append(call.call_id)
+            return outcome
         if call.name == "run_tests":
             outcome.data["is_verification"] = True
             outcome.data["command"] = call.arguments.get("command", "")
@@ -1380,6 +1441,7 @@ class Runtime:
             self._unavailable_reason, self._settle_workers, self.workers.close,
             self.workers.start, self.workers.status, self.workers.message, self.workers.stop,
             self.question_callback,
+            self.mcp.schemas,
         )
 
     async def workflow_tool(self, name: str, args: dict) -> Outcome:
@@ -1547,6 +1609,27 @@ class Runtime:
         )
 
     def _unavailable_reason(self, name, *, state=None):
+        state = self.state if state is None else state
+        if name not in self.mcp.schemas:
+            return "unknown_tool"
+        if name in self.mcp.tools:
+            server, original = self.mcp.tools[name]
+            cfg = self.settings.mcp_servers.get(server)
+            if not cfg or not cfg.enabled or (cfg.enabled_tools is not None and original not in cfg.enabled_tools):
+                return "mcp_tool_disabled"
+            if cfg.url and not self.settings.network:
+                return "network_disabled"
+            if self.mcp.effect(name) == "write":
+                if self.settings.read_only:
+                    return "read_only"
+                if state and state.mode == "plan":
+                    return "plan_mode"
+                if self.settings.write_scope is not None:
+                    return "mcp_write_scope_unenforceable"
+                if self.settings.approval == "never" or (
+                    self.settings.approval == "ask" and self.approval_callback is None
+                ):
+                    return "approval_unavailable"
         return unavailable_reason(
             name, self.settings, self.state if state is None else state,
             approval_available=self.approval_callback is not None,
@@ -1556,10 +1639,12 @@ class Runtime:
     def _tool_names(self, *, state=None):
         state = self.state if state is None else state
         selected = (
-            SCHEMAS
+            self.mcp.schemas
             if self.settings.tool_profile == "all"
             else (set(CORE_TOOLS) | set(state.loaded_tools if state else []))
         )
+        if "mcp_list" in self.mcp.schemas:
+            selected = set(selected) | {"mcp_list"}
         if self.settings.max_workers > 0:
             selected = set(selected) | {"worker_start"}
         if state and state.parent_run_id:
@@ -1569,8 +1654,8 @@ class Runtime:
         return sorted(name for name in selected if not self._unavailable_reason(name, state=state))
 
     def tool_definitions(self, *, state=None):
-        available = [name for name in SCHEMAS if not self._unavailable_reason(name, state=state)]
-        return definitions(self._tool_names(state=state), available=available)
+        available = [name for name in self.mcp.schemas if not self._unavailable_reason(name, state=state)]
+        return definitions(self._tool_names(state=state), available=available, schemas=self.mcp.schemas)
 
     def _request_tool_definitions(self, settings, *, state=None):
         # Parent delivery keeps the cacheable catalog; _execute_batch still denies all calls.

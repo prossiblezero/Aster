@@ -34,6 +34,12 @@ profile 不接受权限字段或明文凭证，切换不改审批、沙箱、联
 
 交互入口在未显式配置时默认启用 Responses 流式；单次 CLI 任务和直接使用 `Settings()` 默认非流式。`stream=true` 或 `--stream` 可启用流式，显式 `stream=false` 或 `--no-stream` 可关闭。Chat/Anthropic 默认非流式，强行启用当前不支持的流式会明确拒绝。TUI 提前显示文字片段及接口实际返回的思考摘要，并标注请求尝试；重试不拼接旧文字，取消/断流保留未完成提示，所有工具仍等完整成功终态及参数校验后执行。每次尝试的进度展示最多 512 条增量事件及 1,048,576 字符，达到此上限只裁剪展示并标记 `progress_truncated`，完整终态仍可成功。单 SSE 事件 16 MiB、整流 64 MiB 是传输硬上限，超过后拒绝响应并不执行该轮工具。首事件、首有效文字和完成时间分别记录；缓存/推理参数没有随开关改变。
 
+## MCP 外部工具
+
+安装 `python -m pip install -e '.[mcp]'`，通过 TOML 的 `[mcp_servers.NAME]` 配置本地 stdio 或远程 Streamable HTTP 服务。示例为 [mcp.toml.example](../mcp.toml.example)，字段、凭证及权限说明见 [MCP 指南](mcp.md)。
+
+每个 Runtime 独立发现工具，`mcp_list` 返回目录，`tool_load` 加载完整 Schema。HTTP 服务要求 `network=true`；写工具沿用审批、只读与计划模式限制。`circuit_failures=3`、`circuit_cooldown=30` 控制 MCP 端点的故障冷却，`fallbacks` 指定语义等价的备用服务。凭证从 `.env` 或进程环境解析，配置保存变量名称。
+
 ## 模型与输入预算
 
 | 字段 | 默认值 | 含义与边界 |
@@ -234,4 +240,4 @@ CLI `--stream` 将按尝试分隔的实时接收进度和正文预览写到 stde
 Provider 按空回复、不支持的输出、截断、拒绝及坏结构分类。单次逻辑请求最多三次传输尝试，空回复最多重试一次并计入这个总上限；不自动换模型、协议或服务地址。每次尝试的已知 usage 与缺失情况单列，响应模型标签只是服务端声明，不代表已核实实际底层模型。
 
 
-历史实验的设计取舍与证据边界见[优化历程](optimization-history.md)；逐轮原始结果不随公开仓库分发。
+历史实验的设计取舍与证据边界见[优化历程](optimization-history.md)；已公开的报告与原始数据见[指标证据](evaluation-results.md)。

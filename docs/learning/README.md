@@ -120,4 +120,4 @@ flowchart TD
 当前包结构及 Python 导入路径见 [模块整理说明](../module-layout.md)；课程示例直接导入实现所在模块。
 
 
-历史实验的设计取舍与证据边界见[优化历程](../optimization-history.md)；逐轮原始结果不随公开仓库分发。
+历史实验的设计取舍与证据边界见[优化历程](../optimization-history.md)；已公开的报告与原始数据见[指标证据](../evaluation-results.md)。

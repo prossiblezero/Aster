@@ -5,7 +5,7 @@ import hashlib
 import inspect
 import json
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ..knowledge.memory import Memory, store_excerpt
 from ..knowledge.skills import Skills
@@ -36,6 +36,7 @@ class WorkflowTools:
     worker_message: Callable[..., Awaitable]
     worker_stop: Callable[..., Awaitable]
     question_callback: Callable | None
+    schemas: dict = field(default_factory=lambda: SCHEMAS)
 
     async def execute(self, name: str, args: dict) -> Outcome:
         state = self.state
@@ -94,7 +95,7 @@ class WorkflowTools:
             return result
         if name == "tool_load":
             requested = args["names"]
-            unknown = sorted(set(requested) - SCHEMAS.keys())
+            unknown = sorted(set(requested) - self.schemas.keys())
             if unknown:
                 return Outcome(
                     status="blocked",

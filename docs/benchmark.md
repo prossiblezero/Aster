@@ -1,6 +1,6 @@
 # 评测指南
 
-工程回归、参考动作回放、机制检查和真实模型任务回答不同问题。先选择需要验证的层次，再运行相应入口。所有命令从仓库根目录、安装 `.[dev,docs]` 后执行；需要命令隔离的部分要求 Linux Landlock/libseccomp。
+工程回归、参考动作回放、机制检查和真实模型任务回答不同问题。先选择需要验证的层次，再运行相应入口。所有命令从仓库根目录、安装 `.[dev,docs,mcp]` 后执行；需要命令隔离的部分要求 Linux Landlock/libseccomp。已发布的数字、实验条件及原始数据见[指标证据](evaluation-results.md)。
 
 ## 不调用模型的检查
 
@@ -54,6 +54,6 @@ python scripts/benchmark.py --real --selection real_subset.json \
 
 ## 结果与来源
 
-运行输出默认进入 `artifacts/`。不提交原始模型请求、工作区副本、预测、凭据、轨迹或逐轮成绩。来源、许可与固定版本见 [SOURCES.md](../datasets/SOURCES.md)；测试隔离的边界见[评分边界](grader-boundary.md)。
+运行输出默认进入 `artifacts/`。[指标证据](evaluation-results.md)连接已公开的固定版本报告、逐题结果与复现材料。新运行的原始请求、工作区副本、预测和轨迹保存在本地；发布结果时选取与指标有关的材料并检查凭据。来源、许可与固定版本见 [SOURCES.md](../datasets/SOURCES.md)；测试隔离的边界见[评分边界](grader-boundary.md)。
 
 历史实验参与过开发，不能重新标为未见数据。关键问题、负面结果与设计决定统一记录在[优化历程](optimization-history.md)；该文不是当前版本的新评测。

@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Platform](https://img.shields.io/badge/platform-Linux-blue)
 
-[快速开始](#快速开始) · [使用方式](#使用方式) · [配置](docs/configuration.md) · [源码教程](docs/learning/README.md) · [评测](docs/benchmark.md) · [优化历程](docs/optimization-history.md)
+[快速开始](#快速开始) · [使用方式](#使用方式) · [MCP 接入](docs/mcp.md) · [源码教程](docs/learning/README.md) · [指标证据](docs/evaluation-results.md) · [评测](docs/benchmark.md) · [优化历程](docs/optimization-history.md)
 
 Aster 用 Python 将模型、上下文、工具、权限、测试和持久状态连接起来。你可以在终端中让它理解项目、实现功能、修复问题，也可以通过配套教程与固定评测集研究一个 Coding Agent 如何工作。
 
@@ -15,6 +15,7 @@ Aster 用 Python 将模型、上下文、工具、权限、测试和持久状态
 ## 能做什么
 
 - **在仓库里完成任务**：读取和搜索文件、精确修改、执行命令，使用 pytest、unittest 或 Node 内置测试进行正式验证。
+- **通过 MCP 扩展工具**：连接本地 stdio 或远程 Streamable HTTP 服务，发现并按需加载工具；提供 GitHub 和 Python 文件管理器配置示例，沿用 Runtime 的审批、记录与恢复流程。
 - **持续协作**：中文 TUI 支持审批、追问、取消、恢复、会话分支和模型切换；CLI 适合一次性任务。
 - **管理长任务**：按实际请求估算上下文预算，归档较长观察，保存检查点，并校验恢复时的工作区变化。
 - **积累项目知识**：保留带来源和适用范围的记忆，处理用户纠正、修复经验与过期信息；记忆更新不会训练模型权重。
@@ -143,6 +144,19 @@ run_shell   run_tests  git_diff  tool_load
 
 任务默认最多 40 个工具步骤和 40 轮模型请求，可用 `--max-steps`、`--max-turns` 调整。后台记忆学习也会消耗模型用量；开启 Worker 后，父子共用任务预算。`max_workers=0` 禁止模型自主创建子任务，但 TUI 仍允许用户显式启动最多两个只读子任务。
 
+### MCP 接入
+
+在运行 Aster 的 Python 环境中安装可选依赖，再加载示例配置：
+
+```bash
+python -m pip install -e '.[mcp]'
+aster --config mcp.toml.example --cwd /path/to/your/project
+```
+
+[示例配置](mcp.toml.example)连接 GitHub 官方远程服务和本地文件管理器。GitHub 使用启动目录 `.env` 或环境中的 `GITHUB_TOKEN`；只用文件服务时，可将 GitHub 条目设为 `enabled=false`。模型先调用 `mcp_list` 发现工具，再用 `tool_load` 加载所需 Schema。
+
+MCP 写操作经过审批，并记录操作键以支持结果复用和中断恢复。本地 stdio 服务作为受信任的宿主程序启动，文件管理器自行限制工作区路径。完整配置、支持范围和测试方法见 [MCP 指南](docs/mcp.md)，实现见 [MCP 客户端](src/aster/tools/mcp.py)与[集成测试](tests/test_mcp.py)。
+
 ## 架构
 
 ```mermaid
@@ -169,12 +183,25 @@ flowchart LR
 | [`docs/`](docs/README.md) | 使用指南、架构、16 章源码教程与优化历程 |
 | [`learn_web/`](learn_web/) | 从教程生成本地网站的构建器与静态资源 |
 
-评测结果、原始轨迹、下载缓存、源码快照和个人文档不随仓库发布。评测时生成的文件留在本地，默认进入 `artifacts/` 或被忽略的结果目录。
+已发布的阶段结果、报告与原始数据入口见[指标证据](docs/evaluation-results.md)。新运行产生的轨迹、下载缓存和工作区副本默认保存在本地 `artifacts/` 或被忽略的结果目录。
+
+## 阶段评测结果
+
+各行对应独立的实验版本与任务集；点击证据可查看条件、评分规则和逐题数据。
+
+| 实验 | 结果 | 证据 |
+| --- | --- | --- |
+| v15-rc3，GPT，fresh30b 的 23 道共同可比题 | 独立通过 **20/23（87.0%）**，Codex 同为 20/23；估算成本 **1.29 对 1.45，低约 11%** | [通过率与成本](docs/evaluation-results.md#任务通过率与成本) |
+| 十题定向学习后的跨会话复用 | 完成交付且独立通过 **4/10 → 7/10（40% → 70%）** | [记忆评测](docs/evaluation-results.md#跨会话记忆) |
+| v10，old20 开发集 | 已报告缓存输入占总输入 **88.0%** | [缓存输入](docs/evaluation-results.md#缓存输入占比) |
+| 12 道预置长历史代码题，每题三次 | 选定 8,192 输入预算后，首请求平均压缩 **57.8%**，**36/36 完成** | [上下文评测](docs/evaluation-results.md#上下文压缩) |
+| 六类固定会话工作流，每类三个变体 | 脚本操作数 **69 → 36，减少 47.8%** | [会话评测](docs/evaluation-results.md#会话操作数) |
 
 ## 开发与评测
 
 ```bash
 # 工程检查：全量测试不调用真实模型
+python -m pip install -e '.[dev,docs,mcp]'
 python -m ruff check src tests scripts evaluations learn_web/build.py learn_web/tests
 python -m pytest -q
 
@@ -200,7 +227,7 @@ python -m http.server 8000 --directory learn_web
 - 项目记忆如何从原文摘录发展为有来源的知识与有界后台学习；
 - 如何减少工具往返和重复记忆成本，同时保留失败与证据边界。
 
-这里保留决策与适用范围，逐轮原始结果留在本地归档。源码阅读可从[课程目录](docs/learning/README.md)或[模块地图](docs/module-layout.md)开始。
+这里保留决策与适用范围；已公开的报告和原始数据可从[指标证据](docs/evaluation-results.md)进入。源码阅读可从[课程目录](docs/learning/README.md)或[模块地图](docs/module-layout.md)开始。
 
 ## 当前边界与来源
 

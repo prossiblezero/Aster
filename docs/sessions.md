@@ -42,4 +42,4 @@ JSON checkpoint 仍按版本 2 导出，并兼容版本 1。SQLite 先提交，J
 设计参考 pi 的类型化记录树和显式分支摘要（调研版本 `19451accdeec671c1f4da9eafac8fc270f510ef4`），以及 Codex 的对话生命周期与执行配置记录（`5c5308fc9a9ee789049d646ef11e5400384b9c6f`）。Aster 保留自身 checkpoint、执行证据和训练契约，不复制其他项目的存储格式。
 
 
-历史实验的设计取舍与证据边界见[优化历程](optimization-history.md)；逐轮原始结果不随公开仓库分发。
+历史实验的设计取舍与证据边界见[优化历程](optimization-history.md)；已公开的报告与原始数据见[指标证据](evaluation-results.md)。

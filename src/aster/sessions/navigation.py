@@ -13,6 +13,7 @@ from .checkpoint import load_checkpoint, safety_identity
 
 
 def restored_settings(current, identity, default=None):
+    identity = {"mcp_servers": {}, **identity}
     if safety_identity(current.identity()) != safety_identity(identity):
         raise ValueError("runtime_identity_mismatch: 会话权限或能力配置不同，不能自动切换")
     alias = identity.get("profile")
@@ -30,6 +31,7 @@ def restored_settings(current, identity, default=None):
     values = {key: identity[key] for key in ("context_tokens", "output_tokens", "stream")}
     selected = Settings.model_validate({**selected.model_dump(), **values, "profiles": current.profiles})
     selected._profile_credentials = current._profile_credentials.copy()
+    selected._mcp_credentials = current._mcp_credentials.copy()
     if selected.identity() != identity:
         raise ValueError("model_profile_changed: 历史模型配置已变化，请使用 /resume --allow-model-change")
     return selected
@@ -86,6 +88,7 @@ def checkout(runtime, reference, *, summary=False, adopt_workspace=False):
         runtime.model.redaction_secrets = redactor.secrets
     runtime.context = ContextBuilder(selected.effective_context_tokens, selected.effective_output_tokens)
     runtime.sandbox.settings = selected
+    runtime.mcp.settings = selected
     runtime.evidence.redactor = runtime.memory.redactor = redactor
     tree.attach(data)
     tree.pending.append(("branch", {"target_entry": data["session_entry"]}))

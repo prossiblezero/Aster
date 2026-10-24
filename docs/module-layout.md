@@ -1,6 +1,6 @@
 # 模块整理与导入迁移
 
-本轮接续 `c7a837d`，把此前仍散落在 `src/aster` 顶层的实现按职责归包。顶层只保留 `__init__.py`、`cli.py`、`config.py`、`schema.py`、`messages.py`。不增加依赖、命令或会话树，不改变 checkpoint、模型协议、工具动作及训练数据/奖励契约。
+此页记录接续 `c7a837d` 的职责拆分与导入迁移。当次将 `src/aster` 顶层收敛为 `__init__.py`、`cli.py`、`config.py`、`schema.py`、`messages.py`。后续 MCP 接入新增文件服务入口 `mcp_files.py` 和服务熔断模块 `resilience.py`；当前顶层共七个 Python 文件。
 
 ## 职责与依赖
 
@@ -10,8 +10,8 @@
 | `providers/` | 协议编码、模型传输、流式处理、错误和请求用量 |
 | `context/` | 提示区段、预算计算、成功后的历史提交 |
 | `sessions/` | 检查点编码/校验、续聊和模型切换候选 |
-| `tools/` | 参数 schema、工具分发、工作区/工作流业务、正式测试、可用性规则 |
-| `storage/` | 工作区边界、证据和观察归档 |
+| `tools/` | 参数 schema、工具分发、工作区/工作流业务、MCP 客户端、正式测试、可用性规则 |
+| `storage/` | 工作区边界、证据和观察归档、持久化调用回执 |
 | `knowledge/` | 项目持久记忆、Skills 加载与快照 |
 | `safety/` | 脱敏、权限、沙箱执行、Linux 隔离 |
 | `training/` | 外部策略环境、SFT/GRPO 数据与校验契约 |
@@ -21,7 +21,7 @@
 
 ## Python 导入变更
 
-本轮按已批准的方案删除旧导入路径，不保留兼容文件、动态代理或 `sys.modules` 别名。外部 Python 调用者需要更新 import；类及公开方法的行为保留。命令行仍是 `aster.cli:main` 和 `aster.cli:tui_main`。
+职责拆分时删除了旧导入路径，外部 Python 调用者按下表更新 import。Agent 命令入口为 `aster.cli:main` 和 `aster.cli:tui_main`，MCP 文件服务入口为 `aster.mcp_files:main`。
 
 | 原路径 | 当前实现 |
 | --- | --- |

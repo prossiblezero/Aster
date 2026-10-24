@@ -259,4 +259,4 @@ asyncio.run(main())
 [上一章：分层记忆](10-layered-memory.md) · [目录](README.md) · [下一章：计划与技能](12-plans-and-skills.md)
 
 
-历史实验的设计取舍与证据边界见[优化历程](../optimization-history.md)；逐轮原始结果不随公开仓库分发。
+历史实验的设计取舍与证据边界见[优化历程](../optimization-history.md)；已公开的报告与原始数据见[指标证据](../evaluation-results.md)。

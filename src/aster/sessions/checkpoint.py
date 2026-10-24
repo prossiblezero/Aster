@@ -15,7 +15,7 @@ from ..storage.workspace import Workspace
 
 
 def safety_identity(identity: dict) -> dict:
-    identity = {"read_parallelism": 1, "reuse_environment": False, **identity}
+    identity = {"read_parallelism": 1, "reuse_environment": False, "mcp_servers": {}, **identity}
     model_fields = {
         "provider",
         "profile",
@@ -86,6 +86,7 @@ def load_checkpoint(
         "stream": False,
         "read_parallelism": 1,
         "reuse_environment": False,
+        "mcp_servers": {},
         **data["runtime_identity"],
     }
     model_changed = saved_identity != current_identity
