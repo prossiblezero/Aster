@@ -1,0 +1,27 @@
+{
+  "name": "g3b",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 1,
+  "seconds": 142.7,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 39,
+  "proposer_cost": 0.47664,
+  "characters": {
+    "base": 3746,
+    "new": 3816
+  },
+  "leaks": [],
+  "commit": "60edbb3f06a2d6cc7f99f9418bdf320be0a1fb9b",
+  "tests": ".............                                                            [100%]\n13 passed in 0.46s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile proposal\n\n## Edit: combine independent shell inspections\n\n- **Pattern:** Investigation sometimes spends separate tool calls on independent shell-based inspections, each returning information that could be gathered together. In the compression task, the agent issued separate commands to inspect binary symbols and input characteristics; in the documentation task, source/runtime introspection was split across successive commands as it followed the investigation.\n- **Task ids:** `terminal-write-compressor` (evo-seed-r3) and `sphinx-doc__sphinx-10323` (evo-seed-r2).\n- **Exact edit:** In `policy`, clarified the existing batching instruction: changed “batch independent reads, checks and edits in one turn” to “batch independent reads, checks and edits in one turn; combine independent shell inspections in one command where practical.”\n- **Risk:** Combining commands can make outputs harder to interpret or hide partial failures. “Where practical” preserves separate commands when they depend on prior results or benefit from isolated diagnostics; it does not change verification requirements.\n"
+}

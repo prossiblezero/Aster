@@ -178,5 +178,95 @@
       "threshold": 0.8887691604481424
     },
     "decision": "rejected at screen"
+  },
+  {
+    "name": "g3a",
+    "base": "evolve-s0",
+    "summary": "# Profile proposal\n\n## Edit: avoid overlapping source rereads\n\n- Pattern: The agent revisited already-read source ranges as investigation continued, adding turns without clear evidence that those ranges had changed or that the prior read was insufficient.\n- Task ids: `matplotlib__matplotlib-25960` (evo-seed-r3) and `sphinx-doc__sphinx-10323` (evo-seed-r2). In both traces, reads of the same source files/ranges were repeated or overlapped during investigation.\n- Exact edit: In the `read_file` tool description, appended: “and avoid overlapping rereads unless new evidence warrants them.”\n- Risk: An earlier read may have omitted relevant context or become stale. The exception for new evidence keeps rereads available when needed, and the existing instruction to read enough code at once remains.\n",
+    "proposer_cost": 0.393854,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.32117775,
+        "seed": 2.19115294004329,
+        "ratio": 1.0593408189727465,
+        "ci90": [
+          0.8773052332756468,
+          1.2332072583090428
+        ]
+      },
+      "requests": {
+        "candidate": 288.0,
+        "seed": 297.3333333333333,
+        "ratio": 0.968609865470852,
+        "ci90": [
+          0.8266033254156769,
+          1.1002747252747254
+        ]
+      },
+      "passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
+  },
+  {
+    "name": "g3b",
+    "base": "evolve-s0",
+    "summary": "# Profile proposal\n\n## Edit: combine independent shell inspections\n\n- **Pattern:** Investigation sometimes spends separate tool calls on independent shell-based inspections, each returning information that could be gathered together. In the compression task, the agent issued separate commands to inspect binary symbols and input characteristics; in the documentation task, source/runtime introspection was split across successive commands as it followed the investigation.\n- **Task ids:** `terminal-write-compressor` (evo-seed-r3) and `sphinx-doc__sphinx-10323` (evo-seed-r2).\n- **Exact edit:** In `policy`, clarified the existing batching instruction: changed “batch independent reads, checks and edits in one turn” to “batch independent reads, checks and edits in one turn; combine independent shell inspections in one command where practical.”\n- **Risk:** Combining commands can make outputs harder to interpret or hide partial failures. “Where practical” preserves separate commands when they depend on prior results or benefit from isolated diagnostics; it does not change verification requirements.\n",
+    "proposer_cost": 0.47664,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.32082675,
+        "seed": 2.19115294004329,
+        "ratio": 1.0591806293330432,
+        "ci90": [
+          0.8492840593960852,
+          1.2576270596904873
+        ]
+      },
+      "requests": {
+        "candidate": 293.0,
+        "seed": 297.3333333333333,
+        "ratio": 0.9854260089686099,
+        "ci90": [
+          0.8277153558052435,
+          1.1356132075471697
+        ]
+      },
+      "passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
   }
 ]

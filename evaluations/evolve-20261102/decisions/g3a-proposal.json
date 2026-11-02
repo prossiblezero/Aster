@@ -1,0 +1,27 @@
+{
+  "name": "g3a",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 0,
+  "seconds": 156.1,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 39,
+  "proposer_cost": 0.393854,
+  "characters": {
+    "base": 3746,
+    "new": 3811
+  },
+  "leaks": [],
+  "commit": "9d94cb81da8110cad71c5e37e27f2f25dd447ef6",
+  "tests": ".............                                                            [100%]\n13 passed in 0.49s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile proposal\n\n## Edit: avoid overlapping source rereads\n\n- Pattern: The agent revisited already-read source ranges as investigation continued, adding turns without clear evidence that those ranges had changed or that the prior read was insufficient.\n- Task ids: `matplotlib__matplotlib-25960` (evo-seed-r3) and `sphinx-doc__sphinx-10323` (evo-seed-r2). In both traces, reads of the same source files/ranges were repeated or overlapped during investigation.\n- Exact edit: In the `read_file` tool description, appended: “and avoid overlapping rereads unless new evidence warrants them.”\n- Risk: An earlier read may have omitted relevant context or become stale. The exception for new evidence keeps rereads available when needed, and the existing instruction to read enough code at once remains.\n"
+}
