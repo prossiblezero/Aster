@@ -9,11 +9,12 @@ every decision in artifacts/private/evolve-20261102/log.json and decisions/. Pri
 import argparse
 import concurrent.futures
 import json
+import shutil
 import subprocess
 import sys
 
-from common import CONTROLLER, DEV_POOL, HERE, REPO, V12, WORK, load, save
 import analyze
+from common import CONTROLLER, DEV_POOL, HERE, PRIVATE, PUBLIC, REPO, V12, WORK, load, save
 
 EVALUATE = V12 / 'evaluate.py'
 
@@ -24,17 +25,37 @@ def sh(*args, log=None):
 
 
 def propose(name, base, runs, sibling=None):
+    report = WORK / name / 'report.json'
+    if report.exists():  # resume: a finished proposal is reused, never re-sampled
+        return load(report)
+    assert not (WORK / name).exists(), f'{name}: proposal crashed earlier; inspect and delete it before rerunning'
     args = [sys.executable, HERE / 'propose.py', name, '--base', base, '--runs', *runs]
     if sibling:
         args += ['--sibling', sibling]
     sh(*args, log=WORK / f'{name}.log')
-    report = WORK / name / 'report.json'
     return load(report) if report.exists() else {'name': name, 'problems': ['proposer crashed'], 'accepted_for_evaluation': False}
 
 
+def resume(run):
+    """Make an interrupted run restartable: drop half-finished task dirs (launch.json without
+    result.json, which `run` would otherwise skip), the stale gateway socket, relay and network."""
+    root = PRIVATE / run
+    for job in (root / 'runs').glob('*') if (root / 'runs').exists() else []:
+        if (job / 'launch.json').exists() and not (job / 'result.json').exists():
+            shutil.rmtree(job)
+    (root / 'relay/model.sock').unlink(missing_ok=True)
+    sh('docker', 'rm', '-f', 'aster-bench-gateway-' + run)
+    sh('docker', 'network', 'rm', 'aster-v12-' + run)
+
+
 def evaluate(runs):
-    """runs: {run_name: git_ref}. Prepare, run and summarize, all in parallel."""
+    """runs: {run_name: git_ref}. Prepare (or resume), run and summarize, all in parallel."""
     for run, ref in runs.items():
+        if (PRIVATE / run).exists():
+            manifest = load(PUBLIC / run / 'manifest.json')
+            assert manifest['ref'] == ref, f'{run} was prepared from {manifest["ref"]}, not {ref}'
+            resume(run)
+            continue
         assert sh(CONTROLLER, EVALUATE, 'prepare', run, '--ref', ref, '--tasks', DEV_POOL.split('-')[0],
                   '--pool', DEV_POOL, '--concurrency', 3, log=WORK / f'{run}.log') == 0, run
 
@@ -43,7 +64,7 @@ def evaluate(runs):
         return sh(CONTROLLER, EVALUATE, 'results', run, log=WORK / f'{run}.log')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        codes = dict(zip(runs, pool.map(one, runs)))
+        codes = dict(zip(runs, pool.map(one, runs), strict=True))
     assert all(code == 0 for code in codes.values()), codes
 
 
