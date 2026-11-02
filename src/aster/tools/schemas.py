@@ -6,7 +6,10 @@ from typing import Annotated, Any, Literal
 
 from pydantic import Field, model_validator
 
+from ..context.profile import PROFILE
 from ..schema import Record
+
+TOOL_TEXT = PROFILE["tools"]
 
 
 class ListFiles(Record):
@@ -260,33 +263,33 @@ class ImageRead(Record):
 SCHEMAS = {
     "list_files": (
         ListFiles,
-        "List workspace files, excluding protected metadata. Offset counts files; follow next_offset until null.",
+        TOOL_TEXT["list_files"],
         "read",
     ),
-    "read_file": (ReadFile, "Read a UTF-8 file line range; prefer one wide read (150-400 lines) to adjacent narrow ones.", "read"),
+    "read_file": (ReadFile, TOOL_TEXT["read_file"], "read"),
     "search": (
         Search,
-        "Case-insensitive line search; one regex can cover several names.",
+        TOOL_TEXT["search"],
         "read",
     ),
     "write_file": (
         WriteFile,
-        "Create or replace a workspace file. Before editing an existing file, call read_file. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file.",
+        TOOL_TEXT["write_file"],
         "write",
     ),
     "patch_file": (
         PatchFile,
-        "Replace unique literal regions in a workspace file. Use edits=[{old_text,new_text},...] for disjoint edits, all matched against the same original file; overlapping or nonunique matches reject the whole patch. Legacy old_text/new_text is also accepted. Use parallel calls for several files. Call read_file before the first edit. Your own successful write_file/patch_file edits keep the file current; changes made any other way require a fresh read_file. Preserves BOM and newline style.",
+        TOOL_TEXT["patch_file"],
         "write",
     ),
     "run_shell": (
         RunShell,
-        "Run a bounded sandbox command; workspace metadata such as .git is excluded. Use git_diff for task changes and patch_file for edits (no apply_patch executable). Use .tmp/ or TMPDIR for temporary files. Background processes do not survive tool calls; use service_start for servers. In compound commands, chain dependent steps with && so cleanup cannot mask an earlier failure. Long output is archived for observation_read. For Python probes, prefer one python -c argument enclosed in single quotes; heredocs and shell expansions may require approval. With reuse_environment enabled, pip dependencies and node_modules survive commands. Failed writable commands may discard that environment; reinstall dependencies when the result reports environment_discarded. Test commands run as formal verification in a disposable copy.",
+        TOOL_TEXT["run_shell"],
         "process",
     ),
     "run_tests": (
         RunTests,
-        "Run pytest, python -m pytest/unittest, Python workspace test scripts, node --test, jest, or go test for per-test results; plain build-and-test chains (make test, ctest, cargo test; no pipes) count by exit code. Use code for temporary Python tests; .tmp files do not survive calls. Native scripts must run unittest, pytest or SymPy, not just print success or exit 0. Use python, not .venv/bin/python; PYTHONPATH may contain workspace-relative directories. With reuse_environment, project .venv dependencies are available; keep them until verification. Node requires node:test cases; reporter flags are reserved. Other ad-hoc checks in run_shell are not verification.",
+        TOOL_TEXT["run_tests"],
         "process",
     ),
     "observation_read": (
@@ -308,13 +311,13 @@ SCHEMAS = {
     ),
     "plan_enter": (Empty, "Enter planning mode: workspace tools become read-only.", "state"),
     "plan_exit": (Empty, "Request approval to leave planning mode.", "state"),
-    "git_diff": (Empty, "Show changes from this task's initial workspace snapshot.", "read"),
+    "git_diff": (Empty, TOOL_TEXT["git_diff"], "read"),
     "skill_load": (
         SkillLoad,
         "Select and page a fixed skill body snapshot; refresh explicitly reloads it. Or read a current package resource without executing or activating it. Character pages use next_offset until null.",
         "state",
     ),
-    "tool_load": (ToolLoad, "Load additional tools by name for later turns.", "state"),
+    "tool_load": (ToolLoad, TOOL_TEXT["tool_load"], "state"),
     "service_start": (
         ServiceStart,
         "Start a long-running process (server, database, watcher) in the sandbox; it survives later "
