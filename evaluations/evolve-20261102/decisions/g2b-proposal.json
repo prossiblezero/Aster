@@ -1,0 +1,27 @@
+{
+  "name": "g2b",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 0,
+  "seconds": 91.6,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 21,
+  "proposer_cost": 0.200293,
+  "characters": {
+    "base": 3746,
+    "new": 3849
+  },
+  "leaks": [],
+  "commit": "d26d4d2f5650e6064b7580cdbe0ae2c4811735e8",
+  "tests": ".............                                                            [100%]\n13 passed in 0.49s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile Proposal\n\n## Edit: diagnose failed commands before retrying\n\n- **Pattern:** In `terminal-write-compressor`, the agent iterates through command-driven attempts after failures, with changes and retries before the prior diagnostic is consistently used to narrow the cause. In `sphinx-doc__sphinx-10323`, the agent begins by committing to a behavioral explanation and broad investigation before it has established the concrete failure conditions. This wording targets evidence-driven recovery; it does not discourage required verification.\n- **Task ids:** `terminal-write-compressor`, `sphinx-doc__sphinx-10323`.\n- **Exact edit:** In `profile.json`'s `policy`, appended: `After a failed command, use its diagnostic to identify the cause before changing code or rerunning it.`\n- **Risk:** A diagnostic can be incomplete or misleading, so this could delay a necessary exploratory retry. It does not prohibit retries or weaken the requirement to verify changes and report actual results.\n"
+}

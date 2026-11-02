@@ -1,0 +1,27 @@
+{
+  "name": "g1a",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 0,
+  "seconds": 99.1,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 24,
+  "proposer_cost": 0.280494,
+  "characters": {
+    "base": 3746,
+    "new": 3842
+  },
+  "leaks": [],
+  "commit": "783a44e0c53b32a424b0c968ca03c6f17bcbacf6",
+  "tests": ".............                                                            [100%]\n13 passed in 1.18s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile proposal\n\n## Edit 1: Prefer targeted discovery when a location is known\n\n- Pattern: Whole-workspace listings produced large, mostly irrelevant outputs even though the task named the affected component or symbol; a targeted search was already issued alongside the listing.\n- Task ids: `sphinx-doc__sphinx-10323` (evo-seed-r1 and evo-seed-r2), `matplotlib__matplotlib-25960` (evo-seed-r1).\n- Exact edit: Added to `main_policy`: “When a component or symbol is named, search it directly instead of listing the whole workspace.”\n- Risk: For tasks where the named term is ambiguous or not present, an early targeted search may miss useful context. The existing instruction to broaden discovery when there is a gap remains, so full discovery is still available when needed.\n"
+}

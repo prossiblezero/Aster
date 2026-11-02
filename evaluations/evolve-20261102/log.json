@@ -88,5 +88,95 @@
       "threshold": 0.8887691604481424
     },
     "decision": "rejected at screen"
+  },
+  {
+    "name": "g2a",
+    "base": "evolve-s0",
+    "summary": "# Profile Proposal\n\n## Edit: compact default command-tool descriptions\n\n- **Pattern:** The `run_shell` and `run_tests` descriptions are included in the model context on every turn, but contain substantial setup and environment detail alongside the constraints needed to use them. This is repeated input-token cost in both the highest-cost tasks (`terminal-write-compressor`, `sphinx-doc__sphinx-10323`) and the low-cost contrast (`aider-javascript-alphametics`).\n- **Exact edit:** Reworded only the `run_shell` and `run_tests` strings in `profile.json` to shorten repeated wording while retaining sandbox boundaries, editing/temporary-file guidance, disposable test execution, supported test runners, and the rule that ad-hoc shell checks are not verification.\n- **Risk:** A shorter description may omit a useful operational detail and cause tool misuse, especially around persistent dependencies or test discovery. The essential restrictions and verification requirements are retained; the change does not relax safety or completion requirements.\n",
+    "proposer_cost": 0.400626,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.273443681818182,
+        "seed": 2.19115294004329,
+        "ratio": 1.0375559096177311,
+        "ci90": [
+          0.8088602245456485,
+          1.3267388371514466
+        ]
+      },
+      "requests": {
+        "candidate": 289.0,
+        "seed": 297.3333333333333,
+        "ratio": 0.9719730941704037,
+        "ci90": [
+          0.7886266094420602,
+          1.1803921568627451
+        ]
+      },
+      "passed": {
+        "candidate": 23.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 23.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
+  },
+  {
+    "name": "g2b",
+    "base": "evolve-s0",
+    "summary": "# Profile Proposal\n\n## Edit: diagnose failed commands before retrying\n\n- **Pattern:** In `terminal-write-compressor`, the agent iterates through command-driven attempts after failures, with changes and retries before the prior diagnostic is consistently used to narrow the cause. In `sphinx-doc__sphinx-10323`, the agent begins by committing to a behavioral explanation and broad investigation before it has established the concrete failure conditions. This wording targets evidence-driven recovery; it does not discourage required verification.\n- **Task ids:** `terminal-write-compressor`, `sphinx-doc__sphinx-10323`.\n- **Exact edit:** In `profile.json`'s `policy`, appended: `After a failed command, use its diagnostic to identify the cause before changing code or rerunning it.`\n- **Risk:** A diagnostic can be incomplete or misleading, so this could delay a necessary exploratory retry. It does not prohibit retries or weaken the requirement to verify changes and report actual results.\n",
+    "proposer_cost": 0.200293,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.5128311875,
+        "seed": 2.19115294004329,
+        "ratio": 1.146807756582411,
+        "ci90": [
+          0.9565458406191513,
+          1.3068699224633322
+        ]
+      },
+      "requests": {
+        "candidate": 317.0,
+        "seed": 297.3333333333333,
+        "ratio": 1.0661434977578477,
+        "ci90": [
+          0.9196326061997704,
+          1.193954659949622
+        ]
+      },
+      "passed": {
+        "candidate": 23.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 23.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
   }
 ]

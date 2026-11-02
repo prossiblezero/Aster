@@ -1,0 +1,27 @@
+{
+  "name": "g2a",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 0,
+  "seconds": 175.0,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 38,
+  "proposer_cost": 0.400626,
+  "characters": {
+    "base": 3746,
+    "new": 3283
+  },
+  "leaks": [],
+  "commit": "724f14841312aa9a4660d9312b55ac84f37bb77e",
+  "tests": ".............                                                            [100%]\n13 passed in 0.48s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile Proposal\n\n## Edit: compact default command-tool descriptions\n\n- **Pattern:** The `run_shell` and `run_tests` descriptions are included in the model context on every turn, but contain substantial setup and environment detail alongside the constraints needed to use them. This is repeated input-token cost in both the highest-cost tasks (`terminal-write-compressor`, `sphinx-doc__sphinx-10323`) and the low-cost contrast (`aider-javascript-alphametics`).\n- **Exact edit:** Reworded only the `run_shell` and `run_tests` strings in `profile.json` to shorten repeated wording while retaining sandbox boundaries, editing/temporary-file guidance, disposable test execution, supported test runners, and the rule that ad-hoc shell checks are not verification.\n- **Risk:** A shorter description may omit a useful operational detail and cause tool misuse, especially around persistent dependencies or test discovery. The essential restrictions and verification requirements are retained; the change does not relax safety or completion requirements.\n"
+}

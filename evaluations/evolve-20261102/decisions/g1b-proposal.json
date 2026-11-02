@@ -1,0 +1,27 @@
+{
+  "name": "g1b",
+  "base": "evolve-s0",
+  "runs": [
+    "evo-seed-r1",
+    "evo-seed-r2",
+    "evo-seed-r3"
+  ],
+  "exit_code": 1,
+  "seconds": 140.7,
+  "changed": [
+    "profile.json",
+    "proposal.md"
+  ],
+  "problems": [],
+  "proposer_requests": 40,
+  "proposer_cost": 0.368724,
+  "characters": {
+    "base": 3746,
+    "new": 3831
+  },
+  "leaks": [],
+  "commit": "98b206835bde1da3a638b0db333cf1256938b077",
+  "tests": ".............                                                            [100%]\n13 passed in 0.99s\n",
+  "accepted_for_evaluation": true,
+  "proposal": "# Profile Proposal\n\n## Edit 1: Avoid redundant test reruns\n\n- Pattern: After tests passed, the agent reran an identical full suite following a cleanup-only change that did not affect behavior.\n- Task ids: `aider-cpp-diamond` (evo-seed-r1); `aider-javascript-alphametics` (evo-seed-r1).\n- Exact edit: Appended to the `run_tests` description: “After a passing run, rerun only if behavior-affecting code or configuration changed.”\n- Risk: A seemingly cosmetic change could affect behavior or compilation, so the agent might incorrectly skip necessary verification. The qualifier limits this to changes not affecting behavior; the general requirements to verify and report actual results remain unchanged.\n"
+}
