@@ -1,0 +1,92 @@
+[
+  {
+    "name": "g1a",
+    "base": "evolve-s0",
+    "summary": "# Profile proposal\n\n## Edit 1: Prefer targeted discovery when a location is known\n\n- Pattern: Whole-workspace listings produced large, mostly irrelevant outputs even though the task named the affected component or symbol; a targeted search was already issued alongside the listing.\n- Task ids: `sphinx-doc__sphinx-10323` (evo-seed-r1 and evo-seed-r2), `matplotlib__matplotlib-25960` (evo-seed-r1).\n- Exact edit: Added to `main_policy`: “When a component or symbol is named, search it directly instead of listing the whole workspace.”\n- Risk: For tasks where the named term is ambiguous or not present, an early targeted search may miss useful context. The existing instruction to broaden discovery when there is a gap remains, so full discovery is still available when needed.\n",
+    "proposer_cost": 0.280494,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.33494525,
+        "seed": 2.19115294004329,
+        "ratio": 1.0656240408092506,
+        "ci90": [
+          0.9248359546692787,
+          1.208358309427941
+        ]
+      },
+      "requests": {
+        "candidate": 323.0,
+        "seed": 297.3333333333333,
+        "ratio": 1.086322869955157,
+        "ci90": [
+          0.9431137724550899,
+          1.237417943107221
+        ]
+      },
+      "passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 24.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
+  },
+  {
+    "name": "g1b",
+    "base": "evolve-s0",
+    "summary": "# Profile Proposal\n\n## Edit 1: Avoid redundant test reruns\n\n- Pattern: After tests passed, the agent reran an identical full suite following a cleanup-only change that did not affect behavior.\n- Task ids: `aider-cpp-diamond` (evo-seed-r1); `aider-javascript-alphametics` (evo-seed-r1).\n- Exact edit: Appended to the `run_tests` description: “After a passing run, rerun only if behavior-affecting code or configuration changed.”\n- Risk: A seemingly cosmetic change could affect behavior or compilation, so the agent might incorrectly skip necessary verification. The qualifier limits this to changes not affecting behavior; the general requirements to verify and report actual results remain unchanged.\n",
+    "proposer_cost": 0.368724,
+    "guard_problems": [],
+    "screen": {
+      "cost": {
+        "candidate": 2.4165826666666668,
+        "seed": 2.19115294004329,
+        "ratio": 1.1028817854306978,
+        "ci90": [
+          0.9417978071727945,
+          1.2566774992106249
+        ]
+      },
+      "requests": {
+        "candidate": 320.0,
+        "seed": 297.3333333333333,
+        "ratio": 1.0762331838565022,
+        "ci90": [
+          0.9498567335243553,
+          1.1981424148606812
+        ]
+      },
+      "passed": {
+        "candidate": 22.0,
+        "seed": 23.666666666666668
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 22.0,
+        "seed": 23.666666666666668
+      },
+      "checks": {
+        "cost_below_noise": false,
+        "passes_not_lower_by_more_than_1": false,
+        "normal_delivery_not_lower_by_more_than_1": false,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false,
+      "tasks": 29,
+      "threshold": 0.8887691604481424
+    },
+    "decision": "rejected at screen"
+  }
+]

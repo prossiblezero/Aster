@@ -17,37 +17,18 @@
 
 - 分支 `exp/evolve-20261101`。已有标签：`evolve-base`、`evolve-plan`、`evolve-s0`（文本层抽到 `src/aster/context/profile.json`）、`evolve-protocol`、`evolve-s1`（fresh30c 冻结，30 题）、`evolve-s2`（种子三次运行与噪声门槛）、`evolve-s3`。
 - 种子在开发集 fresh30b 上跑了三次：`evo-seed-r1`、`evo-seed-r2`、`evo-seed-r3`。结果为通过 24、24、25，成本 2.24、2.28、2.24 美元等价。噪声门槛：成本比低于 0.889 才算有效（`evaluations/evolve-20261102/decisions/seed-null.json`）。
-- 第 1 代已由 Claude 启动，命令是 `generation.py 1`。两个提议已生成并打了标签 `evolve-g1a`、`evolve-g1b`：
-  - g1a：题目点名组件或符号时直接检索，不列整个工作区。
-  - g1b：测试通过后，只有行为相关的改动才重跑测试。
-  交接时两者的开发集初筛运行 `evo-g1a-r1`、`evo-g1b-r1` 只完成了 3/30 题。
+- 第 1 代已完成并提交，标签 `evolve-gen1`。两个候选都在初筛被拒，基底仍是 `evolve-s0`：
+  - g1a（题目点名组件或符号时直接检索）：成本比 1.066，90% 置信区间 [0.925, 1.208]；通过 24 题，种子均值 23.67。
+  - g1b（测试通过后只有行为相关改动才重跑）：成本比 1.103 [0.942, 1.257]；通过 22 题，种子均值 23.67。
 - `generation.py` 在交接前改成了可续跑：已有 `report.json` 的提议直接复用，不重新采样；已准备的运行会清理掉半完成的题目、残留的网关套接字、中继容器和网络，然后续跑。这个改动和本文件已提交，标签 `evolve-handoff`。
 
 ## 执行步骤
 
 所有命令都在 `/home/dzh/Aster` 下执行。
 
-### 1. 收尾第 1 代
+### 1. 第 1 代已完成
 
-先看第 1 代是否还在运行：
-
-```bash
-ps aux | grep "[g]eneration.py 1"
-```
-
-- **仍在运行**：等它自己结束。不要并行启动别的评测，全机同时最多 6 题。结束后，`/tmp/evolve-s0/gen1.log` 的最后一行是 JSON，里面有 `next_base` 和 `next_base_runs`。
-- **已不在运行，但最后一行没有 `next_base`**：说明中断了。用原命令续跑，输出改写到不会被清理的位置：
-
-```bash
-cd evaluations/evolve-20261102
-/home/dzh/.conda/envs/aster/bin/python generation.py 1 --base evolve-s0 \
-  --base-runs evo-seed-r1 evo-seed-r2 evo-seed-r3 \
-  --seeds evo-seed-r1 evo-seed-r2 evo-seed-r3 \
-  > ../../artifacts/private/evolve-20261102/gen1.out 2>&1
-tail -1 ../../artifacts/private/evolve-20261102/gen1.out
-```
-
-续跑前，先用 `python3 -c "import json;print(json.load(open('artifacts/private/evolve-20261102/log.json'))[-1])"` 确认第 1 代还没有写入 log.json。如果已经写入，说明第 1 代已完成，不要重跑。
+不需要任何操作。第 2 代的参数为 `--base evolve-s0 --base-runs evo-seed-r1 evo-seed-r2 evo-seed-r3`。先确认 `ps aux | grep "[g]eneration.py"` 没有输出，再开始第 2 代。
 
 ### 2. 第 2 至 4 代
 
