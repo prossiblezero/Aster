@@ -1,0 +1,36 @@
+{
+  "offline_check": "python evaluations/evolve-v2-20261104/check_tools.py",
+  "offline_passed": true,
+  "chat_trace_tasks_checked": 12,
+  "compile_passed": true,
+  "smoke": {
+    "name": "smoke-p1",
+    "accepted_for_evaluation": true,
+    "requests": 51,
+    "gpt_equivalent": 0.611441,
+    "tests_passed": 17,
+    "scored": false
+  },
+  "review": {
+    "specialists": [
+      "security",
+      "contracts"
+    ],
+    "adversarial": [
+      "assumptions",
+      "composition",
+      "cascade",
+      "abuse"
+    ],
+    "fixed": [
+      "batch reservation prohibits mixing old and new arms",
+      "manifest task universe counts results missing in all arms",
+      "fixed noise orientation rejects reversed inputs",
+      "undefined zero-cost bootstrap explicitly unavailable"
+    ],
+    "regressions": "common-missing tasks failed before fix; mixed-arm old path launched processes; fixed offline regressions pass",
+    "final_abuse_pass": "no verified findings",
+    "unresolved_findings": []
+  },
+  "cost_check": "known-token arithmetic passed"
+}
