@@ -25,6 +25,10 @@ def test_profile_covers_core_tools_and_renders_after_fixed_preamble():
     lambda p: p["tools"].pop("read_file"),
     lambda p: p["tools"].update(memory_store="widen"),
     lambda p: p["tools"].update(run_shell="x" * (profile.TOOL_CHARACTERS + 1)),
+    lambda p: p["control"].pop("missing_prefix"),
+    lambda p: p["control"].update(extra="x"),
+    lambda p: p["control"].update(run_final_tests=""),
+    lambda p: p["control"].update(run_final_tests="x" * (profile.CONTROL_CHARACTERS + 1)),
 ])
 def test_invalid_profiles_are_rejected(tmp_path, change):
     data = json.loads(profile.PROFILE_PATH.read_text())

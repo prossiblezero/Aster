@@ -18,11 +18,16 @@ EDITABLE_TOOLS = frozenset({
 })
 POLICY_CHARACTERS = 4000
 TOOL_CHARACTERS = 1500
+CONTROL_KEYS = frozenset({
+    "missing_prefix", "rerun_failures", "preexisting_failures", "run_final_tests",
+    "pending_failing", "pending_passing",
+})
+CONTROL_CHARACTERS = 600
 
 
 def validate(profile):
-    if not isinstance(profile, dict) or set(profile) != {"version", "policy", "main_policy", "tools"}:
-        raise ValueError("profile needs exactly version, policy, main_policy and tools")
+    if not isinstance(profile, dict) or set(profile) != {"version", "policy", "main_policy", "tools", "control"}:
+        raise ValueError("profile needs exactly version, policy, main_policy, tools and control")
     if profile["version"] != 1:
         raise ValueError("unsupported profile version")
     for key in ("policy", "main_policy"):
@@ -35,6 +40,12 @@ def validate(profile):
     for name, text in tools.items():
         if not isinstance(text, str) or not text.strip() or len(text) > TOOL_CHARACTERS:
             raise ValueError(f"{name} description must be non-empty text of at most {TOOL_CHARACTERS} characters")
+    control = profile["control"]
+    if not isinstance(control, dict) or set(control) != CONTROL_KEYS:
+        raise ValueError("control must contain exactly: " + ", ".join(sorted(CONTROL_KEYS)))
+    for name, text in control.items():
+        if not isinstance(text, str) or not text.strip() or len(text) > CONTROL_CHARACTERS:
+            raise ValueError(f"{name} must be non-empty text of at most {CONTROL_CHARACTERS} characters")
     return profile
 
 

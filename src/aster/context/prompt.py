@@ -154,10 +154,9 @@ def workflow_state(state):
     pending = []
     if state.task.require_verification and state.changed_paths:
         if state.verification_failures:
-            pending.append(f"{len(state.verification_failures)} failing test(s) from run_tests must pass "
-                           "or be shown to fail identically on the original files")
+            pending.append(str(len(state.verification_failures)) + PROFILE["control"]["pending_failing"])
         elif state.verification.state != "passed":
-            pending.append("passing tests on the final code (run_tests or a test command in run_shell)")
+            pending.append(PROFILE["control"]["pending_passing"])
     if pending:
         workflow["before_final_answer"] = pending
     turns_left = max(0, state.task.max_turns - state.turn)

@@ -6,6 +6,7 @@ import hashlib
 import json
 from collections import deque
 
+from ..context.profile import PROFILE
 from ..schema import Outcome, RunState, ToolCall
 
 
@@ -62,19 +63,15 @@ def completion_feedback(state: RunState, accepted: dict[str, str] | None = None)
             missing.append(
                 "resolve previously failing tests: "
                 + "; ".join(f"{test} (from {command})" for test, command in pending)
-                + ". Rerun those cases after fixing them; passing a different selection does not "
-                "resolve them. Report remaining failures honestly"
+                + PROFILE["control"]["rerun_failures"]
             )
         if identical:
             missing.append(
                 "decide about tests that fail with the same error on the original files: "
                 + "; ".join(identical[:3])
-                + ". If the task requires one of them, fix it; otherwise finish again and list them "
-                "as pre-existing and unverified" + ("" if state.changed_paths else " after making the requested change")
+                + PROFILE["control"]["preexisting_failures"]
+                + ("" if state.changed_paths else " after making the requested change")
             )
     elif task.require_verification and state.verification.state != "passed" and not accepted:
-        missing.append(
-            "run the relevant tests on the final code (run_tests, or a test command in run_shell; "
-            "other shell checks are not verification)"
-        )
-    return "Completion requirements missing: " + ", ".join(missing) if missing else ""
+        missing.append(PROFILE["control"]["run_final_tests"])
+    return PROFILE["control"]["missing_prefix"] + ", ".join(missing) if missing else ""
