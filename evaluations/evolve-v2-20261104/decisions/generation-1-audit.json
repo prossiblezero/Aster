@@ -1,0 +1,142 @@
+{
+  "timing": "Audited while the paired evaluation was running, before results/selection.",
+  "g1a": {
+    "changes": [
+      "patch_file freshness wording",
+      "run_tests syntax and 120-second limit",
+      "run_shell environment exploration"
+    ],
+    "evidence": {
+      "patch_freshness": {
+        "evo2-seed-b/pydata__xarray-3677": [
+          335,
+          336,
+          338
+        ],
+        "evo2-seed-b/scikit-learn__scikit-learn-12973": [
+          420,
+          421
+        ],
+        "evo2-seed-a/astropy__astropy-14182": [
+          106,
+          107
+        ]
+      },
+      "unsupported_test_commands": {
+        "evo2-seed-a/astropy__astropy-13579": [
+          133,
+          134
+        ],
+        "evo2-seed-a/pytest-dev__pytest-10356": [
+          188,
+          189
+        ],
+        "evo2-seed-a/psf__requests-2931": [
+          293,
+          294
+        ]
+      },
+      "outside_search": {
+        "evo2-seed-a/sphinx-doc__sphinx-11510": [
+          143,
+          144
+        ],
+        "evo2-seed-a/astropy__astropy-14182": [
+          133,
+          134
+        ],
+        "evo2-seed-a/psf__requests-2931": [
+          138,
+          139,
+          144,
+          145
+        ]
+      }
+    },
+    "assessment": "Each edit has at least three distinct tasks showing its stated failure class.",
+    "qualifications": [
+      "The sympy timeout citation concerns run_shell, not run_tests; both schemas cap timeout at 120.",
+      "do not install packages is broader than the demonstrated failed network/cache searches and conflicts with the retained reinstall-dependencies guidance.",
+      "The risk paragraph incorrectly treats all shell test commands as non-verification; the profile permits formal test commands in run_shell."
+    ],
+    "verification_and_honesty": "policy, main_policy and all six control strings unchanged; real test verification and honest results reporting retained."
+  },
+  "g1b": {
+    "changes": [
+      "run_shell git and per-call scratch facts",
+      "search literal/regex default",
+      "preexisting_failures and pending_failing control strings"
+    ],
+    "evidence": {
+      "scratch_loss": {
+        "evo2-seed-a/pylint-dev__pylint-7277": [
+          246,
+          253,
+          262
+        ],
+        "evo2-seed-a/pylint-dev__pylint-8898": [
+          513,
+          567,
+          569
+        ],
+        "evo2-seed-a/psf__requests-2931": [
+          299,
+          300
+        ]
+      },
+      "literal_search": {
+        "evo2-seed-a/django__django-11400": [
+          68,
+          90,
+          96
+        ],
+        "evo2-seed-a/scikit-learn__scikit-learn-25102": [
+          158,
+          159,
+          187,
+          188
+        ],
+        "evo2-seed-a/sphinx-doc__sphinx-9230": [
+          153,
+          155
+        ]
+      },
+      "preexisting_feedback": {
+        "evo2-seed-a/pylint-dev__pylint-7277": [
+          241,
+          245,
+          246,
+          262
+        ],
+        "evo2-seed-a/pylint-dev__pylint-8898": [
+          508,
+          513,
+          569
+        ],
+        "evo2-seed-a/astropy__astropy-13579": [
+          458,
+          463,
+          467
+        ],
+        "evo2-seed-a/matplotlib__matplotlib-26342": [
+          556,
+          558,
+          562,
+          572
+        ]
+      }
+    },
+    "assessment": "Three-task evidence exists for scratch/search patterns and extra work after preexisting-failure feedback. Search schema confirms regex defaults false.",
+    "qualifications": [
+      "The astropy tests at lines 405/421 precede the line-458 feedback, so they cannot be consequences of it; line 463 is a post-feedback rerun.",
+      "A failed git checkout does not itself establish loss of a patch; that causal wording is stronger than the shown fatal-git output.",
+      "A no-match search is one tool call; where other calls share the same turn, it does not by itself establish one avoidable model request."
+    ],
+    "verification_and_honesty": "Control still requires passing tests or proof of identical failure on original files plus named preexisting/unverified disclosure, and fixing failures required by the task. Runtime branches and dynamic fields are unchanged. No textual relaxation of verification/honesty found."
+  },
+  "shared_notes": [
+    "Proposals report serialized-file growth; automatic guard measures only string values.",
+    "Visible trajectories are rendered/truncated reconstructions; proposer claims of full traces refer to these rendered files."
+  ],
+  "selection_rules_changed": false
+}
