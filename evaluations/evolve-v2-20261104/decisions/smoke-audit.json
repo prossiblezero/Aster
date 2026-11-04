@@ -1,0 +1,102 @@
+{
+  "candidate": "smoke-p1",
+  "scored": false,
+  "source": "fin-old20-ds-v15",
+  "score_card": {
+    "tasks": 12,
+    "passed": 8,
+    "requests": 422
+  },
+  "edits": [
+    {
+      "field": "tools.run_shell",
+      "claim": "git commands fail in sandbox and break && chains",
+      "verified_evidence": {
+        "django__django-17029": [
+          28,
+          31,
+          129
+        ],
+        "psf__requests-2931": [
+          30
+        ],
+        "sphinx-doc__sphinx-11510": [
+          642,
+          644
+        ]
+      },
+      "assessment": "directly supported"
+    },
+    {
+      "field": "tools.run_shell",
+      "claim": "scratch files disappear between calls; shell-only reads do not satisfy patch freshness",
+      "verified_evidence": {
+        "pytest-dev__pytest-10356": [
+          124,
+          155,
+          157,
+          163
+        ],
+        "pytest-dev__pytest-7571": [
+          469,
+          479
+        ],
+        "sphinx-doc__sphinx-11510": [
+          150,
+          155,
+          160,
+          166
+        ],
+        "django__django-11400": [
+          306,
+          307,
+          312
+        ],
+        "sympy__sympy-17630": [
+          554,
+          555,
+          560
+        ],
+        "psf__requests-5414": [
+          433,
+          434,
+          439
+        ]
+      },
+      "assessment": "missing scratch files directly shown in two tasks; third shows repeated variant creation, not independently the same cause. Fresh-read rejection directly shown in three tasks."
+    },
+    {
+      "field": "policy",
+      "claim": "avoid searching for pristine/upstream copies outside the workspace",
+      "verified_evidence": {
+        "pytest-dev__pytest-7571": [
+          327,
+          328,
+          386,
+          389,
+          394,
+          396
+        ],
+        "sphinx-doc__sphinx-11510": [
+          303,
+          304,
+          533,
+          535
+        ],
+        "sympy__sympy-17630": [
+          345,
+          346
+        ]
+      },
+      "assessment": "three tasks show empty searches or failed fetches; traces support observed wasted calls, not the universal assertion that no pristine copy exists anywhere."
+    }
+  ],
+  "verification_and_honesty": "main_policy, run_tests and six control values unchanged; policy retains verify-after-editing and honest reporting; run_shell retains formal test verification.",
+  "proposal_inaccuracies": [
+    "Opening says 20 tasks / 17 passed; actual visible scores are 12 / 8.",
+    "Proposal file-length growth 8.3% differs from guard string-value growth 9.33%; guard used 4310 to 4712.",
+    "Rendered traces aggregate or truncate calls; turn-waste totals are proposer estimates, not measured savings.",
+    "Claim that shell tests cannot register verification is too broad; seed run_shell description explicitly permits formal verification."
+  ],
+  "impact": "Unscored smoke demonstrates tool operation; these claims do not supply efficacy evidence or a selected candidate."
+}
