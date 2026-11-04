@@ -182,5 +182,189 @@
       "accepted": false
     },
     "decision": "rejected at paired evaluation"
+  },
+  {
+    "name": "g2a",
+    "base": "evolve2-g1a",
+    "summary": "# Profile proposal\n\nProfile size: 5228 -> 5464 characters (+4.5%, cap is +15%). Same keys, only string values changed.\nEdits 1 and 2 both land inside the `run_shell` description (one replacement), because the\nmisleading clause and the ineffective clause are adjacent.\n\n## High-request tasks inspected (mean model requests, from scores.md)\n\n| task | mean requests | outcome |\n| --- | --- | --- |\n| pytest-dev__pytest-10356 | 79 | failed |\n| sphinx-doc__sphinx-11510 | 73 | failed |\n| scikit-learn__scikit-learn-25102 | 65 | passed |\n| sympy__sympy-17630 | 62 | passed |\n| pylint-dev__pylint-8898 | 62 | timed out |\n\nCheap tasks read for contrast: pydata__xarray-7233 (11), django__django-17029 (13),\nmatplotlib__matplotlib-26291 (16).\n\n---\n\n## Edit 1 - stop assuming the workspace is a git checkout\n\n**Pattern.** The `run_shell` text advertised \"workspace metadata such as .git is excluded\", which\nreads as \"there is a .git here that you cannot touch\". The agent therefore opens most tasks with\n`git status && git log --oneline -3`, gets `fatal: not a git repository`, and loses that request -\nsometimes the whole command, including a chained `&& ls`, so orientation has to be redone.\n\n**Evidence (17 of 20 traces contain a failed git call; turn 1 in 13 of them).**\n- pydata__xarray-7233, turn 1: `git status && git log --oneline -3 && ls` -> `fatal: not a git\n  repository`. Whole run is 11 requests, so this is ~9% of its budget.\n- matplotlib__matplotlib-26291, turn 1: same chained form; the trailing `ls` never ran and the\n  next turn had to re-list the tree.\n- astropy__astropy-14182, turn 1: git probe issued in parallel with the first `search`.\n- django__django-17029, turn 1 (and django__django-11400, turn 1, which additionally ran\n  `find / -maxdepth 3 -name .git -type d`) - the error is what pushed it to hunt for a repo.\n- Later repeats: pylint-dev__pylint-7277 turn 4, sphinx-doc__sphinx-11510 turn 14,\n  scikit-learn__scikit-learn-25102 turn 23.\n\n**Exact edit** (`tools.run_shell`, first sentence):\n- old: `Run a bounded sandbox command; workspace metadata such as .git is excluded.`\n- new: `Run a bounded sandbox command in the workspace, which is a plain snapshot and not a git\n  checkout: git log, git status, git branch and git show fail, so read the current files and use\n  git_diff for your own changes.`\n\n**Risk.** If some evaluation workspace does have a populated `.git`, the wording talks the agent\nout of a legitimate shortcut (history archaeology). Mitigation: the sentence still names\n`git_diff` for change review, which is the tool the harness actually provides; the loss is\nbounded to one probe per task, which is what the traces show being wasted anyway.\n\n## Edit 2 - stop hunting the machine for a reference copy or upstream fix\n\n**Pattern.** The remaining clause (\"do not install packages or search outside it for alternate\ninterpreters, packages, or caches\") is read narrowly, as \"no installs and no reading Python\nenvs\". The agent still spends whole stretches of turns running `find /` for a second copy of the\nfile under repair, `ls`-surveying system and cache directories, looking for `.whl` files or a\nharness/benchmark artifact, and even `curl`-ing the upstream source. These probes never yield a\nusable artifact and are the single largest sink measured.\n\n**Evidence (13 traces, each with at least one filesystem-wide or out-of-workspace hunt).**\n- pylint-dev__pylint-8898: ~18 such calls (home-dir env surveys, `grep -rl` over a home tree,\n  wheel/`*.pth` hunts) consuming roughly turns 1-29 of a run that then hit the 900 s timeout at\n  62 requests.\n- scikit-learn__scikit-learn-25102: `for d in /var/cache /var/lib /usr/local ...; do ls -la`,\n  `find / -iname '*swe*bench*'`, and a pruned `find /` for `scikit_learn*.whl`.\n- matplotlib__matplotlib-26342: `find / -name \"contour.py\" -not -path \"/testbed/*\"`, then a\n  site-packages listing plus `find / -name \"*.whl\"`.\n- pylint-dev__pylint-7277: `pip cache list`, `find /root /home /opt/miniconda3/pkgs`, and\n  `curl -L https://raw.githubusercontent.com/...` (network is blocked).\n- django__django-11400: two `find /` sweeps for other copies of the touched modules;\n  psf__requests-2931: four probes of an installed copy; pydata__xarray-3677: three.\n\n**Exact edit** (`tools.run_shell`, second sentence):\n- old: `Only the workspace is writable and the network is blocked: do not install packages or\n  search outside it for alternate interpreters, packages, or caches.`\n- new: `Only the workspace is writable and the network is blocked, and nothing useful sits\n  elsewhere on the machine: package installs, pip and conda caches, home and system directories,\n  and filesystem-wide find or grep turn up no other copy, wheel or upstream fix, and downloads\n  fail, so do not hunt for one.`\n\n**Risk.** A few of these probes were arguably legitimate (comparing against an installed version\nof the library). The new text discourages that too, so an agent may reason only from the\nworkspace sources. Nothing here touches verification, reporting, or the ban on installs, and the\nwording deliberately says what those searches *return* rather than forbidding the tools.\n\n## Edit 3 - pre-existing unrelated failures: declare, do not re-prove\n\n**Pattern.** When a task's selection contains a test that already fails on the original files,\nthe checker re-prompts for a decision. The model's first final answer says things like\n\"pre-existing and unrelated\" (not \"unverified\"), which does not satisfy the check, and its idea\nof responding is to copy the tree, revert its own fix, or re-run the failing test - several\nrequests per occurrence, and briefly leaves the implementation reverted.\n\n**Evidence (4 traces).**\n- pytest-dev__pytest-7571: after a final answer that said \"pre-existing and unrelated\", turns\n  22-24 did `tar`-copy the tree into `.tmp/orig`, un-patched the copy, re-ran the failing test,\n  re-ran a passing selection, then finished: 3 requests to restate one sentence.\n- matplotlib__matplotlib-26342: turns 30-34 reverted the new methods to \"confirm\" the unrelated\n  failure, then had to restore them, then re-ran the suite and still needed a second final\n  answer that used the exact phrase.\n- pylint-dev__pylint-7277: turn 29 enumerated the eight unrelated environment failures;\n  the re-prompt cost one extra request to restate them as \"pre-existing and unverified\".\n- sphinx-doc__sphinx-11510: turn 30 re-ran 612 tests, turn 31 re-ran the one unrelated failing\n  test, then an extra final answer round.\n\n**Exact edit** (`control.preexisting_failures`):\n- old: `. If the task requires one of them, fix it; otherwise finish again and list them as\n  pre-existing and unverified`\n- new: `. If the task requires one of them, fix it; otherwise finish now and state that each is\n  pre-existing and unverified, without reverting your edits or copying the tree to prove it`\n\n**Risk.** The prompt now names the required phrase, so an agent could satisfy it without having\nactually checked that the failure is unrelated. That check is still performed by the harness,\nwhich is what classifies the tests as pre-existing before this string is shown, and the phrasing\nkeeps the honesty obligation (\"state that each is pre-existing and unverified\"). Retained\nuntouched: `pending_failing`, `rerun_failures`, `run_final_tests` and the policy lines requiring\nverification of the change and honest reporting of actual results.\n\n---\n\n## Not changed (considered, evidence too thin for the >=3 task bar)\n\n- `run_tests` native-runner path: `test_runner_unavailable` then a `run_shell` native test run\n  that the completion check refuses, costing one extra round in sympy__sympy-17630 and\n  sympy__sympy-23262 - only 2 tasks.\n- `read_file` returning an empty result for a range past end of file (misread as an empty file,\n  retried): sympy__sympy-17630 only.\n- Blocked `patch_file` on files only viewed with `sed`/`cat`: 7 traces, but the description\n  already states the rule in plain terms.\n",
+    "proposer_cost": 0.691554,
+    "guard_problems": [],
+    "paired": {
+      "name": "g2a-paired",
+      "candidate_runs": [
+        "evo2-g2a"
+      ],
+      "seed_runs": [
+        "evo2-g2-seed"
+      ],
+      "tasks": 20,
+      "task_ids": [
+        "astropy__astropy-13579",
+        "astropy__astropy-14182",
+        "django__django-11400",
+        "django__django-17029",
+        "matplotlib__matplotlib-26291",
+        "matplotlib__matplotlib-26342",
+        "psf__requests-2931",
+        "psf__requests-5414",
+        "pydata__xarray-3677",
+        "pydata__xarray-7233",
+        "pylint-dev__pylint-7277",
+        "pylint-dev__pylint-8898",
+        "pytest-dev__pytest-10356",
+        "pytest-dev__pytest-7571",
+        "scikit-learn__scikit-learn-12973",
+        "scikit-learn__scikit-learn-25102",
+        "sphinx-doc__sphinx-11510",
+        "sphinx-doc__sphinx-9230",
+        "sympy__sympy-17630",
+        "sympy__sympy-23262"
+      ],
+      "dropped": [],
+      "drop_reasons": {},
+      "bootstrap": 4000,
+      "stop": false,
+      "requests": {
+        "candidate": 732.0,
+        "seed": 740.0,
+        "ci90": [
+          0.8497340425531915,
+          1.179297597042514
+        ],
+        "ratio": 0.9891891891891892
+      },
+      "cost": {
+        "candidate": 8.1759425,
+        "seed": 7.5212785,
+        "ci90": [
+          0.9147247412162013,
+          1.3048405598739223
+        ],
+        "ratio": 1.0870415847518475
+      },
+      "passed": {
+        "candidate": 16.0,
+        "seed": 16.0,
+        "ci90": [
+          -2.0,
+          2.0
+        ],
+        "difference": 0.0
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 15.0,
+        "seed": 15.0,
+        "ci90": [
+          -2.0,
+          2.0
+        ],
+        "difference": 0.0
+      },
+      "completed_with_warning": {
+        "candidate": 0,
+        "seed": 0
+      },
+      "threshold": 0.9558676028084253,
+      "checks": {
+        "requests_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false
+    },
+    "decision": "rejected at paired evaluation"
+  },
+  {
+    "name": "g2b",
+    "base": "evolve2-g1a",
+    "summary": "# Profile proposal\n\nProfile size: 5142 -> 5588 characters (+8.7%, cap +15%). Same keys; only string values changed.\nAll three edits are inside existing tool descriptions; `policy`, `main_policy` and every `control`\nstring are untouched, so the requirements to verify the change, rerun failing cases and report\nactual results are unchanged.\n\n## High-request tasks inspected (mean model requests, from scores.md)\n\n| task | mean requests | outcome |\n| --- | --- | --- |\n| pytest-dev__pytest-10356 | 79 | failed |\n| sphinx-doc__sphinx-11510 | 73 | failed |\n| scikit-learn__scikit-learn-25102 | 65 | passed |\n| sympy__sympy-17630 | 62 | passed |\n| pylint-dev__pylint-8898 | 62 | failed |\n\nCheap tasks read for contrast: pydata__xarray-7233 (11), django__django-17029 (13),\nmatplotlib__matplotlib-26291 (16), psf__requests-5414 (16), sympy__sympy-23262 (21).\n\nRequest counts track tool calls almost one-to-one in every trace (e.g. 79 calls / 62 requests\nfor sympy-17630), so each wasted call below is roughly one request.\n\n---\n\n## Edit 1 - choose a test selection once instead of re-running the same broad set\n\n**Pattern.** The agent alternates between a whole test module/directory and a narrowed `-k`\nselection: it runs the full module, one case fails for an unrelated reason, it re-runs the same\nmodule with a new exclusion, then re-runs it again after the fix, and only at the end selects the\ncases it actually cares about. Identical commands are issued with unchanged code, and every\noscillation is a full request with a large log.\n\n**Evidence (6 tasks).**\n- pytest-dev__pytest-10356: identical `python -m pytest testing/test_mark.py -q` at turns 2, 5 and\n  22; turn 16 is the same file plus `-k 'not <case>'`; turn 26 finally runs two targeted node ids.\n  That is three identical full-file runs in a 79-request run that failed.\n- scikit-learn__scikit-learn-25102: broad four-target selections at turns 20, 25, 39, and turns\n  31/34/36 all repeat the same wide selection plus one targeted node id; code changed between\n  some of them, but the selection never narrows.\n- astropy__astropy-14182: full `test_rst.py` at turns 27, 31 and 34, with a four-module widening\n  at turn 32.\n- pytest-dev__pytest-7571: turn 15 single file, 16 whole logging directory, 17 two files, 18 the\n  whole directory again with a deselect, 23 the single file again - five runs with no stable\n  selection.\n- matplotlib__matplotlib-26342: turn 29 and turn 34 are byte-identical `-k \"not deprecated_apis\"`\n  runs; turn 16 is the full file in between.\n- sphinx-doc__sphinx-11510: turn 30 re-runs a seven-file set that includes the already-known\n  unrelated latex failure, turn 31 then runs the single failing case.\n\nCheap tasks show the intended behavior: psf__requests-5414, pydata__xarray-3677 and\ndjango__django-17029 each pick affected test cases first and run a container at most once.\n\n**Exact edit** (`tools.run_tests`, inserted after `timeout is seconds, max 120.`):\n> Pick the narrowest selection that exercises the change (node ids or -k), widen to the\n> containing module or directory once after it passes, and do not re-run an unchanged selection\n> or widen it just to chase failures unrelated to your change.\n\n**Risk.** A narrow-only habit could miss a regression the hidden checks exercise. The wording\nstill requires one run of the containing module/directory after the narrow selection passes, and\n`control.rerun_failures` / `pending_failing` still force every recorded failure to be resolved.\nThe failure-chasing clause only discourages re-running a broad set whose failures were already\nclassified as unrelated; it does not permit ignoring failures caused by the change.\n\n## Edit 2 - say that `search` patterns are literal by default\n\n**Pattern.** `search` uses the `pattern` text literally unless `regex: true` is passed, but the\ndescription only said \"one regex can cover several names\". The agent therefore passes\nalternation like `foo|bar|baz`, gets `[no matches]`, and spends the next request on a literal\nsearch or a `grep` in `run_shell` for the same names. Eight tasks hit this exact failure; the one\ntask that passed `regex: true` every time (sympy__sympy-23262) had no such misses.\n\n**Evidence (8 tasks, all with `[no matches]` on an alternation pattern).**\n- pytest-dev__pytest-7571: turns 1 and 3, `set_level|_force_enable|caplog_handler|...`, twice.\n- pytest-dev__pytest-10356: turn 29, `pytestmark|own_markers|iter_markers`.\n- astropy__astropy-14182: turn 8, `class BasicHeader|class BasicData|def __init__|...`.\n- sympy__sympy-17630: turn 2, `ZeroMatrix|is_ZeroMatrix|class Zero`.\n- psf__requests-2931: turn 3, `binary|_encode_params|encode\\(.utf-8.\\)|to_native_string`.\n- scikit-learn__scikit-learn-12973: turn 1, `class LassoLarsIC|def fit\\(...|copy_X`.\n- sphinx-doc__sphinx-9230: turn 1, `dict\\(str, str\\)|isinstance|parse_field_body|_parse_field`.\n- pydata__xarray-3677: turn 2 (with `regex: true`, so a genuine miss) and the contrast case that\n  shows the working form.\n\n**Exact edit** (`tools.search`):\n- old: `Case-insensitive line search; one regex can cover several names.`\n- new: `Case-insensitive line search. Patterns are literal unless regex=true; set regex=true to\n  match several names at once or to use any regex syntax.`\n\n**Risk.** Once the flag is on, regex metacharacters such as `.` and `(` change meaning, so a\npattern copied from source could over-match. The cost is a slightly noisy result, not a wrong\nedit, and the text names the flag explicitly rather than forbidding literal searches.\n\n## Edit 3 - scratch files under `.tmp` last only for the current call\n\n**Pattern.** `run_shell` told the agent to \"Use .tmp/ or TMPDIR for temporary files\" while\n`run_tests` said \".tmp files do not survive calls\" - a direct contradiction. The agent creates a\nrepro script or a one-test file under `.tmp` in one call and then tries to run/`ls` it in a later\ncall, which fails, costing one or two requests before it falls back to `python -c` or rewrites the\nscript inline. The same uncertainty shows as cleanup/`ls` probes in another task.\n\n**Evidence (3 tasks with clear waste or repeated doubt).**\n- matplotlib__matplotlib-26291: turn 5 writes `.tmp/repro.py` with `cat` and runs it in the same\n  call (works); turn 12 runs `python .tmp/repro.py` -> `can't open file ... No such file`, then\n  falls back to `python -c`. One request lost in a 16-request run.\n- pytest-dev__pytest-7571: turn 12 creates `.tmp/repro/test_repro.py`; turn 15 `pytest\n  .tmp/repro/test_repro.py` -> `file not found`; turn 16 retries through `pytest.main([\".tmp/...\"])`\n  -> same error; turn 17 rewrites the file with `printf` and runs it in one command. Two requests.\n- astropy__astropy-13579: creates scratch repro files (turn 14 `mkdir -p .tmp` + script) and then\n  spends turns 10 and 20 on `ls .tmp_repro.py .tmp_check2.py` to find out whether they survived,\n  plus a final `rm -rf .tmp/repro` cleanup.\n\n**Exact edit** (`tools.run_shell`):\n- old: `Use .tmp/ or TMPDIR for temporary files.`\n- new: `Use .tmp/ or TMPDIR for scratch files within the current call: they do not survive to the\n  next call, so write and run a repro script in one command, or use python -c.`\n\n**Risk.** If some configuration does persist `.tmp`, the agent will needlessly inline a script\ninstead of reusing it - a cheap, correctness-neutral loss. It cannot weaken verification: the\nrepro is still executed, just in the call that creates it.\n\n---\n\n## Not changed (considered, evidence below the >=3-task bar)\n\n- Blocked `patch_file` after viewing a file with `sed`/`grep` (`fresh_read_required`, 7 traces:\n  astropy-14182, django-17029, psf-requests-2931, pydata-xarray-3677, pytest-10356,\n  sphinx-11510, sphinx-9230). The rule is already stated in both `patch_file` and `write_file`;\n  rewording it again looked unlikely to change the read-then-patch choice.\n- `run_shell` test commands piped through `tail` (pylint-8898 used `run_shell` for every test run\n  and never `run_tests`, so it saw only tails of logs). Present in 2 tasks; would need a policy\n  line, and `run_tests` already says it returns per-test results.\n- Post-patch re-reads of just-edited regions (scikit-25102 turns 28-29 read `_set_output.py`\n  twice after patching; several other traces re-read after edits). This is verification, not\n  waste, so I left it alone.\n",
+    "proposer_cost": 0.941016,
+    "guard_problems": [],
+    "paired": {
+      "name": "g2b-paired",
+      "candidate_runs": [
+        "evo2-g2b"
+      ],
+      "seed_runs": [
+        "evo2-g2-seed"
+      ],
+      "tasks": 20,
+      "task_ids": [
+        "astropy__astropy-13579",
+        "astropy__astropy-14182",
+        "django__django-11400",
+        "django__django-17029",
+        "matplotlib__matplotlib-26291",
+        "matplotlib__matplotlib-26342",
+        "psf__requests-2931",
+        "psf__requests-5414",
+        "pydata__xarray-3677",
+        "pydata__xarray-7233",
+        "pylint-dev__pylint-7277",
+        "pylint-dev__pylint-8898",
+        "pytest-dev__pytest-10356",
+        "pytest-dev__pytest-7571",
+        "scikit-learn__scikit-learn-12973",
+        "scikit-learn__scikit-learn-25102",
+        "sphinx-doc__sphinx-11510",
+        "sphinx-doc__sphinx-9230",
+        "sympy__sympy-17630",
+        "sympy__sympy-23262"
+      ],
+      "dropped": [],
+      "drop_reasons": {},
+      "bootstrap": 4000,
+      "stop": false,
+      "requests": {
+        "candidate": 749.0,
+        "seed": 740.0,
+        "ci90": [
+          0.8907801418439716,
+          1.1486013986013985
+        ],
+        "ratio": 1.0121621621621621
+      },
+      "cost": {
+        "candidate": 7.8504315,
+        "seed": 7.5212785,
+        "ci90": [
+          0.9086883616920387,
+          1.200210410094205
+        ],
+        "ratio": 1.0437629054687976
+      },
+      "passed": {
+        "candidate": 15.0,
+        "seed": 16.0,
+        "ci90": [
+          -4.0,
+          2.0
+        ],
+        "difference": -1.0
+      },
+      "normal_delivery_and_passed": {
+        "candidate": 15.0,
+        "seed": 15.0,
+        "ci90": [
+          -3.0,
+          3.0
+        ],
+        "difference": 0.0
+      },
+      "completed_with_warning": {
+        "candidate": 0,
+        "seed": 0
+      },
+      "threshold": 0.9558676028084253,
+      "checks": {
+        "requests_below_noise": false,
+        "passes_not_lower_by_more_than_1": true,
+        "normal_delivery_not_lower_by_more_than_1": true,
+        "warnings_not_higher_by_more_than_1": true
+      },
+      "accepted": false
+    },
+    "decision": "rejected at paired evaluation"
   }
 ]

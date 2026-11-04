@@ -8,6 +8,9 @@ from common import HELDOUT_POOL, HERE, PUBLIC, REPO, SEED, load, save
 
 
 def leakage(ref):
+    original = subprocess.check_output(
+        ['git', 'show', f'{SEED}:src/aster/context/profile.json'], cwd=REPO, text=True,
+    ).lower()
     diff = subprocess.check_output(
         ['git', 'diff', '--unified=0', SEED, ref, '--', 'src/aster/context/profile.json'],
         cwd=REPO, text=True,
@@ -25,9 +28,11 @@ def leakage(ref):
             names.add(task['id'].split('-', 2)[2])
         if task['id'].startswith('terminal-'):
             names.add(task['id'].removeprefix('terminal-'))
-    hits = sorted(n for n in names if len(n) >= 4
-                  and re.search(r'(?<![a-z0-9])' + re.escape(n.lower()) + r'(?![a-z0-9])', added))
-    return {'base': SEED, 'final': ref, 'checked': 'added profile diff lines',
+    patterns = {n: r'(?<![a-z0-9])' + re.escape(n.lower()) + r'(?![a-z0-9])'
+                for n in names if len(n) >= 4}
+    hits = sorted(n for n, pattern in patterns.items()
+                  if re.search(pattern, added) and not re.search(pattern, original))
+    return {'base': SEED, 'final': ref, 'checked': 'identifiers in added profile lines absent from seed',
             'identifier_count': len(names), 'matches': hits, 'passed': not hits}
 
 

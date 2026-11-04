@@ -1,0 +1,160 @@
+{
+  "timing": "Both candidate audits completed during generation-2 evaluation, before scoring and selection.",
+  "base": "evolve2-g1a",
+  "g2a": {
+    "changes": [
+      "run_shell git snapshot explanation",
+      "run_shell discourages reference-copy searches",
+      "preexisting_failures feedback"
+    ],
+    "evidence": {
+      "failed_git": {
+        "evo2-g1a/pydata__xarray-7233": [
+          77
+        ],
+        "evo2-g1a/matplotlib__matplotlib-26291": [
+          68
+        ],
+        "evo2-g1a/astropy__astropy-14182": [
+          66
+        ]
+      },
+      "outside_searches": {
+        "evo2-g1a/pylint-dev__pylint-8898": [
+          64,
+          65,
+          66,
+          71,
+          72
+        ],
+        "evo2-g1a/scikit-learn__scikit-learn-25102": [
+          96,
+          101,
+          102,
+          182,
+          183
+        ],
+        "evo2-g1a/matplotlib__matplotlib-26342": [
+          195,
+          291,
+          293
+        ]
+      },
+      "preexisting_feedback": {
+        "evo2-g1a/pytest-dev__pytest-7571": [
+          641,
+          646,
+          647,
+          655
+        ],
+        "evo2-g1a/matplotlib__matplotlib-26342": [
+          978,
+          982,
+          984
+        ],
+        "evo2-g1a/pylint-dev__pylint-7277": [
+          693,
+          697,
+          703
+        ],
+        "evo2-g1a/sphinx-doc__sphinx-11510": [
+          642,
+          646,
+          655
+        ]
+      }
+    },
+    "assessment": "17 of 20 rendered traces contain fatal git errors. Each edited pattern has at least three task citations; only pytest in the sampled feedback cases performs the re-check after that specific feedback, while others show an extra final-answer round.",
+    "qualifications": [
+      "Several git calls share turns with useful reads/searches, so one failed tool call is not necessarily one avoidable model request.",
+      "The claim that nothing useful exists elsewhere on the machine is broader than observed failed searches; at least one directory listing returns package names.",
+      "In matplotlib and sphinx, cited reversion/test runs precede the quoted completion feedback; they cannot be consequences of that later message.",
+      "The old control text already required pre-existing and unverified wording; the new addition is the explicit instruction to avoid redundant reversion/copying.",
+      "The harness establishes identical errors on original files, not whether a failing test is required by the task. The conditional instruction to fix task-required failures remains.",
+      "Proposal reports starting file size 5228, but the actual base file has 5142 characters; actual new size is 5464. Guard uses 4689 to 5011 string characters (6.87% growth)."
+    ],
+    "verification_and_honesty": "Main policies, pending-failing proof requirement, rerun-failures and final-tests requirements unchanged. preexisting_failures retains fix-if-required and explicit preexisting/unverified disclosure."
+  },
+  "g2b": {
+    "changes": [
+      "run_tests selection guidance",
+      "search literal/regex default",
+      "run_shell per-call scratch lifetime"
+    ],
+    "evidence": {
+      "repeated_test_selections": {
+        "evo2-g1a/pytest-dev__pytest-10356": [
+          72,
+          97,
+          225,
+          334,
+          375
+        ],
+        "evo2-g1a/astropy__astropy-14182": [
+          742,
+          853,
+          907,
+          933
+        ],
+        "evo2-g1a/scikit-learn__scikit-learn-25102": [
+          176,
+          204,
+          239,
+          264,
+          276,
+          294
+        ]
+      },
+      "literal_regex_misses": {
+        "evo2-g1a/pytest-dev__pytest-7571": [
+          31,
+          35
+        ],
+        "evo2-g1a/astropy__astropy-14182": [
+          288,
+          290
+        ],
+        "evo2-g1a/sympy__sympy-17630": [
+          74,
+          76
+        ],
+        "evo2-g1a/psf__requests-2931": [
+          116,
+          118
+        ],
+        "evo2-g1a/scikit-learn__scikit-learn-12973": [
+          30,
+          34
+        ]
+      },
+      "scratch": {
+        "evo2-g1a/matplotlib__matplotlib-26291": [
+          460,
+          461
+        ],
+        "evo2-g1a/pytest-dev__pytest-7571": [
+          457,
+          496
+        ],
+        "evo2-g1a/astropy__astropy-13579": [
+          96,
+          99,
+          130,
+          148,
+          291,
+          292,
+          293
+        ]
+      }
+    },
+    "assessment": "Repeated selections and literal-regex misses are observed across at least three tasks. Scratch loss is directly shown in two tasks; the third citation concerns intentionally deleted files at workspace root, not loss of files under .tmp/.",
+    "qualifications": [
+      "Several repeated tests follow source/test edits: astropy patches at lines 780/813/917, scikit-learn patches at 252/271, pytest patches at 296/319/350. Repeated commands are not sufficient evidence of redundant verification.",
+      "The proposal lists xarray among eight exact literal-search failures although its cited call sets regex=true; that is a contrast case, not evidence for the claimed failure.",
+      "The third scratch example concerns .tmp_repro.py/.tmp_check2.py at workspace root, explicitly removed by the agent; it does not establish per-call scratch deletion.",
+      "Tool calls and requests are not one-to-one; the proposal itself cites 79 calls versus 62 requests, and some calls are batched."
+    ],
+    "verification_and_honesty": "policy, main_policy and all control strings unchanged; narrow tests must be followed by a wider module/directory run. The phrase do not re-run an unchanged selection is ambiguous about code changes and can discourage necessary re-verification if interpreted literally; the fixed final-test and failing-test gates remain. Honest-reporting requirements remain."
+  },
+  "selection_rules_changed": false
+}

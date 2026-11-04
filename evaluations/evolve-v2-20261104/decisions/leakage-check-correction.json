@@ -1,0 +1,21 @@
+{
+  "timestamp": 1793769586.6461885,
+  "phase": "generation 2 running; before any heldout preparation or requests",
+  "issue": "Full replaced JSON lines falsely flagged seed identifiers as newly added leakage.",
+  "synthetic_before_fix": "Appending Prefer focused tests to a description containing pytest/SymPy incorrectly flagged pytest and sympy.",
+  "fix": "Require the same case-insensitive boundary regex to match an added line and not the seed profile.",
+  "rule_basis": "Only newly introduced text is subject to the final leakage audit; goal stage 5 and PROTOCOL final comparison.",
+  "original_registration_preserved": true,
+  "statistical_rules_changed": false,
+  "proposer_prompt_changed": false,
+  "heldout_data_read": false,
+  "test": "check_leakage.py: fails before fix, passes after; true synthetic task leakage still detected",
+  "independent_review": "v2_contracts confirmed both reproduction and consistency with existing protocol",
+  "old_sha256": {
+    "evaluations/evolve-v2-20261104/final.py": "a68f95f8ba6e1e1e05b48130eef5faf48ea255db715a8537241ee3fc431f4630"
+  },
+  "sha256": {
+    "evaluations/evolve-v2-20261104/final.py": "51f0f589f21b716a9656490c6d5b79789e92fbbf57243efa6ce2755bb3527c59",
+    "evaluations/evolve-v2-20261104/check_leakage.py": "df70e88d9d74fec026b42ed1949bde8a734e9c10059bf151d03b46d5ae70b76d"
+  }
+}
